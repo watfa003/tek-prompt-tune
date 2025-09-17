@@ -21,6 +21,7 @@ import {
   Upload
 } from "lucide-react";
 import { useSettings } from "@/hooks/use-settings";
+import { useThemeSettings } from "@/hooks/use-theme-settings";
 
 export const UserSettings = () => {
   const {
@@ -31,6 +32,9 @@ export const UserSettings = () => {
     resetSettings,
     exportSettings,
   } = useSettings();
+
+  // Apply theme and compact mode settings
+  useThemeSettings(settings, setSettings);
 
   if (loading) {
     return (
