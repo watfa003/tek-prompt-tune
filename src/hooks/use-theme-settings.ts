@@ -22,12 +22,12 @@ export const useThemeSettings = (settings: UserSettings, setSettings: (settings:
     }
   }, [settings.compactMode]);
 
-  // Update settings when theme changes externally
+  // Update settings when theme changes externally - prevent infinite loop
   useEffect(() => {
     if (nextTheme && nextTheme !== settings.theme) {
       setSettings({ ...settings, theme: nextTheme });
     }
-  }, [nextTheme]);
+  }, [nextTheme, setSettings]);
 
   return { theme: nextTheme, setTheme };
 };
