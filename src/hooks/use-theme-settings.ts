@@ -8,13 +8,7 @@ export const useThemeSettings = (settings: UserSettings, setSettings: (settings:
   // Apply theme changes
   useEffect(() => {
     if (settings.theme !== nextTheme) {
-      // Map our theme names to next-themes
-      const themeMap: Record<string, string> = {
-        light: 'light',
-        dark: 'dark', 
-        system: 'system'
-      };
-      setTheme(themeMap[settings.theme] || 'system');
+      setTheme(settings.theme);
     }
   }, [settings.theme, nextTheme, setTheme]);
 
@@ -27,6 +21,13 @@ export const useThemeSettings = (settings: UserSettings, setSettings: (settings:
       root.classList.remove('compact-mode');
     }
   }, [settings.compactMode]);
+
+  // Update settings when theme changes externally
+  useEffect(() => {
+    if (nextTheme && nextTheme !== settings.theme) {
+      setSettings({ ...settings, theme: nextTheme });
+    }
+  }, [nextTheme]);
 
   return { theme: nextTheme, setTheme };
 };
