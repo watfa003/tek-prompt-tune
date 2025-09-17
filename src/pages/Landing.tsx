@@ -16,7 +16,7 @@ const Landing = () => {
             </span>
           </div>
           <Button variant="outline" asChild>
-            <Link to="/app">Get Started</Link>
+            <Link to="/auth">Sign Up</Link>
           </Button>
         </div>
       </header>
@@ -33,7 +33,7 @@ const Landing = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="shadow-primary" asChild>
-              <Link to="/app">
+              <Link to="/auth">
                 Start Optimizing <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -99,7 +99,7 @@ const Landing = () => {
             Start generating better AI responses today with PrompTek's advanced optimization engine.
           </p>
           <Button size="lg" variant="secondary" className="shadow-lg" asChild>
-            <Link to="/app">
+            <Link to="/auth">
               Get Started Free <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
