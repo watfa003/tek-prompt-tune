@@ -56,7 +56,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   twoFactorAuth: false,
   
   // Appearance
-  theme: 'dark',
+  theme: 'system',
   compactMode: false,
   showScores: true,
   autoSave: true,
