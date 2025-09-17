@@ -1,16 +1,22 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { UserSettings } from './use-settings';
 
 export const useThemeSettings = (settings: UserSettings, setSettings: (settings: UserSettings) => void) => {
   const { theme: nextTheme, setTheme } = useTheme();
+  const isUpdatingTheme = useRef(false);
 
-  // Apply theme changes
+  // Apply theme changes only when settings change
   useEffect(() => {
-    if (settings.theme !== nextTheme) {
+    if (settings.theme !== nextTheme && !isUpdatingTheme.current) {
+      isUpdatingTheme.current = true;
       setTheme(settings.theme);
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isUpdatingTheme.current = false;
+      }, 100);
     }
-  }, [settings.theme, nextTheme, setTheme]);
+  }, [settings.theme, setTheme]);
 
   // Apply compact mode
   useEffect(() => {
@@ -21,13 +27,6 @@ export const useThemeSettings = (settings: UserSettings, setSettings: (settings:
       root.classList.remove('compact-mode');
     }
   }, [settings.compactMode]);
-
-  // Update settings when theme changes externally - prevent infinite loop
-  useEffect(() => {
-    if (nextTheme && nextTheme !== settings.theme) {
-      setSettings({ ...settings, theme: nextTheme });
-    }
-  }, [nextTheme, setSettings]);
 
   return { theme: nextTheme, setTheme };
 };
