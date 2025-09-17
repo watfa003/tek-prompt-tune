@@ -8,6 +8,8 @@ interface PromptResultsProps {
   taskDescription: string;
   aiProvider: string;
   outputType: string;
+  influence?: string;
+  influenceType?: string;
 }
 
 // Mock data for demonstration
@@ -38,7 +40,7 @@ const mockResults = [
   }
 ];
 
-export const PromptResults = ({ taskDescription, aiProvider, outputType }: PromptResultsProps) => {
+export const PromptResults = ({ taskDescription, aiProvider, outputType, influence, influenceType }: PromptResultsProps) => {
   const { toast } = useToast();
 
   const getScoreBadge = (score: number) => {
@@ -66,6 +68,9 @@ export const PromptResults = ({ taskDescription, aiProvider, outputType }: Promp
         <div className="text-sm text-muted-foreground mb-6">
           <p><strong>Task:</strong> {taskDescription}</p>
           <p><strong>Provider:</strong> {aiProvider} • <strong>Output Type:</strong> {outputType}</p>
+          {influence && (
+            <p><strong>Influenced by:</strong> {influenceType === "template" ? "Template" : "Saved Prompt"} - {influence}</p>
+          )}
         </div>
 
         <div className="space-y-4">

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Slider } from "@/components/ui/slider";
-import { Zap, Settings, ChevronDown, ArrowLeft } from "lucide-react";
+import { Zap, Settings, ChevronDown, ArrowLeft, Lightbulb, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -28,6 +28,22 @@ const AppPage = () => {
   const [variants, setVariants] = useState([3]);
   const [temperature, setTemperature] = useState([0.7]);
   const [maxTokens, setMaxTokens] = useState([1000]);
+  const [selectedInfluence, setSelectedInfluence] = useState("");
+  const [influenceType, setInfluenceType] = useState("");
+
+  // Mock data for templates and saved prompts
+  const promptTemplates = [
+    { id: 1, title: "Code Generation", content: "Create clean, well-documented code that follows best practices" },
+    { id: 2, title: "Data Analysis", content: "Analyze data thoroughly and provide actionable insights" },
+    { id: 3, title: "Creative Writing", content: "Write engaging, original content with vivid descriptions" },
+    { id: 4, title: "Technical Documentation", content: "Create clear, comprehensive documentation for technical topics" },
+  ];
+
+  const savedPrompts = [
+    { id: 1, title: "Python Merge Sort", content: "Implement a merge sort algorithm in Python with detailed comments" },
+    { id: 2, title: "API Documentation", content: "Document REST API endpoints with examples and error codes" },
+    { id: 3, title: "JSON Schema", content: "Create JSON schema validation with proper error handling" },
+  ];
 
   const handleGenerate = () => {
     if (taskDescription && selectedProvider && selectedOutputType) {
@@ -38,6 +54,16 @@ const AppPage = () => {
   const handleUseTemplate = (template: string, outputType: string) => {
     setTaskDescription(template);
     setSelectedOutputType(outputType);
+  };
+
+  const handleInfluenceSelect = (type: string, content: string) => {
+    setInfluenceType(type);
+    setSelectedInfluence(content);
+  };
+
+  const clearInfluence = () => {
+    setInfluenceType("");
+    setSelectedInfluence("");
   };
 
   // Determine which content to show based on current path
@@ -67,6 +93,79 @@ const AppPage = () => {
                       onChange={(e) => setTaskDescription(e.target.value)}
                       className="min-h-[120px] resize-none"
                     />
+                  </div>
+
+                  {/* Influence Section */}
+                  <div className="lg:col-span-3 space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Lightbulb className="h-4 w-4 text-primary" />
+                      <Label className="text-sm font-medium">Influence Optimization (Optional)</Label>
+                    </div>
+                    
+                    {selectedInfluence ? (
+                      <Card className="p-4 bg-primary/5 border-primary/20">
+                        <div className="flex items-start justify-between space-x-3">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                {influenceType === "template" ? "Template" : "Saved Prompt"}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedInfluence}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearInfluence}
+                            className="h-auto p-1"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </Card>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium text-muted-foreground">From Templates</Label>
+                          <Select onValueChange={(value) => {
+                            const template = promptTemplates.find(t => t.id.toString() === value);
+                            if (template) handleInfluenceSelect("template", template.content);
+                          }}>
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue placeholder="Choose template style" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {promptTemplates.map((template) => (
+                                <SelectItem key={template.id} value={template.id.toString()}>
+                                  {template.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium text-muted-foreground">From Saved Prompts</Label>
+                          <Select onValueChange={(value) => {
+                            const prompt = savedPrompts.find(p => p.id.toString() === value);
+                            if (prompt) handleInfluenceSelect("saved", prompt.content);
+                          }}>
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue placeholder="Choose saved prompt" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {savedPrompts.map((prompt) => (
+                                <SelectItem key={prompt.id} value={prompt.id.toString()}>
+                                  {prompt.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -116,6 +215,8 @@ const AppPage = () => {
                 taskDescription={taskDescription}
                 aiProvider={selectedProvider}
                 outputType={selectedOutputType}
+                influence={selectedInfluence}
+                influenceType={influenceType}
               />
             )}
           </div>
