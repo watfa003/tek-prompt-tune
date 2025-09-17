@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 interface PromptResultsProps {
   taskDescription: string;
   aiProvider: string;
+  llmModel: string;
   outputType: string;
   influence?: string;
   influenceType?: string;
@@ -41,7 +42,7 @@ const mockResults = [
   }
 ];
 
-export const PromptResults = ({ taskDescription, aiProvider, outputType, influence, influenceType, influenceWeight }: PromptResultsProps) => {
+export const PromptResults = ({ taskDescription, aiProvider, llmModel, outputType, influence, influenceType, influenceWeight }: PromptResultsProps) => {
   const { toast } = useToast();
 
   const getScoreBadge = (score: number) => {

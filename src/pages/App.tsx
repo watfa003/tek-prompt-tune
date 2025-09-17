@@ -22,6 +22,7 @@ const AppPage = () => {
   const location = useLocation();
   const [taskDescription, setTaskDescription] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("");
+  const [selectedLLM, setSelectedLLM] = useState("");
   const [selectedOutputType, setSelectedOutputType] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -47,7 +48,7 @@ const AppPage = () => {
   ];
 
   const handleGenerate = () => {
-    if (taskDescription && selectedProvider && selectedOutputType) {
+    if (taskDescription && selectedProvider && selectedLLM && selectedOutputType) {
       setShowResults(true);
     }
   };
@@ -148,38 +149,24 @@ const AppPage = () => {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Template Style</Label>
-                          <Select onValueChange={(value) => {
-                            const [type, id] = value.split('-');
-                            if (type === 'template') {
-                              const template = promptTemplates.find(t => t.id.toString() === id);
-                              if (template) handleInfluenceSelect("template", template.content);
-                            } else if (type === 'saved') {
-                              const prompt = savedPrompts.find(p => p.id.toString() === id);
-                              if (prompt) handleInfluenceSelect("saved", prompt.content);
-                            }
-                          }}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Choose template or favorited template" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem disabled value="templates-header" className="font-medium text-xs opacity-60">
-                                Templates
-                              </SelectItem>
-                              {promptTemplates.map((template) => (
-                                <SelectItem key={`template-${template.id}`} value={`template-${template.id}`}>
-                                  {template.title}
-                                </SelectItem>
-                              ))}
-                              <SelectItem disabled value="favorites-header" className="font-medium text-xs opacity-60 mt-2">
-                                Favorited Templates
-                              </SelectItem>
-                              {savedPrompts.map((prompt) => (
-                                <SelectItem key={`saved-${prompt.id}`} value={`saved-${prompt.id}`}>
-                                  ⭐ {prompt.title}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <Link to="/app/templates">
+                              <Button variant="outline" className="w-full h-auto p-3 text-left">
+                                <div className="flex flex-col items-start space-y-1">
+                                  <span className="font-medium">Browse Templates</span>
+                                  <span className="text-xs text-muted-foreground">View all available templates</span>
+                                </div>
+                              </Button>
+                            </Link>
+                            <Link to="/app/history">
+                              <Button variant="outline" className="w-full h-auto p-3 text-left">
+                                <div className="flex flex-col items-start space-y-1">
+                                  <span className="font-medium">My Favorited Prompts</span>
+                                  <span className="text-xs text-muted-foreground">Choose from saved favorites</span>
+                                </div>
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                         
                         <div className="space-y-2">
@@ -207,9 +194,43 @@ const AppPage = () => {
                         <SelectValue placeholder="Select AI provider" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="openai-gpt4">OpenAI GPT-4</SelectItem>
-                        <SelectItem value="claude-opus">Claude 3 Opus</SelectItem>
-                        <SelectItem value="gemini-pro">Google Gemini Pro</SelectItem>
+                        <SelectItem value="openai">OpenAI</SelectItem>
+                        <SelectItem value="anthropic">Anthropic</SelectItem>
+                        <SelectItem value="google">Google</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">LLM Model</Label>
+                    <Select value={selectedLLM} onValueChange={setSelectedLLM}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select LLM model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedProvider === "openai" && (
+                          <>
+                            <SelectItem value="gpt-4">GPT-4</SelectItem>
+                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                            <SelectItem value="gpt-5">GPT-5</SelectItem>
+                          </>
+                        )}
+                        {selectedProvider === "anthropic" && (
+                          <>
+                            <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
+                            <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                            <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+                          </>
+                        )}
+                        {selectedProvider === "google" && (
+                          <>
+                            <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                            <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
+                          </>
+                        )}
+                        {!selectedProvider && (
+                          <SelectItem disabled value="none">Select a provider first</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -232,7 +253,7 @@ const AppPage = () => {
                     <Button 
                       onClick={handleGenerate} 
                       className="w-full bg-gradient-primary"
-                      disabled={!taskDescription || !selectedProvider || !selectedOutputType}
+                      disabled={!taskDescription || !selectedProvider || !selectedLLM || !selectedOutputType}
                     >
                       <Zap className="h-4 w-4 mr-2" />
                       Generate Prompts
@@ -246,6 +267,7 @@ const AppPage = () => {
               <PromptResults 
                 taskDescription={taskDescription}
                 aiProvider={selectedProvider}
+                llmModel={selectedLLM}
                 outputType={selectedOutputType}
                 influence={selectedInfluence}
                 influenceType={influenceType}
