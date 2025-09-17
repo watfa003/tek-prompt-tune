@@ -82,10 +82,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={isCollapsed ? "w-14" : "w-80"}
+      className={isCollapsed ? "w-14" : "w-64"}
       collapsible="icon"
     >
-      <SidebarContent className="p-4">
+      <SidebarContent className="p-2">
         {/* Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-muted-foreground">Navigation</SidebarGroupLabel>
@@ -123,12 +123,12 @@ export function AppSidebar() {
                     placeholder="Search prompts..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-8 text-sm"
+                    className="pl-8 h-8 text-xs"
                   />
                 </div>
 
                 {/* Prompt List */}
-                <div className="space-y-1 max-h-64 overflow-y-auto">
+                <div className="space-y-1 max-h-48 overflow-y-auto">
                   {filteredPrompts.map((prompt) => (
                     <Card key={prompt.id} className="p-2 hover:bg-muted/50 cursor-pointer transition-colors">
                       <div className="flex items-start justify-between">
