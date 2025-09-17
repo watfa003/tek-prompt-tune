@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import {
   Settings,
   User,
@@ -20,67 +20,27 @@ import {
   Download,
   Upload
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/use-settings";
 
 export const UserSettings = () => {
-  const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    // Profile
-    name: "John Doe",
-    email: "john.doe@example.com",
-    
-    // Preferences
-    defaultProvider: "OpenAI GPT-4",
-    defaultOutputType: "Code",
-    defaultVariants: "3",
-    defaultTemperature: "0.7",
-    
-    // Notifications
-    emailNotifications: true,
-    promptCompleted: true,
-    weeklyDigest: false,
-    newFeatures: true,
-    
-    // Privacy & Security
-    dataRetention: "30",
-    shareAnalytics: false,
-    twoFactorAuth: false,
-    
-    // Appearance
-    theme: "dark",
-    compactMode: false,
-    showScores: true,
-    autoSave: true
-  });
+  const {
+    settings,
+    setSettings,
+    loading,
+    saveSettings,
+    resetSettings,
+    exportSettings,
+  } = useSettings();
 
-  const handleSave = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated successfully.",
-    });
-  };
-
-  const handleReset = () => {
-    toast({
-      title: "Settings reset",
-      description: "All settings have been reset to defaults.",
-    });
-  };
-
-  const handleExport = () => {
-    const dataStr = JSON.stringify(settings, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'promptek-settings.json';
-    link.click();
-    
-    toast({
-      title: "Settings exported",
-      description: "Your settings have been downloaded as a JSON file.",
-    });
-  };
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -94,11 +54,11 @@ export const UserSettings = () => {
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={exportSettings}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={saveSettings}>
             <Save className="h-4 w-4 mr-2" />
             Save Changes
           </Button>
@@ -186,7 +146,7 @@ export const UserSettings = () => {
           
           <div className="space-y-2">
             <Label>Default Variants</Label>
-            <Select value={settings.defaultVariants} onValueChange={(value) => setSettings({ ...settings, defaultVariants: value })}>
+            <Select value={settings.defaultVariants.toString()} onValueChange={(value) => setSettings({ ...settings, defaultVariants: parseInt(value) })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -200,18 +160,35 @@ export const UserSettings = () => {
           </div>
           
           <div className="space-y-2">
-            <Label>Default Temperature</Label>
-            <Select value={settings.defaultTemperature} onValueChange={(value) => setSettings({ ...settings, defaultTemperature: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0.1">0.1 (Focused)</SelectItem>
-                <SelectItem value="0.5">0.5 (Balanced)</SelectItem>
-                <SelectItem value="0.7">0.7 (Creative)</SelectItem>
-                <SelectItem value="0.9">0.9 (Very Creative)</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Default Temperature: {settings.defaultTemperature}</Label>
+            <Slider
+              value={[settings.defaultTemperature]}
+              onValueChange={([value]) => setSettings({ ...settings, defaultTemperature: value })}
+              max={1}
+              min={0.1}
+              step={0.1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>0.1 (Focused)</span>
+              <span>1.0 (Very Creative)</span>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Max Tokens: {settings.defaultMaxTokens}</Label>
+            <Slider
+              value={[settings.defaultMaxTokens]}
+              onValueChange={([value]) => setSettings({ ...settings, defaultMaxTokens: value })}
+              max={4000}
+              min={256}
+              step={256}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>256</span>
+              <span>4000</span>
+            </div>
           </div>
         </div>
       </Card>
@@ -283,7 +260,7 @@ export const UserSettings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Data Retention (days)</Label>
-              <Select value={settings.dataRetention} onValueChange={(value) => setSettings({ ...settings, dataRetention: value })}>
+              <Select value={settings.dataRetentionDays.toString()} onValueChange={(value) => setSettings({ ...settings, dataRetentionDays: parseInt(value) })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -292,7 +269,7 @@ export const UserSettings = () => {
                   <SelectItem value="30">30 days</SelectItem>
                   <SelectItem value="90">90 days</SelectItem>
                   <SelectItem value="365">1 year</SelectItem>
-                  <SelectItem value="forever">Forever</SelectItem>
+                  <SelectItem value="-1">Forever</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -398,7 +375,7 @@ export const UserSettings = () => {
               <p className="font-medium">Reset All Settings</p>
               <p className="text-sm text-muted-foreground">Reset all settings to their default values</p>
             </div>
-            <Button variant="outline" onClick={handleReset}>
+            <Button variant="outline" onClick={resetSettings}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Reset
             </Button>

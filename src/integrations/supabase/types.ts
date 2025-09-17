@@ -14,7 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      user_settings: {
+        Row: {
+          auto_save: boolean | null
+          compact_mode: boolean | null
+          created_at: string
+          data_retention_days: number | null
+          default_max_tokens: number | null
+          default_output_type: string | null
+          default_provider: string | null
+          default_temperature: number | null
+          default_variants: number | null
+          email: string | null
+          email_notifications: boolean | null
+          id: string
+          name: string | null
+          new_features: boolean | null
+          prompt_completed: boolean | null
+          share_analytics: boolean | null
+          show_scores: boolean | null
+          theme: string | null
+          two_factor_auth: boolean | null
+          updated_at: string
+          user_id: string
+          weekly_digest: boolean | null
+        }
+        Insert: {
+          auto_save?: boolean | null
+          compact_mode?: boolean | null
+          created_at?: string
+          data_retention_days?: number | null
+          default_max_tokens?: number | null
+          default_output_type?: string | null
+          default_provider?: string | null
+          default_temperature?: number | null
+          default_variants?: number | null
+          email?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          name?: string | null
+          new_features?: boolean | null
+          prompt_completed?: boolean | null
+          share_analytics?: boolean | null
+          show_scores?: boolean | null
+          theme?: string | null
+          two_factor_auth?: boolean | null
+          updated_at?: string
+          user_id: string
+          weekly_digest?: boolean | null
+        }
+        Update: {
+          auto_save?: boolean | null
+          compact_mode?: boolean | null
+          created_at?: string
+          data_retention_days?: number | null
+          default_max_tokens?: number | null
+          default_output_type?: string | null
+          default_provider?: string | null
+          default_temperature?: number | null
+          default_variants?: number | null
+          email?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          name?: string | null
+          new_features?: boolean | null
+          prompt_completed?: boolean | null
+          share_analytics?: boolean | null
+          show_scores?: boolean | null
+          theme?: string | null
+          two_factor_auth?: boolean | null
+          updated_at?: string
+          user_id?: string
+          weekly_digest?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

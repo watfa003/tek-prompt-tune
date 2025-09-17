@@ -1,0 +1,229 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+export interface UserSettings {
+  // Profile
+  name?: string;
+  email?: string;
+  
+  // Preferences
+  defaultProvider: string;
+  defaultOutputType: string;
+  defaultVariants: number;
+  defaultTemperature: number;
+  defaultMaxTokens: number;
+  
+  // Notifications
+  emailNotifications: boolean;
+  promptCompleted: boolean;
+  weeklyDigest: boolean;
+  newFeatures: boolean;
+  
+  // Privacy & Security
+  dataRetentionDays: number;
+  shareAnalytics: boolean;
+  twoFactorAuth: boolean;
+  
+  // Appearance
+  theme: string;
+  compactMode: boolean;
+  showScores: boolean;
+  autoSave: boolean;
+}
+
+const DEFAULT_SETTINGS: UserSettings = {
+  // Profile
+  name: '',
+  email: '',
+  
+  // Preferences
+  defaultProvider: 'OpenAI GPT-4',
+  defaultOutputType: 'Code',
+  defaultVariants: 3,
+  defaultTemperature: 0.7,
+  defaultMaxTokens: 2048,
+  
+  // Notifications
+  emailNotifications: true,
+  promptCompleted: true,
+  weeklyDigest: false,
+  newFeatures: true,
+  
+  // Privacy & Security
+  dataRetentionDays: 30,
+  shareAnalytics: false,
+  twoFactorAuth: false,
+  
+  // Appearance
+  theme: 'dark',
+  compactMode: false,
+  showScores: true,
+  autoSave: true,
+};
+
+export const useSettings = () => {
+  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Load settings from database
+  const loadSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load settings",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data) {
+        const loadedSettings: UserSettings = {
+          name: data.name || '',
+          email: data.email || '',
+          defaultProvider: data.default_provider || DEFAULT_SETTINGS.defaultProvider,
+          defaultOutputType: data.default_output_type || DEFAULT_SETTINGS.defaultOutputType,
+          defaultVariants: data.default_variants || DEFAULT_SETTINGS.defaultVariants,
+          defaultTemperature: data.default_temperature || DEFAULT_SETTINGS.defaultTemperature,
+          defaultMaxTokens: data.default_max_tokens || DEFAULT_SETTINGS.defaultMaxTokens,
+          emailNotifications: data.email_notifications ?? DEFAULT_SETTINGS.emailNotifications,
+          promptCompleted: data.prompt_completed ?? DEFAULT_SETTINGS.promptCompleted,
+          weeklyDigest: data.weekly_digest ?? DEFAULT_SETTINGS.weeklyDigest,
+          newFeatures: data.new_features ?? DEFAULT_SETTINGS.newFeatures,
+          dataRetentionDays: data.data_retention_days || DEFAULT_SETTINGS.dataRetentionDays,
+          shareAnalytics: data.share_analytics ?? DEFAULT_SETTINGS.shareAnalytics,
+          twoFactorAuth: data.two_factor_auth ?? DEFAULT_SETTINGS.twoFactorAuth,
+          theme: data.theme || DEFAULT_SETTINGS.theme,
+          compactMode: data.compact_mode ?? DEFAULT_SETTINGS.compactMode,
+          showScores: data.show_scores ?? DEFAULT_SETTINGS.showScores,
+          autoSave: data.auto_save ?? DEFAULT_SETTINGS.autoSave,
+        };
+        setSettings(loadedSettings);
+      }
+    } catch (error) {
+      console.error('Error in loadSettings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save settings to database
+  const saveSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to save settings",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const settingsData = {
+        user_id: user.id,
+        name: settings.name,
+        email: settings.email,
+        default_provider: settings.defaultProvider,
+        default_output_type: settings.defaultOutputType,
+        default_variants: settings.defaultVariants,
+        default_temperature: settings.defaultTemperature,
+        default_max_tokens: settings.defaultMaxTokens,
+        email_notifications: settings.emailNotifications,
+        prompt_completed: settings.promptCompleted,
+        weekly_digest: settings.weeklyDigest,
+        new_features: settings.newFeatures,
+        data_retention_days: settings.dataRetentionDays,
+        share_analytics: settings.shareAnalytics,
+        two_factor_auth: settings.twoFactorAuth,
+        theme: settings.theme,
+        compact_mode: settings.compactMode,
+        show_scores: settings.showScores,
+        auto_save: settings.autoSave,
+      };
+
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert(settingsData, {
+          onConflict: 'user_id'
+        });
+
+      if (error) {
+        console.error('Error saving settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save settings",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Settings saved",
+        description: "Your preferences have been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error in saveSettings:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Reset settings to defaults
+  const resetSettings = async () => {
+    setSettings(DEFAULT_SETTINGS);
+    await saveSettings();
+    toast({
+      title: "Settings reset",
+      description: "All settings have been reset to defaults.",
+    });
+  };
+
+  // Export settings
+  const exportSettings = () => {
+    const dataStr = JSON.stringify(settings, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'promptek-settings.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Settings exported",
+      description: "Your settings have been downloaded as a JSON file.",
+    });
+  };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  return {
+    settings,
+    setSettings,
+    loading,
+    saveSettings,
+    resetSettings,
+    exportSettings,
+  };
+};
