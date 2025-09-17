@@ -1,24 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { UserSettings } from './use-settings';
 
-export const useThemeSettings = (settings: UserSettings, setSettings: (settings: UserSettings) => void) => {
+// Only applies compact mode; does NOT auto-change theme.
+export const useThemeSettings = (settings: UserSettings, _setSettings: (settings: UserSettings) => void) => {
   const { theme: nextTheme, setTheme } = useTheme();
-  const isUpdatingTheme = useRef(false);
 
-  // Apply theme changes only when settings change
-  useEffect(() => {
-    if (settings.theme !== nextTheme && !isUpdatingTheme.current) {
-      isUpdatingTheme.current = true;
-      setTheme(settings.theme);
-      // Reset flag after a short delay
-      setTimeout(() => {
-        isUpdatingTheme.current = false;
-      }, 100);
-    }
-  }, [settings.theme, setTheme]);
-
-  // Apply compact mode
+  // Apply compact mode only
   useEffect(() => {
     const root = document.documentElement;
     if (settings.compactMode) {
@@ -28,5 +16,6 @@ export const useThemeSettings = (settings: UserSettings, setSettings: (settings:
     }
   }, [settings.compactMode]);
 
+  // Expose theme but don't change it automatically
   return { theme: nextTheme, setTheme };
 };

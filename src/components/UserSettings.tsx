@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useSettings } from "@/hooks/use-settings";
 import { useThemeSettings } from "@/hooks/use-theme-settings";
+import { useTheme } from "next-themes";
 
 export const UserSettings = () => {
   const {
@@ -35,7 +36,8 @@ export const UserSettings = () => {
 
   // Apply theme and compact mode settings
   useThemeSettings(settings, setSettings);
-
+  // Access current theme and setter for explicit apply on save
+  const { theme: currentTheme, setTheme } = useTheme();
   if (loading) {
     return (
       <div className="space-y-6 max-w-4xl">
@@ -62,7 +64,14 @@ export const UserSettings = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button onClick={saveSettings}>
+          <Button
+            onClick={async () => {
+              await saveSettings();
+              if (settings.theme && settings.theme !== currentTheme) {
+                setTheme(settings.theme as any);
+              }
+            }}
+          >
             <Save className="h-4 w-4 mr-2" />
             Save Changes
           </Button>
