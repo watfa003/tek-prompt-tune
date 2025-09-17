@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Slider } from "@/components/ui/slider";
 import { Zap, Settings, ChevronDown, ArrowLeft, Lightbulb, X } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { PromptResults } from "@/components/PromptResults";
@@ -32,6 +32,21 @@ const AppPage = () => {
   const [selectedInfluence, setSelectedInfluence] = useState("");
   const [influenceType, setInfluenceType] = useState("");
   const [influenceWeight, setInfluenceWeight] = useState([75]);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Check for influence selection from URL params
+  React.useEffect(() => {
+    const selectedTemplate = searchParams.get('selectedTemplate');
+    const selectedType = searchParams.get('selectedType');
+    
+    if (selectedTemplate && selectedType) {
+      setSelectedInfluence(selectedTemplate);
+      setInfluenceType(selectedType);
+      // Clear the URL params
+      navigate('/app/generate', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   // Mock data for templates and saved prompts
   const promptTemplates = [
@@ -150,7 +165,7 @@ const AppPage = () => {
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Template Style</Label>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <Link to="/app/templates">
+                            <Link to="/app/templates?selectForInfluence=true">
                               <Button variant="outline" className="w-full h-auto p-3 text-left">
                                 <div className="flex flex-col items-start space-y-1">
                                   <span className="font-medium">Browse Templates</span>
@@ -158,7 +173,7 @@ const AppPage = () => {
                                 </div>
                               </Button>
                             </Link>
-                            <Link to="/app/history">
+                            <Link to="/app/history?selectForInfluence=true">
                               <Button variant="outline" className="w-full h-auto p-3 text-left">
                                 <div className="flex flex-col items-start space-y-1">
                                   <span className="font-medium">My Favorited Prompts</span>

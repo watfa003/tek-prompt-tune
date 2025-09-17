@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,6 +116,10 @@ export const PromptHistory = () => {
   const [filterScore, setFilterScore] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
 
   const filteredItems = historyItems.filter(item => {
     const matchesSearch = 
@@ -391,9 +396,17 @@ export const PromptHistory = () => {
                   <Copy className="h-3 w-3 mr-1" />
                   Copy Output
                 </Button>
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    if (isSelectingForInfluence) {
+                      navigate(`/app/generate?selectedTemplate=${encodeURIComponent(item.prompt)}&selectedType=saved`);
+                    }
+                  }}
+                >
                   <Play className="h-3 w-3 mr-1" />
-                  Re-run
+                  {isSelectingForInfluence ? 'Select for Influence' : 'Re-run'}
                 </Button>
               </div>
             </div>

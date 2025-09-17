@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +107,10 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
 
   const filteredTemplates = promptTemplates.filter(template => {
     const matchesCategory = selectedCategory === "All" || template.category === selectedCategory;
@@ -234,11 +239,17 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                 <div className="flex space-x-2">
                   <Button
                     size="sm"
-                    onClick={() => onUseTemplate(template.template, template.outputType)}
+                    onClick={() => {
+                      if (isSelectingForInfluence) {
+                        navigate(`/app/generate?selectedTemplate=${encodeURIComponent(template.template)}&selectedType=template`);
+                      } else {
+                        onUseTemplate(template.template, template.outputType);
+                      }
+                    }}
                     className="flex-1"
                   >
                     <Play className="h-3 w-3 mr-1" />
-                    Use Template
+                    {isSelectingForInfluence ? 'Select for Influence' : 'Use Template'}
                   </Button>
                   <Button
                     size="sm"
