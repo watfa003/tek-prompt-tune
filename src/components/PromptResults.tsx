@@ -10,6 +10,7 @@ interface PromptResultsProps {
   outputType: string;
   influence?: string;
   influenceType?: string;
+  influenceWeight?: number;
 }
 
 // Mock data for demonstration
@@ -40,7 +41,7 @@ const mockResults = [
   }
 ];
 
-export const PromptResults = ({ taskDescription, aiProvider, outputType, influence, influenceType }: PromptResultsProps) => {
+export const PromptResults = ({ taskDescription, aiProvider, outputType, influence, influenceType, influenceWeight }: PromptResultsProps) => {
   const { toast } = useToast();
 
   const getScoreBadge = (score: number) => {

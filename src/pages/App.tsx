@@ -30,6 +30,7 @@ const AppPage = () => {
   const [maxTokens, setMaxTokens] = useState([1000]);
   const [selectedInfluence, setSelectedInfluence] = useState("");
   const [influenceType, setInfluenceType] = useState("");
+  const [influenceWeight, setInfluenceWeight] = useState([75]);
 
   // Mock data for templates and saved prompts
   const promptTemplates = [
@@ -108,7 +109,10 @@ const AppPage = () => {
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
                               <Badge variant="outline" className="text-xs">
-                                {influenceType === "template" ? "Template" : "Saved Prompt"}
+                                {influenceType === "template" ? "Template" : "Favorited Template"}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {influenceWeight[0]}% influence
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -124,22 +128,54 @@ const AppPage = () => {
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
+                        
+                        <div className="mt-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-medium text-muted-foreground">Influence Weight</Label>
+                            <span className="text-xs text-muted-foreground">{influenceWeight[0]}%</span>
+                          </div>
+                          <Slider
+                            value={influenceWeight}
+                            onValueChange={setInfluenceWeight}
+                            max={100}
+                            min={0}
+                            step={5}
+                            className="w-full"
+                          />
+                        </div>
                       </Card>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium text-muted-foreground">From Templates</Label>
+                          <Label className="text-sm font-medium">Template Style</Label>
                           <Select onValueChange={(value) => {
-                            const template = promptTemplates.find(t => t.id.toString() === value);
-                            if (template) handleInfluenceSelect("template", template.content);
+                            const [type, id] = value.split('-');
+                            if (type === 'template') {
+                              const template = promptTemplates.find(t => t.id.toString() === id);
+                              if (template) handleInfluenceSelect("template", template.content);
+                            } else if (type === 'saved') {
+                              const prompt = savedPrompts.find(p => p.id.toString() === id);
+                              if (prompt) handleInfluenceSelect("saved", prompt.content);
+                            }
                           }}>
-                            <SelectTrigger className="h-9 text-sm">
-                              <SelectValue placeholder="Choose template style" />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose template or favorited template" />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem disabled value="templates-header" className="font-medium text-xs opacity-60">
+                                Templates
+                              </SelectItem>
                               {promptTemplates.map((template) => (
-                                <SelectItem key={template.id} value={template.id.toString()}>
+                                <SelectItem key={`template-${template.id}`} value={`template-${template.id}`}>
                                   {template.title}
+                                </SelectItem>
+                              ))}
+                              <SelectItem disabled value="favorites-header" className="font-medium text-xs opacity-60 mt-2">
+                                Favorited Templates
+                              </SelectItem>
+                              {savedPrompts.map((prompt) => (
+                                <SelectItem key={`saved-${prompt.id}`} value={`saved-${prompt.id}`}>
+                                  ⭐ {prompt.title}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -147,22 +183,18 @@ const AppPage = () => {
                         </div>
                         
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium text-muted-foreground">From Saved Prompts</Label>
-                          <Select onValueChange={(value) => {
-                            const prompt = savedPrompts.find(p => p.id.toString() === value);
-                            if (prompt) handleInfluenceSelect("saved", prompt.content);
-                          }}>
-                            <SelectTrigger className="h-9 text-sm">
-                              <SelectValue placeholder="Choose saved prompt" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {savedPrompts.map((prompt) => (
-                                <SelectItem key={prompt.id} value={prompt.id.toString()}>
-                                  {prompt.title}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Influence Weight</Label>
+                            <span className="text-sm text-muted-foreground">{influenceWeight[0]}%</span>
+                          </div>
+                          <Slider
+                            value={influenceWeight}
+                            onValueChange={setInfluenceWeight}
+                            max={100}
+                            min={0}
+                            step={5}
+                            className="w-full"
+                          />
                         </div>
                       </div>
                     )}
@@ -217,6 +249,7 @@ const AppPage = () => {
                 outputType={selectedOutputType}
                 influence={selectedInfluence}
                 influenceType={influenceType}
+                influenceWeight={influenceWeight[0]}
               />
             )}
           </div>
