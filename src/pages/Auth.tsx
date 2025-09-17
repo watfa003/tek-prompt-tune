@@ -52,7 +52,6 @@ const Auth = () => {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
           data: {
             username: formData.username,
           }
