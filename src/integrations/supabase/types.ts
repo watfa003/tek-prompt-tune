@@ -14,6 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: string
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role: string
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          context: Json | null
+          created_at: string
+          id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      optimization_history: {
+        Row: {
+          ai_response: string | null
+          created_at: string
+          generation_time_ms: number | null
+          id: string
+          metrics: Json | null
+          prompt_id: string | null
+          score: number | null
+          tokens_used: number | null
+          user_id: string
+          variant_prompt: string
+        }
+        Insert: {
+          ai_response?: string | null
+          created_at?: string
+          generation_time_ms?: number | null
+          id?: string
+          metrics?: Json | null
+          prompt_id?: string | null
+          score?: number | null
+          tokens_used?: number | null
+          user_id: string
+          variant_prompt: string
+        }
+        Update: {
+          ai_response?: string | null
+          created_at?: string
+          generation_time_ms?: number | null
+          id?: string
+          metrics?: Json | null
+          prompt_id?: string | null
+          score?: number | null
+          tokens_used?: number | null
+          user_id?: string
+          variant_prompt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "optimization_history_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prompts: {
+        Row: {
+          ai_provider: string
+          created_at: string
+          id: string
+          model_name: string
+          optimization_cycle: number | null
+          optimized_prompt: string | null
+          original_prompt: string
+          output_type: string | null
+          performance_metrics: Json | null
+          score: number | null
+          status: string | null
+          task_description: string | null
+          updated_at: string
+          user_id: string
+          variants_generated: number | null
+        }
+        Insert: {
+          ai_provider: string
+          created_at?: string
+          id?: string
+          model_name: string
+          optimization_cycle?: number | null
+          optimized_prompt?: string | null
+          original_prompt: string
+          output_type?: string | null
+          performance_metrics?: Json | null
+          score?: number | null
+          status?: string | null
+          task_description?: string | null
+          updated_at?: string
+          user_id: string
+          variants_generated?: number | null
+        }
+        Update: {
+          ai_provider?: string
+          created_at?: string
+          id?: string
+          model_name?: string
+          optimization_cycle?: number | null
+          optimized_prompt?: string | null
+          original_prompt?: string
+          output_type?: string | null
+          performance_metrics?: Json | null
+          score?: number | null
+          status?: string | null
+          task_description?: string | null
+          updated_at?: string
+          user_id?: string
+          variants_generated?: number | null
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           auto_save: boolean | null
