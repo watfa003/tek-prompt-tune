@@ -7,6 +7,7 @@ import Landing from "./pages/Landing";
 import AppPage from "./pages/App";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -19,12 +20,12 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/app/*" element={<AppPage />} />
-          <Route path="/app" element={<AppPage />} />
-          <Route path="/app/generate" element={<AppPage />} />
-          <Route path="/app/history" element={<AppPage />} />
-          <Route path="/app/templates" element={<AppPage />} />
-          <Route path="/app/settings" element={<AppPage />} />
+          <Route path="/app/*" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
+          <Route path="/app" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
+          <Route path="/app/generate" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
+          <Route path="/app/history" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
+          <Route path="/app/templates" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
+          <Route path="/app/settings" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
