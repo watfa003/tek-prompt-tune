@@ -74,7 +74,11 @@ serve(async (req) => {
       modelName = 'gpt-4', 
       outputType = 'text',
       variants = 3,
-      userId 
+      userId,
+      maxTokens = 2048,
+      temperature = 0.7,
+      influence = '',
+      influenceWeight = 0
     } = await req.json();
 
     if (!originalPrompt || !userId) {

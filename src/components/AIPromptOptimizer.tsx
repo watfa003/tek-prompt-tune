@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
 import { 
   Zap, 
   Target, 
@@ -18,10 +19,13 @@ import {
   CheckCircle,
   AlertCircle,
   Award,
-  BarChart3
+  BarChart3,
+  Lightbulb,
+  X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/hooks/use-settings';
 
 interface OptimizationResult {
   promptId: string;
@@ -49,15 +53,32 @@ interface OptimizationResult {
 }
 
 export const AIPromptOptimizer: React.FC = () => {
+  const { settings } = useSettings();
   const [originalPrompt, setOriginalPrompt] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [aiProvider, setAiProvider] = useState('openai');
   const [modelName, setModelName] = useState('gpt-4');
   const [outputType, setOutputType] = useState('text');
   const [variants, setVariants] = useState(3);
+  const [maxTokens, setMaxTokens] = useState([2048]);
+  const [temperature, setTemperature] = useState([0.7]);
+  const [selectedInfluence, setSelectedInfluence] = useState('');
+  const [influenceWeight, setInfluenceWeight] = useState([75]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const { toast } = useToast();
+
+  // Load default values from settings
+  React.useEffect(() => {
+    if (settings) {
+      setAiProvider(settings.defaultProvider.toLowerCase().includes('openai') ? 'openai' : 
+                    settings.defaultProvider.toLowerCase().includes('anthropic') ? 'anthropic' : 'openai');
+      setOutputType(settings.defaultOutputType.toLowerCase());
+      setVariants(settings.defaultVariants);
+      setMaxTokens([settings.defaultMaxTokens]);
+      setTemperature([settings.defaultTemperature]);
+    }
+  }, [settings]);
 
   const optimizePrompt = async () => {
     if (!originalPrompt.trim()) {
@@ -84,7 +105,11 @@ export const AIPromptOptimizer: React.FC = () => {
           modelName,
           outputType,
           variants,
-          userId: user.id
+          userId: user.id,
+          maxTokens: maxTokens[0],
+          temperature: temperature[0],
+          influence: selectedInfluence,
+          influenceWeight: influenceWeight[0]
         }
       });
 
@@ -227,6 +252,121 @@ export const AIPromptOptimizer: React.FC = () => {
                   <SelectItem value="5">5 Variants</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Advanced Settings */}
+            <div className="space-y-4 pt-4 border-t border-border/40">
+              <h4 className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
+                <Target className="h-4 w-4" />
+                <span>Advanced Parameters</span>
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Max Tokens</Label>
+                    <span className="text-sm text-muted-foreground">{maxTokens[0]}</span>
+                  </div>
+                  <Slider
+                    value={maxTokens}
+                    onValueChange={setMaxTokens}
+                    max={4096}
+                    min={256}
+                    step={128}
+                    className="w-full"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Temperature</Label>
+                    <span className="text-sm text-muted-foreground">{temperature[0].toFixed(1)}</span>
+                  </div>
+                  <Slider
+                    value={temperature}
+                    onValueChange={setTemperature}
+                    max={2}
+                    min={0}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Influence Section */}
+            <div className="space-y-4 pt-4 border-t border-border/40">
+              <div className="flex items-center space-x-2">
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-medium">Influence Optimization (Optional)</Label>
+              </div>
+              
+              {selectedInfluence ? (
+                <Card className="p-4 bg-primary/5 border-primary/20">
+                  <div className="flex items-start justify-between space-x-3">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          Influence Template
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {influenceWeight[0]}% influence
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedInfluence}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedInfluence('')}
+                      className="h-auto p-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium text-muted-foreground">Influence Weight</Label>
+                      <span className="text-xs text-muted-foreground">{influenceWeight[0]}%</span>
+                    </div>
+                    <Slider
+                      value={influenceWeight}
+                      onValueChange={setInfluenceWeight}
+                      max={100}
+                      min={0}
+                      step={5}
+                      className="w-full"
+                    />
+                  </div>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Enter an example prompt or style to influence the optimization..."
+                    value={selectedInfluence}
+                    onChange={(e) => setSelectedInfluence(e.target.value)}
+                    className="min-h-[80px] resize-none"
+                  />
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Influence Weight</Label>
+                      <span className="text-sm text-muted-foreground">{influenceWeight[0]}%</span>
+                    </div>
+                    <Slider
+                      value={influenceWeight}
+                      onValueChange={setInfluenceWeight}
+                      max={100}
+                      min={0}
+                      step={5}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
