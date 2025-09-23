@@ -17,6 +17,7 @@ import { EnhancedDashboard } from "@/components/EnhancedDashboard";
 import { PromptTemplates } from "@/components/PromptTemplates";
 import { PromptHistory } from "@/components/PromptHistory";
 import { UserSettings } from "@/components/UserSettings";
+import AIAgent from "@/pages/AIAgent";
 
 const AppPage = () => {
   const location = useLocation();
@@ -297,6 +298,8 @@ const AppPage = () => {
         return <PromptTemplates onUseTemplate={handleUseTemplate} />;
       case '/app/settings':
         return <UserSettings />;
+      case '/app/ai-agent':
+        return <AIAgent />;
       default:
         return <EnhancedDashboard onQuickAction={() => {}} />;
     }

@@ -23,6 +23,7 @@ import {
   Clock,
   Bookmark,
   LogOut,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 const navigationItems = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard },
   { title: "Generate", url: "/app/generate", icon: Zap },
+  { title: "AI Agent", url: "/app/ai-agent", icon: Bot },
   { title: "History", url: "/app/history", icon: History },
   { title: "Templates", url: "/app/templates", icon: FileText },
   { title: "Settings", url: "/app/settings", icon: Settings },
