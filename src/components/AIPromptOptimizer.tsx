@@ -157,8 +157,8 @@ export const AIPromptOptimizer: React.FC = () => {
           userId: user.id,
           maxTokens: maxTokens[0],
           temperature: temperature[0],
-          influence: optimizerInfluence,
-          influenceWeight: optimizerInfluenceWeight[0]
+          influence: optimizerInfluence || selectedInfluence,
+          influenceWeight: optimizerInfluenceWeight[0] || influenceWeight[0]
         }
       });
 

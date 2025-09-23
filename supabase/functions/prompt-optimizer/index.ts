@@ -142,6 +142,10 @@ serve(async (req) => {
         // Simplified optimization prompt for speed
         let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
         
+        if (outputType && outputType !== 'text') {
+          optimizationPrompt += `\n\nTarget output type: ${outputType}`;
+        }
+        
         if (influence && influenceWeight > 0) {
           optimizationPrompt += `\n\nStyle influence (${influenceWeight}%): ${influence.slice(0, 200)}`;
         }
