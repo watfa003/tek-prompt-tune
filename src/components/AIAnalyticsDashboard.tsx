@@ -91,9 +91,9 @@ export const AIAnalyticsDashboard: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-analytics?userId=${user.id}&timeframe=${timeframe}`, {
+      const response = await fetch(`https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics?userId=${user.id}&timeframe=${timeframe}`, {
         headers: {
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA`,
           'Content-Type': 'application/json'
         }
       });
