@@ -59,7 +59,10 @@ const AI_PROVIDERS = {
     models: {
       'gemini-2.0-flash': { name: 'gemini-2.0-flash', maxTokens: 4096 },
       'gemini-1.5-flash': { name: 'gemini-1.5-flash', maxTokens: 4096 },
-      'gemini-1.5-pro': { name: 'gemini-1.5-pro', maxTokens: 4096 }
+      'gemini-1.5-pro': { name: 'gemini-1.5-pro', maxTokens: 4096 },
+      // UI aliases mapping to supported models
+      'gemini-pro': { name: 'gemini-1.5-pro', maxTokens: 4096 },
+      'gemini-ultra': { name: 'gemini-2.0-flash', maxTokens: 4096 }
     }
   }
 };
@@ -80,6 +83,16 @@ const OPTIMIZATION_STRATEGIES = {
     name: "Efficiency Optimization",
     systemPrompt: "Optimize this prompt for better AI performance:",
     weight: 0.2
+  },
+  structure: {
+    name: "Structure and Steps",
+    systemPrompt: "Improve the logical structure with step-by-step instructions and sections:",
+    weight: 0.15
+  },
+  constraints: {
+    name: "Constraints and Format",
+    systemPrompt: "Add constraints, acceptance criteria, and a precise output format:",
+    weight: 0.1
   }
 };
 
@@ -134,7 +147,9 @@ serve(async (req) => {
     const promptRecordPromise = createPromptRecord();
 
     // Generate optimized variants in parallel for maximum speed
-    const strategyKeys = Object.keys(OPTIMIZATION_STRATEGIES).slice(0, Math.min(variants, 3));
+    const allStrategies = Object.keys(OPTIMIZATION_STRATEGIES);
+    const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allStrategies.length);
+    const strategyKeys = allStrategies.slice(0, variantCount);
     
     const variantPromises = strategyKeys.map(async (strategyKey) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey];
@@ -262,7 +277,7 @@ serve(async (req) => {
     };
 
     // Start background task
-    EdgeRuntime.waitUntil(backgroundUpdates());
+    Promise.resolve().then(() => backgroundUpdates());
 
     // Return immediate response
     const response = {
