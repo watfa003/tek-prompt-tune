@@ -42,7 +42,8 @@ const AI_PROVIDERS = {
     apiKey: groqApiKey,
     models: {
       'llama-3.1-70b': { name: 'llama-3.1-70b-versatile', maxTokens: 2048 },
-      'mixtral-8x7b': { name: 'mixtral-8x7b-32768', maxTokens: 2048 }
+      'mixtral-8x7b': { name: 'mixtral-8x7b-32768', maxTokens: 2048 },
+      'llama-3.1-8b': { name: 'llama-3.1-8b-instant', maxTokens: 2048 }
     }
   },
   mistral: {
@@ -343,6 +344,8 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
 }
 
 async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
+  console.log(`Making API call to ${providerConfig.baseUrl} with model: ${model}`);
+  
   const response = await fetch(providerConfig.baseUrl, {
     method: 'POST',
     headers: {
@@ -357,8 +360,12 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
     }),
   });
 
+  console.log(`API response status: ${response.status} for model: ${model}`);
+  
   if (!response.ok) {
-    throw new Error(`API call failed: ${response.statusText}`);
+    const errorText = await response.text();
+    console.error(`API call failed for ${model}:`, errorText);
+    throw new Error(`API call failed: ${response.statusText} - ${errorText}`);
   }
 
   const data = await response.json();
