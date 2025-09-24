@@ -41,8 +41,6 @@ const AI_PROVIDERS = {
     baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
     apiKey: groqApiKey,
     models: {
-      'llama-3.1-70b': { name: 'llama3-70b-8192', maxTokens: 2048 },
-      'mixtral-8x7b': { name: 'mixtral-8x7b-32768', maxTokens: 2048 },
       'llama-3.1-8b': { name: 'llama-3.1-8b-instant', maxTokens: 2048 }
     }
   },
@@ -316,7 +314,11 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
     throw new Error(`Provider ${provider} not configured`);
   }
 
-  const modelConfig = (providerConfig.models as any)[model];
+  let modelConfig = (providerConfig.models as any)[model];
+  if (!modelConfig && provider === 'groq') {
+    // Fallback to the only supported Groq model we expose
+    modelConfig = (providerConfig.models as any)['llama-3.1-8b'];
+  }
   if (!modelConfig) {
     throw new Error(`Model ${model} not available`);
   }

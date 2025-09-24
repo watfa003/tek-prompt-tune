@@ -369,9 +369,7 @@ export const AIPromptOptimizer: React.FC = () => {
                       )}
                       {selectedProvider === "groq" && (
                         <>
-                          <SelectItem value="llama-3.1-70b">Llama 3.1 70B</SelectItem>
                           <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
-                          <SelectItem value="mixtral-8x7b">Mixtral 8x7B</SelectItem>
                         </>
                       )}
                       {selectedProvider === "mistral" && (
@@ -510,8 +508,7 @@ export const AIPromptOptimizer: React.FC = () => {
                         )}
                         {aiProvider === "groq" && (
                           <>
-                            <SelectItem value="llama-3.1-70b">Llama 3.1 70B</SelectItem>
-                            <SelectItem value="mixtral-8x7b">Mixtral 8x7B</SelectItem>
+                            <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
                           </>
                         )}
                         {aiProvider === "mistral" && (
