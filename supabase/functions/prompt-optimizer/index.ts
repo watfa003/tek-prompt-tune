@@ -123,7 +123,7 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
     const startTime = Date.now();
 
     // Create initial prompt record in background
@@ -152,7 +152,7 @@ serve(async (req) => {
     const strategyKeys = allStrategies.slice(0, variantCount);
     
     const variantPromises = strategyKeys.map(async (strategyKey) => {
-      const strategy = OPTIMIZATION_STRATEGIES[strategyKey];
+      const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
         // Simplified optimization prompt for speed
@@ -221,7 +221,7 @@ serve(async (req) => {
     // Filter successful variants
     const optimizedVariants = variantResults
       .filter(result => result.status === 'fulfilled' && result.value)
-      .map(result => result.value);
+      .map(result => (result as PromiseFulfilledResult<any>).value);
 
     if (optimizedVariants.length === 0) {
       throw new Error('Failed to generate any optimized variants');
@@ -300,7 +300,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in prompt-optimizer function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -309,12 +310,12 @@ serve(async (req) => {
 
 // Optimized AI provider calls
 async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
-  const providerConfig = AI_PROVIDERS[provider];
+  const providerConfig = AI_PROVIDERS[provider as keyof typeof AI_PROVIDERS];
   if (!providerConfig || !providerConfig.apiKey) {
     throw new Error(`Provider ${provider} not configured`);
   }
 
-  const modelConfig = providerConfig.models[model];
+  const modelConfig = (providerConfig.models as any)[model];
   if (!modelConfig) {
     throw new Error(`Model ${model} not available`);
   }
