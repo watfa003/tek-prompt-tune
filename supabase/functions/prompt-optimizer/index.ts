@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -110,6 +110,10 @@ serve(async (req) => {
       );
     }
 
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing required environment variables');
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const startTime = Date.now();
 
@@ -137,7 +141,7 @@ serve(async (req) => {
     const strategyKeys = Object.keys(OPTIMIZATION_STRATEGIES).slice(0, Math.min(variants, 3));
     
     const variantPromises = strategyKeys.map(async (strategyKey) => {
-      const strategy = OPTIMIZATION_STRATEGIES[strategyKey];
+      const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
         // Simplified optimization prompt for speed
@@ -206,7 +210,7 @@ serve(async (req) => {
     // Filter successful variants
     const optimizedVariants = variantResults
       .filter(result => result.status === 'fulfilled' && result.value)
-      .map(result => result.value);
+      .map(result => (result as PromiseFulfilledResult<any>).value);
 
     if (optimizedVariants.length === 0) {
       throw new Error('Failed to generate any optimized variants');
@@ -261,8 +265,8 @@ serve(async (req) => {
       }
     };
 
-    // Start background task
-    EdgeRuntime.waitUntil(backgroundUpdates());
+    // Start background task (simplified for Deno)
+    Promise.resolve().then(() => backgroundUpdates());
 
     // Return immediate response
     const response = {
@@ -285,7 +289,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in prompt-optimizer function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -294,7 +299,7 @@ serve(async (req) => {
 
 // Optimized AI provider calls
 async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
-  const providerConfig = AI_PROVIDERS[provider];
+  const providerConfig = (AI_PROVIDERS as any)[provider];
   if (!providerConfig || !providerConfig.apiKey) {
     throw new Error(`Provider ${provider} not configured`);
   }
