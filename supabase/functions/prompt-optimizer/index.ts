@@ -57,8 +57,9 @@ const AI_PROVIDERS = {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models',
     apiKey: googleApiKey,
     models: {
-      'gemini-pro': { name: 'gemini-pro', maxTokens: 2048 },
-      'gemini-ultra': { name: 'gemini-pro', maxTokens: 2048 }
+      'gemini-2.0-flash': { name: 'gemini-2.0-flash', maxTokens: 4096 },
+      'gemini-1.5-flash': { name: 'gemini-1.5-flash', maxTokens: 4096 },
+      'gemini-1.5-pro': { name: 'gemini-1.5-pro', maxTokens: 4096 }
     }
   }
 };
@@ -389,10 +390,23 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
   });
 
   if (!response.ok) {
-    throw new Error(`Google API call failed: ${response.statusText}`);
+    const errorText = await response.text();
+    console.error('Google API error details:', errorText);
+    throw new Error(`Google API call failed: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   const data = await response.json();
+  
+  if (!data.candidates || data.candidates.length === 0) {
+    console.error('Google API response has no candidates:', data);
+    throw new Error('Google API returned no candidates');
+  }
+  
+  if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+    console.error('Google API response has no content parts:', data.candidates[0]);
+    throw new Error('Google API returned no content parts');
+  }
+  
   return data.candidates[0].content.parts[0].text;
 }
 
