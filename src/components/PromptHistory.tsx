@@ -401,7 +401,7 @@ export const PromptHistory = () => {
                   variant="outline"
                   onClick={() => {
                     if (isSelectingForInfluence) {
-                      navigate(`/app/generate?selectedTemplate=${encodeURIComponent(item.prompt)}&selectedType=saved`);
+                      navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.prompt)}&selectedType=saved`);
                     }
                   }}
                 >

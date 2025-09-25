@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -9,21 +9,19 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  LayoutDashboard,
-  Zap,
+  Bot,
   History,
   FileText,
   Settings,
   Star,
   Search,
+  LogOut,
   Clock,
   Bookmark,
-  LogOut,
-  Bot,
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/use-settings";
 
 const navigationItems = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard },
@@ -73,10 +72,32 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { settings } = useSettings();
   const currentPath = location.pathname;
   const [searchQuery, setSearchQuery] = useState("");
+  const [userInfo, setUserInfo] = useState<{ email: string; displayName: string } | null>(null);
   
   const isCollapsed = state === "collapsed";
+
+  // Load user information
+  React.useEffect(() => {
+    const loadUserInfo = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const displayName = user.user_metadata?.username || user.user_metadata?.full_name || settings?.name || user.email?.split('@')[0] || 'User';
+          setUserInfo({
+            email: user.email || '',
+            displayName: displayName
+          });
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      }
+    };
+    
+    loadUserInfo();
+  }, [settings]);
 
   const handleLogout = async () => {
     try {
@@ -117,6 +138,23 @@ export function AppSidebar() {
       collapsible="icon"
     >
       <SidebarContent className="p-2">
+        {/* User Info */}
+        {!isCollapsed && userInfo && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center text-sm">
+                  {userInfo.displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{userInfo.displayName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{userInfo.email}</p>
+                </div>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {/* Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-muted-foreground">Navigation</SidebarGroupLabel>
@@ -125,10 +163,14 @@ export function AppSidebar() {
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavCls}>
+                    <Button
+                      variant="ghost"
+                      onClick={() => navigate(item.url)}
+                      className={`w-full justify-start ${isActive(item.url) ? getNavCls({ isActive: true }) : getNavCls({ isActive: false })}`}
+                    >
                       <item.icon className="h-4 w-4" />
                       {!isCollapsed && <span>{item.title}</span>}
-                    </NavLink>
+                    </Button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

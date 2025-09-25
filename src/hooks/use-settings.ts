@@ -92,10 +92,14 @@ export const useSettings = () => {
         return;
       }
 
+      // Create settings object with user's actual email and metadata
+      const userDisplayName = user.user_metadata?.username || user.user_metadata?.full_name || user.email?.split('@')[0] || '';
+      const userEmail = user.email || '';
+
       if (data) {
         const loadedSettings: UserSettings = {
-          name: data.name || '',
-          email: data.email || '',
+          name: data.name || userDisplayName,
+          email: data.email || userEmail,
           defaultProvider: data.default_provider || DEFAULT_SETTINGS.defaultProvider,
           defaultOutputType: data.default_output_type || DEFAULT_SETTINGS.defaultOutputType,
           defaultVariants: data.default_variants || DEFAULT_SETTINGS.defaultVariants,
@@ -114,6 +118,41 @@ export const useSettings = () => {
           autoSave: data.auto_save ?? DEFAULT_SETTINGS.autoSave,
         };
         setSettings(loadedSettings);
+      } else {
+        // No settings exist yet, create with user's real info
+        const newSettings: UserSettings = {
+          ...DEFAULT_SETTINGS,
+          name: userDisplayName,
+          email: userEmail,
+        };
+        setSettings(newSettings);
+        
+        // Auto-save the initial settings with user info
+        setTimeout(async () => {
+          const settingsData = {
+            user_id: user.id,
+            name: userDisplayName,
+            email: userEmail,
+            default_provider: DEFAULT_SETTINGS.defaultProvider,
+            default_output_type: DEFAULT_SETTINGS.defaultOutputType,
+            default_variants: DEFAULT_SETTINGS.defaultVariants,
+            default_temperature: DEFAULT_SETTINGS.defaultTemperature,
+            default_max_tokens: DEFAULT_SETTINGS.defaultMaxTokens,
+            email_notifications: DEFAULT_SETTINGS.emailNotifications,
+            prompt_completed: DEFAULT_SETTINGS.promptCompleted,
+            weekly_digest: DEFAULT_SETTINGS.weeklyDigest,
+            new_features: DEFAULT_SETTINGS.newFeatures,
+            data_retention_days: DEFAULT_SETTINGS.dataRetentionDays,
+            share_analytics: DEFAULT_SETTINGS.shareAnalytics,
+            two_factor_auth: DEFAULT_SETTINGS.twoFactorAuth,
+            theme: DEFAULT_SETTINGS.theme,
+            compact_mode: DEFAULT_SETTINGS.compactMode,
+            show_scores: DEFAULT_SETTINGS.showScores,
+            auto_save: DEFAULT_SETTINGS.autoSave,
+          };
+
+          await supabase.from('user_settings').upsert(settingsData, { onConflict: 'user_id' });
+        }, 100);
       }
     } catch (error) {
       console.error('Error in loadSettings:', error);

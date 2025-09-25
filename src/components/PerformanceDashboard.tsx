@@ -163,7 +163,7 @@ export const PerformanceDashboard = () => {
         </div>
       </Card>
 
-      {/* Performance Trends Placeholder */}
+      {/* Performance Trends */}
       <Card className="p-6 shadow-card">
         <h3 className="text-xl font-bold mb-4 flex items-center">
           <TrendingUp className="h-5 w-5 mr-2 text-success" />

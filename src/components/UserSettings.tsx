@@ -110,9 +110,9 @@ export const UserSettings = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Account Status</p>
-              <p className="text-sm text-muted-foreground">Active Pro Plan</p>
+              <p className="text-sm text-muted-foreground">Free Plan - Upgrade for unlimited access</p>
             </div>
-            <Badge className="bg-success text-success-foreground">Pro</Badge>
+            <Badge variant="secondary">Free</Badge>
           </div>
         </div>
       </Card>

@@ -241,7 +241,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                     size="sm"
                     onClick={() => {
                       if (isSelectingForInfluence) {
-                        navigate(`/app/generate?selectedTemplate=${encodeURIComponent(template.template)}&selectedType=template`);
+                        navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(template.template)}&selectedType=template`);
                       } else {
                         onUseTemplate(template.template, template.outputType);
                       }
