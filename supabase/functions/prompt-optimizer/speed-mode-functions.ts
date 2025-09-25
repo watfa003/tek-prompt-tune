@@ -147,88 +147,107 @@ function selectBestVariant(variants: any[]): any {
 
 // Deep mode style optimization functions
 function applyDeepModeClarityOptimization(prompt: string, taskDescription: string, outputType: string): string {
-  let optimizationPrompt = `Make this prompt clearer and more specific:\n\nOriginal: ${prompt}`;
-  
-  if (outputType && outputType !== 'text') {
-    optimizationPrompt += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format.`;
+  let improved = '';
+  if (outputType === 'code') {
+    improved = `Write clean, well-documented ${prompt}. Include:\n- Clear variable names and function structure\n- Inline comments explaining complex logic\n- Error handling for edge cases\n- Example usage demonstrating key features`;
+  } else if (outputType === 'list') {
+    improved = `Create a comprehensive, well-organized ${prompt}. Ensure:\n- Each item is clearly defined and actionable\n- Logical grouping and ordering of related items\n- Specific details rather than vague descriptions\n- Consistent formatting throughout`;
+  } else if (outputType === 'json') {
+    improved = `Respond in valid JSON to: ${prompt}\n\nRequired keys:\n- "summary"\n- "steps"\n- "notes"\nReturn only JSON.`;
+  } else {
+    improved = `Provide a clear, detailed response to: ${prompt}. Include:\n- Specific examples and concrete details\n- Well-structured explanations with logical flow\n- Practical applications where relevant\n- Clear conclusions or next steps`;
   }
-  
   if (taskDescription) {
-    optimizationPrompt += `\n\nContext: ${taskDescription}`;
+    improved += `\n\nContext: ${taskDescription}`;
   }
-  
-  optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
-  
-  return optimizationPrompt;
+  return improved;
 }
 
 function applyDeepModeSpecificityOptimization(prompt: string, taskDescription: string, outputType: string, insights: any): string {
-  let optimizationPrompt = `Add specific details and examples to this prompt:\n\nOriginal: ${prompt}`;
+  let enhanced = prompt;
   
-  // Add cached insights if available
-  if (insights?.successful_strategies?.specificity?.patterns?.length > 0) {
-    optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${insights.successful_strategies.specificity.patterns.slice(0, 3).join(', ')}`;
+  if (outputType === 'code') {
+    enhanced += '\n\nSpecific requirements:\n- Include proper error handling\n- Add meaningful variable names\n- Provide working examples\n- Include necessary imports/dependencies';
+  } else if (outputType === 'list') {
+    enhanced += '\n\nEnsure specificity:\n- Include specific quantities or numbers where applicable\n- Provide concrete examples for each point\n- Add context or reasoning for important items';
+  } else if (outputType === 'json') {
+    enhanced += '\n\nBe specific about the JSON structure and required fields. Return only JSON.';
+  } else {
+    enhanced += '\n\nBe specific about:\n- Exact steps or processes involved\n- Measurable outcomes or criteria\n- Real-world examples and applications\n- Timeframes and expectations';
   }
   
-  if (outputType && outputType !== 'text') {
-    optimizationPrompt += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format.`;
+  if (insights?.successful_strategies?.specificity?.patterns?.length > 0) {
+    const patterns = insights.successful_strategies.specificity.patterns.slice(0, 2);
+    enhanced += `\n\nIncorporate these proven patterns: ${patterns.join(', ')}`;
   }
   
   if (taskDescription) {
-    optimizationPrompt += `\n\nContext: ${taskDescription}`;
+    enhanced += `\n\nContext: ${taskDescription}`;
   }
   
-  optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts.\n- Return ONLY the improved prompt text with no extra commentary.\n- Add specific examples and concrete details.`;
-  
-  return optimizationPrompt;
+  return enhanced;
 }
 
 function applyDeepModeStructureOptimization(prompt: string, taskDescription: string, outputType: string): string {
-  let optimizationPrompt = `Improve the logical structure with step-by-step instructions and sections:\n\nOriginal: ${prompt}`;
+  if (hasGoodStructure(prompt)) return prompt;
   
-  if (outputType && outputType !== 'text') {
-    optimizationPrompt += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format.`;
+  let structured = '';
+  if (outputType === 'code') {
+    structured = `${prompt}\n\nStructure your response as follows:\n1. **Setup & Dependencies**: List required imports and setup\n2. **Core Implementation**: Main code with clear comments\n3. **Error Handling**: Include try-catch blocks and validation\n4. **Usage Example**: Demonstrate how to use the code\n5. **Testing**: Basic test cases or validation steps`;
+  } else if (outputType === 'list') {
+    structured = `${prompt}\n\nOrganize your response with this structure:\n1. **Overview**: Brief introduction to the topic\n2. **Main Categories**: Group related items together\n3. **Detailed Items**: Specific, actionable points for each category\n4. **Priority Ranking**: Order by importance or urgency\n5. **Implementation Notes**: Additional context or considerations`;
+  } else {
+    structured = `${prompt}\n\nStructure your response as follows:\n1. **Introduction**: Brief overview of the topic\n2. **Main Content**: Detailed explanation with examples\n3. **Key Points**: Important takeaways or considerations\n4. **Practical Applications**: How to apply this information\n5. **Conclusion**: Summary and next steps`;
   }
   
   if (taskDescription) {
-    optimizationPrompt += `\n\nContext: ${taskDescription}`;
+    structured += `\n\nContext: ${taskDescription}`;
   }
   
-  optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Add clear structure and step-by-step instructions.\n- Return ONLY the improved prompt text.\n- Use numbered lists or bullet points for clarity.`;
-  
-  return optimizationPrompt;
+  return structured;
 }
 
 function applyDeepModeEfficiencyOptimization(prompt: string, taskDescription: string, outputType: string): string {
-  let optimizationPrompt = `Optimize this prompt for better AI performance:\n\nOriginal: ${prompt}`;
+  // Remove redundant words/phrases
+  let optimized = prompt
+    .replace(/\b(please|kindly|if possible|if you would|if you could)\b/gi, '')
+    .replace(/\b(very|really|quite|rather|somewhat)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   
-  if (outputType && outputType !== 'text') {
-    optimizationPrompt += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format.`;
+  if (outputType === 'code') {
+    optimized += '\n\nFocus on efficiency: Use optimal algorithms, minimize memory usage, and include performance considerations.';
+  } else if (outputType === 'list') {
+    optimized += '\n\nPrioritize high-impact items and organize by effectiveness.';
+  } else if (outputType === 'json') {
+    optimized += '\n\nReturn only the essential fields in compact, valid JSON.';
+  } else {
+    optimized += '\n\nProvide concise, actionable information with maximum value.';
   }
   
   if (taskDescription) {
-    optimizationPrompt += `\n\nContext: ${taskDescription}`;
+    optimized += `\n\nContext: ${taskDescription}`;
   }
   
-  optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Make the prompt more efficient and direct.\n- Remove unnecessary words while maintaining clarity.\n- Return ONLY the improved prompt text.`;
-  
-  return optimizationPrompt;
+  return optimized;
 }
 
 function applyDeepModeConstraintsOptimization(prompt: string, taskDescription: string, outputType: string): string {
-  let optimizationPrompt = `Add constraints, acceptance criteria, and a precise output format:\n\nOriginal: ${prompt}`;
+  let constrained = `${prompt}`;
   
-  if (outputType && outputType !== 'text') {
-    optimizationPrompt += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format.`;
-  }
+  const outputHint = outputType === 'json' 
+    ? 'Respond strictly with valid JSON only.' 
+    : outputType === 'code' 
+      ? 'Return complete, runnable code with necessary imports.' 
+      : 'Use a clear, consistent format.';
+  
+  constrained += `\n\nConstraints and format:\n- Define acceptance criteria and edge cases\n- Specify any limits (time, tokens, complexity)\n- ${outputHint}`;
   
   if (taskDescription) {
-    optimizationPrompt += `\n\nContext: ${taskDescription}`;
+    constrained += `\n\nContext: ${taskDescription}`;
   }
   
-  optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Add specific constraints and acceptance criteria.\n- Define clear output format requirements.\n- Return ONLY the improved prompt text.`;
-  
-  return optimizationPrompt;
+  return constrained;
 }
 
 function calculateDeepModeStyleScore(optimized: string, original: string, strategy: string): number {

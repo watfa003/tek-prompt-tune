@@ -165,7 +165,7 @@ export const AIPromptOptimizer: React.FC = () => {
           aiProvider,
           modelName,
           outputType,
-          variants,
+          variants: optimizationMode === 'speed' ? 3 : variants,
           userId: user.id,
           maxTokens: maxTokens[0],
           temperature: temperature[0],
@@ -184,7 +184,7 @@ export const AIPromptOptimizer: React.FC = () => {
         console.log('📝 Fallback Optimized Prompt:', data.optimizedPrompt);
         console.log('🎯 Variants:', data.variants);
         setSpeedResult(data);
-        setShowRating(true);
+        setShowRating(false);
         toast({
           title: "⚡ Speed Optimization Complete!",
           description: `Optimized in ${data.processingTimeMs}ms using cached heuristics`,
@@ -782,185 +782,29 @@ export const AIPromptOptimizer: React.FC = () => {
 
           {/* Speed Mode Results */}
           {speedResult && (
-            <div className="space-y-6 animate-fade-in">
-              {/* Header */}
-              <div className="text-center space-y-2">
-                <div className="flex items-center justify-center gap-2 text-2xl font-bold">
-                  <Zap className="h-6 w-6 text-yellow-500" />
-                  Speed Optimization Complete!
-                </div>
-                <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-                  <Badge variant="outline" className="bg-yellow-50 border-yellow-200">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {speedResult.processingTimeMs}ms
-                  </Badge>
-                  <Badge variant="outline" className="bg-blue-50 border-blue-200">
-                    <Target className="h-3 w-3 mr-1" />
-                    {speedResult.strategy}
-                  </Badge>
-                  <Badge variant="outline" className="bg-green-50 border-green-200">
-                    <BarChart3 className="h-3 w-3 mr-1" />
-                    {speedResult.variants?.length || 0} variants
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Best Result */}
-              <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Crown className="h-5 w-5 text-yellow-600" />
-                    Best Optimized Prompt
-                    <Badge className="bg-yellow-500 text-white">
-                      {Math.round((speedResult.bestScore || 0.8) * 100)}% Score
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative">
-                    <Textarea 
-                      value={speedResult.bestOptimizedPrompt || speedResult.optimizedPrompt || (speedResult.variants && speedResult.variants[0]?.prompt) || 'No optimized prompt available'} 
-                      readOnly 
-                      className="min-h-[120px] bg-white/50 dark:bg-black/20 resize-none border-yellow-200" 
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                      onClick={() => copyToClipboard(speedResult.bestOptimizedPrompt || speedResult.optimizedPrompt || (speedResult.variants && speedResult.variants[0]?.prompt) || '')}
-                    >
-                      <Copy className="h-3 w-3 mr-1" />
-                      Copy
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* All Variants */}
-              {speedResult.variants && speedResult.variants.length > 1 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-blue-600" />
-                      All Optimization Variants ({speedResult.variants.length})
-                      <Badge variant="outline" className="ml-auto">
-                        Choose the best one
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {speedResult.variants.map((variant: any, index: number) => (
-                        <div 
-                          key={index} 
-                          className={`border rounded-lg p-4 transition-all duration-300 hover:shadow-lg cursor-pointer ${
-                            index === 0 
-                              ? 'border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 ring-2 ring-yellow-200' 
-                              : 'border-border hover:border-primary/50 hover:bg-muted/30'
-                          }`}
-                          onClick={() => copyToClipboard(variant.prompt)}
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              {index === 0 && <Crown className="h-4 w-4 text-yellow-600" />}
-                              <Badge variant={index === 0 ? 'default' : 'secondary'} className="capitalize">
-                                {variant.strategy}
-                              </Badge>
-                              <Badge variant="outline" className={index === 0 ? 'bg-yellow-100 border-yellow-300' : ''}>
-                                Score: {Math.round((variant.score || 0) * 100)}%
-                              </Badge>
-                              {index === 0 && <Badge className="bg-yellow-500 text-white">Best</Badge>}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">
-                                Click to copy
-                              </Badge>
-                              <Copy className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </div>
-                          <Textarea 
-                            value={variant.prompt} 
-                            readOnly 
-                            className={`min-h-[100px] resize-none text-sm ${
-                              index === 0 
-                                ? 'bg-white/70 dark:bg-black/20 border-yellow-200' 
-                                : 'bg-muted/20'
-                            }`}
-                          />
-                          {variant.metrics && (
-                            <div className="mt-2 flex gap-2 text-xs text-muted-foreground">
-                              <span>Length: {variant.metrics.length_improvement > 0 ? '+' : ''}{variant.metrics.length_improvement} chars</span>
-                              <span>•</span>
-                              <span>Structure: {variant.metrics.structure_score > 0.6 ? '✅' : '❌'}</span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200">
-                      <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                        <Target className="h-4 w-4" />
-                        <strong>Tip:</strong> Click on any variant to copy it to your clipboard. The top variant is automatically selected as the best.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {/* Rating Section */}
-              {showRating && (
-                <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-blue-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-center">
-                      <Star className="h-5 w-5 text-yellow-500" />
-                      Rate This Optimization
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-center space-y-4">
-                    <p className="text-muted-foreground">
-                      How satisfied are you with this speed optimization?
-                    </p>
-                    <div className="flex justify-center gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Button
-                          key={star}
-                          variant="ghost"
-                          size="lg"
-                          onClick={() => submitRating(star)}
-                          className="p-3 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 transition-all duration-200 hover:scale-110"
-                        >
-                          <Star 
-                            className={`h-6 w-6 ${
-                              star <= (userRating || 0) 
-                                ? "text-yellow-500 fill-yellow-500" 
-                                : "text-gray-300 hover:text-yellow-400"
-                            }`}
-                          />
-                        </Button>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Your feedback helps improve our optimization algorithms
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {userRating && (
-                <Card className="bg-green-50 dark:bg-green-950/20 border-green-200">
+            <div className="space-y-4">
+              {(speedResult.variants || []).slice(0, 3).map((variant: any, index: number) => (
+                <Card key={index}>
                   <CardContent className="pt-6">
-                    <div className="text-center space-y-2">
-                      <CheckCircle className="h-8 w-8 text-green-600 mx-auto" />
-                      <p className="font-medium text-green-800 dark:text-green-200">
-                        Thank you for your feedback!
-                      </p>
-                      <p className="text-sm text-green-700 dark:text-green-300">
-                        You rated this optimization {userRating}/5 stars
-                      </p>
+                    <div className="relative">
+                      <Textarea
+                        value={variant.prompt}
+                        readOnly
+                        className="min-h-[120px] resize-none"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(variant.prompt)}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copy
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              ))}
             </div>
           )}
 
