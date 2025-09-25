@@ -157,8 +157,11 @@ serve(async (req) => {
         // Simplified optimization prompt for speed
         let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
         
+        // Critical rules: keep user's intent and only improve the prompt
+        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+        
         if (outputType && outputType !== 'text') {
-          optimizationPrompt += `\n\nIMPORTANT: The optimized prompt should include clear instructions for the AI to respond in ${outputType} format. Add specific formatting requirements and structure guidelines for this output type.`;
+          optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
         }
         
         if (influence && influenceWeight > 0) {
@@ -348,19 +351,26 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
 async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
   console.log(`Making API call to ${providerConfig.baseUrl} with model: ${model}`);
   
-  const response = await fetch(providerConfig.baseUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${providerConfig.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+    const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
+    const payload: any = {
       model: model,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: maxTokens,
-      temperature: Math.min(temperature, 1.0),
-    }),
-  });
+    };
+    if (isNewerModel) {
+      payload.max_completion_tokens = maxTokens; // Newer models use max_completion_tokens and ignore temperature
+    } else {
+      payload.max_tokens = maxTokens; // Legacy models use max_tokens
+      payload.temperature = Math.min(temperature, 1.0);
+    }
+
+    const response = await fetch(providerConfig.baseUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${providerConfig.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
   console.log(`API response status: ${response.status} for model: ${model}`);
   
