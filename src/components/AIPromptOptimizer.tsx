@@ -196,9 +196,10 @@ export const AIPromptOptimizer: React.FC = () => {
         console.log('🎯 Variants:', data.variants);
         setSpeedResult(data);
         setShowRating(false);
+        const timeInSeconds = (data.processingTimeMs / 1000).toFixed(1);
         toast({
           title: "⚡ Speed Optimization Complete!",
-          description: `Optimized in ${data.processingTimeMs}ms using cached heuristics`,
+          description: `Optimized in ${timeInSeconds}s - Under 12 second limit`,
         });
       } else {
         // Handle Deep Mode results
@@ -885,6 +886,32 @@ export const AIPromptOptimizer: React.FC = () => {
           {/* Speed Mode Results */}
           {speedResult && (
             <div className="space-y-4">
+              {/* Speed Mode Stats */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="text-center p-4 rounded-lg bg-muted/50">
+                      <Zap className="h-6 w-6 mx-auto mb-2 text-green-500" />
+                      <div className="text-lg font-bold">{(speedResult.processingTimeMs / 1000).toFixed(1)}s</div>
+                      <div className="text-xs text-muted-foreground">Processing Time</div>
+                    </div>
+                    <div className="text-center p-4 rounded-lg bg-muted/50">
+                      <Target className="h-6 w-6 mx-auto mb-2 text-primary" />
+                      <div className="text-lg font-bold">{speedResult.variants?.length || 0}</div>
+                      <div className="text-xs text-muted-foreground">Variants</div>
+                    </div>
+                    <div className="text-center p-4 rounded-lg bg-muted/50">
+                      <BarChart3 className="h-6 w-6 mx-auto mb-2 text-primary" />
+                      <div className="text-lg font-bold">{speedResult.strategy}</div>
+                      <div className="text-xs text-muted-foreground">Best Strategy</div>
+                    </div>
+                  </div>
+                  <div className="text-center text-sm text-muted-foreground">
+                    Speed Mode: Fast optimization under 12 seconds
+                  </div>
+                </CardContent>
+              </Card>
+              
               {(speedResult.variants || []).slice(0, 3).map((variant: any, index: number) => (
                 <Card key={index}>
                   <CardContent className="pt-6">

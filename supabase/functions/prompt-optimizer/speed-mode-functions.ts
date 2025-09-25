@@ -17,8 +17,8 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
   google: 'gemini-1.5-pro',
-  groq: 'llama-3.1-8b',
-  mistral: 'mistral-medium',
+  groq: 'llama3-8b-8192',
+  mistral: 'mistral-small-latest',
 };
 
 export async function handleSpeedMode(
@@ -26,6 +26,11 @@ export async function handleSpeedMode(
   { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7 }: any
 ) {
   console.log('🚀 Running Speed Mode optimization...');
+  
+  // 12-second timeout for all operations
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Speed mode timeout: 12 seconds exceeded')), 12000);
+  });
   
   try {
     // Load cached insights for speed optimization
@@ -42,8 +47,8 @@ export async function handleSpeedMode(
       console.log(`📈 Insights: ${insights.batch_count} batches, ${insights.total_optimizations} total opts, avg score: ${insights.avg_improvement_score}`);
     }
 
-    // Generate multiple variants using API optimization (no testing)
-    const variants = await generateSpeedVariants(
+    // Generate multiple variants using API optimization (no testing) with timeout
+    const speedPromise = generateSpeedVariants(
       originalPrompt,
       taskDescription,
       outputType,
@@ -54,6 +59,8 @@ export async function handleSpeedMode(
       maxTokens,
       temperature
     );
+    
+    const variants = await Promise.race([speedPromise, timeoutPromise]) as any[];
     const bestVariant = selectBestVariant(variants);
     const processingTime = Date.now() - startTime;
 
@@ -452,35 +459,119 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
 async function callOpenAICompatible(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
   const cfg = AI_PROVIDERS[provider as keyof typeof AI_PROVIDERS];
   if (!cfg?.apiKey) throw new Error(`${provider} API key missing`);
+  
   const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
   const payload: any = { model, messages: [{ role: 'user', content: prompt }] };
-  if (isNewerModel) payload.max_completion_tokens = maxTokens; else { payload.max_tokens = maxTokens; payload.temperature = Math.min(temperature, 1.0); }
-  const res = await fetch(cfg.baseUrl, { method: 'POST', headers: { 'Authorization': `Bearer ${cfg.apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  if (!res.ok) { console.error('openai-compatible failed', await res.text()); return null; }
-  const data = await res.json();
-  return data?.choices?.[0]?.message?.content?.trim() ?? null;
+  
+  if (isNewerModel) {
+    payload.max_completion_tokens = maxTokens;
+  } else {
+    payload.max_tokens = maxTokens;
+    payload.temperature = Math.min(temperature, 1.0);
+  }
+  
+  // Add 8-second timeout for API calls
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  
+  try {
+    const res = await fetch(cfg.baseUrl, { 
+      method: 'POST', 
+      headers: { 'Authorization': `Bearer ${cfg.apiKey}`, 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) { 
+      const errorText = await res.text();
+      console.error(`${provider} failed:`, errorText); 
+      return null; 
+    }
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content?.trim() ?? null;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error(`${provider} API call failed:`, (error as Error).message);
+    return null;
+  }
 }
 
 async function callAnthropic(model: string, prompt: string, maxTokens: number): Promise<string | null> {
   const cfg = AI_PROVIDERS.anthropic;
   if (!cfg.apiKey) throw new Error('Anthropic API key missing');
-  const res = await fetch(cfg.baseUrl, { method: 'POST', headers: { 'x-api-key': cfg.apiKey, 'content-type': 'application/json', 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }) });
-  if (!res.ok) { console.error('anthropic failed', await res.text()); return null; }
-  const data = await res.json();
-  // data.content can be array segments; join text
-  const txt = Array.isArray(data?.content) ? data.content.map((c: any) => c.text).join('\n').trim() : data?.content?.[0]?.text?.trim();
-  return txt || null;
+  
+  // Add 8-second timeout for API calls
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  
+  try {
+    const res = await fetch(cfg.baseUrl, { 
+      method: 'POST', 
+      headers: { 
+        'x-api-key': cfg.apiKey, 
+        'content-type': 'application/json', 
+        'anthropic-version': '2023-06-01' 
+      }, 
+      body: JSON.stringify({ 
+        model, 
+        max_tokens: maxTokens, 
+        messages: [{ role: 'user', content: prompt }] 
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) { 
+      const errorText = await res.text();
+      console.error('anthropic failed:', errorText); 
+      return null; 
+    }
+    const data = await res.json();
+    // data.content can be array segments; join text
+    const txt = Array.isArray(data?.content) ? data.content.map((c: any) => c.text).join('\n').trim() : data?.content?.[0]?.text?.trim();
+    return txt || null;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error('Anthropic API call failed:', (error as Error).message);
+    return null;
+  }
 }
 
 async function callGoogle(model: string, prompt: string, maxTokens: number): Promise<string | null> {
   const cfg = AI_PROVIDERS.google;
   if (!cfg.apiKey) throw new Error('Google API key missing');
-  const url = `${cfg.baseUrl}/${model}:generateContent?key=${cfg.apiKey}`;
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens } }) });
-  if (!res.ok) { console.error('google failed', await res.text()); return null; }
-  const data = await res.json();
-  const txt = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n').trim();
-  return txt || null;
+  
+  // Add 8-second timeout for API calls
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  
+  try {
+    const url = `${cfg.baseUrl}/${model}:generateContent?key=${cfg.apiKey}`;
+    const res = await fetch(url, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ 
+        contents: [{ parts: [{ text: prompt }] }], 
+        generationConfig: { maxOutputTokens: maxTokens } 
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) { 
+      const errorText = await res.text();
+      console.error('google failed:', errorText); 
+      return null; 
+    }
+    const data = await res.json();
+    const txt = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n').trim();
+    return txt || null;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error('Google API call failed:', (error as Error).message);
+    return null;
+  }
 }
 
 // Strategy selection logic matching deep mode
