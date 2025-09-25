@@ -198,19 +198,49 @@ serve(async (req) => {
           return null;
         }
 
-        // Advanced length-based evaluation
-        const score = evaluateOutput(optimizedPrompt, strategy.weight);
+        // Test the optimized prompt with the user's selected model
+        let actualResponse = '';
+        let actualScore = 0;
+        
+        try {
+          console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
+          const testResponse = await callAIProvider(
+            aiProvider,
+            modelName,
+            optimizedPrompt,
+            Math.min(maxTokens, 4096),
+            temperature
+          );
+          
+          if (testResponse) {
+            actualResponse = testResponse;
+            // Score based on the actual response from the user's selected model
+            actualScore = evaluateOutput(testResponse, strategy.weight);
+            console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
+          } else {
+            // Fallback to scoring the optimized prompt if response fails
+            actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
+            actualResponse = `Optimization completed using ${strategy.name} strategy`;
+            console.log(`Using fallback scoring for strategy: ${strategyKey}`);
+          }
+        } catch (error) {
+          console.error(`Error testing with user model ${modelName}:`, error);
+          // Fallback to scoring the optimized prompt
+          actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
+          actualResponse = `Optimization completed using ${strategy.name} strategy`;
+        }
 
         return {
           prompt: optimizedPrompt,
           strategy: strategy.name,
-          score: score,
-          response: `Optimized using ${strategy.name} strategy`,
+          score: actualScore,
+          response: actualResponse,
           metrics: {
             tokens_used: optimizedPrompt.length,
-            response_length: optimizedPrompt.length,
+            response_length: actualResponse.length,
             prompt_length: originalPrompt.length,
-            strategy_weight: strategy.weight * 100
+            strategy_weight: strategy.weight * 100,
+            tested_with_target_model: actualResponse !== `Optimization completed using ${strategy.name} strategy`
           }
         };
 
