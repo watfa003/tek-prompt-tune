@@ -133,17 +133,31 @@ export async function handleSpeedMode(
 async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number): Promise<any[]> {
   const variants = [];
   
-  // Use the same strategy selection logic as deep mode
+  // Use the same strategy selection logic as deep mode - ensure we get exactly the number requested
   const allStrategies = ['clarity', 'specificity', 'structure', 'efficiency', 'constraints'];
-  const selectedStrategies = selectBestStrategiesFromInsights(allStrategies, Math.min(requestedVariants || 1, allStrategies.length), insights);
+  const numVariants = Math.min(Math.max(requestedVariants || 1, 1), allStrategies.length);
   
-  console.log(`📊 Speed mode using strategies: ${selectedStrategies.join(', ')}`);
+  // Duplicate strategies if we need more variants than available strategies
+  let selectedStrategies = [];
+  if (numVariants <= allStrategies.length) {
+    selectedStrategies = selectBestStrategiesFromInsights(allStrategies, numVariants, insights);
+  } else {
+    // If user wants more variants than strategies, repeat best strategies with variation
+    const baseStrategies = selectBestStrategiesFromInsights(allStrategies, allStrategies.length, insights);
+    selectedStrategies = [...baseStrategies];
+    // Add variations of the best strategies
+    while (selectedStrategies.length < numVariants) {
+      selectedStrategies.push(baseStrategies[selectedStrategies.length % baseStrategies.length]);
+    }
+  }
+  
+  console.log(`📊 Speed mode generating ${numVariants} variants using strategies: ${selectedStrategies.join(', ')}`);
   
   // Track uniqueness
   const seen = new Set<string>();
   
   // Generate variants using selected strategies
-  for (let i = 0; i < selectedStrategies.length; i++) {
+  for (let i = 0; i < selectedStrategies.length && variants.length < numVariants; i++) {
     const strategy = selectedStrategies[i];
 
     // Build an instruction for the LLM just like deep mode
