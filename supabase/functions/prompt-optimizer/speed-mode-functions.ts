@@ -1,5 +1,30 @@
-// Speed Mode: Use cached heuristics without API calls
-export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3 }: any) {
+// Speed Mode: Optimizes via API calls (like deep mode) but skips testing responses
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
+const mistralApiKey = Deno.env.get('MISTRAL_API_KEY');
+
+const AI_PROVIDERS = {
+  openai: { baseUrl: 'https://api.openai.com/v1/chat/completions', apiKey: openAIApiKey },
+  anthropic: { baseUrl: 'https://api.anthropic.com/v1/messages', apiKey: anthropicApiKey },
+  google: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models', apiKey: googleApiKey },
+  groq: { baseUrl: 'https://api.groq.com/openai/v1/chat/completions', apiKey: groqApiKey },
+  mistral: { baseUrl: 'https://api.mistral.ai/v1/chat/completions', apiKey: mistralApiKey },
+} as const;
+
+const OPTIMIZATION_MODELS: Record<string, string> = {
+  openai: 'gpt-4o-mini',
+  anthropic: 'claude-3-5-haiku-20241022',
+  google: 'gemini-1.5-pro',
+  groq: 'llama-3.1-8b',
+  mistral: 'mistral-medium',
+};
+
+export async function handleSpeedMode(
+  supabase: any,
+  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7 }: any
+) {
   console.log('🚀 Running Speed Mode optimization...');
   
   try {
@@ -17,8 +42,18 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
       console.log(`📈 Insights: ${insights.batch_count} batches, ${insights.total_optimizations} total opts, avg score: ${insights.avg_improvement_score}`);
     }
 
-    // Generate multiple variants using speed heuristics
-    const variants = await generateSpeedVariants(originalPrompt, taskDescription, outputType, insights, requestedVariants);
+    // Generate multiple variants using API optimization (no testing)
+    const variants = await generateSpeedVariants(
+      originalPrompt,
+      taskDescription,
+      outputType,
+      insights,
+      requestedVariants,
+      aiProvider,
+      modelName,
+      maxTokens,
+      temperature
+    );
     const bestVariant = selectBestVariant(variants);
     const processingTime = Date.now() - startTime;
 
@@ -88,7 +123,7 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
 }
 
 // Generate multiple variants using speed heuristics (same strategies as deep mode)
-async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3): Promise<any[]> {
+async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number): Promise<any[]> {
   const variants = [];
   
   // Use the same strategy selection logic as deep mode
@@ -100,29 +135,33 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   // Generate variants using selected strategies
   for (let i = 0; i < selectedStrategies.length; i++) {
     const strategy = selectedStrategies[i];
-    let optimizedPrompt = originalPrompt;
-    
-    // Apply deep mode style optimization strategies
-    switch (strategy) {
-      case 'clarity':
-        optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
-        break;
-      case 'specificity':
-        optimizedPrompt = applyDeepModeSpecificityOptimization(originalPrompt, taskDescription, outputType, insights);
-        break;
-      case 'structure':
-        optimizedPrompt = applyDeepModeStructureOptimization(originalPrompt, taskDescription, outputType);
-        break;
-      case 'efficiency':
-        optimizedPrompt = applyDeepModeEfficiencyOptimization(originalPrompt, taskDescription, outputType);
-        break;
-      case 'constraints':
-        optimizedPrompt = applyDeepModeConstraintsOptimization(originalPrompt, taskDescription, outputType);
-        break;
+
+    // Build an instruction for the LLM just like deep mode
+    const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights);
+
+    // Choose a cheaper optimization model (deep mode style)
+    const optimizationModel = OPTIMIZATION_MODELS[aiProvider] || modelName;
+
+    let optimizedPrompt = '';
+    try {
+      optimizedPrompt = await callAIProvider(
+        aiProvider,
+        optimizationModel,
+        instruction,
+        Math.min(maxTokens || 1024, 4096),
+        temperature ?? 0.7
+      ) || '';
+    } catch (e) {
+      console.error('Optimization API call failed for strategy', strategy, e);
     }
-    
+
+    // Fallback if provider returns nothing
+    if (!optimizedPrompt.trim()) {
+      optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
+    }
+
     const score = calculateDeepModeStyleScore(optimizedPrompt, originalPrompt, strategy);
-    
+
     variants.push({
       prompt: optimizedPrompt,
       strategy: getStrategyDisplayName(strategy),
@@ -332,6 +371,94 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
     specificityBoost: optimized.length > original.length * 1.2,
     estimatedScoreImprovement: 0.25
   };
+}
+
+// Build deep-mode style instruction for the LLM
+function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any): string {
+  let instruction = '';
+  switch (strategy) {
+    case 'clarity':
+      instruction = `Make this prompt clearer and more specific:\n\nOriginal: ${originalPrompt}`;
+      break;
+    case 'specificity':
+      instruction = `Add specific details and examples to this prompt:\n\nOriginal: ${originalPrompt}`;
+      if (insights?.successful_strategies?.specificity?.patterns?.length > 0) {
+        instruction += `\n\nSuccessful patterns for this strategy: ${insights.successful_strategies.specificity.patterns.slice(0, 3).join(', ')}`;
+      }
+      break;
+    case 'structure':
+      instruction = `Improve the logical structure with step-by-step instructions and sections:\n\nOriginal: ${originalPrompt}`;
+      break;
+    case 'efficiency':
+      instruction = `Optimize this prompt for better AI performance:\n\nOriginal: ${originalPrompt}`;
+      break;
+    case 'constraints':
+      instruction = `Add constraints, acceptance criteria, and a precise output format:\n\nOriginal: ${originalPrompt}`;
+      break;
+  }
+  if (outputType && outputType !== 'text') {
+    instruction += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
+  }
+  if (taskDescription) {
+    instruction += `\n\nContext: ${taskDescription}`;
+  }
+  instruction += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+  return instruction;
+}
+
+// Provider calls (subset matching index.ts behavior)
+async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
+  try {
+    switch (provider) {
+      case 'openai':
+      case 'groq':
+      case 'mistral':
+        return await callOpenAICompatible(provider, model, prompt, maxTokens, temperature);
+      case 'anthropic':
+        return await callAnthropic(model, prompt, maxTokens);
+      case 'google':
+        return await callGoogle(model, prompt, maxTokens);
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  } catch (e) {
+    console.error('callAIProvider error', e);
+    return null;
+  }
+}
+
+async function callOpenAICompatible(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
+  const cfg = AI_PROVIDERS[provider as keyof typeof AI_PROVIDERS];
+  if (!cfg?.apiKey) throw new Error(`${provider} API key missing`);
+  const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
+  const payload: any = { model, messages: [{ role: 'user', content: prompt }] };
+  if (isNewerModel) payload.max_completion_tokens = maxTokens; else { payload.max_tokens = maxTokens; payload.temperature = Math.min(temperature, 1.0); }
+  const res = await fetch(cfg.baseUrl, { method: 'POST', headers: { 'Authorization': `Bearer ${cfg.apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  if (!res.ok) { console.error('openai-compatible failed', await res.text()); return null; }
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() ?? null;
+}
+
+async function callAnthropic(model: string, prompt: string, maxTokens: number): Promise<string | null> {
+  const cfg = AI_PROVIDERS.anthropic;
+  if (!cfg.apiKey) throw new Error('Anthropic API key missing');
+  const res = await fetch(cfg.baseUrl, { method: 'POST', headers: { 'x-api-key': cfg.apiKey, 'content-type': 'application/json', 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }) });
+  if (!res.ok) { console.error('anthropic failed', await res.text()); return null; }
+  const data = await res.json();
+  // data.content can be array segments; join text
+  const txt = Array.isArray(data?.content) ? data.content.map((c: any) => c.text).join('\n').trim() : data?.content?.[0]?.text?.trim();
+  return txt || null;
+}
+
+async function callGoogle(model: string, prompt: string, maxTokens: number): Promise<string | null> {
+  const cfg = AI_PROVIDERS.google;
+  if (!cfg.apiKey) throw new Error('Google API key missing');
+  const url = `${cfg.baseUrl}/${model}:generateContent?key=${cfg.apiKey}`;
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens } }) });
+  if (!res.ok) { console.error('google failed', await res.text()); return null; }
+  const data = await res.json();
+  const txt = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n').trim();
+  return txt || null;
 }
 
 // Strategy selection logic matching deep mode
