@@ -330,17 +330,30 @@ serve(async (req) => {
           })
           .eq('id', promptRecord.id);
 
-        // Save batch findings to optimization insights
+        // Save batch findings to optimization insights - CRITICAL for speed optimization
+        console.log('Starting to save batch insights to optimization_insights table...');
         await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights);
+        console.log('✅ Batch insights saved successfully to optimization_insights table');
 
         console.log('Background database updates and insights completed');
       } catch (error) {
-        console.error('Background update error:', error);
+        console.error('❌ Background update error:', error);
+        // Try to save insights even if other operations failed
+        try {
+          console.log('Attempting fallback save of batch insights...');
+          await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights);
+          console.log('✅ Fallback batch insights save successful');
+        } catch (fallbackError) {
+          console.error('❌ Fallback batch insights save failed:', fallbackError);
+        }
       }
     };
 
-    // Start background task
-    Promise.resolve().then(() => backgroundUpdates());
+    // Start background task to save insights
+    console.log('🚀 Starting background task to save optimization insights...');
+    Promise.resolve().then(() => backgroundUpdates().catch(err => 
+      console.error('❌ Background task failed completely:', err)
+    ));
 
     // Return immediate response
     const response = {
@@ -653,6 +666,7 @@ function fastSkimEvaluation(text: string, strategyWeight: number): number {
 // Load cached optimization insights for fast optimization
 async function loadOptimizationInsights(supabase: any, userId: string, aiProvider: string, modelName: string) {
   try {
+    console.log(`🔍 Loading cached insights for ${aiProvider}/${modelName}...`);
     const { data: insights } = await supabase
       .from('optimization_insights')
       .select('*')
@@ -664,14 +678,16 @@ async function loadOptimizationInsights(supabase: any, userId: string, aiProvide
       .maybeSingle();
 
     if (insights) {
-      console.log(`Loaded cached insights from ${insights.batch_count} batches, avg score: ${insights.avg_improvement_score}`);
+      console.log(`✅ Loaded cached insights: ${insights.batch_count} batches, ${insights.total_optimizations} total opts, avg score: ${insights.avg_improvement_score?.toFixed(3)}`);
+      console.log(`📊 Available strategies: ${Object.keys(insights.successful_strategies || {}).length}, patterns: ${Object.keys(insights.performance_patterns || {}).length}`);
       return {
-        strategies: insights.successful_strategies,
-        optimizationRules: insights.optimization_rules,
-        performancePatterns: insights.performance_patterns,
-        totalOptimizations: insights.total_optimizations,
-        avgUserScore: insights.avg_improvement_score,
-        hasCachedData: true
+        strategies: insights.successful_strategies || {},
+        optimizationRules: insights.optimization_rules || {},
+        performancePatterns: insights.performance_patterns || {},
+        totalOptimizations: insights.total_optimizations || 0,
+        avgUserScore: insights.avg_improvement_score || 0.5,
+        hasCachedData: true,
+        batchCount: insights.batch_count
       };
     }
 
@@ -776,33 +792,82 @@ async function saveBatchInsights(supabase: any, userId: string, aiProvider: stri
     const newAvgScore = previousInsights.hasCachedData 
       ? (previousInsights.avgUserScore + batchSummary.avgScore) / 2
       : batchSummary.avgScore;
+    const newBatchCount = (previousInsights.batchCount || 0) + 1;
 
-    // Upsert optimization insights
-    const { error } = await supabase
+    console.log(`Saving insights: batch ${newBatchCount}, total opts: ${newTotalOptimizations}, avg score: ${newAvgScore.toFixed(3)}`);
+
+    // First try to update existing record
+    const { data: existingRecord } = await supabase
       .from('optimization_insights')
-      .upsert({
-        user_id: userId,
-        ai_provider: aiProvider,
-        model_name: modelName,
-        batch_summary: batchSummary,
-        successful_strategies: mergedStrategies,
-        performance_patterns: performancePatterns,
-        optimization_rules: optimizationRules,
-        batch_count: (previousInsights.batchCount || 0) + 1,
-        total_optimizations: newTotalOptimizations,
-        avg_improvement_score: newAvgScore
-      }, {
-        onConflict: 'user_id,ai_provider,model_name'
-      });
+      .select('id')
+      .eq('user_id', userId)
+      .eq('ai_provider', aiProvider)
+      .eq('model_name', modelName)
+      .maybeSingle();
+
+    let result;
+    if (existingRecord) {
+      // Update existing record
+      console.log(`Updating existing insights record: ${existingRecord.id}`);
+      result = await supabase
+        .from('optimization_insights')
+        .update({
+          batch_summary: batchSummary,
+          successful_strategies: mergedStrategies,
+          performance_patterns: performancePatterns,
+          optimization_rules: optimizationRules,
+          batch_count: newBatchCount,
+          total_optimizations: newTotalOptimizations,
+          avg_improvement_score: newAvgScore,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingRecord.id);
+    } else {
+      // Insert new record
+      console.log('Creating new insights record');
+      result = await supabase
+        .from('optimization_insights')
+        .insert({
+          user_id: userId,
+          ai_provider: aiProvider,
+          model_name: modelName,
+          batch_summary: batchSummary,
+          successful_strategies: mergedStrategies,
+          performance_patterns: performancePatterns,
+          optimization_rules: optimizationRules,
+          batch_count: newBatchCount,
+          total_optimizations: newTotalOptimizations,
+          avg_improvement_score: newAvgScore
+        });
+    }
+
+    const { error } = result;
 
     if (error) {
-      console.error('Error saving batch insights:', error);
+      console.error('❌ Error saving batch insights to optimization_insights table:', error);
+      throw error; // Re-throw to trigger fallback logging
     } else {
-      console.log(`Saved batch insights: ${optimizedVariants.length} variants, avg score: ${batchSummary.avgScore}`);
+      console.log(`✅ Successfully saved batch insights: ${optimizedVariants.length} variants, avg score: ${batchSummary.avgScore.toFixed(3)}, batch #${newBatchCount}`);
+      
+      // Verify the save worked by checking if record exists
+      const { data: verification } = await supabase
+        .from('optimization_insights')
+        .select('batch_count, total_optimizations')
+        .eq('user_id', userId)
+        .eq('ai_provider', aiProvider)
+        .eq('model_name', modelName)
+        .maybeSingle();
+      
+      if (verification) {
+        console.log(`✅ Verification successful: Record shows ${verification.batch_count} batches, ${verification.total_optimizations} total optimizations`);
+      } else {
+        console.error('❌ Verification failed: Could not find saved insights record');
+      }
     }
 
   } catch (error) {
-    console.error('Error in saveBatchInsights:', error);
+    console.error('❌ Critical error in saveBatchInsights:', error);
+    throw error; // Re-throw so calling function can handle fallback
   }
 }
 
