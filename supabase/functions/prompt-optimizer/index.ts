@@ -164,124 +164,177 @@ serve(async (req) => {
     const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allStrategies.length);
     const strategyKeys = selectBestStrategies(allStrategies, variantCount, historicalData);
     
-    const variantPromises = strategyKeys.map(async (strategyKey) => {
+    // Create optimization prompts for batch processing
+    const optimizationPrompts = strategyKeys.map((strategyKey) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
+      let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
       
-      try {
-        // Enhanced optimization prompt with historical insights
-        let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
-        
-        // Add historical insights if available
-        const strategyHistory = historicalData.strategies[strategyKey];
-        if (strategyHistory?.patterns?.length > 0) {
-          optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyHistory.patterns.slice(0, 3).join(', ')}`;
-        }
-        
-        // Critical rules: keep user's intent and only improve the prompt
-        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
-        
-        if (outputType && outputType !== 'text') {
-          optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
-        }
-        
-        if (influence && influenceWeight > 0) {
-          optimizationPrompt += `\n\nStyle influence (${influenceWeight}%): ${influence.slice(0, 200)}`;
-        }
+      // Add historical insights if available
+      const strategyHistory = historicalData.strategies[strategyKey];
+      if (strategyHistory?.patterns?.length > 0) {
+        optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyHistory.patterns.slice(0, 3).join(', ')}`;
+      }
+      
+      // Critical rules: keep user's intent and only improve the prompt
+      optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+      
+      if (outputType && outputType !== 'text') {
+        optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
+      }
+      
+      if (influence && influenceWeight > 0) {
+        optimizationPrompt += `\n\nStyle influence (${influenceWeight}%): ${influence.slice(0, 200)}`;
+      }
 
-        if (taskDescription) {
-          optimizationPrompt += `\n\nContext: ${taskDescription}`;
-        }
+      if (taskDescription) {
+        optimizationPrompt += `\n\nContext: ${taskDescription}`;
+      }
 
-        // Single API call for optimization using cheaper model
-        const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
+      return { strategyKey, strategy, prompt: optimizationPrompt };
+    });
+
+    // BATCH OPTIMIZATION: Generate all variants in a single API call
+    const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
+    const batchOptimizationPrompt = `You will optimize the same prompt using ${variantCount} different strategies. For each strategy, provide ONLY the optimized prompt with no commentary.
+
+${optimizationPrompts.map((opt, i) => `
+STRATEGY ${i + 1} - ${opt.strategy.name}:
+${opt.prompt}
+
+OPTIMIZED VERSION ${i + 1}:`).join('\n')}
+
+Provide ${variantCount} optimized prompts, one for each strategy above. Label each clearly as "OPTIMIZED VERSION 1:", "OPTIMIZED VERSION 2:", etc.`;
+
+    console.log('Generating all optimized variants in single batch call...');
+    const batchOptimizedResponse = await callAIProvider(
+      aiProvider, 
+      optimizationModel, 
+      batchOptimizationPrompt, 
+      Math.min(maxTokens * variantCount, 8192),
+      temperature
+    );
+
+    if (!batchOptimizedResponse) {
+      throw new Error('Failed to get batch optimization response');
+    }
+
+    // Parse the batched response to extract individual optimized prompts
+    const optimizedPrompts = [];
+    const sections = batchOptimizedResponse.split(/OPTIMIZED VERSION \d+:/);
+    
+    for (let i = 1; i < sections.length && i <= variantCount; i++) {
+      const prompt = sections[i].trim();
+      if (prompt) {
+        optimizedPrompts.push({
+          prompt,
+          strategy: optimizationPrompts[i - 1].strategy,
+          strategyKey: optimizationPrompts[i - 1].strategyKey
+        });
+      }
+    }
+
+    // If parsing failed, fall back to individual optimization
+    if (optimizedPrompts.length === 0) {
+      console.log('Batch parsing failed, falling back to individual optimization...');
+      const variantPromises = strategyKeys.map(async (strategyKey) => {
+        const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
+        const opt = optimizationPrompts.find(o => o.strategyKey === strategyKey);
+        if (!opt) return null;
+        
         const optimizedPrompt = await callAIProvider(
           aiProvider, 
           optimizationModel, 
-          optimizationPrompt, 
-          Math.min(maxTokens, 4096), // Respect user setting but cap at reasonable limit
+          opt.prompt, 
+          Math.min(maxTokens, 4096),
           temperature
         );
         
-        if (!optimizedPrompt) {
-          console.error('Failed to get optimization response for strategy:', strategyKey);
-          return null;
-        }
+        return optimizedPrompt ? { prompt: optimizedPrompt, strategy, strategyKey } : null;
+      });
+      
+      const results = await Promise.allSettled(variantPromises);
+      optimizedPrompts.push(...results
+        .filter(r => r.status === 'fulfilled' && r.value)
+        .map(r => (r as PromiseFulfilledResult<any>).value));
+    }
 
-        // Test the optimized prompt with the user's selected model
-        let actualResponse = '';
-        let actualScore = 0;
+    // BATCH TESTING: Test all optimized prompts with user's model in single call
+    let batchTestResponses: string[] = [];
+    
+    if (optimizedPrompts.length > 0) {
+      console.log(`Batch testing ${optimizedPrompts.length} optimized prompts with user model: ${modelName}`);
+      
+      const batchTestPrompt = `Test each of these ${optimizedPrompts.length} optimized prompts and provide responses. Label each response clearly:
+
+${optimizedPrompts.map((opt, i) => `
+PROMPT ${i + 1}:
+${opt.prompt}
+
+RESPONSE ${i + 1}:`).join('\n')}
+
+Provide ${optimizedPrompts.length} complete responses, one for each prompt above.`;
+
+      try {
+        const batchTestResponse = await callAIProvider(
+          aiProvider,
+          modelName,
+          batchTestPrompt,
+          Math.min(maxTokens * optimizedPrompts.length, 8192),
+          temperature
+        );
         
-        try {
-          console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
-          const testResponse = await callAIProvider(
-            aiProvider,
-            modelName,
-            optimizedPrompt,
-            Math.min(maxTokens, 4096),
-            temperature
-          );
-          
-          if (testResponse) {
-            actualResponse = testResponse;
-            // Score based on the actual response from the user's selected model
-            // Use fast evaluation for very long responses (over 2 pages)
-            const responseWords = testResponse.split(' ').length;
-            if (responseWords > 1500) { // Roughly 2 pages
-              console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
-              actualScore = fastSkimEvaluation(testResponse, strategy.weight);
-            } else {
-              actualScore = evaluateOutput(testResponse, strategy.weight);
+        if (batchTestResponse) {
+          const responseSections = batchTestResponse.split(/RESPONSE \d+:/);
+          for (let i = 1; i < responseSections.length && i <= optimizedPrompts.length; i++) {
+            const response = responseSections[i].trim();
+            if (response) {
+              batchTestResponses.push(response);
             }
-            console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
-          } else {
-            // Fallback to scoring the optimized prompt if response fails
-            actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
-            actualResponse = `Optimization completed using ${strategy.name} strategy`;
-            console.log(`Using fallback scoring for strategy: ${strategyKey}`);
           }
-        } catch (error) {
-          console.error(`Error testing with user model ${modelName}:`, error);
-          // Fallback to scoring the optimized prompt
-          actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
-          actualResponse = `Optimization completed using ${strategy.name} strategy`;
         }
-
-        return {
-          prompt: optimizedPrompt,
-          strategy: strategy.name,
-          score: actualScore,
-          response: actualResponse,
-          metrics: {
-            tokens_used: optimizedPrompt.length,
-            response_length: actualResponse.length,
-            prompt_length: originalPrompt.length,
-            strategy_weight: strategy.weight * 100,
-            tested_with_target_model: actualResponse !== `Optimization completed using ${strategy.name} strategy`
-          }
-        };
-
       } catch (error) {
-        console.error(`Error processing strategy ${strategyKey}:`, error);
-        return null;
+        console.error('Batch testing failed:', error);
       }
+    }
+
+    // BATCH EVALUATION: Score all responses in single call
+    const variantResults = optimizedPrompts.map((opt, index) => {
+      const actualResponse = batchTestResponses[index] || `Optimization completed using ${opt.strategy.name} strategy`;
+      
+      let actualScore = 0;
+      const responseWords = actualResponse.split(' ').length;
+      if (responseWords > 1500) {
+        actualScore = fastSkimEvaluation(actualResponse, opt.strategy.weight);
+      } else {
+        actualScore = evaluateOutput(actualResponse, opt.strategy.weight);
+      }
+      
+      console.log(`Batch response scored: ${actualScore} for strategy: ${opt.strategyKey}`);
+      
+      return {
+        prompt: opt.prompt,
+        strategy: opt.strategy.name,
+        score: actualScore,
+        response: actualResponse,
+        metrics: {
+          tokens_used: opt.prompt.length,
+          response_length: actualResponse.length,
+          prompt_length: originalPrompt.length,
+          strategy_weight: opt.strategy.weight * 100,
+          tested_with_target_model: batchTestResponses[index] !== undefined
+        }
+      };
     });
 
-    // Wait for variants in parallel
-    const [promptRecordResult, ...variantResults] = await Promise.allSettled([
-      promptRecordPromise,
-      ...variantPromises
-    ]);
-
-    // Get prompt record
-    const promptRecord = promptRecordResult.status === 'fulfilled' ? promptRecordResult.value.data : null;
+    // Wait for prompt record creation
+    const promptRecordResult = await promptRecordPromise;
+    const promptRecord = promptRecordResult.data;
     if (!promptRecord) {
       throw new Error('Failed to create prompt record');
     }
 
-    // Filter successful variants
-    const optimizedVariants = variantResults
-      .filter(result => result.status === 'fulfilled' && result.value)
-      .map(result => (result as PromiseFulfilledResult<any>).value);
+    // Use the batch-processed variants
+    const optimizedVariants = variantResults.filter(variant => variant.prompt && variant.score > 0);
 
     if (optimizedVariants.length === 0) {
       throw new Error('Failed to generate any optimized variants');
