@@ -156,17 +156,26 @@ serve(async (req) => {
     // Start prompt record creation
     const promptRecordPromise = createPromptRecord();
 
+    // Get historical optimization data for learning
+    const historicalData = await getHistoricalOptimizations(supabase, userId, aiProvider, modelName);
+    
     // Generate optimized variants in parallel for maximum speed
     const allStrategies = Object.keys(OPTIMIZATION_STRATEGIES);
     const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allStrategies.length);
-    const strategyKeys = allStrategies.slice(0, variantCount);
+    const strategyKeys = selectBestStrategies(allStrategies, variantCount, historicalData);
     
     const variantPromises = strategyKeys.map(async (strategyKey) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
-        // Simplified optimization prompt for speed
+        // Enhanced optimization prompt with historical insights
         let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
+        
+        // Add historical insights if available
+        const strategyHistory = historicalData.strategies[strategyKey];
+        if (strategyHistory?.patterns?.length > 0) {
+          optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyHistory.patterns.slice(0, 3).join(', ')}`;
+        }
         
         // Critical rules: keep user's intent and only improve the prompt
         optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
@@ -636,4 +645,115 @@ function fastSkimEvaluation(text: string, strategyWeight: number): number {
   score += strategyWeight * 0.08;
   
   return Math.min(1.0, Math.max(0.15, score));
+}
+
+// Get historical optimization data for learning
+async function getHistoricalOptimizations(supabase: any, userId: string, aiProvider: string, modelName: string) {
+  try {
+    // Get recent optimization history (last 50 entries)
+    const { data: history } = await supabase
+      .from('optimization_history')
+      .select('variant_prompt, score, metrics')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    // Get successful prompts for this provider/model
+    const { data: prompts } = await supabase
+      .from('prompts')
+      .select('optimized_prompt, score, performance_metrics')
+      .eq('user_id', userId)
+      .eq('ai_provider', aiProvider)
+      .eq('model_name', modelName)
+      .gte('score', 0.8)
+      .order('score', { ascending: false })
+      .limit(20);
+
+    // Analyze patterns from successful optimizations
+    const strategies: any = {};
+    
+    if (history?.length > 0) {
+      // Group by strategy performance
+      for (const entry of history) {
+        if (entry.score > 0.75) {
+          // Extract successful patterns (simplified)
+          const patterns = extractSuccessfulPatterns(entry.variant_prompt);
+          for (const pattern of patterns) {
+            const strategyKey = identifyStrategy(pattern);
+            if (!strategies[strategyKey]) {
+              strategies[strategyKey] = { patterns: [], avgScore: 0, count: 0 };
+            }
+            strategies[strategyKey].patterns.push(pattern);
+            strategies[strategyKey].avgScore += entry.score;
+            strategies[strategyKey].count++;
+          }
+        }
+      }
+      
+      // Calculate averages
+      Object.keys(strategies).forEach(key => {
+        strategies[key].avgScore /= strategies[key].count;
+        strategies[key].patterns = [...new Set(strategies[key].patterns)]; // Remove duplicates
+      });
+    }
+
+    return {
+      strategies,
+      totalOptimizations: history?.length || 0,
+      successfulPrompts: prompts?.length || 0,
+      avgUserScore: history?.reduce((sum: number, h: any) => sum + (h.score || 0), 0) / (history?.length || 1)
+    };
+  } catch (error) {
+    console.error('Error fetching historical data:', error);
+    return { strategies: {}, totalOptimizations: 0, successfulPrompts: 0, avgUserScore: 0.5 };
+  }
+}
+
+// Select best strategies based on historical performance
+function selectBestStrategies(allStrategies: string[], variantCount: number, historicalData: any): string[] {
+  if (historicalData.totalOptimizations < 5) {
+    // Not enough data, use default order
+    return allStrategies.slice(0, variantCount);
+  }
+
+  // Sort strategies by historical performance
+  const strategyScores = allStrategies.map(strategy => ({
+    strategy,
+    score: historicalData.strategies[strategy]?.avgScore || 0.5
+  }));
+
+  strategyScores.sort((a, b) => b.score - a.score);
+  
+  // Take top performers but ensure some variety
+  const selected = strategyScores.slice(0, Math.ceil(variantCount * 0.7)).map(s => s.strategy);
+  
+  // Add some less-used strategies for exploration
+  const remaining = allStrategies.filter(s => !selected.includes(s));
+  selected.push(...remaining.slice(0, variantCount - selected.length));
+  
+  return selected.slice(0, variantCount);
+}
+
+// Extract successful patterns from optimized prompts
+function extractSuccessfulPatterns(prompt: string): string[] {
+  const patterns = [];
+  
+  // Look for common successful patterns
+  if (/step.by.step|step-by-step/i.test(prompt)) patterns.push('step-by-step instructions');
+  if (/example|for instance|such as/i.test(prompt)) patterns.push('concrete examples');
+  if (/format|structure|organize/i.test(prompt)) patterns.push('clear formatting');
+  if (/context|background|setting/i.test(prompt)) patterns.push('contextual information');
+  if (/specific|detailed|precise/i.test(prompt)) patterns.push('specific requirements');
+  if (/constraint|limit|requirement/i.test(prompt)) patterns.push('clear constraints');
+  
+  return patterns;
+}
+
+// Identify which strategy a pattern belongs to
+function identifyStrategy(pattern: string): string {
+  if (pattern.includes('step-by-step') || pattern.includes('structure')) return 'structure';
+  if (pattern.includes('specific') || pattern.includes('detailed')) return 'specificity';
+  if (pattern.includes('examples') || pattern.includes('concrete')) return 'clarity';
+  if (pattern.includes('constraints') || pattern.includes('requirements')) return 'constraints';
+  return 'efficiency';
 }
