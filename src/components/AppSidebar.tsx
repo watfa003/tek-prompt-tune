@@ -21,7 +21,7 @@ import {
   LogOut,
   Clock,
   Bookmark,
-  LayoutDashboard,
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/hooks/use-settings";
 
 const navigationItems = [
-  { title: "Dashboard", url: "/app", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/app", icon: Home },
   { title: "AI Agent", url: "/app/ai-agent", icon: Bot },
   { title: "History", url: "/app/history", icon: History },
   { title: "Templates", url: "/app/templates", icon: FileText },
