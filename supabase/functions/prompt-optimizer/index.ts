@@ -140,7 +140,7 @@ serve(async (req) => {
 
     // Handle Speed Mode
     if (mode === 'speed') {
-      return await handleSpeedMode(supabase, { originalPrompt, taskDescription, outputType, userId, startTime });
+      return await handleSpeedMode(supabase, { originalPrompt, taskDescription, outputType, userId, startTime, variants });
     }
 
     // Create initial prompt record in background

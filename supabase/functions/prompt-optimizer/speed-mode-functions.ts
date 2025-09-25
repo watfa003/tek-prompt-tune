@@ -1,5 +1,5 @@
 // Speed Mode: Use cached heuristics without API calls
-export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescription, outputType, userId, startTime }: any) {
+export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3 }: any) {
   console.log('🚀 Running Speed Mode optimization...');
   
   try {
@@ -13,7 +13,7 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
       .maybeSingle();
 
     // Generate multiple variants using speed heuristics
-    const variants = await generateSpeedVariants(originalPrompt, taskDescription, outputType, insights);
+    const variants = await generateSpeedVariants(originalPrompt, taskDescription, outputType, insights, requestedVariants);
     const bestVariant = selectBestVariant(variants);
     const processingTime = Date.now() - startTime;
 
@@ -81,12 +81,13 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
 }
 
 // Generate multiple variants using speed heuristics
-async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any): Promise<any[]> {
+async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3): Promise<any[]> {
   const variants = [];
-  const strategies = ['clarity', 'specificity', 'structure', 'efficiency'];
+  const strategies = ['clarity', 'specificity', 'structure', 'efficiency', 'conciseness', 'examples'];
   
-  for (let i = 0; i < strategies.length; i++) {
-    const strategy = strategies[i];
+  // Generate the requested number of variants by cycling through strategies
+  for (let i = 0; i < requestedVariants; i++) {
+    const strategy = strategies[i % strategies.length];
     let optimizedPrompt = originalPrompt;
     
     // Apply different optimization strategies
@@ -102,6 +103,12 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
         break;
       case 'efficiency':
         optimizedPrompt = improveEfficiencyHeuristic(originalPrompt, outputType);
+        break;
+      case 'conciseness':
+        optimizedPrompt = improveConciseness(originalPrompt, outputType);
+        break;
+      case 'examples':
+        optimizedPrompt = addExamplesHeuristic(originalPrompt, outputType);
         break;
     }
     
@@ -248,4 +255,42 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
     specificityBoost: optimized.length > original.length * 1.2,
     estimatedScoreImprovement: 0.25
   };
+}
+
+function improveConciseness(prompt: string, outputType: string): string {
+  let concise = prompt;
+  
+  // Remove redundant words and phrases
+  concise = concise
+    .replace(/\b(please|kindly|if possible|if you would|if you could|very|really|quite|rather|somewhat)\b/gi, '')
+    .replace(/\b(in order to|for the purpose of)\b/gi, 'to')
+    .replace(/\b(due to the fact that|because of the fact that)\b/gi, 'because')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Add concise instructions based on output type
+  if (outputType === 'code') {
+    concise += '\n\nBe concise: Provide clean, minimal code with essential comments only.';
+  } else if (outputType === 'list') {
+    concise += '\n\nKeep it brief: List key points without excessive detail.';
+  } else {
+    concise += '\n\nBe direct and concise while maintaining clarity.';
+  }
+  
+  return concise;
+}
+
+function addExamplesHeuristic(prompt: string, outputType: string): string {
+  let withExamples = prompt;
+  
+  // Add example-focused instructions
+  if (outputType === 'code') {
+    withExamples += '\n\nInclude practical examples:\n- Working code samples with different use cases\n- Input/output examples showing expected behavior\n- Real-world implementation scenarios';
+  } else if (outputType === 'list') {
+    withExamples += '\n\nProvide concrete examples:\n- Specific instances for each list item\n- Real-world applications or scenarios\n- Quantifiable examples where possible';
+  } else {
+    withExamples += '\n\nInclude clear examples:\n- Concrete illustrations of key concepts\n- Step-by-step examples showing the process\n- Before/after scenarios to demonstrate outcomes';
+  }
+  
+  return withExamples;
 }

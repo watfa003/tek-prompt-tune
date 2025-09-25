@@ -833,12 +833,15 @@ export const AIPromptOptimizer: React.FC = () => {
               </Card>
 
               {/* All Variants */}
-              {speedResult.variants && speedResult.variants.length > 0 && (
+              {speedResult.variants && speedResult.variants.length > 1 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Trophy className="h-5 w-5 text-blue-600" />
                       All Optimization Variants ({speedResult.variants.length})
+                      <Badge variant="outline" className="ml-auto">
+                        Choose the best one
+                      </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -846,36 +849,55 @@ export const AIPromptOptimizer: React.FC = () => {
                       {speedResult.variants.map((variant: any, index: number) => (
                         <div 
                           key={index} 
-                          className={`border rounded-lg p-4 transition-all duration-200 hover:shadow-md ${
-                            index === 0 ? 'border-yellow-300 bg-yellow-50/50 dark:bg-yellow-950/10' : 'border-border hover:border-primary/50'
+                          className={`border rounded-lg p-4 transition-all duration-300 hover:shadow-lg cursor-pointer ${
+                            index === 0 
+                              ? 'border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 ring-2 ring-yellow-200' 
+                              : 'border-border hover:border-primary/50 hover:bg-muted/30'
                           }`}
+                          onClick={() => copyToClipboard(variant.prompt)}
                         >
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                               {index === 0 && <Crown className="h-4 w-4 text-yellow-600" />}
-                              <Badge variant={index === 0 ? 'default' : 'secondary'}>
+                              <Badge variant={index === 0 ? 'default' : 'secondary'} className="capitalize">
                                 {variant.strategy}
                               </Badge>
-                              <Badge variant="outline">
-                                {Math.round((variant.score || 0) * 100)}%
+                              <Badge variant="outline" className={index === 0 ? 'bg-yellow-100 border-yellow-300' : ''}>
+                                Score: {Math.round((variant.score || 0) * 100)}%
                               </Badge>
+                              {index === 0 && <Badge className="bg-yellow-500 text-white">Best</Badge>}
                             </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => copyToClipboard(variant.prompt)}
-                              className="h-8"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                Click to copy
+                              </Badge>
+                              <Copy className="h-4 w-4 text-muted-foreground" />
+                            </div>
                           </div>
                           <Textarea 
                             value={variant.prompt} 
                             readOnly 
-                            className="min-h-[80px] bg-muted/20 resize-none text-sm"
+                            className={`min-h-[100px] resize-none text-sm ${
+                              index === 0 
+                                ? 'bg-white/70 dark:bg-black/20 border-yellow-200' 
+                                : 'bg-muted/20'
+                            }`}
                           />
+                          {variant.metrics && (
+                            <div className="mt-2 flex gap-2 text-xs text-muted-foreground">
+                              <span>Length: {variant.metrics.length_improvement > 0 ? '+' : ''}{variant.metrics.length_improvement} chars</span>
+                              <span>•</span>
+                              <span>Structure: {variant.metrics.structure_score > 0.6 ? '✅' : '❌'}</span>
+                            </div>
+                          )}
                         </div>
                       ))}
+                    </div>
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        <strong>Tip:</strong> Click on any variant to copy it to your clipboard. The top variant is automatically selected as the best.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
