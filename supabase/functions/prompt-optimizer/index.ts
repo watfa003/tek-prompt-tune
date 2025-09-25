@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { handleSpeedMode } from './speed-mode-functions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -121,10 +122,11 @@ serve(async (req) => {
       maxTokens = 1024,
       temperature = 0.7,
       influence = '',
-      influenceWeight = 0
+      influenceWeight = 0,
+      mode = 'deep'
     } = await req.json();
 
-    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType });
+    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode });
 
     if (!originalPrompt || !userId) {
       return new Response(
@@ -135,6 +137,11 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
     const startTime = Date.now();
+
+    // Handle Speed Mode
+    if (mode === 'speed') {
+      return await handleSpeedMode(supabase, { originalPrompt, taskDescription, outputType, userId, startTime });
+    }
 
     // Create initial prompt record in background
     const createPromptRecord = async () => {

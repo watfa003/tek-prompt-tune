@@ -228,6 +228,48 @@ export type Database = {
         }
         Relationships: []
       }
+      speed_optimizations: {
+        Row: {
+          created_at: string
+          feedback_type: string | null
+          id: string
+          mode: string
+          optimization_strategy: string | null
+          optimized_prompt: string
+          original_prompt: string
+          processing_time_ms: number | null
+          rating: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_type?: string | null
+          id?: string
+          mode?: string
+          optimization_strategy?: string | null
+          optimized_prompt: string
+          original_prompt: string
+          processing_time_ms?: number | null
+          rating?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_type?: string | null
+          id?: string
+          mode?: string
+          optimization_strategy?: string | null
+          optimized_prompt?: string
+          original_prompt?: string
+          processing_time_ms?: number | null
+          rating?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           auto_save: boolean | null

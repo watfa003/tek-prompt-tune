@@ -87,6 +87,10 @@ export const AIPromptOptimizer: React.FC = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [optimizationMode, setOptimizationMode] = useState<'speed' | 'deep'>('deep');
+  const [speedResult, setSpeedResult] = useState<any>(null);
+  const [showRating, setShowRating] = useState(false);
+  const [userRating, setUserRating] = useState<number | null>(null);
 
   // Check for influence selection from URL params
   React.useEffect(() => {
@@ -141,6 +145,8 @@ export const AIPromptOptimizer: React.FC = () => {
 
     setIsOptimizing(true);
     setResult(null);
+    setSpeedResult(null);
+    setShowRating(false);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -158,17 +164,29 @@ export const AIPromptOptimizer: React.FC = () => {
           maxTokens: maxTokens[0],
           temperature: temperature[0],
           influence: optimizerInfluence || selectedInfluence,
-          influenceWeight: optimizerInfluenceWeight[0] || influenceWeight[0]
+          influenceWeight: optimizerInfluenceWeight[0] || influenceWeight[0],
+          mode: optimizationMode
         }
       });
 
       if (error) throw error;
 
-      setResult(data);
-      toast({
-        title: "Optimization Complete!",
-        description: `Generated ${data.variants.length} optimized variants`,
-      });
+      // Handle Speed Mode results
+      if (data.mode === 'speed') {
+        setSpeedResult(data);
+        setShowRating(true);
+        toast({
+          title: "⚡ Speed Optimization Complete!",
+          description: `Optimized in ${data.processingTimeMs}ms using cached heuristics`,
+        });
+      } else {
+        // Handle Deep Mode results
+        setResult(data);
+        toast({
+          title: "🔍 Deep Optimization Complete!",
+          description: `Generated ${data.variants?.length || 0} optimized variants`,
+        });
+      }
 
     } catch (error) {
       console.error('Error optimizing prompt:', error);
@@ -179,6 +197,34 @@ export const AIPromptOptimizer: React.FC = () => {
       });
     } finally {
       setIsOptimizing(false);
+    }
+  };
+
+  const submitRating = async (rating: number) => {
+    if (!speedResult?.speedResultId) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('speed_optimizations')
+        .update({ 
+          rating, 
+          feedback_type: 'stars',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', speedResult.speedResultId)
+        .eq('user_id', user.id);
+
+      setUserRating(rating);
+      setShowRating(false);
+      toast({
+        title: "Thank you!",
+        description: "Your rating helps improve our speed optimization",
+      });
+    } catch (error) {
+      console.error('Error submitting rating:', error);
     }
   };
 
