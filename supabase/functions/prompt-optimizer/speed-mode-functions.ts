@@ -12,6 +12,11 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
       .limit(1)
       .maybeSingle();
 
+    console.log(`✅ Speed mode loaded cached insights: ${insights ? 'Found' : 'None'}`);
+    if (insights) {
+      console.log(`📈 Insights: ${insights.batch_count} batches, ${insights.total_optimizations} total opts, avg score: ${insights.avg_improvement_score}`);
+    }
+
     // Generate multiple variants using speed heuristics
     const variants = await generateSpeedVariants(originalPrompt, taskDescription, outputType, insights, requestedVariants);
     const bestVariant = selectBestVariant(variants);
@@ -86,12 +91,15 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
 async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3): Promise<any[]> {
   const variants = [];
   
-  // Use the same strategies as deep mode
-  const strategies = ['clarity', 'specificity', 'structure', 'efficiency', 'constraints'];
+  // Use the same strategy selection logic as deep mode
+  const allStrategies = ['clarity', 'specificity', 'structure', 'efficiency', 'constraints'];
+  const selectedStrategies = selectBestStrategiesFromInsights(allStrategies, requestedVariants, insights);
   
-  // Generate the requested number of variants by cycling through strategies
-  for (let i = 0; i < requestedVariants; i++) {
-    const strategy = strategies[i % strategies.length];
+  console.log(`📊 Speed mode using strategies: ${selectedStrategies.join(', ')}`);
+  
+  // Generate variants using selected strategies
+  for (let i = 0; i < selectedStrategies.length; i++) {
+    const strategy = selectedStrategies[i];
     let optimizedPrompt = originalPrompt;
     
     // Apply deep mode style optimization strategies
@@ -324,4 +332,35 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
     specificityBoost: optimized.length > original.length * 1.2,
     estimatedScoreImprovement: 0.25
   };
+}
+
+// Strategy selection logic matching deep mode
+function selectBestStrategiesFromInsights(allStrategies: string[], count: number, insights: any): string[] {
+  if (!insights?.successful_strategies) {
+    console.log('No cached insights found, using default strategy order');
+    return allStrategies.slice(0, count);
+  }
+
+  console.log(`📊 Available strategies from insights: ${Object.keys(insights.successful_strategies).length}, patterns available`);
+
+  // Sort strategies by their success scores from insights (same logic as deep mode)
+  const strategyScores = new Map();
+  
+  for (const [strategyKey, strategyData] of Object.entries(insights.successful_strategies)) {
+    if (typeof strategyData === 'object' && strategyData && 'avg_score' in strategyData) {
+      strategyScores.set(strategyKey, (strategyData as any).avg_score || 0);
+    }
+  }
+
+  // Sort available strategies by their historical performance
+  const sortedStrategies = allStrategies.sort((a, b) => {
+    const scoreA = strategyScores.get(a) || 0.5; // Default score for unknown strategies
+    const scoreB = strategyScores.get(b) || 0.5;
+    return scoreB - scoreA; // Higher scores first
+  });
+
+  const selectedStrategies = sortedStrategies.slice(0, count);
+  console.log(`Selected strategies based on cached insights: ${selectedStrategies.join(', ')}`);
+  
+  return selectedStrategies;
 }
