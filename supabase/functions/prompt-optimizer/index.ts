@@ -32,8 +32,8 @@ const AI_PROVIDERS = {
     baseUrl: 'https://api.anthropic.com/v1/messages',
     apiKey: anthropicApiKey,
     models: {
-      'claude-opus-4-1-20250805': { name: 'claude-3-5-sonnet-20241022', maxTokens: 4096 },
-      'claude-sonnet-4-20250514': { name: 'claude-3-5-sonnet-20241022', maxTokens: 4096 },
+      'claude-opus-4-1-20250805': { name: 'claude-opus-4-1-20250805', maxTokens: 4096 },
+      'claude-sonnet-4-20250514': { name: 'claude-sonnet-4-20250514', maxTokens: 4096 },
       'claude-3-5-haiku-20241022': { name: 'claude-3-5-haiku-20241022', maxTokens: 4096 }
     }
   },
@@ -69,7 +69,7 @@ const AI_PROVIDERS = {
 // Cheaper models for optimization process
 const OPTIMIZATION_MODELS = {
   openai: 'gpt-4o-mini',
-  anthropic: 'claude-3-5-sonnet-20241022',
+  anthropic: 'claude-3-5-haiku-20241022',
   mistral: 'mistral-medium',
   groq: 'llama-3.1-8b',
   google: 'gemini-1.5-pro'
