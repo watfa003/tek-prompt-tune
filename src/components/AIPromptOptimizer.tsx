@@ -179,6 +179,10 @@ export const AIPromptOptimizer: React.FC = () => {
 
       // Handle Speed Mode results
       if (data.mode === 'speed') {
+        console.log('🏆 Speed Mode Result:', data);
+        console.log('📝 Best Optimized Prompt:', data.bestOptimizedPrompt);
+        console.log('📝 Fallback Optimized Prompt:', data.optimizedPrompt);
+        console.log('🎯 Variants:', data.variants);
         setSpeedResult(data);
         setShowRating(true);
         toast({
@@ -815,7 +819,7 @@ export const AIPromptOptimizer: React.FC = () => {
                 <CardContent>
                   <div className="relative">
                     <Textarea 
-                      value={speedResult.bestOptimizedPrompt || speedResult.optimizedPrompt} 
+                      value={speedResult.bestOptimizedPrompt || speedResult.optimizedPrompt || (speedResult.variants && speedResult.variants[0]?.prompt) || 'No optimized prompt available'} 
                       readOnly 
                       className="min-h-[120px] bg-white/50 dark:bg-black/20 resize-none border-yellow-200" 
                     />
@@ -823,7 +827,7 @@ export const AIPromptOptimizer: React.FC = () => {
                       size="sm"
                       variant="outline"
                       className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                      onClick={() => copyToClipboard(speedResult.bestOptimizedPrompt || speedResult.optimizedPrompt)}
+                      onClick={() => copyToClipboard(speedResult.bestOptimizedPrompt || speedResult.optimizedPrompt || (speedResult.variants && speedResult.variants[0]?.prompt) || '')}
                     >
                       <Copy className="h-3 w-3 mr-1" />
                       Copy

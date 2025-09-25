@@ -17,7 +17,8 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
     const bestVariant = selectBestVariant(variants);
     const processingTime = Date.now() - startTime;
 
-    console.log(`✨ Speed optimization completed in ${processingTime}ms with ${variants.length} variants`);
+    console.log(`✨ Speed optimization completed in ${processingTime}ms with ${variants.length} variants. Best variant score: ${bestVariant.score}`);
+    console.log(`🎯 Best prompt preview: ${bestVariant.prompt.substring(0, 100)}...`);
 
     // Store speed optimization result
     const { data: speedResult, error } = await supabase
@@ -46,6 +47,7 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
       promptId: speedResult?.id,
       originalPrompt,
       bestOptimizedPrompt: bestVariant.prompt,
+      optimizedPrompt: bestVariant.prompt, // Ensure both fields are set for compatibility
       bestScore: bestVariant.score,
       variants: variants,
       mode: 'speed',
@@ -126,11 +128,20 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     });
   }
   
-  return variants.sort((a, b) => b.score - a.score);
+  // Sort by score (highest first) and log the results
+  const sortedVariants = variants.sort((a, b) => b.score - a.score);
+  console.log(`📊 Generated ${sortedVariants.length} variants. Scores: ${sortedVariants.map(v => v.score.toFixed(3)).join(', ')}`);
+  
+  return sortedVariants;
 }
 
 function selectBestVariant(variants: any[]): any {
-  return variants[0]; // Already sorted by score
+  // Return the highest scoring variant (already sorted by score in generateSpeedVariants)
+  if (variants.length === 0) {
+    throw new Error('No variants available to select from');
+  }
+  console.log(`🏆 Selected best variant with score: ${variants[0].score} and strategy: ${variants[0].strategy}`);
+  return variants[0];
 }
 
 // Improved heuristic functions
