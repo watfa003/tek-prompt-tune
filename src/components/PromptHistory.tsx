@@ -115,7 +115,11 @@ export const PromptHistory = () => {
     
     const matchesProvider = filterProvider === "all" || item.provider.includes(filterProvider);
     const matchesOutputType = filterOutputType === "all" || item.outputType === filterOutputType;
-    const matchesScore = filterScore === "all" || item.score.toString() === filterScore;
+    const matchesScore = filterScore === "all" || 
+      (filterScore === "excellent" && item.score >= 0.8) ||
+      (filterScore === "good" && item.score >= 0.6 && item.score < 0.8) ||
+      (filterScore === "fair" && item.score >= 0.4 && item.score < 0.6) ||
+      (filterScore === "needs-work" && item.score < 0.4);
     
     return matchesSearch && matchesProvider && matchesOutputType && matchesScore;
   }).sort((a, b) => {
@@ -134,9 +138,11 @@ export const PromptHistory = () => {
   });
 
   const getScoreBadge = (score: number) => {
-    if (score === 3) return <Badge className="bg-success text-success-foreground">Excellent</Badge>;
-    if (score === 2) return <Badge className="bg-warning text-warning-foreground">Good</Badge>;
-    return <Badge variant="destructive">Needs Work</Badge>;
+    // Handle decimal scores properly
+    if (score >= 0.8) return <Badge className="bg-success text-success-foreground">Excellent (≥0.8)</Badge>;
+    if (score >= 0.6) return <Badge className="bg-warning text-warning-foreground">Good (≥0.6)</Badge>;
+    if (score >= 0.4) return <Badge className="bg-accent text-accent-foreground">Fair (≥0.4)</Badge>;
+    return <Badge variant="destructive">Needs Work (&lt;0.4)</Badge>;
   };
 
   const copyToClipboard = (text: string, type: string) => {
@@ -149,7 +155,7 @@ export const PromptHistory = () => {
 
   const providers = ["all", "OpenAI", "Claude", "Gemini", "Groq"];
   const outputTypes = ["all", "Code", "Essay", "JSON", "Structured Data"];
-  const scores = ["all", "3", "2", "1"];
+  const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
     <div className="space-y-6">
@@ -268,7 +274,11 @@ export const PromptHistory = () => {
               <SelectContent>
                 {scores.map(score => (
                   <SelectItem key={score} value={score}>
-                    {score === "all" ? "All Scores" : `${score} Stars`}
+                    {score === "all" ? "All Scores" : 
+                     score === "excellent" ? "Excellent (≥0.8)" :
+                     score === "good" ? "Good (0.6-0.8)" :
+                     score === "fair" ? "Fair (0.4-0.6)" :
+                     "Needs Work (<0.4)"}
                   </SelectItem>
                 ))}
               </SelectContent>
