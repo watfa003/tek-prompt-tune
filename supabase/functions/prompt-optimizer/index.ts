@@ -156,25 +156,25 @@ serve(async (req) => {
     // Start prompt record creation
     const promptRecordPromise = createPromptRecord();
 
-    // Get historical optimization data for learning
-    const historicalData = await getHistoricalOptimizations(supabase, userId, aiProvider, modelName);
+    // Load cached optimization insights instead of checking all history
+    const cachedInsights = await loadOptimizationInsights(supabase, userId, aiProvider, modelName);
     
     // Generate optimized variants in parallel for maximum speed
     const allStrategies = Object.keys(OPTIMIZATION_STRATEGIES);
     const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allStrategies.length);
-    const strategyKeys = selectBestStrategies(allStrategies, variantCount, historicalData);
+    const strategyKeys = selectBestStrategies(allStrategies, variantCount, cachedInsights);
     
     const variantPromises = strategyKeys.map(async (strategyKey) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
-        // Enhanced optimization prompt with historical insights
+        // Enhanced optimization prompt with cached insights
         let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
         
-        // Add historical insights if available
-        const strategyHistory = historicalData.strategies[strategyKey];
-        if (strategyHistory?.patterns?.length > 0) {
-          optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyHistory.patterns.slice(0, 3).join(', ')}`;
+        // Add cached insights if available
+        const strategyInsights = cachedInsights.strategies[strategyKey];
+        if (strategyInsights?.patterns?.length > 0) {
+          optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyInsights.patterns.slice(0, 3).join(', ')}`;
         }
         
         // Critical rules: keep user's intent and only improve the prompt
@@ -294,7 +294,7 @@ serve(async (req) => {
 
     const processingTime = Date.now() - startTime;
 
-    // Background task for database updates (don't block response)
+    // Background task for database updates and optimization insights (don't block response)
     const backgroundUpdates = async () => {
       try {
         // Store optimization history
@@ -330,7 +330,10 @@ serve(async (req) => {
           })
           .eq('id', promptRecord.id);
 
-        console.log('Background database updates completed');
+        // Save batch findings to optimization insights
+        await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights);
+
+        console.log('Background database updates and insights completed');
       } catch (error) {
         console.error('Background update error:', error);
       }
@@ -647,90 +650,194 @@ function fastSkimEvaluation(text: string, strategyWeight: number): number {
   return Math.min(1.0, Math.max(0.15, score));
 }
 
-// Get historical optimization data for learning
-async function getHistoricalOptimizations(supabase: any, userId: string, aiProvider: string, modelName: string) {
+// Load cached optimization insights for fast optimization
+async function loadOptimizationInsights(supabase: any, userId: string, aiProvider: string, modelName: string) {
   try {
-    // Get recent optimization history (last 50 entries)
-    const { data: history } = await supabase
-      .from('optimization_history')
-      .select('variant_prompt, score, metrics')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    // Get successful prompts for this provider/model
-    const { data: prompts } = await supabase
-      .from('prompts')
-      .select('optimized_prompt, score, performance_metrics')
+    const { data: insights } = await supabase
+      .from('optimization_insights')
+      .select('*')
       .eq('user_id', userId)
       .eq('ai_provider', aiProvider)
       .eq('model_name', modelName)
-      .gte('score', 0.8)
-      .order('score', { ascending: false })
-      .limit(20);
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    // Analyze patterns from successful optimizations
-    const strategies: any = {};
-    
-    if (history?.length > 0) {
-      // Group by strategy performance
-      for (const entry of history) {
-        if (entry.score > 0.75) {
-          // Extract successful patterns (simplified)
-          const patterns = extractSuccessfulPatterns(entry.variant_prompt);
-          for (const pattern of patterns) {
-            const strategyKey = identifyStrategy(pattern);
-            if (!strategies[strategyKey]) {
-              strategies[strategyKey] = { patterns: [], avgScore: 0, count: 0 };
-            }
-            strategies[strategyKey].patterns.push(pattern);
-            strategies[strategyKey].avgScore += entry.score;
-            strategies[strategyKey].count++;
-          }
-        }
-      }
-      
-      // Calculate averages
-      Object.keys(strategies).forEach(key => {
-        strategies[key].avgScore /= strategies[key].count;
-        strategies[key].patterns = [...new Set(strategies[key].patterns)]; // Remove duplicates
-      });
+    if (insights) {
+      console.log(`Loaded cached insights from ${insights.batch_count} batches, avg score: ${insights.avg_improvement_score}`);
+      return {
+        strategies: insights.successful_strategies,
+        optimizationRules: insights.optimization_rules,
+        performancePatterns: insights.performance_patterns,
+        totalOptimizations: insights.total_optimizations,
+        avgUserScore: insights.avg_improvement_score,
+        hasCachedData: true
+      };
     }
 
+    // No cached insights, return defaults for first run
+    console.log('No cached insights found, using defaults for first optimization');
     return {
-      strategies,
-      totalOptimizations: history?.length || 0,
-      successfulPrompts: prompts?.length || 0,
-      avgUserScore: history?.reduce((sum: number, h: any) => sum + (h.score || 0), 0) / (history?.length || 1)
+      strategies: {},
+      optimizationRules: {},
+      performancePatterns: {},
+      totalOptimizations: 0,
+      avgUserScore: 0.5,
+      hasCachedData: false
     };
   } catch (error) {
-    console.error('Error fetching historical data:', error);
-    return { strategies: {}, totalOptimizations: 0, successfulPrompts: 0, avgUserScore: 0.5 };
+    console.error('Error loading optimization insights:', error);
+    return {
+      strategies: {},
+      optimizationRules: {},
+      performancePatterns: {},
+      totalOptimizations: 0,
+      avgUserScore: 0.5,
+      hasCachedData: false
+    };
   }
 }
 
-// Select best strategies based on historical performance
-function selectBestStrategies(allStrategies: string[], variantCount: number, historicalData: any): string[] {
-  if (historicalData.totalOptimizations < 5) {
-    // Not enough data, use default order
+// Save batch optimization findings to insights table
+async function saveBatchInsights(supabase: any, userId: string, aiProvider: string, modelName: string, optimizedVariants: any[], previousInsights: any) {
+  try {
+    // Analyze current batch findings
+    const batchSummary = {
+      totalVariants: optimizedVariants.length,
+      bestScore: Math.max(...optimizedVariants.map(v => v.score)),
+      avgScore: optimizedVariants.reduce((sum, v) => sum + v.score, 0) / optimizedVariants.length,
+      strategiesUsed: optimizedVariants.map(v => v.strategy),
+      timestamp: new Date().toISOString()
+    };
+
+    // Extract successful strategies from this batch
+    const successfulStrategies: any = {};
+    optimizedVariants.forEach(variant => {
+      if (variant.score > 0.7) {
+        const patterns = extractSuccessfulPatterns(variant.prompt);
+        const strategyKey = identifyStrategy(variant.strategy);
+        
+        if (!successfulStrategies[strategyKey]) {
+          successfulStrategies[strategyKey] = { patterns: [], scores: [], count: 0 };
+        }
+        
+        successfulStrategies[strategyKey].patterns.push(...patterns);
+        successfulStrategies[strategyKey].scores.push(variant.score);
+        successfulStrategies[strategyKey].count++;
+      }
+    });
+
+    // Calculate averages for successful strategies
+    Object.keys(successfulStrategies).forEach(key => {
+      const strategy = successfulStrategies[key];
+      strategy.avgScore = strategy.scores.reduce((sum: number, s: number) => sum + s, 0) / strategy.scores.length;
+      strategy.patterns = [...new Set(strategy.patterns)]; // Remove duplicates
+      delete strategy.scores; // Clean up
+    });
+
+    // Merge with previous insights
+    const mergedStrategies = { ...previousInsights.strategies };
+    Object.keys(successfulStrategies).forEach(key => {
+      if (mergedStrategies[key]) {
+        // Update existing strategy data
+        mergedStrategies[key].patterns = [...new Set([...mergedStrategies[key].patterns, ...successfulStrategies[key].patterns])];
+        mergedStrategies[key].avgScore = (mergedStrategies[key].avgScore + successfulStrategies[key].avgScore) / 2;
+        mergedStrategies[key].count += successfulStrategies[key].count;
+      } else {
+        // Add new strategy data
+        mergedStrategies[key] = successfulStrategies[key];
+      }
+    });
+
+    // Performance patterns from this batch
+    const performancePatterns = {
+      topPerformingPromptLength: optimizedVariants
+        .sort((a, b) => b.score - a.score)[0]?.prompt.length || 0,
+      averageResponseTime: optimizedVariants
+        .reduce((sum, v) => sum + (v.metrics.response_time || 0), 0) / optimizedVariants.length,
+      mostSuccessfulStrategy: optimizedVariants
+        .sort((a, b) => b.score - a.score)[0]?.strategy || 'unknown'
+    };
+
+    // Optimization rules learned from this batch
+    const optimizationRules = {
+      minPromptLength: Math.min(...optimizedVariants.map(v => v.prompt.length)),
+      maxPromptLength: Math.max(...optimizedVariants.map(v => v.prompt.length)),
+      optimalPromptLength: performancePatterns.topPerformingPromptLength,
+      avoidPatterns: optimizedVariants
+        .filter(v => v.score < 0.5)
+        .map(v => extractSuccessfulPatterns(v.prompt))
+        .flat()
+        .filter((pattern, index, arr) => arr.indexOf(pattern) === index)
+        .slice(0, 5) // Top 5 patterns to avoid
+    };
+
+    const newTotalOptimizations = (previousInsights.totalOptimizations || 0) + optimizedVariants.length;
+    const newAvgScore = previousInsights.hasCachedData 
+      ? (previousInsights.avgUserScore + batchSummary.avgScore) / 2
+      : batchSummary.avgScore;
+
+    // Upsert optimization insights
+    const { error } = await supabase
+      .from('optimization_insights')
+      .upsert({
+        user_id: userId,
+        ai_provider: aiProvider,
+        model_name: modelName,
+        batch_summary: batchSummary,
+        successful_strategies: mergedStrategies,
+        performance_patterns: performancePatterns,
+        optimization_rules: optimizationRules,
+        batch_count: (previousInsights.batchCount || 0) + 1,
+        total_optimizations: newTotalOptimizations,
+        avg_improvement_score: newAvgScore
+      }, {
+        onConflict: 'user_id,ai_provider,model_name'
+      });
+
+    if (error) {
+      console.error('Error saving batch insights:', error);
+    } else {
+      console.log(`Saved batch insights: ${optimizedVariants.length} variants, avg score: ${batchSummary.avgScore}`);
+    }
+
+  } catch (error) {
+    console.error('Error in saveBatchInsights:', error);
+  }
+}
+
+// Select best strategies based on cached insights
+function selectBestStrategies(allStrategies: string[], variantCount: number, cachedInsights: any): string[] {
+  if (!cachedInsights.hasCachedData || cachedInsights.totalOptimizations < 3) {
+    // Not enough cached data, use default order
+    console.log('Using default strategy order - insufficient cached data');
     return allStrategies.slice(0, variantCount);
   }
 
-  // Sort strategies by historical performance
+  // Sort strategies by cached performance
   const strategyScores = allStrategies.map(strategy => ({
     strategy,
-    score: historicalData.strategies[strategy]?.avgScore || 0.5
+    score: cachedInsights.strategies[strategy]?.avgScore || 0.5,
+    count: cachedInsights.strategies[strategy]?.count || 0
   }));
 
-  strategyScores.sort((a, b) => b.score - a.score);
+  strategyScores.sort((a, b) => {
+    // Prioritize strategies with both high scores and sufficient data
+    const scoreA = a.score * Math.min(1, a.count / 3); // Confidence factor
+    const scoreB = b.score * Math.min(1, b.count / 3);
+    return scoreB - scoreA;
+  });
   
   // Take top performers but ensure some variety
-  const selected = strategyScores.slice(0, Math.ceil(variantCount * 0.7)).map(s => s.strategy);
+  const selected = strategyScores.slice(0, Math.ceil(variantCount * 0.8)).map(s => s.strategy);
   
-  // Add some less-used strategies for exploration
-  const remaining = allStrategies.filter(s => !selected.includes(s));
-  selected.push(...remaining.slice(0, variantCount - selected.length));
+  // Add exploration strategies if needed
+  if (selected.length < variantCount) {
+    const remaining = allStrategies.filter(s => !selected.includes(s));
+    selected.push(...remaining.slice(0, variantCount - selected.length));
+  }
   
+  console.log(`Selected strategies based on cached insights: ${selected.join(', ')}`);
   return selected.slice(0, variantCount);
 }
 

@@ -126,6 +126,54 @@ export type Database = {
           },
         ]
       }
+      optimization_insights: {
+        Row: {
+          ai_provider: string
+          avg_improvement_score: number | null
+          batch_count: number
+          batch_summary: Json
+          created_at: string
+          id: string
+          model_name: string
+          optimization_rules: Json
+          performance_patterns: Json
+          successful_strategies: Json
+          total_optimizations: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_provider: string
+          avg_improvement_score?: number | null
+          batch_count?: number
+          batch_summary: Json
+          created_at?: string
+          id?: string
+          model_name: string
+          optimization_rules: Json
+          performance_patterns: Json
+          successful_strategies: Json
+          total_optimizations?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_provider?: string
+          avg_improvement_score?: number | null
+          batch_count?: number
+          batch_summary?: Json
+          created_at?: string
+          id?: string
+          model_name?: string
+          optimization_rules?: Json
+          performance_patterns?: Json
+          successful_strategies?: Json
+          total_optimizations?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       prompts: {
         Row: {
           ai_provider: string
