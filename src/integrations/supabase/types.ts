@@ -174,6 +174,51 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          output_type: string | null
+          rating: number | null
+          tags: string[] | null
+          template: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          output_type?: string | null
+          rating?: number | null
+          tags?: string[] | null
+          template: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          output_type?: string | null
+          rating?: number | null
+          tags?: string[] | null
+          template?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       prompts: {
         Row: {
           ai_provider: string
@@ -230,43 +275,46 @@ export type Database = {
       }
       speed_optimizations: {
         Row: {
+          ai_provider: string
           created_at: string
-          feedback_type: string | null
+          generation_time_ms: number | null
           id: string
-          mode: string
-          optimization_strategy: string | null
+          model_name: string
           optimized_prompt: string
           original_prompt: string
-          processing_time_ms: number | null
-          rating: number | null
-          updated_at: string
+          output_type: string | null
+          score: number | null
+          strategy: string
           user_id: string
+          variants_count: number | null
         }
         Insert: {
+          ai_provider: string
           created_at?: string
-          feedback_type?: string | null
+          generation_time_ms?: number | null
           id?: string
-          mode?: string
-          optimization_strategy?: string | null
+          model_name: string
           optimized_prompt: string
           original_prompt: string
-          processing_time_ms?: number | null
-          rating?: number | null
-          updated_at?: string
+          output_type?: string | null
+          score?: number | null
+          strategy: string
           user_id: string
+          variants_count?: number | null
         }
         Update: {
+          ai_provider?: string
           created_at?: string
-          feedback_type?: string | null
+          generation_time_ms?: number | null
           id?: string
-          mode?: string
-          optimization_strategy?: string | null
+          model_name?: string
           optimized_prompt?: string
           original_prompt?: string
-          processing_time_ms?: number | null
-          rating?: number | null
-          updated_at?: string
+          output_type?: string | null
+          score?: number | null
+          strategy?: string
           user_id?: string
+          variants_count?: number | null
         }
         Relationships: []
       }

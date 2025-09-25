@@ -15,13 +15,15 @@ import {
   Bot,
   History,
   FileText,
-  Settings,
+  Home,
   Star,
   Search,
   LogOut,
   Clock,
   Bookmark,
-  Home,
+  Settings,
+  Zap,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

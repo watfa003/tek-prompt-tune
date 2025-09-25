@@ -123,10 +123,17 @@ serve(async (req) => {
       temperature = 0.7,
       influence = '',
       influenceWeight = 0,
-      mode = 'deep'
+      mode = 'deep',
+      // New template functionality
+      isTemplate = false,
+      templateId = null,
+      saveAsTemplate = false,
+      templateTitle = '',
+      templateDescription = '',
+      templateCategory = 'custom'
     } = await req.json();
 
-    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode });
+    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode, isTemplate });
 
     if (!originalPrompt || !userId) {
       return new Response(
@@ -373,6 +380,25 @@ serve(async (req) => {
       console.error('❌ Background task failed completely:', err)
     ));
 
+    // Save as template if requested
+    if (saveAsTemplate && templateTitle) {
+      try {
+        await supabase.from('prompt_templates').insert({
+          user_id: userId,
+          title: templateTitle,
+          description: templateDescription || `Optimized template from ${bestVariant.strategy}`,
+          template: bestVariant.prompt,
+          category: templateCategory,
+          output_type: outputType,
+          rating: Math.min(Math.round(bestVariant.score * 5), 5), // Convert 0-1 score to 1-5 rating
+          tags: [aiProvider, modelName, bestVariant.strategy.toLowerCase().replace(/\s+/g, '-')]
+        });
+        console.log('✅ Template saved successfully');
+      } catch (templateError) {
+        console.error('❌ Error saving template:', templateError);
+      }
+    }
+
     // Return immediate response
     const response = {
       promptId: promptRecord.id,
@@ -380,6 +406,7 @@ serve(async (req) => {
       bestOptimizedPrompt: bestVariant.prompt,
       bestScore: bestVariant.score,
       variants: optimizedVariants,
+      templateSaved: saveAsTemplate && templateTitle,
       summary: {
         improvementScore: Math.max(0, bestVariant.score - 0.5),
         bestStrategy: bestVariant.strategy,

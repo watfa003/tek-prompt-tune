@@ -38,8 +38,8 @@ verify_jwt = true
 [functions.prompt-optimizer]
 verify_jwt = true
 
-[functions.ai-analytics]
-verify_jwt = true
+[functions.template-manager]
+verify_jwt = false
 
 [edge_runtime]
 policy = "per_worker"

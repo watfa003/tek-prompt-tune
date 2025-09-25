@@ -232,8 +232,7 @@ export const AIPromptOptimizer: React.FC = () => {
       await supabase
         .from('speed_optimizations')
         .update({ 
-          rating, 
-          feedback_type: 'stars',
+          score: rating / 5, // Convert 1-5 rating to 0-1 score
           updated_at: new Date().toISOString()
         })
         .eq('id', speedResult.speedResultId)
