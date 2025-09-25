@@ -509,35 +509,76 @@ export const AIPromptOptimizer: React.FC = () => {
                 </div>
 
                 {/* Optimization Mode Selection */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Optimization Mode</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Brain className="h-4 w-4" />
+                    Choose Optimization Mode
+                  </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
                       type="button"
                       variant={optimizationMode === 'speed' ? 'default' : 'outline'}
                       onClick={() => setOptimizationMode('speed')}
-                      className="flex items-center gap-2 h-auto p-4"
+                      className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                        optimizationMode === 'speed' 
+                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105' 
+                          : 'hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950'
+                      }`}
                     >
-                      <div className="text-left">
-                        <div className="flex items-center gap-2 font-medium">
-                          ⚡ Speed Mode
+                      <div className="flex items-start gap-3">
+                        <Zap className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-lg">⚡ Speed Mode</div>
+                          <div className="text-sm opacity-90 mt-1">Lightning fast optimization</div>
+                          <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            ~5 seconds • Cached heuristics • Multiple variants
+                          </div>
                         </div>
-                        <div className="text-xs opacity-80">~5 seconds, cached heuristics</div>
                       </div>
                     </Button>
+                    
                     <Button
                       type="button"
                       variant={optimizationMode === 'deep' ? 'default' : 'outline'}
                       onClick={() => setOptimizationMode('deep')}
-                      className="flex items-center gap-2 h-auto p-4"
+                      className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                        optimizationMode === 'deep' 
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' 
+                          : 'hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950'
+                      }`}
                     >
-                      <div className="text-left">
-                        <div className="flex items-center gap-2 font-medium">
-                          🔍 Deep Mode
+                      <div className="flex items-start gap-3">
+                        <Brain className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-lg">🔍 Deep Mode</div>
+                          <div className="text-sm opacity-90 mt-1">Advanced AI optimization</div>
+                          <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            Slower • Full AI processing • Highest quality
+                          </div>
                         </div>
-                        <div className="text-xs opacity-80">Slower, full AI optimization</div>
                       </div>
                     </Button>
+                  </div>
+                  
+                  <div className={`p-4 rounded-lg border-l-4 transition-all duration-300 ${
+                    optimizationMode === 'speed' 
+                      ? 'bg-yellow-50 border-yellow-400 dark:bg-yellow-950/20' 
+                      : 'bg-blue-50 border-blue-400 dark:bg-blue-950/20'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      {optimizationMode === 'speed' ? <Zap className="h-4 w-4" /> : <Brain className="h-4 w-4" />}
+                      <span className="font-medium">
+                        {optimizationMode === 'speed' ? 'Speed Mode Selected' : 'Deep Mode Selected'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {optimizationMode === 'speed' 
+                        ? 'Uses cached optimization patterns and heuristics for instant results. Perfect for quick iterations and testing.'
+                        : 'Leverages multiple AI models to create the highest quality optimizations. Best for final prompts and complex requirements.'
+                      }
+                    </p>
                   </div>
                 </div>
 
@@ -731,70 +772,167 @@ export const AIPromptOptimizer: React.FC = () => {
 
           {/* Speed Mode Results */}
           {speedResult && (
-            <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm mb-6">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  ⚡ Speed Optimization Complete
-                  <Badge variant="secondary">{speedResult.strategy}</Badge>
-                  <Badge variant="outline">{speedResult.processingTimeMs}ms</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Optimized Prompt</Label>
+            <div className="space-y-6 animate-fade-in">
+              {/* Header */}
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center gap-2 text-2xl font-bold">
+                  <Zap className="h-6 w-6 text-yellow-500" />
+                  Speed Optimization Complete!
+                </div>
+                <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+                  <Badge variant="outline" className="bg-yellow-50 border-yellow-200">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {speedResult.processingTimeMs}ms
+                  </Badge>
+                  <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                    <Target className="h-3 w-3 mr-1" />
+                    {speedResult.strategy}
+                  </Badge>
+                  <Badge variant="outline" className="bg-green-50 border-green-200">
+                    <BarChart3 className="h-3 w-3 mr-1" />
+                    {speedResult.variants?.length || 0} variants
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Best Result */}
+              <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Crown className="h-5 w-5 text-yellow-600" />
+                    Best Optimized Prompt
+                    <Badge className="bg-yellow-500 text-white">
+                      {Math.round((speedResult.bestScore || 0.8) * 100)}% Score
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="relative">
                     <Textarea 
-                      value={speedResult.optimizedPrompt} 
+                      value={speedResult.bestOptimizedPrompt || speedResult.optimizedPrompt} 
                       readOnly 
-                      className="min-h-[120px] bg-muted/20 resize-none" 
+                      className="min-h-[120px] bg-white/50 dark:bg-black/20 resize-none border-yellow-200" 
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      className="absolute top-2 right-2"
-                      onClick={() => copyToClipboard(speedResult.optimizedPrompt)}
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                      onClick={() => copyToClipboard(speedResult.bestOptimizedPrompt || speedResult.optimizedPrompt)}
                     >
+                      <Copy className="h-3 w-3 mr-1" />
                       Copy
                     </Button>
                   </div>
-                </div>
-                
-                {showRating && (
-                  <div className="border-t pt-4">
-                    <div className="flex items-center gap-4 mb-3">
-                      <span className="text-sm font-medium">Rate this optimization:</span>
+                </CardContent>
+              </Card>
+
+              {/* All Variants */}
+              {speedResult.variants && speedResult.variants.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-blue-600" />
+                      All Optimization Variants ({speedResult.variants.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {speedResult.variants.map((variant: any, index: number) => (
+                        <div 
+                          key={index} 
+                          className={`border rounded-lg p-4 transition-all duration-200 hover:shadow-md ${
+                            index === 0 ? 'border-yellow-300 bg-yellow-50/50 dark:bg-yellow-950/10' : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              {index === 0 && <Crown className="h-4 w-4 text-yellow-600" />}
+                              <Badge variant={index === 0 ? 'default' : 'secondary'}>
+                                {variant.strategy}
+                              </Badge>
+                              <Badge variant="outline">
+                                {Math.round((variant.score || 0) * 100)}%
+                              </Badge>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => copyToClipboard(variant.prompt)}
+                              className="h-8"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <Textarea 
+                            value={variant.prompt} 
+                            readOnly 
+                            className="min-h-[80px] bg-muted/20 resize-none text-sm"
+                          />
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex gap-2">
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Rating Section */}
+              {showRating && (
+                <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-blue-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-center">
+                      <Star className="h-5 w-5 text-yellow-500" />
+                      Rate This Optimization
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center space-y-4">
+                    <p className="text-muted-foreground">
+                      How satisfied are you with this speed optimization?
+                    </p>
+                    <div className="flex justify-center gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Button
                           key={star}
                           variant="ghost"
-                          size="sm"
+                          size="lg"
                           onClick={() => submitRating(star)}
-                          className="p-2 hover:bg-muted/50"
+                          className="p-3 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 transition-all duration-200 hover:scale-110"
                         >
-                          <span className={`text-lg ${star <= (userRating || 0) ? "text-yellow-500" : "text-gray-300"}`}>
-                            ⭐
-                          </span>
+                          <Star 
+                            className={`h-6 w-6 ${
+                              star <= (userRating || 0) 
+                                ? "text-yellow-500 fill-yellow-500" 
+                                : "text-gray-300 hover:text-yellow-400"
+                            }`}
+                          />
                         </Button>
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Your feedback helps improve our speed optimization algorithms
+                    <p className="text-xs text-muted-foreground">
+                      Your feedback helps improve our optimization algorithms
                     </p>
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
+              )}
 
-                {userRating && (
-                  <div className="text-sm text-muted-foreground">
-                    ✅ Thank you for rating this optimization {userRating}/5 stars!
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              {userRating && (
+                <Card className="bg-green-50 dark:bg-green-950/20 border-green-200">
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-2">
+                      <CheckCircle className="h-8 w-8 text-green-600 mx-auto" />
+                      <p className="font-medium text-green-800 dark:text-green-200">
+                        Thank you for your feedback!
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        You rated this optimization {userRating}/5 stars
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
 
-          {/* Results Section */}
+          {/* Deep Mode Results */}
           {result && (
             <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm">
               <div className="space-y-6">

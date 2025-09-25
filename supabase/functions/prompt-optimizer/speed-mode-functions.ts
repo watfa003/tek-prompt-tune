@@ -12,12 +12,12 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
       .limit(1)
       .maybeSingle();
 
-    // Apply cached heuristics to optimize prompt
-    const optimizedPrompt = await applySpeedHeuristics(originalPrompt, taskDescription, outputType, insights);
-    const strategy = determineOptimizationStrategy(originalPrompt, outputType);
+    // Generate multiple variants using speed heuristics
+    const variants = await generateSpeedVariants(originalPrompt, taskDescription, outputType, insights);
+    const bestVariant = selectBestVariant(variants);
     const processingTime = Date.now() - startTime;
 
-    console.log(`✨ Speed optimization completed in ${processingTime}ms`);
+    console.log(`✨ Speed optimization completed in ${processingTime}ms with ${variants.length} variants`);
 
     // Store speed optimization result
     const { data: speedResult, error } = await supabase
@@ -25,9 +25,9 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
       .insert({
         user_id: userId,
         original_prompt: originalPrompt,
-        optimized_prompt: optimizedPrompt,
+        optimized_prompt: bestVariant.prompt,
         mode: 'speed',
-        optimization_strategy: strategy,
+        optimization_strategy: bestVariant.strategy,
         processing_time_ms: processingTime
       })
       .select()
@@ -43,13 +43,23 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
     };
 
     return new Response(JSON.stringify({
-      optimizedPrompt,
+      promptId: speedResult?.id,
+      originalPrompt,
+      bestOptimizedPrompt: bestVariant.prompt,
+      bestScore: bestVariant.score,
+      variants: variants,
       mode: 'speed',
-      strategy,
+      strategy: bestVariant.strategy,
       processingTimeMs: processingTime,
       speedResultId: speedResult?.id,
       requiresRating: true,
-      improvement: calculateSpeedImprovement(originalPrompt, optimizedPrompt)
+      improvement: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
+      summary: {
+        improvementScore: bestVariant.score - 0.5,
+        bestStrategy: bestVariant.strategy,
+        totalVariants: variants.length,
+        processingTimeMs: processingTime
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -70,68 +80,153 @@ export async function handleSpeedMode(supabase: any, { originalPrompt, taskDescr
   }
 }
 
-// Apply speed heuristics based on cached insights
-async function applySpeedHeuristics(originalPrompt: string, taskDescription: string, outputType: string, insights: any): Promise<string> {
-  let optimizedPrompt = originalPrompt;
+// Generate multiple variants using speed heuristics
+async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any): Promise<any[]> {
+  const variants = [];
+  const strategies = ['clarity', 'specificity', 'structure', 'efficiency'];
   
-  // Apply length optimization
-  if (originalPrompt.length < 50) {
-    optimizedPrompt = expandShortPrompt(optimizedPrompt, outputType);
-  } else if (originalPrompt.length > 1000) {
-    optimizedPrompt = condensePrompt(optimizedPrompt);
+  for (let i = 0; i < strategies.length; i++) {
+    const strategy = strategies[i];
+    let optimizedPrompt = originalPrompt;
+    
+    // Apply different optimization strategies
+    switch (strategy) {
+      case 'clarity':
+        optimizedPrompt = improveClarityHeuristic(originalPrompt, outputType);
+        break;
+      case 'specificity':
+        optimizedPrompt = addSpecificityHeuristic(originalPrompt, outputType, insights);
+        break;
+      case 'structure':
+        optimizedPrompt = improveStructureHeuristic(originalPrompt, outputType);
+        break;
+      case 'efficiency':
+        optimizedPrompt = improveEfficiencyHeuristic(originalPrompt, outputType);
+        break;
+    }
+    
+    const score = calculateHeuristicScore(optimizedPrompt, originalPrompt, strategy);
+    
+    variants.push({
+      prompt: optimizedPrompt,
+      strategy,
+      score,
+      metrics: {
+        length_improvement: optimizedPrompt.length - originalPrompt.length,
+        structure_score: hasGoodStructure(optimizedPrompt) ? 0.8 : 0.4,
+        clarity_score: score
+      }
+    });
   }
   
-  // Apply structure improvements
-  if (!hasGoodStructure(optimizedPrompt)) {
-    optimizedPrompt = addStructure(optimizedPrompt, outputType);
-  }
-  
-  // Apply specificity based on cached patterns
-  if (insights?.successful_strategies?.specificity) {
-    optimizedPrompt = addSpecificity(optimizedPrompt, insights.successful_strategies.specificity);
-  }
-  
-  // Apply format constraints
-  optimizedPrompt = addFormatConstraints(optimizedPrompt, outputType);
-  
-  return optimizedPrompt;
+  return variants.sort((a, b) => b.score - a.score);
 }
 
-// Speed heuristic functions
-function expandShortPrompt(prompt: string, outputType: string): string {
-  const expansions: Record<string, string> = {
-    code: `Please provide a detailed ${prompt}. Include:
-- Clear implementation with proper syntax
-- Comments explaining key logic
-- Error handling where appropriate
-- Example usage if relevant`,
-    
-    list: `Create a comprehensive ${prompt}. Requirements:
-- Well-organized list format
-- Relevant and actionable items
-- Clear descriptions for each point
-- Logical ordering or categorization`,
-    
-    essay: `Write a well-structured ${prompt}. Include:
-- Clear introduction with thesis
-- Supporting arguments with evidence
-- Logical flow between ideas
-- Conclusion that reinforces main points`,
-    
-    default: `Please provide a detailed and comprehensive response to: ${prompt}. Include relevant context, clear explanations, and specific examples where helpful.`
-  };
-  
-  return expansions[outputType] || expansions.default;
+function selectBestVariant(variants: any[]): any {
+  return variants[0]; // Already sorted by score
 }
 
-function condensePrompt(prompt: string): string {
-  // Remove redundant phrases and excessive details while keeping core requirements
-  return prompt
-    .replace(/\b(please|kindly|if possible|if you can|if you would)\b/gi, '')
+// Improved heuristic functions
+function improveClarityHeuristic(prompt: string, outputType: string): string {
+  let improved = prompt;
+  
+  // Add specific instructions based on output type
+  if (outputType === 'code') {
+    improved = `Write clean, well-documented ${prompt}. Include:\n- Clear variable names and function structure\n- Inline comments explaining complex logic\n- Error handling for edge cases\n- Example usage demonstrating key features`;
+  } else if (outputType === 'list') {
+    improved = `Create a comprehensive, well-organized ${prompt}. Ensure:\n- Each item is clearly defined and actionable\n- Logical grouping and ordering of related items\n- Specific details rather than vague descriptions\n- Consistent formatting throughout`;
+  } else {
+    improved = `Provide a clear, detailed response to: ${prompt}. Include:\n- Specific examples and concrete details\n- Well-structured explanations with logical flow\n- Practical applications where relevant\n- Clear conclusions or next steps`;
+  }
+  
+  return improved;
+}
+
+function addSpecificityHeuristic(prompt: string, outputType: string, insights: any): string {
+  let enhanced = prompt;
+  
+  // Add specificity based on output type
+  if (outputType === 'code') {
+    enhanced += '\n\nSpecific requirements:\n- Include proper error handling\n- Add meaningful variable names\n- Provide working examples\n- Include necessary imports/dependencies';
+  } else if (outputType === 'list') {
+    enhanced += '\n\nEnsure specificity:\n- Include specific quantities or numbers where applicable\n- Provide concrete examples for each point\n- Add context or reasoning for important items';
+  } else {
+    enhanced += '\n\nBe specific about:\n- Exact steps or processes involved\n- Measurable outcomes or criteria\n- Real-world examples and applications\n- Timeframes and expectations';
+  }
+  
+  // Add insights patterns if available
+  if (insights?.successful_strategies?.specificity?.patterns) {
+    const patterns = insights.successful_strategies.specificity.patterns.slice(0, 2);
+    if (patterns.length > 0) {
+      enhanced += `\n\nIncorporate these proven patterns: ${patterns.join(', ')}`;
+    }
+  }
+  
+  return enhanced;
+}
+
+function improveStructureHeuristic(prompt: string, outputType: string): string {
+  if (hasGoodStructure(prompt)) return prompt;
+  
+  if (outputType === 'code') {
+    return `${prompt}\n\nStructure your response as follows:\n1. **Setup & Dependencies**: List required imports and setup\n2. **Core Implementation**: Main code with clear comments\n3. **Error Handling**: Include try-catch blocks and validation\n4. **Usage Example**: Demonstrate how to use the code\n5. **Testing**: Basic test cases or validation steps`;
+  } else if (outputType === 'list') {
+    return `${prompt}\n\nOrganize your response with this structure:\n1. **Overview**: Brief introduction to the topic\n2. **Main Categories**: Group related items together\n3. **Detailed Items**: Specific, actionable points for each category\n4. **Priority Ranking**: Order by importance or urgency\n5. **Implementation Notes**: Additional context or considerations`;
+  } else {
+    return `${prompt}\n\nStructure your response as follows:\n1. **Introduction**: Brief overview of the topic\n2. **Main Content**: Detailed explanation with examples\n3. **Key Points**: Important takeaways or considerations\n4. **Practical Applications**: How to apply this information\n5. **Conclusion**: Summary and next steps`;
+  }
+}
+
+function improveEfficiencyHeuristic(prompt: string, outputType: string): string {
+  let optimized = prompt;
+  
+  // Remove redundant words and phrases
+  optimized = optimized
+    .replace(/\b(please|kindly|if possible|if you would|if you could)\b/gi, '')
+    .replace(/\b(very|really|quite|rather|somewhat)\b/gi, '')
     .replace(/\s+/g, ' ')
-    .replace(/([.!?])\s*\1+/g, '$1')
-    .trim()
-    .substring(0, 800) + (prompt.length > 800 ? '...' : '');
+    .trim();
+  
+  // Add efficiency-focused instructions
+  if (outputType === 'code') {
+    optimized += '\n\nFocus on efficiency: Use optimal algorithms, minimize memory usage, and include performance considerations.';
+  } else if (outputType === 'list') {
+    optimized += '\n\nPrioritize high-impact items and organize by effectiveness.';
+  } else {
+    optimized += '\n\nProvide concise, actionable information with maximum value.';
+  }
+  
+  return optimized;
+}
+
+function calculateHeuristicScore(optimized: string, original: string, strategy: string): number {
+  let score = 0.6; // Base score
+  
+  // Length improvement
+  const lengthRatio = optimized.length / original.length;
+  if (lengthRatio > 1.2 && lengthRatio < 3) score += 0.15; // Good expansion
+  else if (lengthRatio < 1.2 && lengthRatio > 0.8) score += 0.1; // Reasonable length
+  
+  // Structure bonus
+  if (hasGoodStructure(optimized) && !hasGoodStructure(original)) score += 0.15;
+  
+  // Strategy-specific bonuses
+  switch (strategy) {
+    case 'clarity':
+      if (optimized.includes('Include:') || optimized.includes('Ensure:')) score += 0.1;
+      break;
+    case 'specificity':
+      if (optimized.includes('specific') || optimized.includes('example')) score += 0.1;
+      break;
+    case 'structure':
+      if ((optimized.match(/\d+\./g)?.length || 0) > 3) score += 0.1;
+      break;
+    case 'efficiency':
+      if (optimized.length < original.length * 1.5) score += 0.1;
+      break;
+  }
+  
+  return Math.min(1.0, Math.max(0.3, score));
 }
 
 function hasGoodStructure(prompt: string): boolean {
@@ -139,61 +234,11 @@ function hasGoodStructure(prompt: string): boolean {
     /\d+\./g,  // numbered lists
     /[-*]\s/g, // bullet points
     /:\s*$/gm, // colons at end of lines
-    /#{1,6}\s/g // headers
+    /#{1,6}\s/g, // headers
+    /\*\*.*\*\*/g // bold headers
   ];
   
   return structureIndicators.some(pattern => pattern.test(prompt));
-}
-
-function addStructure(prompt: string, outputType: string): string {
-  if (outputType === 'code') {
-    return `Create ${prompt} following this structure:
-1. Core functionality implementation
-2. Error handling and edge cases
-3. Documentation and examples
-4. Testing considerations`;
-  } else if (outputType === 'list') {
-    return `Generate ${prompt} in this format:
-- Main category/theme
-  - Specific items with brief descriptions
-  - Organized by priority or relevance
-- Include actionable details for each item`;
-  } else {
-    return `Respond to "${prompt}" using this structure:
-1. Overview/Introduction
-2. Main content with specific details
-3. Key takeaways or next steps`;
-  }
-}
-
-function addSpecificity(prompt: string, specificityPatterns: any): string {
-  if (!specificityPatterns?.patterns) return prompt;
-  
-  const commonPatterns = specificityPatterns.patterns.slice(0, 3);
-  const enhancement = commonPatterns.length > 0 
-    ? `\n\nBe sure to include: ${commonPatterns.join(', ')}`
-    : '';
-    
-  return prompt + enhancement;
-}
-
-function addFormatConstraints(prompt: string, outputType: string): string {
-  const constraints: Record<string, string> = {
-    code: '\n\nProvide clean, readable code with proper formatting and comments.',
-    list: '\n\nFormat as a clear, organized list with consistent structure.',
-    essay: '\n\nUse proper paragraphs with clear topic sentences and transitions.',
-    default: '\n\nProvide a well-formatted, professional response.'
-  };
-  
-  return prompt + (constraints[outputType] || constraints.default);
-}
-
-function determineOptimizationStrategy(prompt: string, outputType: string): string {
-  if (prompt.length < 50) return 'expansion';
-  if (prompt.length > 1000) return 'condensation';
-  if (!hasGoodStructure(prompt)) return 'structure';
-  if (outputType === 'code' && !prompt.includes('example')) return 'specificity';
-  return 'clarity';
 }
 
 function calculateSpeedImprovement(original: string, optimized: string): any {
@@ -201,6 +246,6 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
     lengthImprovement: optimized.length > original.length ? 'expanded' : 'condensed',
     structureAdded: hasGoodStructure(optimized) && !hasGoodStructure(original),
     specificityBoost: optimized.length > original.length * 1.2,
-    estimatedScoreImprovement: 0.15 // Conservative estimate for speed mode
+    estimatedScoreImprovement: 0.25
   };
 }
