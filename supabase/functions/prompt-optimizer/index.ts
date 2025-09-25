@@ -183,8 +183,8 @@ serve(async (req) => {
           return null;
         }
 
-        // Quick scoring (simplified)
-        const score = quickScore(optimizedPrompt, strategy.weight);
+        // Advanced length-based evaluation
+        const score = evaluateOutput(optimizedPrompt, strategy.weight);
 
         return {
           prompt: optimizedPrompt,
@@ -435,24 +435,99 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
   return data.candidates[0].content.parts[0].text;
 }
 
-// Quick scoring for speed (simplified)
-function quickScore(prompt: string, strategyWeight: number): number {
+// Advanced evaluation logic with length-based analysis
+function evaluateOutput(prompt: string, strategyWeight: number): number {
   const words = prompt.split(' ').length;
   const sentences = prompt.split(/[.!?]+/).length;
-  
-  // Basic quality indicators
+  const approximateTokens = words * 1.3; // Rough token estimation
+
+  // Length-based evaluation strategy
+  if (approximateTokens <= 1000) {
+    // ≤ ~2 pages: Full detailed evaluation
+    return fullDetailedEvaluation(prompt, words, sentences, strategyWeight);
+  } else {
+    // > ~2 pages: Compressed analysis
+    return compressedAnalysis(prompt, words, sentences, strategyWeight);
+  }
+}
+
+// Full detailed evaluation for shorter outputs
+function fullDetailedEvaluation(prompt: string, words: number, sentences: number, strategyWeight: number): number {
   let score = 0.5; // Base score
   
-  // Length quality (optimal 50-200 words)
-  if (words >= 50 && words <= 200) score += 0.2;
-  else if (words >= 30 && words <= 300) score += 0.1;
+  // Accuracy assessment
+  const hasSpecificTerms = /\b(specific|detail|example|step|instruction|format|constraint)\b/i.test(prompt);
+  if (hasSpecificTerms) score += 0.15;
   
-  // Structure quality
-  if (sentences > 1) score += 0.1;
-  if (prompt.includes(':') || prompt.includes('-')) score += 0.1;
+  // Completeness check
+  const hasStructure = prompt.includes(':') || prompt.includes('-') || prompt.includes('1.') || prompt.includes('•');
+  if (hasStructure) score += 0.1;
+  
+  const hasContext = /\b(context|background|purpose|goal|objective)\b/i.test(prompt);
+  if (hasContext) score += 0.1;
+  
+  // Clarity assessment
+  const avgWordsPerSentence = words / Math.max(sentences, 1);
+  if (avgWordsPerSentence >= 10 && avgWordsPerSentence <= 25) score += 0.1; // Optimal readability
+  
+  const hasTransitions = /\b(then|next|after|before|finally|additionally|furthermore)\b/i.test(prompt);
+  if (hasTransitions) score += 0.05;
+  
+  // Length quality (optimal 50-200 words for detailed evaluation)
+  if (words >= 50 && words <= 200) score += 0.15;
+  else if (words >= 30 && words <= 300) score += 0.1;
+  else if (words < 30) score -= 0.1; // Too short penalty
   
   // Apply strategy bonus
   score += strategyWeight * 0.1;
   
-  return Math.min(1.0, score);
+  return Math.min(1.0, Math.max(0.0, score));
+}
+
+// Compressed analysis for longer outputs
+function compressedAnalysis(prompt: string, words: number, sentences: number, strategyWeight: number): number {
+  let score = 0.5; // Base score
+  
+  // 3-5 sentence summary check (simulated by looking for key sections)
+  const sections = prompt.split(/\n\n|\n(?=[A-Z])|(?:\d+\.)|(?:#{1,6}\s)/).length;
+  const hasSummaryStructure = sections >= 3;
+  if (hasSummaryStructure) score += 0.15;
+  
+  // Required sections presence check
+  const requiredSections = {
+    introduction: /\b(introduction|overview|purpose|goal)\b/i.test(prompt),
+    methodology: /\b(method|approach|steps|process|procedure)\b/i.test(prompt),
+    requirements: /\b(requirement|constraint|criteria|specification)\b/i.test(prompt),
+    format: /\b(format|structure|template|output|result)\b/i.test(prompt),
+    conclusion: /\b(conclusion|summary|final|end)\b/i.test(prompt)
+  };
+  
+  const presentSections = Object.values(requiredSections).filter(Boolean).length;
+  score += (presentSections / 5) * 0.2; // Up to 0.2 points for section completeness
+  
+  // Flag obvious flaws
+  const hasCutoffText = prompt.endsWith('...') || /\btbc\b|\bto be continued\b/i.test(prompt);
+  if (hasCutoffText) score -= 0.15;
+  
+  const hasRepetition = checkForRepetition(prompt);
+  if (hasRepetition) score -= 0.1;
+  
+  const hasMissingParts = words < 200; // Too short for a long-form output
+  if (hasMissingParts) score -= 0.1;
+  
+  // Length appropriateness for longer content
+  if (words >= 500 && words <= 2000) score += 0.1;
+  else if (words > 2000) score += 0.05; // Comprehensive but potentially verbose
+  
+  // Apply strategy bonus
+  score += strategyWeight * 0.1;
+  
+  return Math.min(1.0, Math.max(0.0, score));
+}
+
+// Helper function to detect repetition
+function checkForRepetition(text: string): boolean {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
+  return sentences.length > uniqueSentences.size * 1.2; // Allow for some natural repetition
 }
