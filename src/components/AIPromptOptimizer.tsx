@@ -97,6 +97,7 @@ export const AIPromptOptimizer: React.FC = () => {
   const [speedResult, setSpeedResult] = useState<any>(null);
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [bestPrompt, setBestPrompt] = useState('');
 
   // Check for influence selection from URL params
   React.useEffect(() => {
@@ -153,6 +154,7 @@ export const AIPromptOptimizer: React.FC = () => {
     setResult(null);
     setSpeedResult(null);
     setShowRating(false);
+    setBestPrompt('');
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -184,6 +186,9 @@ export const AIPromptOptimizer: React.FC = () => {
         console.log('📝 Fallback Optimized Prompt:', data.optimizedPrompt);
         console.log('🎯 Variants:', data.variants);
         setSpeedResult(data);
+        setBestPrompt(
+          data.bestOptimizedPrompt || data.optimizedPrompt || (data.variants && data.variants[0]?.prompt) || ''
+        );
         setShowRating(true);
         toast({
           title: "⚡ Speed Optimization Complete!",
@@ -192,6 +197,9 @@ export const AIPromptOptimizer: React.FC = () => {
       } else {
         // Handle Deep Mode results
         setResult(data);
+        setBestPrompt(
+          data.bestOptimizedPrompt || (data.variants && data.variants[0]?.prompt) || ''
+        );
         toast({
           title: "🔍 Deep Optimization Complete!",
           description: `Generated ${data.variants?.length || 0} optimized variants`,
@@ -779,6 +787,36 @@ export const AIPromptOptimizer: React.FC = () => {
               </div>
             </div>
           </Card>
+
+          {/* Best Prompt (Always Visible) */}
+          {bestPrompt && (
+            <Card className="bg-primary/5 border-primary/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Crown className="h-5 w-5 text-primary" />
+                  Best Optimized Prompt
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <Textarea
+                    value={bestPrompt}
+                    readOnly
+                    className="min-h-[120px] resize-none"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="absolute top-2 right-2"
+                    onClick={() => copyToClipboard(bestPrompt)}
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Speed Mode Results */}
           {speedResult && (
