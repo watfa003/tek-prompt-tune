@@ -165,7 +165,7 @@ export const AIPromptOptimizer: React.FC = () => {
           aiProvider,
           modelName,
           outputType,
-          variants: optimizationMode === 'speed' ? 3 : variants,
+          variants,
           userId: user.id,
           maxTokens: maxTokens[0],
           temperature: temperature[0],

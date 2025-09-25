@@ -128,9 +128,12 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   
   // Use the same strategy selection logic as deep mode
   const allStrategies = ['clarity', 'specificity', 'structure', 'efficiency', 'constraints'];
-  const selectedStrategies = selectBestStrategiesFromInsights(allStrategies, requestedVariants, insights);
+  const selectedStrategies = selectBestStrategiesFromInsights(allStrategies, Math.min(requestedVariants || 1, allStrategies.length), insights);
   
   console.log(`📊 Speed mode using strategies: ${selectedStrategies.join(', ')}`);
+  
+  // Track uniqueness
+  const seen = new Set<string>();
   
   // Generate variants using selected strategies
   for (let i = 0; i < selectedStrategies.length; i++) {
@@ -159,6 +162,25 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     if (!optimizedPrompt.trim()) {
       optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
     }
+
+    // Ensure uniqueness with up to 2 retries
+    let attempts = 0;
+    const baseInstruction = instruction;
+    while (seen.has(normalizeText(optimizedPrompt)) && attempts < 2) {
+      const variationHint = getVariationHint(attempts);
+      const altInstruction = `${baseInstruction}\n\nGenerate a different version that approaches from a different angle. ${variationHint}`;
+      const alt = await callAIProvider(
+        aiProvider,
+        optimizationModel,
+        altInstruction,
+        Math.min(maxTokens || 1024, 4096),
+        Math.min(1, (temperature ?? 0.7) + 0.2)
+      );
+      if (alt && alt.trim()) optimizedPrompt = alt.trim();
+      attempts++;
+    }
+
+    seen.add(normalizeText(optimizedPrompt));
 
     const score = calculateDeepModeStyleScore(optimizedPrompt, originalPrompt, strategy);
 
@@ -490,4 +512,18 @@ function selectBestStrategiesFromInsights(allStrategies: string[], count: number
   console.log(`Selected strategies based on cached insights: ${selectedStrategies.join(', ')}`);
   
   return selectedStrategies;
+}
+
+// Helpers for uniqueness
+function normalizeText(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function getVariationHint(i: number): string {
+  const hints = [
+    'Use a different structure and vary the wording.',
+    'Focus on constraints/acceptance criteria and rephrase sections.',
+    'Change the ordering and emphasize different key points.'
+  ];
+  return hints[i % hints.length];
 }
