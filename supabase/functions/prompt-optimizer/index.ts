@@ -66,6 +66,15 @@ const AI_PROVIDERS = {
   }
 };
 
+// Cheaper models for optimization process
+const OPTIMIZATION_MODELS = {
+  openai: 'gpt-4o-mini',
+  anthropic: 'claude-3-5-sonnet-20241022',
+  mistral: 'mistral-medium',
+  groq: 'llama-3.1-8b',
+  google: 'gemini-1.5-pro'
+};
+
 // Faster optimization strategies (simplified for speed)
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
@@ -174,10 +183,11 @@ serve(async (req) => {
           optimizationPrompt += `\n\nContext: ${taskDescription}`;
         }
 
-        // Single API call for optimization (no separate testing for speed)
+        // Single API call for optimization using cheaper model
+        const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
         const optimizedPrompt = await callAIProvider(
           aiProvider, 
-          modelName, 
+          optimizationModel, 
           optimizationPrompt, 
           Math.min(maxTokens, 4096), // Respect user setting but cap at reasonable limit
           temperature
