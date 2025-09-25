@@ -84,15 +84,21 @@ const AppPage = () => {
     setSelectedInfluence("");
   };
 
+  // Always redirect to dashboard unless specific path
+  React.useEffect(() => {
+    if (location.pathname === '/app/generate') {
+      navigate('/app/ai-agent', { replace: true });
+    } else if (location.pathname === '/app' || location.pathname === '/app/') {
+      // Stay on dashboard
+    }
+  }, [location.pathname, navigate]);
+
   // Determine which content to show based on current path
   const renderContent = () => {
     switch (location.pathname) {
       case '/app':
+      case '/app/':
         return <EnhancedDashboard />;
-      case '/app/generate':
-        // Redirect to AI Agent
-        navigate('/app/ai-agent', { replace: true });
-        return null;
       case '/app/history':
         return <PromptHistory />;
       case '/app/templates':

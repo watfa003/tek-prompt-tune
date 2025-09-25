@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface PromptHistoryItem {
-  id: number;
+  id: string;
   title: string;
   description: string;
   prompt: string;
@@ -41,85 +42,70 @@ interface PromptHistoryItem {
   isFavorite: boolean;
 }
 
-const historyItems: PromptHistoryItem[] = [
-  {
-    id: 1,
-    title: "Python Merge Sort Function",
-    description: "Generate a clean, well-documented Python function for merge sort",
-    prompt: "You are an expert software engineer. Write a clean, well-documented Python function that efficiently sorts a list using the merge sort algorithm...",
-    output: "def merge_sort(arr: List[int]) -> List[int]:\n    \"\"\"Sorts a list using merge sort algorithm.\"\"\"\n    if len(arr) <= 1:\n        return arr...",
-    provider: "OpenAI GPT-4",
-    outputType: "Code",
-    score: 3,
-    timestamp: "2024-01-15 14:30",
-    tags: ["python", "sorting", "algorithms"],
-    isFavorite: true
-  },
-  {
-    id: 2,
-    title: "API Documentation Template",
-    description: "Create comprehensive API documentation with examples",
-    prompt: "Create comprehensive technical documentation for REST API endpoints. Include overview, parameters, examples...",
-    output: "# API Documentation\n\n## Overview\nThis API provides endpoints for managing user data...",
-    provider: "Claude",
-    outputType: "Essay",
-    score: 3,
-    timestamp: "2024-01-15 12:15",
-    tags: ["api", "documentation", "rest"],
-    isFavorite: false
-  },
-  {
-    id: 3,
-    title: "JSON Schema Validator",
-    description: "Generate JSON schema with validation rules",
-    prompt: "Generate a comprehensive JSON schema for user profile data with validation rules...",
-    output: "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\"...",
-    provider: "Gemini",
-    outputType: "JSON",
-    score: 2,
-    timestamp: "2024-01-14 16:45",
-    tags: ["json", "schema", "validation"],
-    isFavorite: false
-  },
-  {
-    id: 4,
-    title: "Database Schema Design",
-    description: "Design optimized database schema for e-commerce",
-    prompt: "Design an optimized database schema for an e-commerce platform. Include tables, relationships...",
-    output: "-- Users table\nCREATE TABLE users (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid()...",
-    provider: "OpenAI GPT-4",
-    outputType: "Structured Data",
-    score: 3,
-    timestamp: "2024-01-14 09:20",
-    tags: ["database", "schema", "ecommerce"],
-    isFavorite: true
-  },
-  {
-    id: 5,
-    title: "React Component Generator",
-    description: "Generate TypeScript React component with hooks",
-    prompt: "Generate a TypeScript React component for a data table with sorting, filtering...",
-    output: "import React, { useState, useMemo } from 'react';\n\ninterface DataTableProps {\n  data: any[]...",
-    provider: "Claude",
-    outputType: "Code",
-    score: 2,
-    timestamp: "2024-01-13 11:10",
-    tags: ["react", "typescript", "component"],
-    isFavorite: false
-  }
-];
-
 export const PromptHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterProvider, setFilterProvider] = useState("all");
   const [filterOutputType, setFilterOutputType] = useState("all");
   const [filterScore, setFilterScore] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [historyItems, setHistoryItems] = useState<PromptHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<any>(null);
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
+
+  useEffect(() => {
+    const fetchHistoryAndAnalytics = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch analytics data
+        const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
+        url.searchParams.set('userId', user.id);
+        url.searchParams.set('timeframe', '30d');
+
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA',
+          },
+        });
+
+        if (response.ok) {
+          const analyticsData = await response.json();
+          setAnalytics(analyticsData);
+          
+          // Transform recent activity into history items
+          const historyFromAnalytics = analyticsData.recentActivity?.map((activity: any) => ({
+            id: activity.id,
+            title: `${activity.type} - ${activity.provider}`,
+            description: `Generated using ${activity.model}`,
+            prompt: activity.prompt || "No prompt data available",
+            output: activity.output || "Output not available",
+            provider: activity.provider,
+            outputType: activity.outputType || "Text",
+            score: activity.score,
+            timestamp: new Date(activity.createdAt).toLocaleString(),
+            tags: activity.tags || [],
+            isFavorite: activity.isFavorite || false
+          })) || [];
+          
+          setHistoryItems(historyFromAnalytics);
+        }
+      } catch (error) {
+        console.error('Error fetching history:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistoryAndAnalytics();
+  }, []);
 
   const filteredItems = historyItems.filter(item => {
     const matchesSearch = 
@@ -195,7 +181,7 @@ export const PromptHistory = () => {
             <Clock className="h-4 w-4 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Total Prompts</p>
-              <p className="text-2xl font-bold">{historyItems.length}</p>
+              <p className="text-2xl font-bold">{analytics?.overview?.totalPrompts || historyItems.length}</p>
             </div>
           </div>
         </Card>
@@ -216,7 +202,7 @@ export const PromptHistory = () => {
             <div>
               <p className="text-sm text-muted-foreground">Avg Score</p>
               <p className="text-2xl font-bold">
-                {(historyItems.reduce((sum, item) => sum + item.score, 0) / historyItems.length).toFixed(1)}
+                {analytics?.overview?.averageScore?.toFixed(1) || (historyItems.length > 0 ? (historyItems.reduce((sum, item) => sum + item.score, 0) / historyItems.length).toFixed(1) : '0.0')}
               </p>
             </div>
           </div>
@@ -227,7 +213,7 @@ export const PromptHistory = () => {
             <Calendar className="h-4 w-4 text-accent" />
             <div>
               <p className="text-sm text-muted-foreground">This Week</p>
-              <p className="text-2xl font-bold">12</p>
+              <p className="text-2xl font-bold">{analytics?.performance?.dailyStats?.reduce((sum: number, day: any) => sum + day.prompts, 0) || 0}</p>
             </div>
           </div>
         </Card>
@@ -414,12 +400,19 @@ export const PromptHistory = () => {
         ))}
       </div>
 
-      {filteredItems.length === 0 && (
+      {loading && (
+        <div className="text-center py-12">
+          <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+          <h3 className="text-lg font-semibold">Loading history...</h3>
+        </div>
+      )}
+
+      {!loading && filteredItems.length === 0 && (
         <div className="text-center py-12">
           <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold">No prompts found</h3>
           <p className="text-muted-foreground">
-            Try adjusting your search or filter criteria
+            {historyItems.length === 0 ? "Start optimizing prompts to see your history here!" : "Try adjusting your search or filter criteria"}
           </p>
         </div>
       )}
