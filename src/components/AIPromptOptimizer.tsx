@@ -24,7 +24,13 @@ import {
   Lightbulb,
   X,
   ChevronDown,
-  Settings
+  Settings,
+  Star,
+  Sparkles,
+  Brain,
+  Clock,
+  Crown,
+  Trophy
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
