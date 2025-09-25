@@ -215,7 +215,14 @@ serve(async (req) => {
           if (testResponse) {
             actualResponse = testResponse;
             // Score based on the actual response from the user's selected model
-            actualScore = evaluateOutput(testResponse, strategy.weight);
+            // Use fast evaluation for very long responses (over 2 pages)
+            const responseWords = testResponse.split(' ').length;
+            if (responseWords > 1500) { // Roughly 2 pages
+              console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
+              actualScore = fastSkimEvaluation(testResponse, strategy.weight);
+            } else {
+              actualScore = evaluateOutput(testResponse, strategy.weight);
+            }
             console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
           } else {
             // Fallback to scoring the optimized prompt if response fails
@@ -595,4 +602,38 @@ function checkForRepetition(text: string): boolean {
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
   const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
   return sentences.length > uniqueSentences.size * 1.1; // Slightly stricter repetition detection
+}
+
+// Fast skim evaluation for long outputs (over 2 pages)
+function fastSkimEvaluation(text: string, strategyWeight: number): number {
+  const words = text.split(' ').length;
+  
+  // Quick quality checks on first and last portions
+  const firstPortion = text.substring(0, 500);
+  const lastPortion = text.substring(Math.max(0, text.length - 500));
+  const middlePortion = text.substring(Math.floor(text.length * 0.4), Math.floor(text.length * 0.6));
+  
+  // Quick indicators of quality
+  const hasGoodStructure = /(?:\n\s*[-*]\s|\d+\.|:{1,2}|#{1,6}\s)/g.test(text);
+  const hasVariedSentences = !/^(.{20,50}[.!?]\s*){10,}$/m.test(firstPortion);
+  const isNotTruncated = !text.trim().endsWith('...') && !/\b(tbc|to be continued|truncated)\b/i.test(lastPortion);
+  const hasGoodTransitions = /\b(however|furthermore|additionally|therefore|moreover|consequently)\b/i.test(middlePortion);
+  
+  let score = 0.75; // Start with good base score for long outputs
+  
+  // Quick bonuses
+  if (hasGoodStructure) score += 0.1;
+  if (hasVariedSentences) score += 0.05;
+  if (isNotTruncated) score += 0.05;
+  if (hasGoodTransitions) score += 0.03;
+  
+  // Quick penalties
+  if (words < 800) score -= 0.15; // Too short for "long" content
+  if (words > 5000) score -= 0.05; // Potentially too verbose
+  if (checkForRepetition(firstPortion + lastPortion)) score -= 0.1;
+  
+  // Strategy bonus
+  score += strategyWeight * 0.08;
+  
+  return Math.min(1.0, Math.max(0.15, score));
 }
