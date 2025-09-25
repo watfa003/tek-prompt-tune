@@ -109,7 +109,7 @@ serve(async (req) => {
       outputType = 'text',
       variants = 3,
       userId,
-      maxTokens = 1024, // Reduced for speed
+      maxTokens = 1024,
       temperature = 0.7,
       influence = '',
       influenceWeight = 0
@@ -174,7 +174,7 @@ serve(async (req) => {
           aiProvider, 
           modelName, 
           optimizationPrompt, 
-          Math.min(maxTokens, 1024), // Limit tokens for speed
+          Math.min(maxTokens, 4096), // Respect user setting but cap at reasonable limit
           temperature
         );
         
