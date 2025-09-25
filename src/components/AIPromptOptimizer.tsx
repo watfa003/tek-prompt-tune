@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -508,6 +508,39 @@ export const AIPromptOptimizer: React.FC = () => {
                   />
                 </div>
 
+                {/* Optimization Mode Selection */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Optimization Mode</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant={optimizationMode === 'speed' ? 'default' : 'outline'}
+                      onClick={() => setOptimizationMode('speed')}
+                      className="flex items-center gap-2 h-auto p-4"
+                    >
+                      <div className="text-left">
+                        <div className="flex items-center gap-2 font-medium">
+                          ⚡ Speed Mode
+                        </div>
+                        <div className="text-xs opacity-80">~5 seconds, cached heuristics</div>
+                      </div>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={optimizationMode === 'deep' ? 'default' : 'outline'}
+                      onClick={() => setOptimizationMode('deep')}
+                      className="flex items-center gap-2 h-auto p-4"
+                    >
+                      <div className="text-left">
+                        <div className="flex items-center gap-2 font-medium">
+                          🔍 Deep Mode
+                        </div>
+                        <div className="text-xs opacity-80">Slower, full AI optimization</div>
+                      </div>
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">AI Provider</Label>
@@ -695,6 +728,71 @@ export const AIPromptOptimizer: React.FC = () => {
               </div>
             </div>
           </Card>
+
+          {/* Speed Mode Results */}
+          {speedResult && (
+            <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm mb-6">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  ⚡ Speed Optimization Complete
+                  <Badge variant="secondary">{speedResult.strategy}</Badge>
+                  <Badge variant="outline">{speedResult.processingTimeMs}ms</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Optimized Prompt</Label>
+                  <div className="relative">
+                    <Textarea 
+                      value={speedResult.optimizedPrompt} 
+                      readOnly 
+                      className="min-h-[120px] bg-muted/20 resize-none" 
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="absolute top-2 right-2"
+                      onClick={() => copyToClipboard(speedResult.optimizedPrompt)}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+                
+                {showRating && (
+                  <div className="border-t pt-4">
+                    <div className="flex items-center gap-4 mb-3">
+                      <span className="text-sm font-medium">Rate this optimization:</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Button
+                          key={star}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => submitRating(star)}
+                          className="p-2 hover:bg-muted/50"
+                        >
+                          <span className={`text-lg ${star <= (userRating || 0) ? "text-yellow-500" : "text-gray-300"}`}>
+                            ⭐
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Your feedback helps improve our speed optimization algorithms
+                    </p>
+                  </div>
+                )}
+
+                {userRating && (
+                  <div className="text-sm text-muted-foreground">
+                    ✅ Thank you for rating this optimization {userRating}/5 stars!
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Results Section */}
           {result && (
