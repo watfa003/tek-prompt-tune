@@ -78,6 +78,13 @@ export const AIPromptOptimizer: React.FC = () => {
   const [influenceWeight, setInfluenceWeight] = useState([75]);
   const [selectedInfluence, setSelectedInfluence] = useState("");
   const [influenceType, setInfluenceType] = useState("");
+  // Additional generate tab options
+  const [generateVariants, setGenerateVariants] = useState(3);
+  const [generateMaxTokens, setGenerateMaxTokens] = useState([2048]);
+  const [generateTemperature, setGenerateTemperature] = useState([0.7]);
+  const [generateInfluence, setGenerateInfluence] = useState('');
+  const [generateInfluenceWeight, setGenerateInfluenceWeight] = useState([75]);
+  const [generateAdvancedOpen, setGenerateAdvancedOpen] = useState(false);
 
   // State for the optimizer functionality
   const [originalPrompt, setOriginalPrompt] = useState('');
@@ -125,6 +132,10 @@ export const AIPromptOptimizer: React.FC = () => {
       setVariants(settings.defaultVariants);
       setMaxTokens([settings.defaultMaxTokens]);
       setTemperature([settings.defaultTemperature]);
+      // Apply to generate tab as well
+      setGenerateVariants(settings.defaultVariants);
+      setGenerateMaxTokens([settings.defaultMaxTokens]);
+      setGenerateTemperature([settings.defaultTemperature]);
     }
   }, [settings]);
 
@@ -448,25 +459,116 @@ export const AIPromptOptimizer: React.FC = () => {
                       <SelectValue placeholder="Select output type" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="text">Text</SelectItem>
                       <SelectItem value="code">Code</SelectItem>
-                      <SelectItem value="essay">Essay</SelectItem>
                       <SelectItem value="json">JSON</SelectItem>
                       <SelectItem value="list">List</SelectItem>
-                      <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="essay">Essay</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="flex items-end">
-                  <Button 
-                    onClick={handleGenerate} 
-                    className="w-full bg-gradient-primary"
-                    disabled={!taskDescription || !selectedProvider || !selectedLLM || !selectedOutputType}
-                  >
-                    <Zap className="h-4 w-4 mr-2" />
-                    Generate Prompts
-                  </Button>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Variants to Generate</Label>
+                  <Select value={generateVariants.toString()} onValueChange={(value) => setGenerateVariants(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 Variants</SelectItem>
+                      <SelectItem value="3">3 Variants</SelectItem>
+                      <SelectItem value="4">4 Variants</SelectItem>
+                      <SelectItem value="5">5 Variants</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <Collapsible open={generateAdvancedOpen} onOpenChange={setGenerateAdvancedOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-4 w-4" />
+                      <span>Advanced Settings</span>
+                    </div>
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${generateAdvancedOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Max Tokens</Label>
+                        <span className="text-sm text-muted-foreground">{generateMaxTokens[0]}</span>
+                      </div>
+                      <Slider
+                        value={generateMaxTokens}
+                        onValueChange={setGenerateMaxTokens}
+                        max={4096}
+                        min={256}
+                        step={128}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Temperature</Label>
+                        <span className="text-sm text-muted-foreground">{generateTemperature[0].toFixed(1)}</span>
+                      </div>
+                      <Slider
+                        value={generateTemperature}
+                        onValueChange={setGenerateTemperature}
+                        max={2}
+                        min={0}
+                        step={0.1}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-border/40">
+                    <div className="flex items-center space-x-2">
+                      <Lightbulb className="h-4 w-4 text-primary" />
+                      <Label className="text-sm font-medium">Additional Influence (Optional)</Label>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Enter an example prompt or style to influence the generation..."
+                        value={generateInfluence}
+                        onChange={(e) => setGenerateInfluence(e.target.value)}
+                        className="min-h-[80px] resize-none"
+                      />
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Additional Influence Weight</Label>
+                          <span className="text-sm text-muted-foreground">{generateInfluenceWeight[0]}%</span>
+                        </div>
+                        <Slider
+                          value={generateInfluenceWeight}
+                          onValueChange={setGenerateInfluenceWeight}
+                          max={100}
+                          min={0}
+                          step={5}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <div className="flex items-end">
+                <Button 
+                  onClick={handleGenerate} 
+                  className="w-full bg-gradient-primary"
+                  disabled={!taskDescription || !selectedProvider || !selectedLLM || !selectedOutputType}
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Generate Prompts
+                </Button>
               </div>
             </div>
           </Card>
