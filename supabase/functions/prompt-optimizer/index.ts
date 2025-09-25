@@ -115,6 +115,8 @@ serve(async (req) => {
       influenceWeight = 0
     } = await req.json();
 
+    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType });
+
     if (!originalPrompt || !userId) {
       return new Response(
         JSON.stringify({ error: 'Original prompt and userId are required' }),
@@ -362,6 +364,8 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
       payload.max_tokens = maxTokens; // Legacy models use max_tokens
       payload.temperature = Math.min(temperature, 1.0);
     }
+
+    console.log('openai-compatible payload', { model, isNewerModel, max: isNewerModel ? payload.max_completion_tokens : payload.max_tokens });
 
     const response = await fetch(providerConfig.baseUrl, {
       method: 'POST',
