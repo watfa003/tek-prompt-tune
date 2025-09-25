@@ -84,12 +84,10 @@ const AppPage = () => {
     setSelectedInfluence("");
   };
 
-  // Always redirect to dashboard unless specific path
+  // Always redirect to dashboard for new prompts and ensure clean navigation
   React.useEffect(() => {
     if (location.pathname === '/app/generate') {
-      navigate('/app/ai-agent', { replace: true });
-    } else if (location.pathname === '/app' || location.pathname === '/app/') {
-      // Stay on dashboard
+      navigate('/app', { replace: true }); // Redirect to dashboard instead of AI agent
     }
   }, [location.pathname, navigate]);
 

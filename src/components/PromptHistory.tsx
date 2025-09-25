@@ -58,15 +58,15 @@ export const PromptHistory = () => {
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
 
   useEffect(() => {
-    const fetchHistoryAndAnalytics = async () => {
+    const fetchAnalytics = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch analytics data
+        // Use same analytics call as dashboard - 7d timeframe
         const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
         url.searchParams.set('userId', user.id);
-        url.searchParams.set('timeframe', '30d');
+        url.searchParams.set('timeframe', '7d');
 
         const response = await fetch(url.toString(), {
           method: 'GET',
@@ -80,31 +80,31 @@ export const PromptHistory = () => {
           const analyticsData = await response.json();
           setAnalytics(analyticsData);
           
-          // Transform recent activity into history items
+          // Transform recent activity into history items - use ALL recent activity for history
           const historyFromAnalytics = analyticsData.recentActivity?.map((activity: any) => ({
             id: activity.id,
-            title: `${activity.type} - ${activity.provider}`,
-            description: `Generated using ${activity.model}`,
-            prompt: activity.prompt || "No prompt data available",
-            output: activity.output || "Output not available",
+            title: `Prompt Optimization - ${activity.provider}`,
+            description: `Generated using ${activity.model} with score ${activity.score}`,
+            prompt: "Optimized prompt content", // We don't have the actual prompt content in analytics
+            output: "Generated output content", // We don't have the actual output content in analytics
             provider: activity.provider,
-            outputType: activity.outputType || "Text",
+            outputType: "Code", // Default since we don't have this in analytics
             score: activity.score,
             timestamp: new Date(activity.createdAt).toLocaleString(),
-            tags: activity.tags || [],
-            isFavorite: activity.isFavorite || false
+            tags: [activity.provider.toLowerCase(), activity.model.toLowerCase().replace(/[^a-z0-9]/g, '-')],
+            isFavorite: false
           })) || [];
           
           setHistoryItems(historyFromAnalytics);
         }
       } catch (error) {
-        console.error('Error fetching history:', error);
+        console.error('Error fetching analytics:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchHistoryAndAnalytics();
+    fetchAnalytics();
   }, []);
 
   const filteredItems = historyItems.filter(item => {
