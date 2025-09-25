@@ -158,7 +158,7 @@ serve(async (req) => {
         let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
         
         if (outputType && outputType !== 'text') {
-          optimizationPrompt += `\n\nTarget output type: ${outputType}`;
+          optimizationPrompt += `\n\nNote: This prompt should instruct the AI to respond in ${outputType} format, not format the prompt itself in that way.`;
         }
         
         if (influence && influenceWeight > 0) {
