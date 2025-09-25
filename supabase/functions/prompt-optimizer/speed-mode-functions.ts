@@ -17,7 +17,7 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
   google: 'gemini-1.5-pro',
-  groq: 'llama3-8b-8192',
+  groq: 'llama-3.1-8b-instant',
   mistral: 'mistral-small-latest',
 };
 
@@ -140,14 +140,15 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   console.log(`📊 Speed mode using strategies: ${selectedStrategies.join(', ')}`);
   
   // Track uniqueness
-  const seen = new Set<string>();
+  const seen: string[] = [];
   
   // Generate variants using selected strategies
   for (let i = 0; i < selectedStrategies.length; i++) {
     const strategy = selectedStrategies[i];
 
-    // Build an instruction for the LLM just like deep mode
-    const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights);
+    // Build an instruction for the LLM just like deep mode, with a variation hint to enforce diversity
+    const baseInstruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights);
+    const instruction = `${baseInstruction}\n\nVariation guidance (${i + 1}/${requestedVariants}): ${getVariationHint(i)}\n- Make this variant substantially different in wording AND structure from all prior variants.\n- Do not reuse the same sentences, bullet points, or phrasing.`;
 
     // Choose a cheaper optimization model (deep mode style)
     const optimizationModel = OPTIMIZATION_MODELS[aiProvider] || modelName;
