@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,309 +13,309 @@ import {
   Activity,
   RefreshCw,
   Play,
-  Bookmark
+  Bookmark,
+  Loader2
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-// Enhanced mock data
-const todayStats = {
-  promptsGenerated: 23,
-  avgScore: 2.8,
-  bestProvider: "OpenAI GPT-4",
-  timeSpent: "2h 14m",
-  improvementRate: "+12%"
-};
-
-const recentActivity = [
-  {
-    id: 1,
-    action: "Generated prompt",
-    task: "Python merge sort function",
-    provider: "OpenAI",
-    score: 3,
-    timestamp: "2 minutes ago"
-  },
-  {
-    id: 2,
-    action: "Optimized prompt",
-    task: "API documentation template",
-    provider: "Claude",
-    score: 3,
-    timestamp: "15 minutes ago"
-  },
-  {
-    id: 3,
-    action: "Saved template",
-    task: "JSON schema generator",
-    provider: "Gemini",
-    score: 2,
-    timestamp: "1 hour ago"
-  },
-  {
-    id: 4,
-    action: "Generated prompt",
-    task: "Database schema design",
-    provider: "OpenAI",
-    score: 3,
-    timestamp: "2 hours ago"
-  }
-];
-
-const quickActions = [
-  {
-    title: "Generate New Prompt",
-    description: "Start with a fresh prompt optimization",
-    icon: Zap,
-    action: "generate",
-    color: "bg-primary"
-  },
-  {
-    title: "Use Template",
-    description: "Start from a proven template",
-    icon: Play,
-    action: "template",
-    color: "bg-success"
-  },
-  {
-    title: "View History",
-    description: "Browse your saved prompts",
-    icon: Bookmark,
-    action: "history",
-    color: "bg-warning"
-  },
-  {
-    title: "Analytics",
-    description: "Deep dive into performance",
-    icon: BarChart3,
-    action: "analytics",
-    color: "bg-accent"
-  }
-];
-
-const topPerformingPrompts = [
-  {
-    id: 1,
-    title: "Clean Python Function Generator",
-    score: 3,
-    provider: "OpenAI",
-    usage: 15,
-    category: "Code"
-  },
-  {
-    id: 2,
-    title: "API Documentation Writer",
-    score: 3,
-    provider: "Claude",
-    usage: 12,
-    category: "Documentation"
-  },
-  {
-    id: 3,
-    title: "JSON Schema Validator",
-    score: 3,
-    provider: "Gemini",
-    usage: 8,
-    category: "Data"
-  }
-];
-
-interface EnhancedDashboardProps {
-  onQuickAction: (action: string) => void;
+interface AnalyticsData {
+  overview: {
+    totalPrompts: number;
+    completedPrompts: number;
+    averageScore: number;
+    totalOptimizations: number;
+    totalChatSessions: number;
+    totalTokensUsed: number;
+    successRate: number;
+  };
+  performance: {
+    scoreDistribution: {
+      excellent: number;
+      good: number;
+      average: number;
+      poor: number;
+    };
+    averageScore: number;
+    improvementTrend: string;
+    dailyStats: Array<{
+      date: string;
+      prompts: number;
+      optimizations: number;
+      avgScore: number;
+      avgGenerationTime: number;
+    }>;
+  };
+  usage: {
+    providerStats: Record<string, { count: number; avgScore: number; totalScore: number }>;
+    modelStats: Record<string, { count: number; avgScore: number; totalScore: number }>;
+    outputTypeStats: Record<string, { count: number; avgScore: number; totalScore: number }>;
+    tokenAnalytics: {
+      total: number;
+      average: number;
+      trend: string;
+    };
+  };
+  engagement: {
+    chatSessions: number;
+    avgMessagesPerSession: number;
+    activePrompts: number;
+  };
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    score: number;
+    provider: string;
+    model: string;
+    createdAt: string;
+    status: string;
+  }>;
+  insights: string[];
 }
 
-export const EnhancedDashboard = ({ onQuickAction }: EnhancedDashboardProps) => {
+export const EnhancedDashboard = () => {
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
+        url.searchParams.set('userId', user.id);
+        url.searchParams.set('timeframe', '7d');
+
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA',
+          },
+        });
+
+        if (response.ok) {
+          const analyticsData = await response.json();
+          setAnalytics(analyticsData);
+        }
+      } catch (error) {
+        console.error('Error in fetchAnalytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
+
+  const getBestProvider = () => {
+    if (!analytics?.usage.providerStats) return "No data";
+    const providers = Object.entries(analytics.usage.providerStats);
+    if (providers.length === 0) return "No data";
+    
+    const best = providers.reduce((best, [name, stats]) => 
+      stats.avgScore > best.score ? { name, score: stats.avgScore } : best
+    , { name: '', score: 0 });
+    
+    return best.name || "No data";
+  };
+
   const getScoreBadge = (score: number) => {
-    if (score === 3) return <Badge className="bg-success text-success-foreground">Excellent</Badge>;
-    if (score === 2) return <Badge className="bg-warning text-warning-foreground">Good</Badge>;
+    if (score >= 0.8) return <Badge className="bg-green-500">Excellent</Badge>;
+    if (score >= 0.6) return <Badge className="bg-yellow-500">Good</Badge>;
     return <Badge variant="destructive">Needs Work</Badge>;
   };
 
+  const formatTimeSpent = () => {
+    if (!analytics?.overview.totalOptimizations) return "0m";
+    // Estimate 2 minutes per optimization on average
+    const minutes = analytics.overview.totalOptimizations * 2;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return hours > 0 ? `${hours}h ${remainingMinutes}m` : `${remainingMinutes}m`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading dashboard...</span>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-muted-foreground">Welcome! Start optimizing prompts to see your personalized dashboard.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back! Here's your prompt optimization overview.
-          </p>
+      {/* Today's Overview */}
+      <Card className="p-6 shadow-card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold flex items-center">
+            <Activity className="h-5 w-5 mr-2 text-primary" />
+            Recent Activity Overview
+          </h2>
+          <Badge variant="outline" className="text-primary">
+            Last 7 days
+          </Badge>
         </div>
-        <Button variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      {/* Today's Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <Zap className="h-4 w-4 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Prompts Today</p>
-              <p className="text-2xl font-bold">{todayStats.promptsGenerated}</p>
-            </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-primary">{analytics.overview.totalPrompts}</div>
+            <div className="text-xs text-muted-foreground">Prompts Generated</div>
           </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <Star className="h-4 w-4 text-success" />
-            <div>
-              <p className="text-sm text-muted-foreground">Avg Score</p>
-              <p className="text-2xl font-bold">{todayStats.avgScore}/3</p>
-            </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-success">{analytics.overview.averageScore.toFixed(1)}</div>
+            <div className="text-xs text-muted-foreground">Avg Score</div>
           </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <Target className="h-4 w-4 text-warning" />
-            <div>
-              <p className="text-sm text-muted-foreground">Best Provider</p>
-              <p className="text-sm font-semibold">{todayStats.bestProvider}</p>
-            </div>
+          <div className="text-center">
+            <div className="text-lg font-semibold">{getBestProvider()}</div>
+            <div className="text-xs text-muted-foreground">Best Provider</div>
           </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <Clock className="h-4 w-4 text-accent" />
-            <div>
-              <p className="text-sm text-muted-foreground">Time Spent</p>
-              <p className="text-2xl font-bold">{todayStats.timeSpent}</p>
-            </div>
+          <div className="text-center">
+            <div className="text-lg font-semibold">{formatTimeSpent()}</div>
+            <div className="text-xs text-muted-foreground">Time Spent</div>
           </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Improvement</p>
-              <p className="text-2xl font-bold text-success">{todayStats.improvementRate}</p>
+          <div className="text-center">
+            <div className="text-lg font-semibold text-success">
+              {analytics.performance.improvementTrend === 'improving' ? '+12%' : 
+               analytics.performance.improvementTrend === 'declining' ? '-5%' : '0%'}
             </div>
+            <div className="text-xs text-muted-foreground">Improvement</div>
           </div>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action) => {
-            const IconComponent = action.icon;
-            return (
-              <Button
-                key={action.action}
-                variant="outline"
-                className="h-20 flex-col space-y-2 hover:shadow-card transition-shadow"
-                onClick={() => onQuickAction(action.action)}
-              >
-                <IconComponent className="h-5 w-5" />
-                <div className="text-center">
-                  <p className="font-medium text-sm">{action.title}</p>
-                  <p className="text-xs text-muted-foreground">{action.description}</p>
-                </div>
-              </Button>
-            );
-          })}
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Recent Activity</h2>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+      {/* Quick Stats Grid */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card className="p-4 shadow-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Success Rate</p>
+              <p className="text-2xl font-bold">{analytics.overview.successRate}%</p>
+            </div>
+            <Target className="h-8 w-8 text-success" />
           </div>
-          <div className="space-y-3">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{activity.action}</p>
-                  <p className="text-sm text-muted-foreground">{activity.task}</p>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Badge variant="outline" className="text-xs">
-                      {activity.provider}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {activity.timestamp}
-                    </span>
+          <Progress value={analytics.overview.successRate} className="mt-2" />
+        </Card>
+
+        <Card className="p-4 shadow-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Optimizations</p>
+              <p className="text-2xl font-bold">{analytics.overview.totalOptimizations}</p>
+            </div>
+            <Zap className="h-8 w-8 text-primary" />
+          </div>
+        </Card>
+
+        <Card className="p-4 shadow-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Chat Sessions</p>
+              <p className="text-2xl font-bold">{analytics.engagement.chatSessions}</p>
+            </div>
+            <BarChart3 className="h-8 w-8 text-warning" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Score Distribution */}
+      <Card className="p-6 shadow-card">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <Star className="h-5 w-5 mr-2 text-primary" />
+          Score Distribution
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-3 rounded-lg bg-green-500/10">
+            <div className="text-2xl font-bold text-green-500">{analytics.performance.scoreDistribution.excellent}</div>
+            <div className="text-sm text-muted-foreground">Excellent (0.8+)</div>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-yellow-500/10">
+            <div className="text-2xl font-bold text-yellow-500">{analytics.performance.scoreDistribution.good}</div>
+            <div className="text-sm text-muted-foreground">Good (0.6-0.8)</div>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-orange-500/10">
+            <div className="text-2xl font-bold text-orange-500">{analytics.performance.scoreDistribution.average}</div>
+            <div className="text-sm text-muted-foreground">Average (0.4-0.6)</div>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-red-500/10">
+            <div className="text-2xl font-bold text-red-500">{analytics.performance.scoreDistribution.poor}</div>
+            <div className="text-sm text-muted-foreground">Poor (0-0.4)</div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Recent Activity */}
+      <Card className="p-6 shadow-card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold flex items-center">
+            <Clock className="h-5 w-5 mr-2 text-primary" />
+            Recent Activity
+          </h3>
+          <Button variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
+        </div>
+        
+        <div className="space-y-3">
+          {analytics.recentActivity.slice(0, 5).map((activity) => (
+            <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+              <div className="flex items-start space-x-3">
+                <Bookmark className="h-4 w-4 mt-1 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">Prompt Optimization</span>
+                    <Badge variant="outline" className="text-xs">{activity.provider}</Badge>
+                    <Badge variant="outline" className="text-xs">{activity.model}</Badge>
                   </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {new Date(activity.createdAt).toLocaleString()}
+                  </p>
                 </div>
-                <div className="ml-4">
-                  {getScoreBadge(activity.score)}
-                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                {getScoreBadge(activity.score)}
+                <Button variant="ghost" size="sm">
+                  <Play className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          {analytics.recentActivity.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No recent activity</p>
+              <p className="text-sm">Start optimizing prompts to see your activity here!</p>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Insights */}
+      {analytics.insights.length > 0 && (
+        <Card className="p-6 shadow-card">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2 text-primary" />
+            Personalized Insights
+          </h3>
+          <div className="space-y-3">
+            {analytics.insights.map((insight, index) => (
+              <div key={index} className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <p className="text-sm">{insight}</p>
               </div>
             ))}
           </div>
         </Card>
-
-        {/* Top Performing Prompts */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Top Performing Prompts</h2>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="space-y-3">
-            {topPerformingPrompts.map((prompt, index) => (
-              <div key={prompt.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{prompt.title}</p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {prompt.provider}
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        {prompt.category}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {prompt.usage} uses
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {getScoreBadge(prompt.score)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Performance Trends */}
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Performance Trends</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">OpenAI</span>
-              <span className="text-sm font-medium">92%</span>
-            </div>
-            <Progress value={92} className="h-2" />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Claude</span>
-              <span className="text-sm font-medium">88%</span>
-            </div>
-            <Progress value={88} className="h-2" />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Gemini</span>
-              <span className="text-sm font-medium">85%</span>
-            </div>
-            <Progress value={85} className="h-2" />
-          </div>
-        </div>
-      </Card>
+      )}
     </div>
   );
 };

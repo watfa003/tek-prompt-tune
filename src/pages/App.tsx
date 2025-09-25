@@ -88,7 +88,7 @@ const AppPage = () => {
   const renderContent = () => {
     switch (location.pathname) {
       case '/app':
-        return <EnhancedDashboard onQuickAction={() => {}} />;
+        return <EnhancedDashboard />;
       case '/app/generate':
         // Redirect to AI Agent
         navigate('/app/ai-agent', { replace: true });
@@ -102,7 +102,7 @@ const AppPage = () => {
       case '/app/ai-agent':
         return <AIAgent />;
       default:
-        return <EnhancedDashboard onQuickAction={() => {}} />;
+        return <EnhancedDashboard />;
     }
   };
 

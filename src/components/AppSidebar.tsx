@@ -39,33 +39,7 @@ const navigationItems = [
   { title: "Settings", url: "/app/settings", icon: Settings },
 ];
 
-// Mock saved prompts data
-const savedPrompts = [
-  {
-    id: 1,
-    title: "Python Merge Sort",
-    provider: "OpenAI",
-    score: 3,
-    timestamp: "2 hours ago",
-    type: "Code"
-  },
-  {
-    id: 2,
-    title: "API Documentation",
-    provider: "Claude",
-    score: 3,
-    timestamp: "5 hours ago",
-    type: "Essay"
-  },
-  {
-    id: 3,
-    title: "JSON Schema",
-    provider: "Gemini",
-    score: 2,
-    timestamp: "1 day ago",
-    type: "JSON"
-  }
-];
+// Real saved prompts will be loaded from Supabase
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -76,10 +50,11 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const [searchQuery, setSearchQuery] = useState("");
   const [userInfo, setUserInfo] = useState<{ email: string; displayName: string } | null>(null);
+  const [recentPrompts, setRecentPrompts] = useState<any[]>([]);
   
   const isCollapsed = state === "collapsed";
 
-  // Load user information
+  // Load user information and recent prompts
   React.useEffect(() => {
     const loadUserInfo = async () => {
       try {
@@ -90,6 +65,25 @@ export function AppSidebar() {
             email: user.email || '',
             displayName: displayName
           });
+
+          // Load recent prompts
+          const { data: prompts, error } = await supabase
+            .from('prompts')
+            .select('id, original_prompt, ai_provider, score, created_at, output_type')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+          if (!error && prompts) {
+            setRecentPrompts(prompts.map(p => ({
+              id: p.id,
+              title: p.original_prompt.substring(0, 30) + (p.original_prompt.length > 30 ? '...' : ''),
+              provider: p.ai_provider,
+              score: Math.round((p.score || 0) * 3), // Convert 0-1 scale to 0-3 scale for display
+              timestamp: new Date(p.created_at).toLocaleString(),
+              type: p.output_type || 'text'
+            })));
+          }
         }
       } catch (error) {
         console.error('Error loading user info:', error);
@@ -128,7 +122,7 @@ export function AppSidebar() {
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50";
 
-  const filteredPrompts = savedPrompts.filter(prompt =>
+  const filteredPrompts = recentPrompts.filter(prompt =>
     prompt.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -184,7 +178,7 @@ export function AppSidebar() {
             <SidebarGroupLabel className="flex items-center justify-between">
               <span className="text-muted-foreground">Saved Prompts</span>
               <Badge variant="secondary" className="text-xs">
-                {savedPrompts.length}
+                {recentPrompts.length}
               </Badge>
             </SidebarGroupLabel>
             <SidebarGroupContent>
