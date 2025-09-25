@@ -912,7 +912,7 @@ export const AIPromptOptimizer: React.FC = () => {
                 </CardContent>
               </Card>
               
-              {(speedResult.variants || []).slice(0, 3).map((variant: any, index: number) => (
+{(speedResult.variants || []).map((variant: any, index: number) => (
                 <Card key={index}>
                   <CardContent className="pt-6">
                     <div className="relative">
