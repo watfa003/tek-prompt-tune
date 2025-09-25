@@ -487,9 +487,17 @@ function fullDetailedEvaluation(prompt: string, words: number, sentences: number
 
   let score = 0.7 + 0.25 * (0.4 * accuracy + 0.35 * completeness + 0.25 * clarity);
 
-  // Lighter penalties
+  // Penalties for bad quality
   const hasCutoffText = prompt.trim().endsWith('...') || /\b(tbc|to be continued)\b/i.test(prompt);
-  if (words < 20) score -= 0.15; else if (words < 40) score -= 0.08;
+  const isVeryShort = words < 10;
+  const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(prompt.trim());
+  const isBlank = prompt.trim().length < 5;
+  
+  if (isBlank || isGibberish) score = 0.2; // Very bad output
+  else if (isVeryShort) score -= 0.3; // Severe penalty for very short
+  else if (words < 20) score -= 0.15; 
+  else if (words < 40) score -= 0.08;
+  
   if (words > 400) score -= 0.03;
   if (hasCutoffText) score -= 0.1;
   if (checkForRepetition(prompt)) score -= 0.08;
@@ -497,7 +505,7 @@ function fullDetailedEvaluation(prompt: string, words: number, sentences: number
   // Strategy bonus
   score += strategyWeight * 0.08;
 
-  return Math.min(1.0, Math.max(0.65, score));
+  return Math.min(1.0, Math.max(0.2, score));
 }
 
 // Compressed analysis for longer outputs
@@ -521,17 +529,25 @@ function compressedAnalysis(prompt: string, words: number, sentences: number, st
 
   let score = 0.7 + 0.25 * (0.5 * structure + 0.3 * coverage + 0.2 * clarity);
 
-  // Lighter penalties
+  // Penalties for bad quality
   const hasCutoffText = prompt.trim().endsWith('...') || /\b(tbc|to be continued)\b/i.test(prompt);
+  const isVeryShort = words < 50;
+  const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(prompt.trim());
+  const isBlank = prompt.trim().length < 5;
+  
+  if (isBlank || isGibberish) score = 0.15; // Very bad output
+  else if (isVeryShort) score -= 0.25; // Severe penalty for very short long-form
+  else if (words < 200) score -= 0.1; 
+  else if (words < 350) score -= 0.05;
+  
   if (hasCutoffText) score -= 0.12;
   if (checkForRepetition(prompt)) score -= 0.08;
-  if (words < 200) score -= 0.1; else if (words < 350) score -= 0.05;
   if (words > 3000) score -= 0.03;
 
   // Strategy bonus
   score += strategyWeight * 0.08;
 
-  return Math.min(1.0, Math.max(0.65, score));
+  return Math.min(1.0, Math.max(0.15, score));
 }
 
 // Helper function to detect repetition
