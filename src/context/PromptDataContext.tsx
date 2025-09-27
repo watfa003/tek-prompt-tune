@@ -207,61 +207,63 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setFavoriteIds(new Set(cachedFavorites));
       }
 
-      // Fetch all optimization history for this user (all variants)
+      // Fetch all optimization history with prompt data to show all variants
       const { data: optimizations, error: optError } = await supabase
         .from('optimization_history')
-        .select('*')
+        .select(`
+          *,
+          prompts (
+            id,
+            original_prompt,
+            task_description,
+            ai_provider,
+            model_name,
+            output_type,
+            created_at
+          )
+        `)
         .eq('user_id', user.user.id)
-        .order('created_at', { ascending: false });
+        .order('score', { ascending: false })
+        .limit(500);
 
       if (optError) throw optError;
 
-      const promptIds = Array.from(new Set((optimizations || []).map((o: any) => o.prompt_id).filter(Boolean)));
+      // Filter out variants without prompt data and ensure we have valid data
+      const validVariants = (optimizations || [])
+        .filter(variant => variant.prompts && variant.variant_prompt && variant.score !== null);
 
-      // Fetch prompt records for referenced prompt_ids
-      let promptMap = new Map<string, any>();
-      if (promptIds.length > 0) {
-        const { data: promptsData, error: promptsErr } = await supabase
-          .from('prompts')
-          .select('*')
-          .in('id', promptIds);
-        if (promptsErr) console.warn('Could not fetch prompts for optimizations:', promptsErr);
-        (promptsData || []).forEach((p: any) => promptMap.set(p.id, p));
-      }
+      // Find the globally best variant (highest score across ALL variants)
+      const globalBestVariant = validVariants.length > 0 
+        ? validVariants.reduce((best, current) => 
+            (current.score || 0) > (best.score || 0) ? current : best
+          )
+        : null;
 
-      // Determine global best variant by score (treat null as 0)
-      const globalBestVariant = (optimizations || []).reduce((best: any | null, current: any) => {
-        const curScore = current?.score ?? 0;
-        const bestScore = best?.score ?? 0;
-        return curScore > bestScore ? current : best;
-      }, null as any);
-
-      // Map every optimization to a history item (include even if prompt missing)
-      const historyItems: PromptHistoryItem[] = (optimizations || []).map((variant: any) => {
-        const prompt = variant.prompt_id ? promptMap.get(variant.prompt_id) : null;
+      // Map all variants to history items
+      const historyItems: PromptHistoryItem[] = validVariants.map((variant) => {
+        const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
-        const provider = prompt?.ai_provider || 'unknown';
-        const model = prompt?.model_name || 'unknown';
-        const outputType = prompt?.output_type || 'Code';
-        const originalPrompt = prompt?.original_prompt || '(original prompt unavailable)';
-        const score = variant.score ?? 0;
-
+        
         return {
           id: variant.id,
-          title: `${provider} ${model}${isGlobalTopPerformer ? ' (Top Performer)' : ''}`,
-          description: isGlobalTopPerformer
-            ? `🏆 Best performing variant across all optimizations (Score: ${score.toFixed(3)})`
-            : `Optimization variant (Score: ${score.toFixed(3)})`,
-          prompt: originalPrompt,
+          title: `${prompt.ai_provider} ${prompt.model_name}${isGlobalTopPerformer ? ' (Top Performer)' : ''}`,
+          description: isGlobalTopPerformer 
+            ? `🏆 Best performing variant across all optimizations (Score: ${(variant.score || 0).toFixed(3)})`
+            : `Optimization variant (Score: ${(variant.score || 0).toFixed(3)})`,
+          prompt: prompt.original_prompt,
           output: variant.variant_prompt,
           sampleOutput: variant.ai_response || 'No sample output available',
-          provider,
-          outputType,
-          score,
+          provider: prompt.ai_provider,
+          outputType: prompt.output_type || 'Code',
+          score: variant.score || 0,
           timestamp: new Date(variant.created_at).toLocaleString(),
-          tags: [provider?.toLowerCase?.() || 'provider', (model || '').toLowerCase().replace(/[^a-z0-9]/g, '-'), isGlobalTopPerformer ? 'top-performer' : 'variant'],
+          tags: [
+            prompt.ai_provider?.toLowerCase?.() || 'provider', 
+            (prompt.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
+            isGlobalTopPerformer ? 'top-performer' : 'variant'
+          ],
           isFavorite: false,
-          isBestVariant: !!isGlobalTopPerformer,
+          isBestVariant: isGlobalTopPerformer,
         };
       });
 
