@@ -37,18 +37,7 @@ const AppPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Check for influence selection from URL params
-  React.useEffect(() => {
-    const selectedTemplate = searchParams.get('selectedTemplate');
-    const selectedType = searchParams.get('selectedType');
-    
-    if (selectedTemplate && selectedType) {
-      setSelectedInfluence(selectedTemplate);
-      setInfluenceType(selectedType);
-      // Clear the URL params
-      navigate('/app/generate', { replace: true });
-    }
-  }, [searchParams, navigate]);
+  // Removed old influence URL param handler; handled in AIPromptOptimizer now
 
   // Mock data for templates and saved prompts
   const promptTemplates = [
