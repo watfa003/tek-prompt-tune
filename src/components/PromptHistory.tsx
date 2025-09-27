@@ -86,7 +86,27 @@ export const PromptHistory = () => {
 
     // Apply "show only best in history" filter if enabled
     if (settings.showOnlyBestInHistory) {
-      base = base.filter(item => item.isBestVariant === true);
+      // Group items by optimization session (items with same original prompt and close timestamps)
+      const sessionGroups = new Map<string, PromptHistoryItem[]>();
+      
+      base.forEach(item => {
+        // Create a session key using original prompt + rounded timestamp (within 10 minutes)
+        const timestamp = new Date(item.timestamp).getTime();
+        const roundedTime = Math.floor(timestamp / (10 * 60 * 1000)); // 10-minute windows
+        const sessionKey = `${item.prompt.substring(0, 100)}_${roundedTime}`;
+        
+        if (!sessionGroups.has(sessionKey)) {
+          sessionGroups.set(sessionKey, []);
+        }
+        sessionGroups.get(sessionKey)!.push(item);
+      });
+      
+      // From each session group, only keep the highest scoring variant
+      base = Array.from(sessionGroups.values()).map(group => {
+        return group.reduce((best, current) => 
+          current.score > best.score ? current : best
+        );
+      });
     }
 
     return base.sort((a, b) => {
