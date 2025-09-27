@@ -77,7 +77,7 @@ export const EnhancedDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchInitialAnalytics = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -99,13 +99,95 @@ export const EnhancedDashboard = () => {
           setAnalytics(analyticsData);
         }
       } catch (error) {
-        console.error('Error in fetchAnalytics:', error);
+        console.error('Error in fetchInitialAnalytics:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalytics();
+    const setupRealTimeUpdates = () => {
+      // Listen for new prompts to update stats
+      const promptsChannel = supabase
+        .channel('dashboard-prompts')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'prompts'
+          },
+          (payload) => {
+            const newPrompt = payload.new as any;
+            
+            setAnalytics(prev => {
+              if (!prev) return prev;
+              
+              // Update overview stats
+              const updatedOverview = {
+                ...prev.overview,
+                totalPrompts: prev.overview.totalPrompts + 1,
+                completedPrompts: newPrompt.status === 'completed' ? prev.overview.completedPrompts + 1 : prev.overview.completedPrompts
+              };
+
+              // Add to recent activity
+              const newActivity = {
+                id: newPrompt.id,
+                type: 'prompt_optimization',
+                score: newPrompt.score || 0,
+                provider: newPrompt.ai_provider,
+                model: newPrompt.model_name,
+                createdAt: newPrompt.created_at,
+                status: newPrompt.status || 'completed'
+              };
+
+              const updatedRecentActivity = [newActivity, ...prev.recentActivity].slice(0, 10);
+
+              return {
+                ...prev,
+                overview: updatedOverview,
+                recentActivity: updatedRecentActivity
+              };
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'prompts'
+          },
+          (payload) => {
+            const updatedPrompt = payload.new as any;
+            
+            setAnalytics(prev => {
+              if (!prev) return prev;
+              
+              // Update recent activity with new score/status
+              const updatedRecentActivity = prev.recentActivity.map(activity =>
+                activity.id === updatedPrompt.id
+                  ? { ...activity, score: updatedPrompt.score || activity.score, status: updatedPrompt.status || activity.status }
+                  : activity
+              );
+
+              return {
+                ...prev,
+                recentActivity: updatedRecentActivity
+              };
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(promptsChannel);
+      };
+    };
+
+    fetchInitialAnalytics();
+    const cleanup = setupRealTimeUpdates();
+
+    return cleanup;
   }, []);
 
   const getBestProvider = () => {

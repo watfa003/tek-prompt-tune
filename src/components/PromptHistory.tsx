@@ -59,12 +59,12 @@ export const PromptHistory = () => {
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
 
   useEffect(() => {
-    const fetchHistoryData = async () => {
+    const fetchInitialData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch analytics for overview stats
+        // Fetch analytics for overview stats (once)
         const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
         url.searchParams.set('userId', user.id);
         url.searchParams.set('timeframe', '7d');
@@ -82,7 +82,7 @@ export const PromptHistory = () => {
           setAnalytics(analyticsData);
         }
 
-        // Fetch actual prompt history from database
+        // Fetch actual prompt history from database (once)
         const { data: promptsData, error: promptsError } = await supabase
           .from('prompts')
           .select('*')
@@ -142,13 +142,106 @@ export const PromptHistory = () => {
         setHistoryItems(combinedHistory);
 
       } catch (error) {
-        console.error('Error fetching history data:', error);
+        console.error('Error fetching initial data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchHistoryData();
+    const setupRealTimeListeners = () => {
+      // Listen for new prompts
+      const promptsChannel = supabase
+        .channel('new-prompts')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'prompts'
+          },
+          (payload) => {
+            const newPrompt = payload.new as any;
+            const newItem: PromptHistoryItem = {
+              id: newPrompt.id,
+              title: `${newPrompt.ai_provider} ${newPrompt.model_name} Optimization`,
+              description: `${newPrompt.score >= 0.8 ? "High-performance" : newPrompt.score >= 0.6 ? "Good-quality" : newPrompt.score >= 0.4 ? "Standard" : "Experimental"} prompt optimization`,
+              prompt: newPrompt.original_prompt,
+              output: newPrompt.optimized_prompt || "Optimization in progress...",
+              provider: newPrompt.ai_provider,
+              outputType: newPrompt.output_type || "Code",
+              score: newPrompt.score || 0,
+              timestamp: new Date(newPrompt.created_at).toLocaleString(),
+              tags: [newPrompt.ai_provider.toLowerCase(), newPrompt.model_name.toLowerCase().replace(/[^a-z0-9]/g, "-")],
+              isFavorite: false
+            };
+            
+            setHistoryItems(prev => [newItem, ...prev]);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'prompts'
+          },
+          (payload) => {
+            const updatedPrompt = payload.new as any;
+            setHistoryItems(prev => prev.map(item => 
+              item.id === updatedPrompt.id 
+                ? {
+                    ...item,
+                    output: updatedPrompt.optimized_prompt || item.output,
+                    score: updatedPrompt.score || item.score,
+                    description: `${updatedPrompt.score >= 0.8 ? "High-performance" : updatedPrompt.score >= 0.6 ? "Good-quality" : updatedPrompt.score >= 0.4 ? "Standard" : "Experimental"} prompt optimization`
+                  }
+                : item
+            ));
+          }
+        )
+        .subscribe();
+
+      // Listen for new optimization history
+      const optimizationChannel = supabase
+        .channel('new-optimizations')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'optimization_history'
+          },
+          (payload) => {
+            const newOpt = payload.new as any;
+            const newItem: PromptHistoryItem = {
+              id: newOpt.id,
+              title: `Optimization Variant - Score ${newOpt.score?.toFixed(2) || 'N/A'}`,
+              description: `Optimized variant with ${newOpt.tokens_used || 'unknown'} tokens`,
+              prompt: newOpt.variant_prompt,
+              output: newOpt.ai_response || "No response recorded",
+              provider: "Optimization",
+              outputType: "Variant",
+              score: newOpt.score || 0,
+              timestamp: new Date(newOpt.created_at).toLocaleString(),
+              tags: ["optimization", "variant"],
+              isFavorite: false
+            };
+            
+            setHistoryItems(prev => [newItem, ...prev]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(promptsChannel);
+        supabase.removeChannel(optimizationChannel);
+      };
+    };
+
+    fetchInitialData();
+    const cleanup = setupRealTimeListeners();
+
+    return cleanup;
   }, []);
 
   const filteredItems = historyItems.filter(item => {
