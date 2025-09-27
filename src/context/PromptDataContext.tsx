@@ -301,7 +301,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (historyItems.length > 0) {
       loadAnalytics();
     }
-  }, [historyItems, loadAnalytics]);
+  }, [historyItems.length]); // Only depend on length to avoid infinite loop
 
   // Add prompt to history
   const addPromptToHistory = useCallback(async (item: PromptHistoryItem) => {
