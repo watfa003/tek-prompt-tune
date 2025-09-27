@@ -605,6 +605,14 @@ const navigate = useNavigate();
           description: "Your prompt optimization finished successfully while you were away!",
         });
         
+        // Force scroll to results section to make them visible
+        setTimeout(() => {
+          const resultsSection = document.querySelector('[data-results-section]');
+          if (resultsSection) {
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+        
         // If results exist, make sure the rating dialog shows for deep mode
         if (result && !speedResult) {
           setShowRating(true);
@@ -837,7 +845,7 @@ const navigate = useNavigate();
         </Card>
       )}
       {speedResult && (
-        <div className="space-y-4">
+        <div className="space-y-4" data-results-section>
           {/* Speed Mode Stats */}
           <Card>
             <CardContent className="pt-6">
@@ -891,7 +899,7 @@ const navigate = useNavigate();
 
       {/* Deep Mode Results */}
       {result && (
-        <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm">
+        <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm" data-results-section>
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold flex items-center space-x-2">
