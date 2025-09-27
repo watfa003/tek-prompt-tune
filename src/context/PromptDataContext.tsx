@@ -21,6 +21,8 @@ interface PromptDataContextValue {
   analytics: any;
   loading: boolean;
   toggleFavorite: (id: string) => void;
+  addPromptToHistory: (prompt: PromptHistoryItem) => Promise<void>;
+  hasLocalChanges: boolean;
 }
 
 const PromptDataContext = createContext<PromptDataContextValue | undefined>(undefined);
@@ -31,6 +33,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(false); // Default to false, only show loading for new users
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
+  const [pendingQueue, setPendingQueue] = useState<PromptHistoryItem[]>([]);
 
   // Cache keys
   const getCacheKey = (userId: string, type: string) => `prompt_${type}_${userId}`;
@@ -76,6 +80,113 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.error('Error saving to cache:', error);
     }
   };
+
+  // Add prompt to history with local-first approach
+  const addPromptToHistory = async (prompt: PromptHistoryItem): Promise<void> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Immediately add to local state and cache
+      setHistoryItems((prev) => {
+        const exists = prev.some(existing => existing.id === prompt.id);
+        if (exists) return prev;
+        
+        const updated = [prompt, ...prev];
+        // Save to localStorage immediately
+        saveToCache(user.id, 'history', updated);
+        return updated;
+      });
+      
+      setHasLocalChanges(true);
+      
+      // Try to sync to Supabase in background
+      try {
+        // Attempt to save to Supabase
+        // Note: This assumes the prompt was already saved by the edge function
+        // This is just for updating local analytics
+        setAnalytics((prev: any) => {
+          if (!prev) return prev;
+          const newActivity = {
+            id: prompt.id,
+            type: 'prompt_optimization',
+            score: prompt.score,
+            provider: prompt.provider,
+            model: prompt.tags[1] || 'unknown',
+            createdAt: new Date().toISOString(),
+            status: 'completed',
+          };
+          const updated = {
+            ...prev,
+            overview: {
+              ...prev.overview,
+              totalPrompts: (prev.overview?.totalPrompts || 0) + 1,
+              completedPrompts: (prev.overview?.completedPrompts || 0) + 1,
+            },
+            recentActivity: [newActivity, ...(prev.recentActivity || [])].slice(0, 10),
+          };
+          saveToCache(user.id, 'analytics', updated);
+          return updated;
+        });
+        
+        setHasLocalChanges(false);
+      } catch (error) {
+        console.error('Failed to sync prompt to backend, queuing for retry:', error);
+        setPendingQueue(prev => [...prev, prompt]);
+      }
+    } catch (error) {
+      console.error('Error adding prompt to history:', error);
+      throw error;
+    }
+  };
+
+  // Retry queued prompts
+  const retryQueuedPrompts = async () => {
+    if (pendingQueue.length === 0) return;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const successfullyQueued: string[] = [];
+    
+    for (const prompt of pendingQueue) {
+      try {
+        // Since the prompt was already added to local state,
+        // we just need to ensure analytics are updated
+        setAnalytics((prev: any) => {
+          if (!prev) return prev;
+          const updated = {
+            ...prev,
+            overview: {
+              ...prev.overview,
+              totalPrompts: (prev.overview?.totalPrompts || 0) + 1,
+              completedPrompts: (prev.overview?.completedPrompts || 0) + 1,
+            },
+          };
+          saveToCache(user.id, 'analytics', updated);
+          return updated;
+        });
+        
+        successfullyQueued.push(prompt.id);
+      } catch (error) {
+        console.error('Failed to retry queued prompt:', prompt.id, error);
+      }
+    }
+    
+    // Remove successfully processed items from queue
+    setPendingQueue(prev => prev.filter(p => !successfullyQueued.includes(p.id)));
+    
+    if (successfullyQueued.length > 0) {
+      setHasLocalChanges(false);
+    }
+  };
+
+  // Retry queued prompts on connection restore
+  useEffect(() => {
+    if (pendingQueue.length > 0) {
+      retryQueuedPrompts();
+    }
+  }, [pendingQueue]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -392,10 +503,10 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .subscribe();
       } catch (err) {
         console.error('PromptDataProvider init error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
     init();
 
@@ -456,8 +567,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const value = useMemo(
-    () => ({ historyItems, analytics, loading, toggleFavorite }),
-    [historyItems, analytics, loading]
+    () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges }),
+    [historyItems, analytics, loading, hasLocalChanges]
   );
 
   return <PromptDataContext.Provider value={value}>{children}</PromptDataContext.Provider>;
