@@ -517,15 +517,28 @@ const navigate = useNavigate();
   const [selectedInfluence, setSelectedInfluence] = useState('');
   const [influenceType, setInfluenceType] = useState('');
   const [influenceWeight, setInfluenceWeight] = useState([75]);
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [result, setResult] = useState<OptimizationResult | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(() => {
+    const saved = localStorage.getItem('promptOptimizer_isOptimizing');
+    return saved === 'true';
+  });
+  const [result, setResult] = useState<OptimizationResult | null>(() => {
+    const saved = localStorage.getItem('promptOptimizer_result');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [optimizationMode, setOptimizationMode] = useState<'speed' | 'deep'>('deep');
-  const [speedResult, setSpeedResult] = useState<any>(null);
+  const [speedResult, setSpeedResult] = useState<any>(() => {
+    const saved = localStorage.getItem('promptOptimizer_speedResult');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [optimizationStartTime, setOptimizationStartTime] = useState<number | null>(() => {
+    const saved = localStorage.getItem('promptOptimizer_startTime');
+    return saved ? parseInt(saved) : null;
+  });
 
-  // Auto-save draft prompts to localStorage
+  // Auto-save draft prompts and optimization state to localStorage
   React.useEffect(() => {
     localStorage.setItem('promptOptimizer_originalPrompt', originalPrompt);
   }, [originalPrompt]);
@@ -533,6 +546,68 @@ const navigate = useNavigate();
   React.useEffect(() => {
     localStorage.setItem('promptOptimizer_taskDescription', optimizerTaskDescription);
   }, [optimizerTaskDescription]);
+
+  React.useEffect(() => {
+    localStorage.setItem('promptOptimizer_isOptimizing', isOptimizing.toString());
+    if (isOptimizing) {
+      const startTime = Date.now();
+      setOptimizationStartTime(startTime);
+      localStorage.setItem('promptOptimizer_startTime', startTime.toString());
+    } else {
+      localStorage.removeItem('promptOptimizer_startTime');
+      setOptimizationStartTime(null);
+    }
+  }, [isOptimizing]);
+
+  React.useEffect(() => {
+    if (result) {
+      localStorage.setItem('promptOptimizer_result', JSON.stringify(result));
+    } else {
+      localStorage.removeItem('promptOptimizer_result');
+    }
+  }, [result]);
+
+  React.useEffect(() => {
+    if (speedResult) {
+      localStorage.setItem('promptOptimizer_speedResult', JSON.stringify(speedResult));
+    } else {
+      localStorage.removeItem('promptOptimizer_speedResult');
+    }
+  }, [speedResult]);
+
+  // Check for stale optimization state on component mount
+  React.useEffect(() => {
+    const checkStaleOptimization = () => {
+      const startTime = optimizationStartTime;
+      const currentTime = Date.now();
+      
+      // If optimization has been running for more than 5 minutes, consider it stale
+      if (startTime && isOptimizing && (currentTime - startTime) > 5 * 60 * 1000) {
+        console.log('Detected stale optimization, clearing state');
+        setIsOptimizing(false);
+        localStorage.removeItem('promptOptimizer_isOptimizing');
+        localStorage.removeItem('promptOptimizer_startTime');
+        toast({
+          title: "Optimization Timeout",
+          description: "The previous optimization took too long and was cancelled. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    // Check immediately on mount
+    checkStaleOptimization();
+    
+    // Set up periodic check while optimizing
+    let interval: NodeJS.Timeout;
+    if (isOptimizing) {
+      interval = setInterval(checkStaleOptimization, 30000); // Check every 30 seconds
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isOptimizing, optimizationStartTime, toast]);
 
   // Check for influence selection from URL params
   React.useEffect(() => {
@@ -644,9 +719,11 @@ const navigate = useNavigate();
         console.error('Failed to append to local history', e);
       }
 
-      // Clear drafts after successful optimization
+      // Clear drafts and optimization state after successful optimization
       localStorage.removeItem('promptOptimizer_originalPrompt');
       localStorage.removeItem('promptOptimizer_taskDescription');
+      localStorage.removeItem('promptOptimizer_isOptimizing');
+      localStorage.removeItem('promptOptimizer_startTime');
 
       toast({
         title: "Success",
@@ -654,6 +731,11 @@ const navigate = useNavigate();
       });
     } catch (error) {
       console.error('Error optimizing prompt:', error);
+      
+      // Clear optimization state on error
+      localStorage.removeItem('promptOptimizer_isOptimizing');
+      localStorage.removeItem('promptOptimizer_startTime');
+      
       toast({
         title: "Error",
         description: "Failed to optimize prompt. Please try again.",
@@ -719,7 +801,23 @@ const navigate = useNavigate();
         isLoading={isOptimizing}
       />
 
-      {/* Speed Mode Results */}
+      {/* Optimization Recovery Banner */}
+      {isOptimizing && optimizationStartTime && (
+        <Card className="p-4 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            <div>
+              <p className="font-medium text-blue-900 dark:text-blue-100">
+                Optimization in Progress
+              </p>
+              <p className="text-sm text-blue-700 dark:text-blue-200">
+                Your prompt optimization is still running in the background. You can safely navigate away and come back to check results.
+                Started {Math.round((Date.now() - optimizationStartTime) / 1000 / 60)} minutes ago.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
       {speedResult && (
         <div className="space-y-4">
           {/* Speed Mode Stats */}
