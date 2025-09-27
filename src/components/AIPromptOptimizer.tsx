@@ -499,9 +499,15 @@ export const AIPromptOptimizer: React.FC = () => {
 const navigate = useNavigate();
   const { addPromptToHistory } = usePromptData();
 
-  // State for the optimizer functionality
-  const [originalPrompt, setOriginalPrompt] = useState('');
-  const [optimizerTaskDescription, setOptimizerTaskDescription] = useState('');
+  // State for the optimizer functionality - Load from localStorage to preserve drafts
+  const [originalPrompt, setOriginalPrompt] = useState(() => {
+    const saved = localStorage.getItem('promptOptimizer_originalPrompt');
+    return saved || '';
+  });
+  const [optimizerTaskDescription, setOptimizerTaskDescription] = useState(() => {
+    const saved = localStorage.getItem('promptOptimizer_taskDescription');
+    return saved || '';
+  });
   const [aiProvider, setAiProvider] = useState('openai');
   const [modelName, setModelName] = useState('gpt-4o-mini');
   const [outputType, setOutputType] = useState('text');
@@ -519,6 +525,15 @@ const navigate = useNavigate();
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
 
+  // Auto-save draft prompts to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('promptOptimizer_originalPrompt', originalPrompt);
+  }, [originalPrompt]);
+
+  React.useEffect(() => {
+    localStorage.setItem('promptOptimizer_taskDescription', optimizerTaskDescription);
+  }, [optimizerTaskDescription]);
+
   // Check for influence selection from URL params
   React.useEffect(() => {
     const selectedTemplate = searchParams.get('selectedTemplate');
@@ -527,13 +542,19 @@ const navigate = useNavigate();
     console.log('AIPromptOptimizer URL params:', { selectedTemplate, selectedType });
     
     if (selectedTemplate && selectedType) {
-      console.log('Setting influence:', selectedTemplate, selectedType);
+      console.log('Adding influence to existing prompt:', selectedTemplate, selectedType);
+      // Only set influence, preserve existing prompt
       setSelectedInfluence(selectedTemplate);
       setInfluenceType(selectedType);
+      // Show success message
+      toast({
+        title: "Influence Added",
+        description: "Your selected prompt will now influence the optimization while preserving your current work.",
+      });
       // Clear the URL params
       navigate('/app/ai-agent', { replace: true });
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, toast]);
 
   // Load default values from settings
   React.useEffect(() => {
@@ -622,6 +643,10 @@ const navigate = useNavigate();
       } catch (e) {
         console.error('Failed to append to local history', e);
       }
+
+      // Clear drafts after successful optimization
+      localStorage.removeItem('promptOptimizer_originalPrompt');
+      localStorage.removeItem('promptOptimizer_taskDescription');
 
       toast({
         title: "Success",
