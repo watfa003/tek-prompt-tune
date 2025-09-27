@@ -158,10 +158,19 @@ export const PromptHistory = () => {
     const matchesSearch = 
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const matchesProvider = filterProvider === "all" || item.provider.includes(filterProvider);
-    const matchesOutputType = filterOutputType === "all" || item.outputType === filterOutputType;
+    const matchesProvider = filterProvider === "all" || 
+      item.provider.toLowerCase().includes(filterProvider.toLowerCase()) ||
+      (filterProvider === "OpenAI" && item.provider.toLowerCase().includes("openai")) ||
+      (filterProvider === "Claude" && item.provider.toLowerCase().includes("claude")) ||
+      (filterProvider === "Gemini" && item.provider.toLowerCase().includes("gemini")) ||
+      (filterProvider === "Groq" && item.provider.toLowerCase().includes("groq"));
+    
+    const matchesOutputType = filterOutputType === "all" || 
+      item.outputType.toLowerCase() === filterOutputType.toLowerCase();
+    
     const matchesScore = filterScore === "all" || 
       (filterScore === "excellent" && item.score >= 0.8) ||
       (filterScore === "good" && item.score >= 0.6 && item.score < 0.8) ||
@@ -176,7 +185,7 @@ export const PromptHistory = () => {
       case "oldest":
         return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
       case "score":
-        return b.score - a.score;
+        return (b.score || 0) - (a.score || 0);
       case "title":
         return a.title.localeCompare(b.title);
       default:
@@ -217,8 +226,8 @@ export const PromptHistory = () => {
     });
   };
 
-  const providers = ["all", "OpenAI", "Claude", "Gemini", "Groq"];
-  const outputTypes = ["all", "Code", "Essay", "JSON", "Structured Data"];
+  const providers = ["all", "openai", "claude", "gemini", "groq", "anthropic", "mistral"];
+  const outputTypes = ["all", "Code", "Essay", "JSON", "Structured Data", "Variant", "text", "list"];
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
@@ -337,7 +346,14 @@ export const PromptHistory = () => {
               <SelectContent>
                 {providers.map(provider => (
                   <SelectItem key={provider} value={provider}>
-                    {provider === "all" ? "All Providers" : provider}
+                    {provider === "all" ? "All Providers" : 
+                     provider === "openai" ? "OpenAI" :
+                     provider === "claude" ? "Claude" :
+                     provider === "anthropic" ? "Anthropic" :
+                     provider === "gemini" ? "Gemini" :
+                     provider === "groq" ? "Groq" :
+                     provider === "mistral" ? "Mistral" :
+                     provider.charAt(0).toUpperCase() + provider.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
