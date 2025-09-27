@@ -78,14 +78,38 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         .limit(100);
 
       if (prompts) {
+        // Calculate provider statistics
+        const providerStats: Record<string, any> = {};
+        prompts.forEach(p => {
+          if (p.ai_provider) {
+            if (!providerStats[p.ai_provider]) {
+              providerStats[p.ai_provider] = { scores: [], count: 0 };
+            }
+            providerStats[p.ai_provider].scores.push(p.score || 0);
+            providerStats[p.ai_provider].count++;
+          }
+        });
+
+        // Calculate average scores for each provider
+        Object.keys(providerStats).forEach(provider => {
+          const stats = providerStats[provider];
+          stats.avgScore = stats.scores.length > 0 
+            ? stats.scores.reduce((sum: number, score: number) => sum + score, 0) / stats.scores.length 
+            : 0;
+        });
+
         const analytics = {
           overview: {
             totalPrompts: prompts.length,
             completedPrompts: prompts.filter(p => p.status === 'completed').length,
             averageScore: prompts.length > 0 ? prompts.reduce((sum, p) => sum + (p.score || 0), 0) / prompts.length : 0,
           },
+          usage: {
+            providerStats
+          },
           performance: {
             dailyStats: [], // Could be calculated from prompts
+            improvementTrend: 'stable', // Default value
           },
           recentActivity: prompts.slice(0, 10).map((p, i) => ({
             id: p.ai_provider + i,

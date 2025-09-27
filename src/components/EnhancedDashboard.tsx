@@ -77,7 +77,7 @@ export const EnhancedDashboard = () => {
 
 
   const getBestProvider = () => {
-    if (!analytics?.usage.providerStats) return "No data";
+    if (!analytics?.usage?.providerStats) return "No data";
     const providers = Object.entries(analytics.usage.providerStats);
     if (providers.length === 0) return "No data";
     
@@ -136,11 +136,11 @@ export const EnhancedDashboard = () => {
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">{analytics.overview.totalPrompts}</div>
+            <div className="text-2xl font-bold text-primary">{analytics?.overview?.totalPrompts || 0}</div>
             <div className="text-xs text-muted-foreground">Prompts Generated</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-success">{analytics.overview.averageScore.toFixed(1)}</div>
+            <div className="text-2xl font-bold text-success">{analytics?.overview?.averageScore?.toFixed(1) || '0.0'}</div>
             <div className="text-xs text-muted-foreground">Avg Score</div>
           </div>
           <div className="text-center">
@@ -153,8 +153,8 @@ export const EnhancedDashboard = () => {
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold text-success">
-              {analytics.performance.improvementTrend === 'improving' ? '+12%' : 
-               analytics.performance.improvementTrend === 'declining' ? '-5%' : '0%'}
+              {analytics?.performance?.improvementTrend === 'improving' ? '+12%' : 
+               analytics?.performance?.improvementTrend === 'declining' ? '-5%' : '0%'}
             </div>
             <div className="text-xs text-muted-foreground">Improvement</div>
           </div>
