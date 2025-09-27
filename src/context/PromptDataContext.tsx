@@ -30,6 +30,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [historyItems, setHistoryItems] = useState<PromptHistoryItem[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (initializedRef.current) return; // Ensure we only initialize once per provider mount
@@ -66,7 +67,17 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           console.error('Analytics fetch failed:', e);
         }
 
-        // 2) Initial history load once
+        // 2) Load favorites from database
+        const { data: favoritesData } = await supabase
+          .from('user_favorites')
+          .select('item_id, item_type')
+          .eq('user_id', user.id);
+
+        const favoriteIdSet = new Set<string>();
+        favoritesData?.forEach(fav => favoriteIdSet.add(fav.item_id));
+        setFavoriteIds(favoriteIdSet);
+
+        // 3) Initial history load once
         const [{ data: promptsData, error: promptsError }, { data: optimizationData, error: optimizationError }] = await Promise.all([
           supabase.from('prompts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
           supabase.from('optimization_history').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
@@ -90,7 +101,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             score: p.score || 0,
             timestamp: new Date(p.created_at).toLocaleString(),
             tags: [p.ai_provider?.toLowerCase?.() || 'provider', (p.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
-            isFavorite: false,
+            isFavorite: favoriteIdSet.has(p.id),
           });
         });
 
@@ -106,7 +117,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             score: o.score || 0,
             timestamp: new Date(o.created_at).toLocaleString(),
             tags: ['optimization', 'variant'],
-            isFavorite: false,
+            isFavorite: favoriteIdSet.has(o.id),
           });
         });
 
@@ -129,7 +140,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               score: np.score || 0,
               timestamp: new Date(np.created_at).toLocaleString(),
               tags: [np.ai_provider?.toLowerCase?.() || 'provider', (np.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
-              isFavorite: false,
+              isFavorite: false, // New items start as not favorited
             };
             setHistoryItems((prev) => [item, ...prev]);
 
@@ -193,8 +204,47 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, []);
 
-  const toggleFavorite = (id: string) => {
-    setHistoryItems((prev) => prev.map((h) => (h.id === id ? { ...h, isFavorite: !h.isFavorite } : h)));
+  const toggleFavorite = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const isCurrentlyFavorited = favoriteIds.has(id);
+      
+      if (isCurrentlyFavorited) {
+        // Remove from favorites
+        await supabase
+          .from('user_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', id);
+        
+        const newFavoriteIds = new Set(favoriteIds);
+        newFavoriteIds.delete(id);
+        setFavoriteIds(newFavoriteIds);
+      } else {
+        // Add to favorites - determine item type
+        const historyItem = historyItems.find(item => item.id === id);
+        const itemType = historyItem?.provider === 'Optimization' ? 'optimization_history' : 'prompt';
+        
+        await supabase
+          .from('user_favorites')
+          .insert({
+            user_id: user.id,
+            item_id: id,
+            item_type: itemType
+          });
+        
+        const newFavoriteIds = new Set(favoriteIds);
+        newFavoriteIds.add(id);
+        setFavoriteIds(newFavoriteIds);
+      }
+
+      // Update local state to reflect change
+      setHistoryItems((prev) => prev.map((h) => (h.id === id ? { ...h, isFavorite: !isCurrentlyFavorited } : h)));
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
   const value = useMemo(
