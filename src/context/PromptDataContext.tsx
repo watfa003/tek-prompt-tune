@@ -212,6 +212,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prompts' }, (payload) => {
             console.log('New prompt inserted:', payload.new);
             const np: any = payload.new;
+            if (np.user_id !== user.id) return; // Guard: only current user's events
             const item: PromptHistoryItem = {
               id: np.id,
               title: `${np.ai_provider} ${np.model_name} Optimization`,
@@ -265,27 +266,60 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'prompts' }, (payload) => {
             console.log('Prompt updated:', payload.new);
             const np: any = payload.new;
+            if (np.user_id !== user.id) return; // Guard
             
+            const makeItem = (): PromptHistoryItem => ({
+              id: np.id,
+              title: `${np.ai_provider} ${np.model_name} Optimization`,
+              description: `${np.score >= 0.8 ? 'High-performance' : np.score >= 0.6 ? 'Good-quality' : np.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
+              prompt: np.original_prompt,
+              output: np.optimized_prompt || 'Optimization in progress...',
+              provider: np.ai_provider,
+              outputType: np.output_type || 'Code',
+              score: np.score || 0,
+              timestamp: new Date(np.created_at).toLocaleString(),
+              tags: [np.ai_provider?.toLowerCase?.() || 'provider', (np.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
+              isFavorite: false,
+            });
+            
+            let wasNew = false;
             setHistoryItems((prev) => {
-              const updated = prev.map(item => {
-                if (item.id === np.id) {
-                  return {
-                    ...item,
-                    title: `${np.ai_provider} ${np.model_name} Optimization`,
-                    description: `${np.score >= 0.8 ? 'High-performance' : np.score >= 0.6 ? 'Good-quality' : np.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
-                    prompt: np.original_prompt,
-                    output: np.optimized_prompt || 'Optimization in progress...',
-                    provider: np.ai_provider,
-                    outputType: np.output_type || 'Code',
-                    score: np.score || 0,
-                    timestamp: new Date(np.created_at).toLocaleString(),
-                    tags: [np.ai_provider?.toLowerCase?.() || 'provider', (np.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
-                  };
-                }
-                return item;
-              });
+              const idx = prev.findIndex(i => i.id === np.id);
+              let updated: PromptHistoryItem[];
+              if (idx === -1) {
+                // We missed the INSERT; upsert on UPDATE
+                wasNew = true;
+                updated = [makeItem(), ...prev];
+              } else {
+                updated = prev.map((item, i) => i === idx ? { ...item, ...makeItem(), isFavorite: item.isFavorite } : item);
+              }
               saveToCache(user.id, 'history', updated);
-              console.log('Updated prompt in history:', np.id);
+              console.log(idx === -1 ? 'Upserted missing prompt on UPDATE' : 'Patched prompt on UPDATE', np.id);
+              return updated;
+            });
+
+            // Reflect changes in analytics (increment counts only if new)
+            setAnalytics((prev: any) => {
+              if (!prev) return prev;
+              const newActivity = {
+                id: np.id,
+                type: 'prompt_optimization',
+                score: np.score || 0,
+                provider: np.ai_provider,
+                model: np.model_name,
+                createdAt: np.created_at,
+                status: np.status || 'completed',
+              };
+              const updated = {
+                ...prev,
+                overview: {
+                  ...prev.overview,
+                  totalPrompts: (prev.overview?.totalPrompts || 0) + (wasNew ? 1 : 0),
+                  completedPrompts: (prev.overview?.completedPrompts || 0) + (wasNew && np.status === 'completed' ? 1 : 0),
+                },
+                recentActivity: [newActivity, ...(prev.recentActivity || [])].slice(0, 10),
+              };
+              saveToCache(user.id, 'analytics', updated);
               return updated;
             });
           })
@@ -296,6 +330,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'optimization_history' }, (payload) => {
             console.log('New optimization inserted:', payload.new);
             const no: any = payload.new;
+            if (no.user_id !== user.id) return; // Guard
             const item: PromptHistoryItem = {
               id: no.id,
               title: `Optimization Variant - Score ${no.score?.toFixed(2) || 'N/A'}`,
@@ -324,24 +359,33 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'optimization_history' }, (payload) => {
             console.log('Optimization updated:', payload.new);
             const no: any = payload.new;
+            if (no.user_id !== user.id) return; // Guard
+            
+            const makeItem = (): PromptHistoryItem => ({
+              id: no.id,
+              title: `Optimization Variant - Score ${no.score?.toFixed(2) || 'N/A'}`,
+              description: `Optimized variant with ${no.tokens_used || 'unknown'} tokens`,
+              prompt: no.variant_prompt,
+              output: no.ai_response || 'No response recorded',
+              provider: 'Optimization',
+              outputType: 'Variant',
+              score: no.score || 0,
+              timestamp: new Date(no.created_at).toLocaleString(),
+              tags: ['optimization', 'variant'],
+              isFavorite: false,
+            });
             
             setHistoryItems((prev) => {
-              const updated = prev.map(item => {
-                if (item.id === no.id) {
-                  return {
-                    ...item,
-                    title: `Optimization Variant - Score ${no.score?.toFixed(2) || 'N/A'}`,
-                    description: `Optimized variant with ${no.tokens_used || 'unknown'} tokens`,
-                    prompt: no.variant_prompt,
-                    output: no.ai_response || 'No response recorded',
-                    score: no.score || 0,
-                    timestamp: new Date(no.created_at).toLocaleString(),
-                  };
-                }
-                return item;
-              });
+              const idx = prev.findIndex(i => i.id === no.id);
+              let updated: PromptHistoryItem[];
+              if (idx === -1) {
+                // Missed INSERT; upsert on UPDATE
+                updated = [makeItem(), ...prev];
+              } else {
+                updated = prev.map((item, i) => i === idx ? { ...item, ...makeItem(), isFavorite: item.isFavorite } : item);
+              }
               saveToCache(user.id, 'history', updated);
-              console.log('Updated optimization in history:', no.id);
+              console.log(idx === -1 ? 'Upserted missing optimization on UPDATE' : 'Patched optimization on UPDATE', no.id);
               return updated;
             });
           })
