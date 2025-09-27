@@ -510,6 +510,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [loadInitialData, saveToCache]);
 
+  // Recalculate analytics whenever historyItems change
+  useEffect(() => {
+    if (historyItems.length > 0) {
+      loadAnalytics();
+    }
+  }, [historyItems, loadAnalytics]);
+
   const value = useMemo(
     () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges }),
     [historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges]
