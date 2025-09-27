@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface PromptHistoryItem {
@@ -35,6 +35,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [pendingQueue, setPendingQueue] = useState<PromptHistoryItem[]>([]);
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
+  const initRef = useRef(false);
 
   // Local storage helpers
   const loadFromCache = useCallback((userId: string, key: string) => {
@@ -197,6 +198,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Load cached data instantly for immediate display
       const cachedHistory = loadFromCache(user.user.id, 'history') as PromptHistoryItem[] | null;
       const cachedFavorites = loadFromCache(user.user.id, 'favorites') as string[] | null;
+      const cachedFavSet = new Set<string>(cachedFavorites || []);
       
       if (cachedHistory) {
         setHistoryItems(cachedHistory);
@@ -262,7 +264,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             (prompt.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
             isGlobalTopPerformer ? 'top-performer' : 'variant'
           ],
-          isFavorite: false,
+          isFavorite: cachedFavSet.has(variant.id),
           isBestVariant: isGlobalTopPerformer,
         };
       });
@@ -409,6 +411,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Set up real-time subscriptions and load initial data
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
     let promptsChannel: any;
     let optimizationChannel: any;
 
@@ -430,8 +435,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             console.log('New prompt inserted:', payload.new);
             const np: any = payload.new;
             if (np.user_id !== user.user.id) return; // Guard
-            
-            // For new prompts, we don't add them directly since we're showing optimization variants
             console.log('New prompt detected, waiting for optimization variants...');
           })
           .subscribe();
@@ -442,8 +445,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             console.log('New optimization inserted:', payload.new);
             const no: any = payload.new;
             if (no.user_id !== user.user.id) return; // Guard
-            
-            // Fetch the prompt data for this new optimization
+
             const { data: promptData } = await supabase
               .from('prompts')
               .select('*')
@@ -452,7 +454,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
             if (!promptData) return;
 
-            // Create new history item for this variant
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
               title: `${promptData.ai_provider} ${promptData.model_name}`,
@@ -465,7 +466,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               score: no.score || 0,
               timestamp: new Date(no.created_at).toLocaleString(),
               tags: [
-                promptData.ai_provider?.toLowerCase?.() || 'provider', 
+                promptData.ai_provider?.toLowerCase?.() || 'provider',
                 (promptData.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
                 'variant'
               ],
@@ -473,27 +474,22 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               isBestVariant: false,
             };
 
-            // Add to history and recalculate top performer
             setHistoryItems((prev) => {
               const updated = [newHistoryItem, ...prev];
-              
-              // Find the new global best performer
-              const globalBest = updated.reduce((best, current) => 
+              const globalBest = updated.reduce((best, current) =>
                 (current.score || 0) > (best.score || 0) ? current : best
               );
-              
-              // Update all items to reflect new top performer
               const finalUpdated = updated.map(item => ({
                 ...item,
                 isBestVariant: item.id === globalBest.id,
-                title: item.id === globalBest.id 
+                title: item.id === globalBest.id
                   ? item.title.replace(' (Top Performer)', '') + ' (Top Performer)'
                   : item.title.replace(' (Top Performer)', ''),
                 description: item.id === globalBest.id
                   ? `🏆 Best performing variant across all optimizations (Score: ${(item.score || 0).toFixed(3)})`
                   : item.description.replace(/🏆 Best performing variant.*/, `Optimization variant (Score: ${(item.score || 0).toFixed(3)})`)
               }));
-              
+
               saveToCache(user.user.id, 'history', finalUpdated);
               return finalUpdated;
             });
@@ -512,7 +508,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (promptsChannel) supabase.removeChannel(promptsChannel);
       if (optimizationChannel) supabase.removeChannel(optimizationChannel);
     };
-  }, [loadFromCache, saveToCache, loadInitialData]);
+  }, [loadInitialData, saveToCache]);
 
   const value = useMemo(
     () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges }),
