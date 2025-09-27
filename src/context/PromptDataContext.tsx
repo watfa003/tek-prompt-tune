@@ -210,6 +210,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         promptsChannel = supabase
           .channel('provider-prompts')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prompts' }, (payload) => {
+            console.log('New prompt inserted:', payload.new);
             const np: any = payload.new;
             const item: PromptHistoryItem = {
               id: np.id,
@@ -226,8 +227,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             };
             
             setHistoryItems((prev) => {
+              // Check if item already exists to avoid duplicates
+              const exists = prev.some(existing => existing.id === item.id);
+              if (exists) return prev;
+              
               const updated = [item, ...prev];
               saveToCache(user.id, 'history', updated);
+              console.log('Added new prompt to history:', item.title);
               return updated;
             });
 
@@ -256,11 +262,39 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               return updated;
             });
           })
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'prompts' }, (payload) => {
+            console.log('Prompt updated:', payload.new);
+            const np: any = payload.new;
+            
+            setHistoryItems((prev) => {
+              const updated = prev.map(item => {
+                if (item.id === np.id) {
+                  return {
+                    ...item,
+                    title: `${np.ai_provider} ${np.model_name} Optimization`,
+                    description: `${np.score >= 0.8 ? 'High-performance' : np.score >= 0.6 ? 'Good-quality' : np.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
+                    prompt: np.original_prompt,
+                    output: np.optimized_prompt || 'Optimization in progress...',
+                    provider: np.ai_provider,
+                    outputType: np.output_type || 'Code',
+                    score: np.score || 0,
+                    timestamp: new Date(np.created_at).toLocaleString(),
+                    tags: [np.ai_provider?.toLowerCase?.() || 'provider', (np.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
+                  };
+                }
+                return item;
+              });
+              saveToCache(user.id, 'history', updated);
+              console.log('Updated prompt in history:', np.id);
+              return updated;
+            });
+          })
           .subscribe();
 
         optimizationChannel = supabase
           .channel('provider-optimizations')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'optimization_history' }, (payload) => {
+            console.log('New optimization inserted:', payload.new);
             const no: any = payload.new;
             const item: PromptHistoryItem = {
               id: no.id,
@@ -277,8 +311,37 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             };
             
             setHistoryItems((prev) => {
+              // Check if item already exists to avoid duplicates
+              const exists = prev.some(existing => existing.id === item.id);
+              if (exists) return prev;
+              
               const updated = [item, ...prev];
               saveToCache(user.id, 'history', updated);
+              console.log('Added new optimization to history:', item.title);
+              return updated;
+            });
+          })
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'optimization_history' }, (payload) => {
+            console.log('Optimization updated:', payload.new);
+            const no: any = payload.new;
+            
+            setHistoryItems((prev) => {
+              const updated = prev.map(item => {
+                if (item.id === no.id) {
+                  return {
+                    ...item,
+                    title: `Optimization Variant - Score ${no.score?.toFixed(2) || 'N/A'}`,
+                    description: `Optimized variant with ${no.tokens_used || 'unknown'} tokens`,
+                    prompt: no.variant_prompt,
+                    output: no.ai_response || 'No response recorded',
+                    score: no.score || 0,
+                    timestamp: new Date(no.created_at).toLocaleString(),
+                  };
+                }
+                return item;
+              });
+              saveToCache(user.id, 'history', updated);
+              console.log('Updated optimization in history:', no.id);
               return updated;
             });
           })
