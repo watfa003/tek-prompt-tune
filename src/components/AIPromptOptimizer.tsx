@@ -575,7 +575,7 @@ const navigate = useNavigate();
     }
   }, [speedResult]);
 
-  // Check for stale optimization state on component mount
+  // Check for stale optimization state and show completed results on component mount
   React.useEffect(() => {
     const checkStaleOptimization = () => {
       const startTime = optimizationStartTime;
@@ -595,8 +595,26 @@ const navigate = useNavigate();
       }
     };
 
+    // Check for completed optimization results on mount
+    const showCompletedResults = () => {
+      // If we have results but optimization is not in progress, show completion notification
+      if ((result || speedResult) && !isOptimizing) {
+        console.log('Found completed optimization results on page load');
+        toast({
+          title: "Optimization Complete",
+          description: "Your prompt optimization finished successfully while you were away!",
+        });
+        
+        // If results exist, make sure the rating dialog shows for deep mode
+        if (result && !speedResult) {
+          setShowRating(true);
+        }
+      }
+    };
+
     // Check immediately on mount
     checkStaleOptimization();
+    showCompletedResults();
     
     // Set up periodic check while optimizing
     let interval: NodeJS.Timeout;
@@ -607,7 +625,7 @@ const navigate = useNavigate();
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isOptimizing, optimizationStartTime, toast]);
+  }, []); // Only run once on mount
 
   // Check for influence selection from URL params
   React.useEffect(() => {
