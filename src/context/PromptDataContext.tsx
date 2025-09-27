@@ -27,6 +27,7 @@ const PromptDataContext = createContext<PromptDataContextValue | undefined>(unde
 
 export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const initializedRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
   const [historyItems, setHistoryItems] = useState<PromptHistoryItem[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -44,87 +45,34 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // 1) Fetch analytics once
+        // Hydrate from localStorage only (no initial fetch)
+        userIdRef.current = user.id;
         try {
-          const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
-          url.searchParams.set('userId', user.id);
-          url.searchParams.set('timeframe', '7d');
+          const cachedAnalytics = localStorage.getItem(`pt_analytics_${user.id}`);
+          if (cachedAnalytics) setAnalytics(JSON.parse(cachedAnalytics));
+        } catch {}
 
-          const session = await supabase.auth.getSession();
-          const response = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${session.data.session?.access_token}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA',
-            },
-          });
-
-          if (response.ok) {
-            const analyticsData = await response.json();
-            setAnalytics(analyticsData);
+        try {
+          const fav = localStorage.getItem(`pt_favorites_${user.id}`);
+          if (fav) {
+            const arr: string[] = JSON.parse(fav);
+            setFavoriteIds(new Set(arr));
           }
-        } catch (e) {
-          console.error('Analytics fetch failed:', e);
+        } catch {}
+
+        try {
+          const cachedHistory = localStorage.getItem(`pt_history_${user.id}`);
+          if (cachedHistory) {
+            const items: PromptHistoryItem[] = JSON.parse(cachedHistory);
+            setHistoryItems(items);
+          } else {
+            setHistoryItems([]);
+          }
+        } catch {
+          setHistoryItems([]);
         }
 
-        // 2) Load favorites from database
-        const { data: favoritesData } = await supabase
-          .from('user_favorites')
-          .select('item_id, item_type')
-          .eq('user_id', user.id);
-
-        const favoriteIdSet = new Set<string>();
-        favoritesData?.forEach(fav => favoriteIdSet.add(fav.item_id));
-        setFavoriteIds(favoriteIdSet);
-
-        // 3) Initial history load once
-        const [{ data: promptsData, error: promptsError }, { data: optimizationData, error: optimizationError }] = await Promise.all([
-          supabase.from('prompts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-          supabase.from('optimization_history').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-        ]);
-
-        if (promptsError || optimizationError) {
-          console.error('Error fetching history:', { promptsError, optimizationError });
-        }
-
-        const combined: PromptHistoryItem[] = [];
-
-        promptsData?.forEach((p: any) => {
-          combined.push({
-            id: p.id,
-            title: `${p.ai_provider} ${p.model_name} Optimization`,
-            description: `${p.score >= 0.8 ? 'High-performance' : p.score >= 0.6 ? 'Good-quality' : p.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
-            prompt: p.original_prompt,
-            output: p.optimized_prompt || 'Optimization in progress...',
-            provider: p.ai_provider,
-            outputType: p.output_type || 'Code',
-            score: p.score || 0,
-            timestamp: new Date(p.created_at).toLocaleString(),
-            tags: [p.ai_provider?.toLowerCase?.() || 'provider', (p.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
-            isFavorite: favoriteIdSet.has(p.id),
-          });
-        });
-
-        optimizationData?.forEach((o: any) => {
-          combined.push({
-            id: o.id,
-            title: `Optimization Variant - Score ${o.score?.toFixed(2) || 'N/A'}`,
-            description: `Optimized variant with ${o.tokens_used || 'unknown'} tokens`,
-            prompt: o.variant_prompt,
-            output: o.ai_response || 'No response recorded',
-            provider: 'Optimization',
-            outputType: 'Variant',
-            score: o.score || 0,
-            timestamp: new Date(o.created_at).toLocaleString(),
-            tags: ['optimization', 'variant'],
-            isFavorite: favoriteIdSet.has(o.id),
-          });
-        });
-
-        combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setHistoryItems(combined);
-
-        // 3) Realtime updates: append only, no reloading
+        // Realtime updates: append only, no reloading
         promptsChannel = supabase
           .channel('provider-prompts')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prompts' }, (payload) => {
@@ -246,6 +194,31 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.error('Error toggling favorite:', error);
     }
   };
+
+  // Persist to localStorage for instant load on next visit
+  useEffect(() => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    try {
+      localStorage.setItem(`pt_history_${uid}`, JSON.stringify(historyItems));
+    } catch {}
+  }, [historyItems]);
+
+  useEffect(() => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    try {
+      localStorage.setItem(`pt_analytics_${uid}`, JSON.stringify(analytics));
+    } catch {}
+  }, [analytics]);
+
+  useEffect(() => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    try {
+      localStorage.setItem(`pt_favorites_${uid}`, JSON.stringify(Array.from(favoriteIds)));
+    } catch {}
+  }, [favoriteIds]);
 
   const value = useMemo(
     () => ({ historyItems, analytics, loading, toggleFavorite }),
