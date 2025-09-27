@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePromptData, type PromptHistoryItem } from "@/context/PromptDataContext";
+import { useSettings } from "@/hooks/use-settings";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ export const PromptHistory = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [activeTab, setActiveTab] = useState<"all" | "favorites">("all");
   const { historyItems, analytics, loading, toggleFavorite: toggleFavoriteGlobal } = usePromptData();
+  const { settings } = useSettings();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -53,7 +55,7 @@ export const PromptHistory = () => {
   }, [isSelectingForInfluence]);
 
   const filteredItems = useMemo(() => {
-    const base = historyItems.filter(item => {
+    let base = historyItems.filter(item => {
       // Filter by tab (all or favorites)
       if (activeTab === "favorites" && !item.isFavorite) return false;
       
@@ -82,6 +84,11 @@ export const PromptHistory = () => {
       return matchesSearch && matchesProvider && matchesOutputType && matchesScore;
     });
 
+    // Apply "show only best in history" filter if enabled
+    if (settings.showOnlyBestInHistory) {
+      base = base.filter(item => item.isBestVariant === true);
+    }
+
     return base.sort((a, b) => {
       switch (sortBy) {
         case "newest":
@@ -96,7 +103,7 @@ export const PromptHistory = () => {
           return 0;
       }
     });
-  }, [historyItems, activeTab, searchQuery, filterProvider, filterOutputType, filterScore, sortBy]);
+  }, [historyItems, activeTab, searchQuery, filterProvider, filterOutputType, filterScore, sortBy, settings.showOnlyBestInHistory]);
 
   const getScoreBadge = (score: number) => {
     if (score >= 0.8) return <Badge className="bg-success text-success-foreground">Excellent (≥0.8)</Badge>;
