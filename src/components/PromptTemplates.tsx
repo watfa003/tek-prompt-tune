@@ -143,12 +143,22 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Influence Selection Banner */}
+      {isSelectingForInfluence && (
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+          <h3 className="font-medium text-primary mb-1">Select a Template for Influence</h3>
+          <p className="text-sm text-muted-foreground">
+            Choose a template to influence your AI optimization process.
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col space-y-4">
         {/* Header */}
         <div>
           <h2 className="text-2xl font-bold">Prompt Templates</h2>
           <p className="text-muted-foreground">
-            Start with proven templates for common AI tasks
+            {isSelectingForInfluence ? "Select a template to influence optimization" : "Start with proven templates for common AI tasks"}
           </p>
         </div>
 
@@ -241,7 +251,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                     size="sm"
                     onClick={() => {
                       if (isSelectingForInfluence) {
-                        navigate(`/app?selectedTemplate=${encodeURIComponent(template.template)}&selectedType=template`); // Redirect to dashboard
+                        navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(template.template)}&selectedType=template`);
                       } else {
                         onUseTemplate(template.template, template.outputType);
                       }

@@ -253,7 +253,7 @@ const PromptOptimizerForm = ({
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
                     <Badge variant="outline" className="text-xs">
-                      {influenceType === "template" ? "Template" : "Favorited Prompt"}
+                      {influenceType === "template" ? "Template" : influenceType === "favorite" ? "Favorite Prompt" : "Saved Prompt"}
                     </Badge>
                     <Badge variant="secondary" className="text-xs">
                       {influenceWeight[0]}% influence

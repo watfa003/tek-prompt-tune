@@ -124,12 +124,22 @@ export const PromptHistory = () => {
 
   return (
     <div className="space-y-6">
+      {/* Influence Selection Banner */}
+      {isSelectingForInfluence && (
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+          <h3 className="font-medium text-primary mb-1">Select a Favorite Prompt for Influence</h3>
+          <p className="text-sm text-muted-foreground">
+            Choose a favorite prompt to influence your AI optimization process.
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Prompt History</h1>
           <p className="text-muted-foreground">
-            Browse and manage your saved prompts and results
+            {isSelectingForInfluence ? "Select a favorite prompt to influence optimization" : "Browse and manage your saved prompts and results"}
           </p>
         </div>
         
@@ -424,12 +434,13 @@ export const PromptHistory = () => {
                   variant="outline"
                   onClick={() => {
                     if (isSelectingForInfluence) {
-                      navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.prompt)}&selectedType=saved`);
+                      navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.prompt)}&selectedType=favorite`);
                     }
                   }}
+                  style={{ display: isSelectingForInfluence ? 'flex' : 'none' }}
                 >
                   <Play className="h-3 w-3 mr-1" />
-                  {isSelectingForInfluence ? 'Select for Influence' : 'Re-run'}
+                  Select for Influence
                 </Button>
               </div>
             </div>
