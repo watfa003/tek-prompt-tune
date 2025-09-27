@@ -36,7 +36,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { PromptResults } from '@/components/PromptResults';
 
 interface OptimizationResult {
   promptId: string;
@@ -63,9 +62,8 @@ interface OptimizationResult {
   };
 }
 
-// Shared UI Component for both tabs
+// Shared UI Component for optimization
 const PromptOptimizerForm = ({ 
-  mode, 
   taskDescription, 
   setTaskDescription,
   originalPrompt,
@@ -95,7 +93,6 @@ const PromptOptimizerForm = ({
   onSubmit,
   isLoading
 }: {
-  mode: 'generate' | 'optimize';
   taskDescription: string;
   setTaskDescription: (value: string) => void;
   originalPrompt?: string;
@@ -136,48 +133,40 @@ const PromptOptimizerForm = ({
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold mb-2">
-            {mode === 'generate' ? 'Generate Optimized Prompts' : 'Optimize Existing Prompt'}
+            Optimize Existing Prompt
           </h2>
           <p className="text-muted-foreground">
-            {mode === 'generate' 
-              ? 'Describe your task and let our AI optimize prompts for maximum effectiveness.'
-              : 'Optimize your existing prompt using advanced AI techniques and multiple strategies.'
-            }
+            Optimize your existing prompt using advanced AI techniques and multiple strategies.
           </p>
         </div>
 
-        {/* Original Prompt for Optimize mode */}
-        {mode === 'optimize' && (
-          <div className="space-y-2">
-            <Label htmlFor="original-prompt" className="text-sm font-medium">Original Prompt</Label>
-            <Textarea
-              id="original-prompt"
-              placeholder="Enter your existing prompt to optimize..."
-              value={originalPrompt}
-              onChange={(e) => setOriginalPrompt?.(e.target.value)}
-              className="min-h-[120px] resize-none"
-            />
-          </div>
-        )}
+        {/* Original Prompt */}
+        <div className="space-y-2">
+          <Label htmlFor="original-prompt" className="text-sm font-medium">Original Prompt</Label>
+          <Textarea
+            id="original-prompt"
+            placeholder="Enter your existing prompt to optimize..."
+            value={originalPrompt}
+            onChange={(e) => setOriginalPrompt?.(e.target.value)}
+            className="min-h-[120px] resize-none"
+          />
+        </div>
 
         {/* Task Description */}
         <div className="space-y-2">
           <Label htmlFor="task" className="text-sm font-medium">
-            {mode === 'generate' ? 'Task Description' : 'Task Description (Optional)'}
+            Task Description (Optional)
           </Label>
           <Textarea
             id="task"
-            placeholder={mode === 'generate' 
-              ? "Describe what you want the AI to do..." 
-              : "Describe the context or goal for this prompt..."
-            }
+            placeholder="Describe the context or goal for this prompt..."
             value={taskDescription}
             onChange={(e) => setTaskDescription(e.target.value)}
             className="min-h-[120px] resize-none"
           />
         </div>
 
-        {/* Optimization Mode for both modes */}
+        {/* Optimization Mode */}
         {setOptimizationMode && optimizationMode && (
           <div className="space-y-4">
             <Label className="text-base font-semibold">Optimization Mode</Label>
@@ -441,11 +430,11 @@ const PromptOptimizerForm = ({
                 <Settings className="h-4 w-4" />
                 <span>Advanced Settings</span>
               </div>
-              <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${advancedOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CollapsibleContent className="space-y-4 mt-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Max Tokens</Label>
@@ -454,9 +443,9 @@ const PromptOptimizerForm = ({
                 <Slider
                   value={maxTokens}
                   onValueChange={setMaxTokens}
-                  max={4096}
-                  min={256}
-                  step={128}
+                  max={8192}
+                  min={512}
+                  step={256}
                   className="w-full"
                 />
               </div>
@@ -464,7 +453,7 @@ const PromptOptimizerForm = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Temperature</Label>
-                  <span className="text-sm text-muted-foreground">{temperature[0].toFixed(1)}</span>
+                  <span className="text-sm text-muted-foreground">{temperature[0]}</span>
                 </div>
                 <Slider
                   value={temperature}
@@ -482,21 +471,18 @@ const PromptOptimizerForm = ({
         {/* Submit Button */}
         <Button
           onClick={onSubmit}
-          disabled={
-            (mode === 'generate' && (!taskDescription || !selectedProvider || !selectedLLM || !selectedOutputType)) ||
-            (mode === 'optimize' && (!originalPrompt?.trim() || isLoading))
-          }
+          disabled={isLoading || !originalPrompt?.trim()}
           className="w-full bg-gradient-primary"
         >
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {mode === 'generate' ? 'Generating Prompts...' : 'Optimizing Prompt...'}
+              Optimizing Prompt...
             </>
           ) : (
             <>
-              {mode === 'generate' ? <Zap className="h-4 w-4 mr-2" /> : <Target className="h-4 w-4 mr-2" />}
-              {mode === 'generate' ? 'Generate Prompts' : 'Optimize Prompt'}
+              <Target className="h-4 w-4 mr-2" />
+              Optimize Prompt
             </>
           )}
         </Button>
@@ -511,22 +497,6 @@ export const AIPromptOptimizer: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // State for the generate functionality
-  const [taskDescription, setTaskDescription] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState("");
-  const [selectedLLM, setSelectedLLM] = useState("");
-  const [selectedOutputType, setSelectedOutputType] = useState("");
-  const [showResults, setShowResults] = useState(false);
-  const [influenceWeight, setInfluenceWeight] = useState([75]);
-  const [selectedInfluence, setSelectedInfluence] = useState("");
-  const [influenceType, setInfluenceType] = useState("");
-  // Additional generate tab options
-  const [generateVariants, setGenerateVariants] = useState(3);
-  const [generateMaxTokens, setGenerateMaxTokens] = useState([2048]);
-  const [generateTemperature, setGenerateTemperature] = useState([0.7]);
-  const [generateAdvancedOpen, setGenerateAdvancedOpen] = useState(false);
-  const [generateOptimizationMode, setGenerateOptimizationMode] = useState<'speed' | 'deep'>('deep');
-
   // State for the optimizer functionality
   const [originalPrompt, setOriginalPrompt] = useState('');
   const [optimizerTaskDescription, setOptimizerTaskDescription] = useState('');
@@ -536,8 +506,9 @@ export const AIPromptOptimizer: React.FC = () => {
   const [variants, setVariants] = useState(3);
   const [maxTokens, setMaxTokens] = useState([2048]);
   const [temperature, setTemperature] = useState([0.7]);
-  const [optimizerInfluence, setOptimizerInfluence] = useState('');
-  const [optimizerInfluenceWeight, setOptimizerInfluenceWeight] = useState([75]);
+  const [selectedInfluence, setSelectedInfluence] = useState('');
+  const [influenceType, setInfluenceType] = useState('');
+  const [influenceWeight, setInfluenceWeight] = useState([75]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -562,29 +533,15 @@ export const AIPromptOptimizer: React.FC = () => {
   // Load default values from settings
   React.useEffect(() => {
     if (settings) {
-      setSelectedProvider(settings.defaultProvider.toLowerCase().includes('openai') ? 'openai' : 
-                    settings.defaultProvider.toLowerCase().includes('anthropic') ? 'anthropic' :
-                    settings.defaultProvider.toLowerCase().includes('google') ? 'google' : 'openai');
       setAiProvider(settings.defaultProvider.toLowerCase().includes('openai') ? 'openai' : 
                     settings.defaultProvider.toLowerCase().includes('anthropic') ? 'anthropic' :
                     settings.defaultProvider.toLowerCase().includes('google') ? 'google' : 'openai');
-      setSelectedOutputType(settings.defaultOutputType.toLowerCase());
       setOutputType(settings.defaultOutputType.toLowerCase());
       setVariants(settings.defaultVariants);
       setMaxTokens([settings.defaultMaxTokens]);
       setTemperature([settings.defaultTemperature]);
-      // Apply to generate tab as well
-      setGenerateVariants(settings.defaultVariants);
-      setGenerateMaxTokens([settings.defaultMaxTokens]);
-      setGenerateTemperature([settings.defaultTemperature]);
     }
   }, [settings]);
-
-  const handleGenerate = () => {
-    if (taskDescription && selectedProvider && selectedLLM && selectedOutputType) {
-      setShowResults(true);
-    }
-  };
 
   const optimizePrompt = async () => {
     if (!originalPrompt.trim()) {
@@ -616,72 +573,34 @@ export const AIPromptOptimizer: React.FC = () => {
           userId: user.id,
           maxTokens: maxTokens[0],
           temperature: temperature[0],
-          influence: selectedInfluence || optimizerInfluence,
-          influenceWeight: influenceWeight[0] || optimizerInfluenceWeight[0],
+          influence: selectedInfluence,
+          influenceWeight: influenceWeight[0],
           mode: optimizationMode
         }
       });
 
       if (error) throw error;
 
-      // Handle Speed Mode results
-      if (data.mode === 'speed') {
-        console.log('🏆 Speed Mode Result:', data);
-        console.log('📝 Best Optimized Prompt:', data.bestOptimizedPrompt);
-        console.log('📝 Fallback Optimized Prompt:', data.optimizedPrompt);
-        console.log('🎯 Variants:', data.variants);
+      if (optimizationMode === 'speed') {
         setSpeedResult(data);
-        setShowRating(false);
-        const timeInSeconds = (data.processingTimeMs / 1000).toFixed(1);
-        toast({
-          title: "⚡ Speed Optimization Complete!",
-          description: `Optimized in ${timeInSeconds}s - Under 12 second limit`,
-        });
       } else {
-        // Handle Deep Mode results
         setResult(data);
-        toast({
-          title: "🔍 Deep Optimization Complete!",
-          description: `Generated ${data.variants?.length || 0} optimized variants`,
-        });
+        setShowRating(true);
       }
 
+      toast({
+        title: "Success",
+        description: `Prompt optimized successfully using ${optimizationMode} mode!`,
+      });
     } catch (error) {
       console.error('Error optimizing prompt:', error);
       toast({
-        title: "Optimization Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        title: "Error",
+        description: "Failed to optimize prompt. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsOptimizing(false);
-    }
-  };
-
-  const submitRating = async (rating: number) => {
-    if (!speedResult?.speedResultId) return;
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      await supabase
-        .from('speed_optimizations')
-        .update({ 
-          score: rating / 5, // Convert 1-5 rating to 0-1 score
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', speedResult.speedResultId)
-        .eq('user_id', user.id);
-
-      setUserRating(rating);
-      setShowRating(false);
-      toast({
-        title: "Thank you!",
-        description: "Your rating helps improve our speed optimization",
-      });
-    } catch (error) {
-      console.error('Error submitting rating:', error);
     }
   };
 
@@ -693,308 +612,251 @@ export const AIPromptOptimizer: React.FC = () => {
     });
   };
 
-  const getScoreBadge = (score: number) => {
-    if (score >= 0.8) return <Badge className="bg-green-500">Excellent</Badge>;
-    if (score >= 0.6) return <Badge className="bg-blue-500">Good</Badge>;
-    if (score >= 0.4) return <Badge className="bg-yellow-500">Fair</Badge>;
-    return <Badge className="bg-red-500">Needs Work</Badge>;
+  const getScoreColor = (score: number) => {
+    if (score >= 0.8) return "text-green-600";
+    if (score >= 0.6) return "text-yellow-600";
+    return "text-red-600";
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 0.8) return "text-green-500";
-    if (score >= 0.6) return "text-blue-500";
-    if (score >= 0.4) return "text-yellow-500";
-    return "text-red-500";
+  const getScoreBadge = (score: number) => {
+    if (score >= 0.9) return <Badge className="bg-green-500 text-white">Excellent</Badge>;
+    if (score >= 0.8) return <Badge className="bg-blue-500 text-white">Great</Badge>;
+    if (score >= 0.7) return <Badge className="bg-yellow-500 text-white">Good</Badge>;
+    if (score >= 0.6) return <Badge className="bg-orange-500 text-white">Fair</Badge>;
+    return <Badge className="bg-red-500 text-white">Needs Work</Badge>;
   };
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="generate" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="generate">Generate Prompts</TabsTrigger>
-          <TabsTrigger value="optimize">Optimize Existing</TabsTrigger>
-        </TabsList>
+      <PromptOptimizerForm
+        taskDescription={optimizerTaskDescription}
+        setTaskDescription={setOptimizerTaskDescription}
+        originalPrompt={originalPrompt}
+        setOriginalPrompt={setOriginalPrompt}
+        selectedProvider={aiProvider}
+        setSelectedProvider={setAiProvider}
+        selectedLLM={modelName}
+        setSelectedLLM={setModelName}
+        selectedOutputType={outputType}
+        setSelectedOutputType={setOutputType}
+        variants={variants}
+        setVariants={setVariants}
+        maxTokens={maxTokens}
+        setMaxTokens={setMaxTokens}
+        temperature={temperature}
+        setTemperature={setTemperature}
+        selectedInfluence={selectedInfluence}
+        setSelectedInfluence={setSelectedInfluence}
+        influenceType={influenceType}
+        setInfluenceType={setInfluenceType}
+        influenceWeight={influenceWeight}
+        setInfluenceWeight={setInfluenceWeight}
+        advancedOpen={advancedOpen}
+        setAdvancedOpen={setAdvancedOpen}
+        optimizationMode={optimizationMode}
+        setOptimizationMode={setOptimizationMode}
+        onSubmit={optimizePrompt}
+        isLoading={isOptimizing}
+      />
 
-        <TabsContent value="generate">
-          <PromptOptimizerForm
-            mode="generate"
-            taskDescription={taskDescription}
-            setTaskDescription={setTaskDescription}
-            selectedProvider={selectedProvider}
-            setSelectedProvider={setSelectedProvider}
-            selectedLLM={selectedLLM}
-            setSelectedLLM={setSelectedLLM}
-            selectedOutputType={selectedOutputType}
-            setSelectedOutputType={setSelectedOutputType}
-            variants={generateVariants}
-            setVariants={setGenerateVariants}
-            maxTokens={generateMaxTokens}
-            setMaxTokens={setGenerateMaxTokens}
-            temperature={generateTemperature}
-            setTemperature={setGenerateTemperature}
-            selectedInfluence={selectedInfluence}
-            setSelectedInfluence={setSelectedInfluence}
-            influenceType={influenceType}
-            setInfluenceType={setInfluenceType}
-            influenceWeight={influenceWeight}
-            setInfluenceWeight={setInfluenceWeight}
-            advancedOpen={generateAdvancedOpen}
-            setAdvancedOpen={setGenerateAdvancedOpen}
-            optimizationMode={generateOptimizationMode}
-            setOptimizationMode={setGenerateOptimizationMode}
-            onSubmit={handleGenerate}
-            isLoading={false}
-          />
+      {/* Speed Mode Results */}
+      {speedResult && (
+        <div className="space-y-4">
+          {/* Speed Mode Stats */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <Zap className="h-6 w-6 mx-auto mb-2 text-green-500" />
+                  <div className="text-lg font-bold">{(speedResult.processingTimeMs / 1000).toFixed(1)}s</div>
+                  <div className="text-xs text-muted-foreground">Processing Time</div>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <Target className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <div className="text-lg font-bold">{speedResult.variants?.length || 0}</div>
+                  <div className="text-xs text-muted-foreground">Variants</div>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <BarChart3 className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <div className="text-lg font-bold">{speedResult.strategy}</div>
+                  <div className="text-xs text-muted-foreground">Best Strategy</div>
+                </div>
+              </div>
+              <div className="text-center text-sm text-muted-foreground">
+                Speed Mode: Fast optimization under 12 seconds
+              </div>
+            </CardContent>
+          </Card>
+          
+          {(speedResult.variants || []).map((variant: any, index: number) => (
+            <Card key={index}>
+              <CardContent className="pt-6">
+                <div className="relative">
+                  <Textarea
+                    value={variant.prompt}
+                    readOnly
+                    className="min-h-[120px] resize-none"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="absolute top-2 right-2"
+                    onClick={() => copyToClipboard(variant.prompt)}
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-          {showResults && (
-            <PromptResults 
-              taskDescription={taskDescription}
-              aiProvider={selectedProvider}
-              llmModel={selectedLLM}
-              outputType={selectedOutputType}
-              influence={selectedInfluence}
-              influenceWeight={influenceWeight[0]}
-              variants={generateVariants}
-              maxTokens={generateMaxTokens[0]}
-              temperature={generateTemperature[0]}
-              optimizationMode={generateOptimizationMode}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="optimize">
-          <PromptOptimizerForm
-            mode="optimize"
-            taskDescription={optimizerTaskDescription}
-            setTaskDescription={setOptimizerTaskDescription}
-            originalPrompt={originalPrompt}
-            setOriginalPrompt={setOriginalPrompt}
-            selectedProvider={aiProvider}
-            setSelectedProvider={setAiProvider}
-            selectedLLM={modelName}
-            setSelectedLLM={setModelName}
-            selectedOutputType={outputType}
-            setSelectedOutputType={setOutputType}
-            variants={variants}
-            setVariants={setVariants}
-            maxTokens={maxTokens}
-            setMaxTokens={setMaxTokens}
-            temperature={temperature}
-            setTemperature={setTemperature}
-            selectedInfluence={selectedInfluence}
-            setSelectedInfluence={setSelectedInfluence}
-            influenceType={influenceType}
-            setInfluenceType={setInfluenceType}
-            influenceWeight={influenceWeight}
-            setInfluenceWeight={setInfluenceWeight}
-            advancedOpen={advancedOpen}
-            setAdvancedOpen={setAdvancedOpen}
-            optimizationMode={optimizationMode}
-            setOptimizationMode={setOptimizationMode}
-            onSubmit={optimizePrompt}
-            isLoading={isOptimizing}
-          />
-
-          {/* Speed Mode Results */}
-          {speedResult && (
-            <div className="space-y-4">
-              {/* Speed Mode Stats */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div className="text-center p-4 rounded-lg bg-muted/50">
-                      <Zap className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                      <div className="text-lg font-bold">{(speedResult.processingTimeMs / 1000).toFixed(1)}s</div>
-                      <div className="text-xs text-muted-foreground">Processing Time</div>
-                    </div>
-                    <div className="text-center p-4 rounded-lg bg-muted/50">
-                      <Target className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <div className="text-lg font-bold">{speedResult.variants?.length || 0}</div>
-                      <div className="text-xs text-muted-foreground">Variants</div>
-                    </div>
-                    <div className="text-center p-4 rounded-lg bg-muted/50">
-                      <BarChart3 className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <div className="text-lg font-bold">{speedResult.strategy}</div>
-                      <div className="text-xs text-muted-foreground">Best Strategy</div>
-                    </div>
+      {/* Deep Mode Results */}
+      {result && (
+        <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold flex items-center space-x-2">
+                <Award className="h-5 w-5 text-primary" />
+                <span>Optimization Results</span>
+              </h3>
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground">Best Score</div>
+                  <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
+                    {Math.round(result.bestScore * 100)}%
                   </div>
-                  <div className="text-center text-sm text-muted-foreground">
-                    Speed Mode: Fast optimization under 12 seconds
+                </div>
+                {getScoreBadge(result.bestScore)}
+              </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 rounded-lg bg-muted/50">
+                <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <div className="text-lg font-bold">+{Math.round(result.summary.improvementScore * 100)}%</div>
+                <div className="text-xs text-muted-foreground">Improvement</div>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-muted/50">
+                <Target className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <div className="text-lg font-bold">{result.summary.totalVariants}</div>
+                <div className="text-xs text-muted-foreground">Variants</div>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-muted/50">
+                <BarChart3 className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <div className="text-lg font-bold">{result.summary.bestStrategy}</div>
+                <div className="text-xs text-muted-foreground">Best Strategy</div>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-muted/50">
+                <Zap className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <div className="text-lg font-bold">{Math.round(result.summary.processingTimeMs / 1000)}s</div>
+                <div className="text-xs text-muted-foreground">Processing Time</div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Tabs for Results */}
+            <Tabs defaultValue="best" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="best">Best Result</TabsTrigger>
+                <TabsTrigger value="variants">All Variants</TabsTrigger>
+                <TabsTrigger value="comparison">Comparison</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="best" className="space-y-4">
+                <Card className="p-4 bg-primary/5 border-primary/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span className="font-medium">Best Optimized Prompt</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(result.bestOptimizedPrompt)}
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-              
-              {(speedResult.variants || []).map((variant: any, index: number) => (
-                <Card key={index}>
-                  <CardContent className="pt-6">
-                    <div className="relative">
-                      <Textarea
-                        value={variant.prompt}
-                        readOnly
-                        className="min-h-[120px] resize-none"
-                      />
+                  <div className="bg-background/50 p-3 rounded-md">
+                    <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
+                  </div>
+                  <div className="mt-3 flex items-center space-x-4">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs text-muted-foreground">Score:</span>
+                      <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
+                        {Math.round(result.bestScore * 100)}%
+                      </span>
+                    </div>
+                    {getScoreBadge(result.bestScore)}
+                  </div>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="variants" className="space-y-4">
+                {result.variants.map((variant, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline">{variant.strategy}</Badge>
+                        <span className={`text-sm font-medium ${getScoreColor(variant.score)}`}>
+                          {Math.round(variant.score * 100)}%
+                        </span>
+                      </div>
                       <Button
-                        size="sm"
                         variant="outline"
-                        className="absolute top-2 right-2"
+                        size="sm"
                         onClick={() => copyToClipboard(variant.prompt)}
                       >
                         <Copy className="h-3 w-3 mr-1" />
                         Copy
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {/* Deep Mode Results */}
-          {result && (
-            <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold flex items-center space-x-2">
-                    <Award className="h-5 w-5 text-primary" />
-                    <span>Optimization Results</span>
-                  </h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="text-sm text-muted-foreground">Best Score</div>
-                      <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
-                        {Math.round(result.bestScore * 100)}%
-                      </div>
+                    <div className="bg-muted/50 p-3 rounded-md mb-3">
+                      <p className="text-sm whitespace-pre-wrap">{variant.prompt}</p>
                     </div>
-                    {getScoreBadge(result.bestScore)}
-                  </div>
-                </div>
-
-                {/* Summary Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-lg font-bold">+{Math.round(result.summary.improvementScore * 100)}%</div>
-                    <div className="text-xs text-muted-foreground">Improvement</div>
-                  </div>
-                  <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <Target className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-lg font-bold">{result.summary.totalVariants}</div>
-                    <div className="text-xs text-muted-foreground">Variants</div>
-                  </div>
-                  <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <BarChart3 className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-lg font-bold">{result.summary.bestStrategy}</div>
-                    <div className="text-xs text-muted-foreground">Best Strategy</div>
-                  </div>
-                  <div className="text-center p-4 rounded-lg bg-muted/50">
-                    <Zap className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-lg font-bold">{Math.round(result.summary.processingTimeMs / 1000)}s</div>
-                    <div className="text-xs text-muted-foreground">Processing Time</div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Tabs for Results */}
-                <Tabs defaultValue="best" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="best">Best Result</TabsTrigger>
-                    <TabsTrigger value="variants">All Variants</TabsTrigger>
-                    <TabsTrigger value="comparison">Comparison</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="best" className="space-y-4">
-                    <Card className="p-4 bg-primary/5 border-primary/20">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="font-medium">Best Optimized Prompt</span>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(result.bestOptimizedPrompt)}
-                        >
-                          <Copy className="h-3 w-3 mr-1" />
-                          Copy
-                        </Button>
-                      </div>
-                      <div className="bg-background/50 p-3 rounded-md">
-                        <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
-                      </div>
-                      <div className="mt-3 flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <span className="text-xs text-muted-foreground">Score:</span>
-                          <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
-                            {Math.round(result.bestScore * 100)}%
-                          </span>
-                        </div>
-                        {getScoreBadge(result.bestScore)}
-                      </div>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="variants" className="space-y-4">
-                    {result.variants.map((variant, index) => (
-                      <Card key={index} className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="outline">{variant.strategy}</Badge>
-                            <span className={`text-sm font-medium ${getScoreColor(variant.score)}`}>
-                              {Math.round(variant.score * 100)}%
-                            </span>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyToClipboard(variant.prompt)}
-                          >
-                            <Copy className="h-3 w-3 mr-1" />
-                            Copy
-                          </Button>
-                        </div>
-                        <div className="bg-muted/50 p-3 rounded-md mb-3">
-                          <p className="text-sm whitespace-pre-wrap">{variant.prompt}</p>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
-                          <div>Tokens: {variant.metrics.tokens_used}</div>
-                          <div>Response Length: {variant.metrics.response_length}</div>
-                          <div>Prompt Length: {variant.metrics.prompt_length}</div>
-                          <div>Strategy Weight: {variant.metrics.strategy_weight}%</div>
-                        </div>
-                      </Card>
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="comparison" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Card className="p-4">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Original Prompt</span>
-                        </div>
-                        <div className="bg-muted/50 p-3 rounded-md">
-                          <p className="text-sm whitespace-pre-wrap">{result.originalPrompt}</p>
-                        </div>
-                      </Card>
-                      
-                      <Card className="p-4 border-primary/20 bg-primary/5">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="font-medium">Optimized Prompt</span>
-                        </div>
-                        <div className="bg-background/50 p-3 rounded-md">
-                          <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
-                        </div>
-                      </Card>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
+                      <div>Tokens: {variant.metrics.tokens_used}</div>
+                      <div>Response Length: {variant.metrics.response_length}</div>
+                      <div>Prompt Length: {variant.metrics.prompt_length}</div>
+                      <div>Strategy Weight: {variant.metrics.strategy_weight}%</div>
                     </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+                  </Card>
+                ))}
+              </TabsContent>
+
+              <TabsContent value="comparison" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Original Prompt</span>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <p className="text-sm whitespace-pre-wrap">{result.originalPrompt}</p>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-4 border-primary/20 bg-primary/5">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span className="font-medium">Optimized Prompt</span>
+                    </div>
+                    <div className="bg-background/50 p-3 rounded-md">
+                      <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
+                    </div>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };
