@@ -193,17 +193,39 @@ serve(async (req) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
-        // Enhanced optimization prompt with cached insights
-        let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
+        // Detect if this is a prompt creation request vs optimization request
+        const isPromptCreationRequest = /(?:create|write|generate|make).{0,50}(?:prompt|instruction|text).{0,50}(?:for|that|to)/i.test(originalPrompt) ||
+          /prompt.{0,20}(?:for|that tells|to make|to create)/i.test(originalPrompt) ||
+          /make me a.{0,20}prompt/i.test(originalPrompt);
         
-        // Add cached insights if available
-        const strategyInsights = cachedInsights.strategies[strategyKey];
-        if (strategyInsights?.patterns?.length > 0) {
-          optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyInsights.patterns.slice(0, 3).join(', ')}`;
+        let optimizationPrompt: string;
+        
+        if (isPromptCreationRequest) {
+          // For prompt creation requests: follow user's exact intent without changing it
+          optimizationPrompt = `You are helping create a prompt as requested by the user. Follow their exact instructions and intent.
+
+User's request: ${originalPrompt}
+
+Instructions:
+- Follow the user's request EXACTLY as written
+- If they want nested prompts (like "a prompt for OpenAI that tells it to make a prompt for Lovable"), create exactly that structure
+- If they specify any particular formatting, style, or content requirements, include them precisely
+- Make the resulting prompt comprehensive and well-structured as requested
+- Do NOT optimize or change their intent - just execute their request professionally
+- Return ONLY the prompt they requested, with no additional commentary`;
+        } else {
+          // For normal optimization: enhance the prompt while preserving intent
+          optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
+          
+          // Add cached insights if available
+          const strategyInsights = cachedInsights.strategies[strategyKey];
+          if (strategyInsights?.patterns?.length > 0) {
+            optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyInsights.patterns.slice(0, 3).join(', ')}`;
+          }
+          
+          // Critical rules: keep user's intent and only improve the prompt
+          optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         }
-        
-        // Critical rules: keep user's intent and only improve the prompt
-        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         
         if (outputType && outputType !== 'text') {
           optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
