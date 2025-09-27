@@ -95,7 +95,7 @@ export const EnhancedDashboard = () => {
   };
 
   const formatTimeSpent = () => {
-    if (!analytics?.overview.totalOptimizations) return "0m";
+    if (!analytics?.overview?.totalOptimizations) return "0m";
     // Estimate 2 minutes per optimization on average
     const minutes = analytics.overview.totalOptimizations * 2;
     const hours = Math.floor(minutes / 60);
@@ -167,18 +167,18 @@ export const EnhancedDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Success Rate</p>
-              <p className="text-2xl font-bold">{analytics.overview.successRate}%</p>
+              <p className="text-2xl font-bold">{analytics?.overview?.successRate?.toFixed(1) || 0}%</p>
             </div>
             <Target className="h-8 w-8 text-success" />
           </div>
-          <Progress value={analytics.overview.successRate} className="mt-2" />
+          <Progress value={analytics?.overview?.successRate || 0} className="mt-2" />
         </Card>
 
         <Card className="p-4 shadow-card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Optimizations</p>
-              <p className="text-2xl font-bold">{analytics.overview.totalOptimizations}</p>
+              <p className="text-2xl font-bold">{analytics?.overview?.totalOptimizations || 0}</p>
             </div>
             <Zap className="h-8 w-8 text-primary" />
           </div>
@@ -188,7 +188,7 @@ export const EnhancedDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Chat Sessions</p>
-              <p className="text-2xl font-bold">{analytics.engagement.chatSessions}</p>
+              <p className="text-2xl font-bold">{analytics?.engagement?.chatSessions || 0}</p>
             </div>
             <BarChart3 className="h-8 w-8 text-warning" />
           </div>
@@ -203,19 +203,19 @@ export const EnhancedDashboard = () => {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-3 rounded-lg bg-green-500/10">
-            <div className="text-2xl font-bold text-green-500">{analytics.performance.scoreDistribution.excellent}</div>
+            <div className="text-2xl font-bold text-green-500">{analytics?.performance?.scoreDistribution?.excellent || 0}</div>
             <div className="text-sm text-muted-foreground">Excellent (0.8+)</div>
           </div>
           <div className="text-center p-3 rounded-lg bg-yellow-500/10">
-            <div className="text-2xl font-bold text-yellow-500">{analytics.performance.scoreDistribution.good}</div>
+            <div className="text-2xl font-bold text-yellow-500">{analytics?.performance?.scoreDistribution?.good || 0}</div>
             <div className="text-sm text-muted-foreground">Good (0.6-0.8)</div>
           </div>
           <div className="text-center p-3 rounded-lg bg-orange-500/10">
-            <div className="text-2xl font-bold text-orange-500">{analytics.performance.scoreDistribution.average}</div>
+            <div className="text-2xl font-bold text-orange-500">{analytics?.performance?.scoreDistribution?.average || 0}</div>
             <div className="text-sm text-muted-foreground">Average (0.4-0.6)</div>
           </div>
           <div className="text-center p-3 rounded-lg bg-red-500/10">
-            <div className="text-2xl font-bold text-red-500">{analytics.performance.scoreDistribution.poor}</div>
+            <div className="text-2xl font-bold text-red-500">{analytics?.performance?.scoreDistribution?.poor || 0}</div>
             <div className="text-sm text-muted-foreground">Poor (0-0.4)</div>
           </div>
         </div>
@@ -235,7 +235,7 @@ export const EnhancedDashboard = () => {
         </div>
         
         <div className="space-y-3">
-          {analytics.recentActivity.slice(0, 5).map((activity) => (
+          {analytics?.recentActivity?.slice(0, 5).map((activity) => (
             <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
               <div className="flex items-start space-x-3">
                 <Bookmark className="h-4 w-4 mt-1 text-primary" />
@@ -257,8 +257,8 @@ export const EnhancedDashboard = () => {
                 </Button>
               </div>
             </div>
-          ))}
-          {analytics.recentActivity.length === 0 && (
+          )) || []}
+          {(!analytics?.recentActivity || analytics.recentActivity.length === 0) && (
             <div className="text-center py-8 text-muted-foreground">
               <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No recent activity</p>
@@ -269,7 +269,7 @@ export const EnhancedDashboard = () => {
       </Card>
 
       {/* Insights */}
-      {analytics.insights.length > 0 && (
+      {analytics?.insights && analytics.insights.length > 0 && (
         <Card className="p-6 shadow-card">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
             <TrendingUp className="h-5 w-5 mr-2 text-primary" />

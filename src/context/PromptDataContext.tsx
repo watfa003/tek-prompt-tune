@@ -103,6 +103,10 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             totalPrompts: prompts.length,
             completedPrompts: prompts.filter(p => p.status === 'completed').length,
             averageScore: prompts.length > 0 ? prompts.reduce((sum, p) => sum + (p.score || 0), 0) / prompts.length : 0,
+            totalOptimizations: prompts.length,
+            totalChatSessions: 0, // Would need to be calculated from chat_sessions table
+            totalTokensUsed: 0, // Would need to be calculated from token usage
+            successRate: prompts.length > 0 ? (prompts.filter(p => p.status === 'completed').length / prompts.length) * 100 : 0,
           },
           usage: {
             providerStats
@@ -110,7 +114,20 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           performance: {
             dailyStats: [], // Could be calculated from prompts
             improvementTrend: 'stable', // Default value
+            scoreDistribution: {
+              excellent: prompts.filter(p => (p.score || 0) >= 0.8).length,
+              good: prompts.filter(p => (p.score || 0) >= 0.6 && (p.score || 0) < 0.8).length,
+              average: prompts.filter(p => (p.score || 0) >= 0.4 && (p.score || 0) < 0.6).length,
+              poor: prompts.filter(p => (p.score || 0) < 0.4).length,
+            },
+            averageScore: prompts.length > 0 ? prompts.reduce((sum, p) => sum + (p.score || 0), 0) / prompts.length : 0,
           },
+          engagement: {
+            chatSessions: 0, // Would need to be calculated from chat_sessions table
+            avgMessagesPerSession: 0,
+            activePrompts: prompts.filter(p => p.status === 'completed').length,
+          },
+          insights: [], // Default empty array for insights
           recentActivity: prompts.slice(0, 10).map((p, i) => ({
             id: p.ai_provider + i,
             type: 'prompt_optimization',
