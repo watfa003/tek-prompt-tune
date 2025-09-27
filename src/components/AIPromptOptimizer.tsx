@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { usePromptData } from '@/context/PromptDataContext';
+import { useOptimizerSession } from '@/context/OptimizerSessionContext';
 
 interface OptimizationResult {
   promptId: string;
@@ -496,10 +497,23 @@ export const AIPromptOptimizer: React.FC = () => {
   const { settings } = useSettings();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-const navigate = useNavigate();
+  const navigate = useNavigate();
   const { addPromptToHistory } = usePromptData();
 
-  // State for the optimizer functionality - Load from localStorage to preserve drafts
+  // Use global session state instead of local state
+  const {
+    isOptimizing,
+    optimizationStartTime,
+    payload,
+    result,
+    speedResult,
+    startOptimization,
+    setResult,
+    setSpeedResult,
+    setIsOptimizing,
+  } = useOptimizerSession();
+
+  // Local form state - Load from localStorage to preserve drafts
   const [originalPrompt, setOriginalPrompt] = useState(() => {
     const saved = localStorage.getItem('promptOptimizer_originalPrompt');
     return saved || '';
@@ -517,28 +531,12 @@ const navigate = useNavigate();
   const [selectedInfluence, setSelectedInfluence] = useState('');
   const [influenceType, setInfluenceType] = useState('');
   const [influenceWeight, setInfluenceWeight] = useState([75]);
-  const [isOptimizing, setIsOptimizing] = useState(() => {
-    const saved = localStorage.getItem('promptOptimizer_isOptimizing');
-    return saved === 'true';
-  });
-  const [result, setResult] = useState<OptimizationResult | null>(() => {
-    const saved = localStorage.getItem('promptOptimizer_result');
-    return saved ? JSON.parse(saved) : null;
-  });
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [optimizationMode, setOptimizationMode] = useState<'speed' | 'deep'>('deep');
-  const [speedResult, setSpeedResult] = useState<any>(() => {
-    const saved = localStorage.getItem('promptOptimizer_speedResult');
-    return saved ? JSON.parse(saved) : null;
-  });
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
-  const [optimizationStartTime, setOptimizationStartTime] = useState<number | null>(() => {
-    const saved = localStorage.getItem('promptOptimizer_startTime');
-    return saved ? parseInt(saved) : null;
-  });
 
-  // Auto-save draft prompts and optimization state to localStorage
+  // Auto-save draft prompts to localStorage (session state is handled by context)
   React.useEffect(() => {
     localStorage.setItem('promptOptimizer_originalPrompt', originalPrompt);
   }, [originalPrompt]);
@@ -547,120 +545,26 @@ const navigate = useNavigate();
     localStorage.setItem('promptOptimizer_taskDescription', optimizerTaskDescription);
   }, [optimizerTaskDescription]);
 
+  // Handle results display on mount - show completed results
   React.useEffect(() => {
-    localStorage.setItem('promptOptimizer_isOptimizing', isOptimizing.toString());
-    if (isOptimizing) {
-      const startTime = Date.now();
-      setOptimizationStartTime(startTime);
-      localStorage.setItem('promptOptimizer_startTime', startTime.toString());
-    } else {
-      localStorage.removeItem('promptOptimizer_startTime');
-      setOptimizationStartTime(null);
-    }
-  }, [isOptimizing]);
-
-  React.useEffect(() => {
-    if (result) {
-      localStorage.setItem('promptOptimizer_result', JSON.stringify(result));
-    } else {
-      localStorage.removeItem('promptOptimizer_result');
-    }
-  }, [result]);
-
-  React.useEffect(() => {
-    if (speedResult) {
-      localStorage.setItem('promptOptimizer_speedResult', JSON.stringify(speedResult));
-    } else {
-      localStorage.removeItem('promptOptimizer_speedResult');
-    }
-  }, [speedResult]);
-
-  // Check for stale optimization state and show completed results on component mount
-  React.useEffect(() => {
-    const checkStaleOptimization = () => {
-      const startTime = optimizationStartTime;
-      const currentTime = Date.now();
+    // If we have results but optimization is not in progress, show completion notification once
+    if ((result || speedResult) && !isOptimizing) {
+      console.log('Found completed optimization results');
       
-      // If optimization has been running for more than 5 minutes, consider it stale
-      if (startTime && isOptimizing && (currentTime - startTime) > 5 * 60 * 1000) {
-        console.log('Detected stale optimization, clearing state');
-        setIsOptimizing(false);
-        localStorage.removeItem('promptOptimizer_isOptimizing');
-        localStorage.removeItem('promptOptimizer_startTime');
-        toast({
-          title: "Optimization Timeout",
-          description: "The previous optimization took too long and was cancelled. Please try again.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    // Check for completed optimization results on mount
-    const showCompletedResults = () => {
-      // If we have results but optimization is not in progress, show completion notification
-      if ((result || speedResult) && !isOptimizing) {
-        console.log('Found completed optimization results on page load');
-        toast({
-          title: "Optimization Complete",
-          description: "Your prompt optimization finished successfully while you were away!",
-        });
-        
-        // Force scroll to results section to make them visible
-        setTimeout(() => {
-          const resultsSection = document.querySelector('[data-results-section]');
-          if (resultsSection) {
-            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, 100);
-        
-        // If results exist, make sure the rating dialog shows for deep mode
-        if (result && !speedResult) {
-          setShowRating(true);
+      // Force scroll to results section to make them visible
+      setTimeout(() => {
+        const resultsSection = document.querySelector('[data-results-section]');
+        if (resultsSection) {
+          resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }
-    };
-
-    // Check immediately on mount
-    checkStaleOptimization();
-    showCompletedResults();
-    
-    // Set up periodic check while optimizing
-    let interval: NodeJS.Timeout;
-    if (isOptimizing) {
-      interval = setInterval(checkStaleOptimization, 30000); // Check every 30 seconds
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, []); // Only run once on mount
-
-  // Ensure results are revealed as soon as they exist (handles returning to page)
-  const hasRevealedRef = React.useRef(false);
-  React.useEffect(() => {
-    // If results are present but UI still thinks it's optimizing, force-finish state
-    if ((result || speedResult) && isOptimizing) {
-      setIsOptimizing(false);
-      localStorage.removeItem('promptOptimizer_isOptimizing');
-      localStorage.removeItem('promptOptimizer_startTime');
-    }
-
-    if (!isOptimizing && (result || speedResult) && !hasRevealedRef.current) {
-      hasRevealedRef.current = true;
-      // Scroll after paint so the target exists
-      requestAnimationFrame(() => {
-        const el = document.querySelector('[data-results-section]');
-        if (el) {
-          (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-
-      // Deep mode rating dialog
+      }, 100);
+      
+      // If results exist, make sure the rating dialog shows for deep mode
       if (result && !speedResult) {
         setShowRating(true);
       }
     }
-  }, [isOptimizing, result, speedResult]);
+  }, [result, speedResult, isOptimizing]);
 
   // Check for influence selection from URL params
   React.useEffect(() => {
@@ -707,96 +611,48 @@ const navigate = useNavigate();
       return;
     }
 
-    setIsOptimizing(true);
+    // Use the global session to start optimization
+    await startOptimization({
+      originalPrompt,
+      taskDescription: optimizerTaskDescription,
+      aiProvider,
+      modelName,
+      outputType,
+      variants,
+      maxTokens: maxTokens[0],
+      temperature: temperature[0],
+      influence: selectedInfluence,
+      influenceWeight: influenceWeight[0],
+      mode: optimizationMode,
+    });
+  };
+
+  // Start new session function - clear all state
+  const startNewSession = () => {
+    // Clear results
     setResult(null);
     setSpeedResult(null);
     setShowRating(false);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const { data, error } = await supabase.functions.invoke('prompt-optimizer', {
-        body: {
-          originalPrompt,
-          taskDescription: optimizerTaskDescription,
-          aiProvider,
-          modelName,
-          outputType,
-          variants,
-          userId: user.id,
-          maxTokens: maxTokens[0],
-          temperature: temperature[0],
-          influence: selectedInfluence,
-          influenceWeight: influenceWeight[0],
-          mode: optimizationMode
-        }
-      });
-
-      if (error) throw error;
-
-      if (optimizationMode === 'speed') {
-        setSpeedResult(data);
-      } else {
-        setResult(data);
-        setShowRating(true);
-      }
-
-      // Append to history immediately (local-first)
-      try {
-        const d: any = data;
-        // Find the best variant with actual output
-        const bestVariant = d?.variants?.reduce((best: any, current: any) => {
-          return (!best || (current.score > best.score)) ? current : best;
-        }, null);
-        
-        const historyItem = {
-          id: d?.promptId,
-          title: `${aiProvider} ${modelName} Optimization`,
-          description: `${(d?.bestScore ?? 0) >= 0.8 ? 'High-performance' : (d?.bestScore ?? 0) >= 0.6 ? 'Good-quality' : (d?.bestScore ?? 0) >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
-          prompt: d?.originalPrompt || originalPrompt,
-          output: d?.bestOptimizedPrompt || d?.variants?.[0]?.prompt || '',
-          sampleOutput: bestVariant?.actualOutput || d?.bestActualOutput || '',
-          provider: aiProvider,
-          outputType: outputType || 'Code',
-          score: d?.bestScore ?? 0,
-          timestamp: new Date().toLocaleString(),
-          tags: [aiProvider?.toLowerCase?.() || 'provider', (modelName || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
-          isFavorite: false,
-          isBestVariant: true,
-        } as const;
-        if (historyItem.id) {
-          await addPromptToHistory(historyItem as any);
-        }
-      } catch (e) {
-        console.error('Failed to append to local history', e);
-      }
-
-      // Clear drafts and optimization state after successful optimization
-      localStorage.removeItem('promptOptimizer_originalPrompt');
-      localStorage.removeItem('promptOptimizer_taskDescription');
-      localStorage.removeItem('promptOptimizer_isOptimizing');
-      localStorage.removeItem('promptOptimizer_startTime');
-
-      toast({
-        title: "Success",
-        description: `Prompt optimized successfully using ${optimizationMode} mode!`,
-      });
-    } catch (error) {
-      console.error('Error optimizing prompt:', error);
-      
-      // Clear optimization state on error
-      localStorage.removeItem('promptOptimizer_isOptimizing');
-      localStorage.removeItem('promptOptimizer_startTime');
-      
-      toast({
-        title: "Error",
-        description: "Failed to optimize prompt. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsOptimizing(false);
-    }
+    
+    // Clear form fields
+    setOriginalPrompt('');
+    setOptimizerTaskDescription('');
+    setSelectedInfluence('');
+    setInfluenceType('');
+    
+    // Clear localStorage
+    localStorage.removeItem('promptOptimizer_originalPrompt');
+    localStorage.removeItem('promptOptimizer_taskDescription');
+    localStorage.removeItem('promptOptimizer_result');
+    localStorage.removeItem('promptOptimizer_speedResult');
+    localStorage.removeItem('promptOptimizer_payload');
+    localStorage.removeItem('promptOptimizer_isOptimizing');
+    localStorage.removeItem('promptOptimizer_startTime');
+    
+    toast({
+      title: "New Session Started",
+      description: "Previous session cleared. You can now start a new optimization.",
+    });
   };
 
   const copyToClipboard = (text: string) => {
@@ -823,6 +679,28 @@ const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
+      {/* Session Controls - Show when there are existing results */}
+      {(result || speedResult) && (
+        <Card className="p-4 bg-muted/50 border-primary/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-primary">Active Session</h3>
+              <p className="text-sm text-muted-foreground">
+                Previous optimization results are available. You can continue viewing them or start fresh.
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={startNewSession}
+              className="border-primary/30 hover:bg-primary/10"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Start New Session
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <PromptOptimizerForm
         taskDescription={optimizerTaskDescription}
         setTaskDescription={setOptimizerTaskDescription}

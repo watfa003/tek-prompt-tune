@@ -2,10 +2,20 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIPromptOptimizer } from '@/components/AIPromptOptimizer';
 import { AIAnalyticsDashboard } from '@/components/AIAnalyticsDashboard';
+import { OptimizerSessionProvider } from '@/context/OptimizerSessionContext';
 import { Zap, BarChart3 } from 'lucide-react';
 
 const AIAgent = () => {
-  const [activeTab, setActiveTab] = useState('optimize');
+  // Persist active tab to localStorage so it never resets
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('aiAgent_activeTab') || 'optimize';
+  });
+
+  // Save active tab to localStorage when changed
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    localStorage.setItem('aiAgent_activeTab', value);
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -19,26 +29,29 @@ const AIAgent = () => {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="optimize" className="flex items-center space-x-2">
-              <Zap className="h-4 w-4" />
-              <span>Optimize</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Analytics</span>
-            </TabsTrigger>
-          </TabsList>
+        <OptimizerSessionProvider>
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="optimize" className="flex items-center space-x-2">
+                <Zap className="h-4 w-4" />
+                <span>Optimize</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center space-x-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Analytics</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="optimize">
-            <AIPromptOptimizer />
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <AIAnalyticsDashboard />
-          </TabsContent>
-        </Tabs>
+            {/* Keep both tabs always mounted, only show/hide them */}
+            <div className={`${activeTab === 'optimize' ? 'block' : 'hidden'}`}>
+              <AIPromptOptimizer />
+            </div>
+            
+            <div className={`${activeTab === 'analytics' ? 'block' : 'hidden'}`}>
+              <AIAnalyticsDashboard />
+            </div>
+          </Tabs>
+        </OptimizerSessionProvider>
       </div>
     </div>
   );
