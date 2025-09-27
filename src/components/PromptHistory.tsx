@@ -132,7 +132,7 @@ export const PromptHistory = () => {
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Influence Selection Banner */}
       {isSelectingForInfluence && (
         <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
@@ -475,8 +475,8 @@ export const PromptHistory = () => {
       </div>
 
       {loading && (
-        <div className="text-center py-12">
-          <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+        <div className="text-center py-12 animate-fade-in">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <h3 className="text-lg font-semibold">Loading history...</h3>
         </div>
       )}

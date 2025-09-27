@@ -22,6 +22,7 @@ import { PromptDataProvider } from "@/context/PromptDataContext";
 
 const AppPage = () => {
   const location = useLocation();
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [taskDescription, setTaskDescription] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("");
   const [selectedLLM, setSelectedLLM] = useState("");
@@ -74,12 +75,12 @@ const AppPage = () => {
     setSelectedInfluence("");
   };
 
-  // Always redirect to dashboard for new prompts and ensure clean navigation
+  // Handle smooth transitions between routes
   React.useEffect(() => {
-    if (location.pathname === '/app/generate') {
-      navigate('/app', { replace: true }); // Redirect to dashboard instead of AI agent
-    }
-  }, [location.pathname, navigate]);
+    setIsTransitioning(true);
+    const timer = setTimeout(() => setIsTransitioning(false), 50);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   // Determine which content to show based on current path
   const renderContent = () => {
@@ -129,7 +130,9 @@ const AppPage = () => {
             </header>
 
             <main className="flex-1 p-6 overflow-auto">
-              {renderContent()}
+              <div className={`transition-opacity duration-200 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
+                {renderContent()}
+              </div>
             </main>
           </div>
         </div>

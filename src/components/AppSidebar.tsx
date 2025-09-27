@@ -161,8 +161,12 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <Button
                       variant="ghost"
-                      onClick={() => navigate(item.url)}
-                      className={`w-full justify-start ${isActive(item.url) ? getNavCls({ isActive: true }) : getNavCls({ isActive: false })}`}
+                      onClick={() => {
+                        if (currentPath !== item.url) {
+                          navigate(item.url);
+                        }
+                      }}
+                      className={`w-full justify-start transition-all duration-200 hover:scale-[1.02] ${isActive(item.url) ? getNavCls({ isActive: true }) : getNavCls({ isActive: false })}`}
                     >
                       <item.icon className="h-4 w-4" />
                       {!isCollapsed && <span>{item.title}</span>}

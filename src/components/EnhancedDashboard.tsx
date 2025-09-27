@@ -75,6 +75,18 @@ interface AnalyticsData {
 export const EnhancedDashboard = () => {
   const { analytics, loading } = usePromptData();
 
+  // Add a smooth fade-in animation for the dashboard
+  if (loading) {
+    return (
+      <div className="animate-fade-in flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
 
   const getBestProvider = () => {
     if (!analytics?.usage?.providerStats) return "No data";
@@ -103,14 +115,7 @@ export const EnhancedDashboard = () => {
     return hours > 0 ? `${hours}h ${remainingMinutes}m` : `${remainingMinutes}m`;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading dashboard...</span>
-      </div>
-    );
-  }
+  // Remove duplicate loading check since we already handle it above
 
   if (!analytics) {
     return (
@@ -121,7 +126,7 @@ export const EnhancedDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Today's Overview */}
       <Card className="p-6 shadow-card">
         <div className="flex items-center justify-between mb-4">
