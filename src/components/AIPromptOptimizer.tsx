@@ -635,6 +635,33 @@ const navigate = useNavigate();
     };
   }, []); // Only run once on mount
 
+  // Ensure results are revealed as soon as they exist (handles returning to page)
+  const hasRevealedRef = React.useRef(false);
+  React.useEffect(() => {
+    // If results are present but UI still thinks it's optimizing, force-finish state
+    if ((result || speedResult) && isOptimizing) {
+      setIsOptimizing(false);
+      localStorage.removeItem('promptOptimizer_isOptimizing');
+      localStorage.removeItem('promptOptimizer_startTime');
+    }
+
+    if (!isOptimizing && (result || speedResult) && !hasRevealedRef.current) {
+      hasRevealedRef.current = true;
+      // Scroll after paint so the target exists
+      requestAnimationFrame(() => {
+        const el = document.querySelector('[data-results-section]');
+        if (el) {
+          (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      // Deep mode rating dialog
+      if (result && !speedResult) {
+        setShowRating(true);
+      }
+    }
+  }, [isOptimizing, result, speedResult]);
+
   // Check for influence selection from URL params
   React.useEffect(() => {
     const selectedTemplate = searchParams.get('selectedTemplate');
