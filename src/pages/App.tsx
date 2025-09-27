@@ -36,7 +36,9 @@ const AppPage = () => {
   const [influenceType, setInfluenceType] = useState("");
   const [influenceWeight, setInfluenceWeight] = useState([75]);
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+const navigate = useNavigate();
+  const TemplateOptimizer = React.lazy(() => import('@/components/TemplateOptimizer').then(module => ({ default: module.TemplateOptimizer })));
+
 
   // Removed old influence URL param handler; handled in AIPromptOptimizer now
 
@@ -131,7 +133,26 @@ const AppPage = () => {
 
             <main className="flex-1 p-6 overflow-auto">
               <div className={`transition-opacity duration-200 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
-                {renderContent()}
+                <div className={location.pathname.startsWith('/app/history') ? 'animate-fade-in' : 'hidden'}>
+                  <PromptHistory />
+                </div>
+                <div className={location.pathname.startsWith('/app/settings') ? 'animate-fade-in' : 'hidden'}>
+                  <UserSettings />
+                </div>
+                <div className={(location.pathname === '/app' || location.pathname === '/app/') ? 'animate-fade-in' : 'hidden'}>
+                  <EnhancedDashboard />
+                </div>
+                {location.pathname.startsWith('/app/templates') && (
+                  <PromptTemplates onUseTemplate={handleUseTemplate} />
+                )}
+                {location.pathname.startsWith('/app/ai-agent') && (
+                  <AIAgent />
+                )}
+                {location.pathname.startsWith('/app/template-optimizer') && (
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <TemplateOptimizer />
+                  </React.Suspense>
+                )}
               </div>
             </main>
           </div>
