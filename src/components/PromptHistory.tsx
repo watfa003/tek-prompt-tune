@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Virtuoso } from "react-virtuoso";
 import {
   Search,
   Filter,
@@ -321,17 +322,321 @@ export const PromptHistory = () => {
       </Card>
 
       {/* History Items */}
-      <div className="space-y-4">
-        {filteredItems.map((item, index) => {
-          const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
-          // Show top performer badge for the best variant (regardless of actual score)
-          const isTopPerformer = item.isBestVariant === true;
-          
-          return (
-            <Card key={item.id} className={`p-6 hover:shadow-card transition-shadow ${isHighestRated ? 'ring-2 ring-primary shadow-lg' : ''}`}>
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between">
+      {filteredItems.length > 60 ? (
+        <div className="mt-2" style={{ height: 'calc(100vh - 260px)' }}>
+          <Virtuoso
+            data={filteredItems}
+            overscan={300}
+            itemContent={(index, item: PromptHistoryItem) => {
+              const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
+              const isTopPerformer = item.isBestVariant === true;
+              return (
+                <div className="mb-4">
+                  <Card key={item.id} className={`p-6 hover:shadow-card transition-shadow ${isHighestRated ? 'ring-2 ring-primary shadow-lg' : ''}`}>
+                    <div className="space-y-4">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="text-lg font-semibold">{item.title}</h3>
+                            {isTopPerformer && <Badge variant="outline" className="text-primary border-primary bg-primary/10">
+                              <Trophy className="h-3 w-3 mr-1" />
+                              Top Performer
+                            </Badge>}
+                            {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
+                          </div>
+                        <p className="text-muted-foreground text-sm mb-3">{item.description}</p>
+                        
+                        {/* Meta info */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{item.provider}</Badge>
+                          <Badge variant="outline">{item.outputType}</Badge>
+                          {getScoreBadge(item.score)}
+                          <span className="text-sm text-muted-foreground flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {item.timestamp}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => copyToClipboard(item.prompt, "Prompt")}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy Prompt
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => copyToClipboard(item.output, "Output")}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy Output
+                          </DropdownMenuItem>
+                          {item.sampleOutput && (
+                            <DropdownMenuItem onClick={() => copyToClipboard(item.sampleOutput, "Sample Output")}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy Sample Output
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem>
+                            <Play className="h-4 w-4 mr-2" />
+                            Re-run
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => toggleFavorite(item.id)}>
+                            <Star className="h-4 w-4 mr-2" />
+                            {item.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+        
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1">
+                      {item.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          #{tag}
+                        </Badge>
+                      ))}
+                    </div>
+        
+                    {/* Preview */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Original Prompt:</p>
+                        <div className="p-3 bg-muted/50 rounded-md border text-sm max-h-32 overflow-y-auto">
+                          <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.prompt}</pre>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">
+                          {isSelectingForInfluence ? "Optimized Prompt (Will be used for influence):" : "Optimization Result:"}
+                        </p>
+                        <div className="p-3 bg-secondary/20 rounded-md border text-sm max-h-32 overflow-y-auto">
+                          <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.output}</pre>
+                        </div>
+                      </div>
+        
+                      {item.sampleOutput && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-2">Sample Output:</p>
+                          <div className="p-3 bg-success/10 rounded-md border text-sm max-h-32 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.sampleOutput}</pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+        
+                    {/* Actions */}
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.prompt, "Prompt")}>
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copy Prompt
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.output, "Output")}>
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copy Output
+                      </Button>
+                      {item.sampleOutput && (
+                        <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.sampleOutput, "Sample Output")}>
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy Sample
+                        </Button>
+                      )}
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={async () => {
+                          if (isSelectingForInfluence) {
+                            setIsNavigating(true);
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.output)}&selectedType=favorite`);
+                          }
+                        }}
+                        disabled={isNavigating}
+                        style={{ display: isSelectingForInfluence ? 'flex' : 'none' }}
+                      >
+                        {isNavigating ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                            Selecting...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-3 w-3 mr-1" />
+                            Select for Influence
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+              );
+            }}
+          />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredItems.map((item, index) => {
+            const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
+            const isTopPerformer = item.isBestVariant === true;
+            
+            return (
+              <Card key={item.id} className={`p-6 hover:shadow-card transition-shadow ${isHighestRated ? 'ring-2 ring-primary shadow-lg' : ''}`}>
+                <div className="space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h3 className="text-lg font-semibold">{item.title}</h3>
+                        {isTopPerformer && <Badge variant="outline" className="text-primary border-primary bg-primary/10">
+                          <Trophy className="h-3 w-3 mr-1" />
+                          Top Performer
+                        </Badge>}
+                        {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
+                      </div>
+                    <p className="text-muted-foreground text-sm mb-3">{item.description}</p>
+                    
+                    {/* Meta info */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{item.provider}</Badge>
+                      <Badge variant="outline">{item.outputType}</Badge>
+                      {getScoreBadge(item.score)}
+                      <span className="text-sm text-muted-foreground flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {item.timestamp}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => copyToClipboard(item.prompt, "Prompt")}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Prompt
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => copyToClipboard(item.output, "Output")}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Output
+                      </DropdownMenuItem>
+                      {item.sampleOutput && (
+                        <DropdownMenuItem onClick={() => copyToClipboard(item.sampleOutput, "Sample Output")}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Sample Output
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem>
+                        <Play className="h-4 w-4 mr-2" />
+                        Re-run
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toggleFavorite(item.id)}>
+                        <Star className="h-4 w-4 mr-2" />
+                        {item.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1">
+                  {item.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+
+                {/* Preview */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Original Prompt:</p>
+                    <div className="p-3 bg-muted/50 rounded-md border text-sm max-h-32 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.prompt}</pre>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      {isSelectingForInfluence ? "Optimized Prompt (Will be used for influence):" : "Optimization Result:"}
+                    </p>
+                    <div className="p-3 bg-secondary/20 rounded-md border text-sm max-h-32 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.output}</pre>
+                    </div>
+                  </div>
+
+                  {item.sampleOutput && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-2">Sample Output:</p>
+                      <div className="p-3 bg-success/10 rounded-md border text-sm max-h-32 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.sampleOutput}</pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center space-x-2 pt-2">
+                  <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.prompt, "Prompt")}>
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy Prompt
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.output, "Output")}>
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy Output
+                  </Button>
+                  {item.sampleOutput && (
+                    <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.sampleOutput, "Sample Output")}>
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy Sample
+                    </Button>
+                  )}
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={async () => {
+                      if (isSelectingForInfluence) {
+                        setIsNavigating(true);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.output)}&selectedType=favorite`);
+                      }
+                    }}
+                    disabled={isNavigating}
+                    style={{ display: isSelectingForInfluence ? 'flex' : 'none' }}
+                  >
+                    {isNavigating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                        Selecting...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-3 w-3 mr-1" />
+                        Select for Influence
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <h3 className="text-lg font-semibold">{item.title}</h3>
