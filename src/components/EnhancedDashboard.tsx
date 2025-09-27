@@ -77,48 +77,33 @@ export const EnhancedDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(false);
-    
-    // Initialize with empty analytics structure
-    setAnalytics({
-      overview: {
-        totalPrompts: 0,
-        completedPrompts: 0,
-        averageScore: 0,
-        totalOptimizations: 0,
-        totalChatSessions: 0,
-        totalTokensUsed: 0,
-        successRate: 0,
-      },
-      performance: {
-        scoreDistribution: {
-          excellent: 0,
-          good: 0,
-          average: 0,
-          poor: 0,
-        },
-        averageScore: 0,
-        improvementTrend: 'stable',
-        dailyStats: [],
-      },
-      usage: {
-        providerStats: {},
-        modelStats: {},
-        outputTypeStats: {},
-        tokenAnalytics: {
-          total: 0,
-          average: 0,
-          trend: 'stable',
-        },
-      },
-      engagement: {
-        chatSessions: 0,
-        avgMessagesPerSession: 0,
-        activePrompts: 0,
-      },
-      recentActivity: [],
-      insights: [],
-    });
+    const fetchInitialAnalytics = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
+        url.searchParams.set('userId', user.id);
+        url.searchParams.set('timeframe', '7d');
+
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA',
+          },
+        });
+
+        if (response.ok) {
+          const analyticsData = await response.json();
+          setAnalytics(analyticsData);
+        }
+      } catch (error) {
+        console.error('Error in fetchInitialAnalytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     const setupRealTimeUpdates = () => {
       // Listen for new prompts to update stats
@@ -199,6 +184,7 @@ export const EnhancedDashboard = () => {
       };
     };
 
+    fetchInitialAnalytics();
     const cleanup = setupRealTimeUpdates();
 
     return cleanup;
