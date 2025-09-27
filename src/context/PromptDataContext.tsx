@@ -8,12 +8,14 @@ export interface PromptHistoryItem {
   description: string;
   prompt: string;
   output: string;
+  sampleOutput?: string;
   provider: string;
   outputType: string;
   score: number;
   timestamp: string;
   tags: string[];
   isFavorite: boolean;
+  isBestVariant?: boolean;
 }
 
 interface PromptDataContextValue {

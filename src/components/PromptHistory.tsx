@@ -299,7 +299,7 @@ export const PromptHistory = () => {
       <div className="space-y-4">
         {filteredItems.map((item, index) => {
           const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
-          const isTopPerformer = item.score >= 0.8;
+          const isTopPerformer = item.isBestVariant === true;
           
           return (
             <Card key={item.id} className={`p-6 hover:shadow-card transition-shadow ${isHighestRated ? 'ring-2 ring-primary shadow-lg' : ''}`}>
@@ -342,6 +342,12 @@ export const PromptHistory = () => {
                       <Copy className="h-4 w-4 mr-2" />
                       Copy Output
                     </DropdownMenuItem>
+                    {item.sampleOutput && (
+                      <DropdownMenuItem onClick={() => copyToClipboard(item.sampleOutput, "Sample Output")}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Sample Output
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem>
                       <Play className="h-4 w-4 mr-2" />
                       Re-run
@@ -368,7 +374,7 @@ export const PromptHistory = () => {
               </div>
 
               {/* Preview */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Original Prompt:</p>
                   <div className="p-3 bg-muted/50 rounded-md border text-sm max-h-32 overflow-y-auto">
@@ -382,6 +388,15 @@ export const PromptHistory = () => {
                     <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.output}</pre>
                   </div>
                 </div>
+
+                {item.sampleOutput && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Sample Output:</p>
+                    <div className="p-3 bg-success/10 rounded-md border text-sm max-h-32 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.sampleOutput}</pre>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -394,6 +409,12 @@ export const PromptHistory = () => {
                   <Copy className="h-3 w-3 mr-1" />
                   Copy Output
                 </Button>
+                {item.sampleOutput && (
+                  <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.sampleOutput, "Sample Output")}>
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy Sample
+                  </Button>
+                )}
                 <Button 
                   size="sm" 
                   variant="outline"

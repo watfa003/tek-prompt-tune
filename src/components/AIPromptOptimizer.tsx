@@ -599,12 +599,14 @@ const navigate = useNavigate();
           description: `${(d?.bestScore ?? 0) >= 0.8 ? 'High-performance' : (d?.bestScore ?? 0) >= 0.6 ? 'Good-quality' : (d?.bestScore ?? 0) >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
           prompt: d?.originalPrompt || originalPrompt,
           output: d?.bestOptimizedPrompt || d?.variants?.[0]?.prompt || '',
+          sampleOutput: d?.bestActualOutput || d?.variants?.[0]?.actualOutput || '',
           provider: aiProvider,
           outputType: outputType || 'Code',
           score: d?.bestScore ?? 0,
           timestamp: new Date().toLocaleString(),
           tags: [aiProvider?.toLowerCase?.() || 'provider', (modelName || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
           isFavorite: false,
+          isBestVariant: true,
         } as const;
         if (historyItem.id) {
           await addPromptToHistory(historyItem as any);
