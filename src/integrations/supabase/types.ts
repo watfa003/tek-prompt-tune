@@ -360,6 +360,7 @@ export type Database = {
           new_features: boolean | null
           prompt_completed: boolean | null
           share_analytics: boolean | null
+          show_only_best_in_history: boolean | null
           show_scores: boolean | null
           theme: string | null
           two_factor_auth: boolean | null
@@ -384,6 +385,7 @@ export type Database = {
           new_features?: boolean | null
           prompt_completed?: boolean | null
           share_analytics?: boolean | null
+          show_only_best_in_history?: boolean | null
           show_scores?: boolean | null
           theme?: string | null
           two_factor_auth?: boolean | null
@@ -408,6 +410,7 @@ export type Database = {
           new_features?: boolean | null
           prompt_completed?: boolean | null
           share_analytics?: boolean | null
+          show_only_best_in_history?: boolean | null
           show_scores?: boolean | null
           theme?: string | null
           two_factor_auth?: boolean | null
