@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // Shared types kept minimal to avoid conflicts
@@ -40,7 +40,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const getCacheKey = (userId: string, type: string) => `prompt_${type}_${userId}`;
 
   // Load from localStorage immediately
-  const loadFromCache = (userId: string) => {
+  const loadFromCache = useCallback((userId: string) => {
     try {
       const cachedHistory = localStorage.getItem(getCacheKey(userId, 'history'));
       const cachedAnalytics = localStorage.getItem(getCacheKey(userId, 'analytics'));
@@ -70,19 +70,19 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.error('Error loading from cache:', error);
       return { hasHistory: false, hasAnalytics: false, hasFavorites: false };
     }
-  };
+  }, []);
 
   // Save to localStorage
-  const saveToCache = (userId: string, type: string, data: any) => {
+  const saveToCache = useCallback((userId: string, type: string, data: any) => {
     try {
       localStorage.setItem(getCacheKey(userId, type), JSON.stringify(data));
     } catch (error) {
       console.error('Error saving to cache:', error);
     }
-  };
+  }, []);
 
   // Add prompt to history with local-first approach
-  const addPromptToHistory = async (prompt: PromptHistoryItem): Promise<void> => {
+  const addPromptToHistory = useCallback(async (prompt: PromptHistoryItem): Promise<void> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -138,10 +138,10 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.error('Error adding prompt to history:', error);
       throw error;
     }
-  };
+  }, [saveToCache]);
 
   // Retry queued prompts
-  const retryQueuedPrompts = async () => {
+  const retryQueuedPrompts = useCallback(async () => {
     if (pendingQueue.length === 0) return;
     
     const { data: { user } } = await supabase.auth.getUser();
@@ -179,14 +179,65 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (successfullyQueued.length > 0) {
       setHasLocalChanges(false);
     }
-  };
+  }, [pendingQueue, saveToCache]);
+
+  // Toggle favorite function
+  const toggleFavorite = useCallback(async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const isCurrentlyFavorited = favoriteIds.has(id);
+      
+      if (isCurrentlyFavorited) {
+        // Remove from favorites
+        await supabase
+          .from('user_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', id);
+        
+        const newFavoriteIds = new Set(favoriteIds);
+        newFavoriteIds.delete(id);
+        setFavoriteIds(newFavoriteIds);
+      } else {
+        // Add to favorites - determine item type
+        const historyItem = historyItems.find(item => item.id === id);
+        const itemType = historyItem?.provider === 'Optimization' ? 'optimization_history' : 'prompt';
+        
+        await supabase
+          .from('user_favorites')
+          .insert({
+            user_id: user.id,
+            item_id: id,
+            item_type: itemType
+          });
+        
+        const newFavoriteIds = new Set(favoriteIds);
+        newFavoriteIds.add(id);
+        setFavoriteIds(newFavoriteIds);
+      }
+
+      // Update local state and cache
+      setHistoryItems((prev) => {
+        const updated = prev.map((h) => (h.id === id ? { ...h, isFavorite: !isCurrentlyFavorited } : h));
+        saveToCache(user.id, 'history', updated);
+        return updated;
+      });
+      
+      // Update favorites cache
+      saveToCache(user.id, 'favorites', Array.from(favoriteIds));
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  }, [favoriteIds, historyItems, saveToCache]);
 
   // Retry queued prompts on connection restore
   useEffect(() => {
     if (pendingQueue.length > 0) {
       retryQueuedPrompts();
     }
-  }, [pendingQueue]);
+  }, [retryQueuedPrompts]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -503,10 +554,10 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .subscribe();
       } catch (err) {
         console.error('PromptDataProvider init error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      } finally {
+        setLoading(false);
+      }
+    };
 
     init();
 
@@ -514,61 +565,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (promptsChannel) supabase.removeChannel(promptsChannel);
       if (optimizationChannel) supabase.removeChannel(optimizationChannel);
     };
-  }, []);
-
-  const toggleFavorite = async (id: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const isCurrentlyFavorited = favoriteIds.has(id);
-      
-      if (isCurrentlyFavorited) {
-        // Remove from favorites
-        await supabase
-          .from('user_favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('item_id', id);
-        
-        const newFavoriteIds = new Set(favoriteIds);
-        newFavoriteIds.delete(id);
-        setFavoriteIds(newFavoriteIds);
-      } else {
-        // Add to favorites - determine item type
-        const historyItem = historyItems.find(item => item.id === id);
-        const itemType = historyItem?.provider === 'Optimization' ? 'optimization_history' : 'prompt';
-        
-        await supabase
-          .from('user_favorites')
-          .insert({
-            user_id: user.id,
-            item_id: id,
-            item_type: itemType
-          });
-        
-        const newFavoriteIds = new Set(favoriteIds);
-        newFavoriteIds.add(id);
-        setFavoriteIds(newFavoriteIds);
-      }
-
-      // Update local state and cache
-      setHistoryItems((prev) => {
-        const updated = prev.map((h) => (h.id === id ? { ...h, isFavorite: !isCurrentlyFavorited } : h));
-        saveToCache(user.id, 'history', updated);
-        return updated;
-      });
-      
-      // Update favorites cache
-      saveToCache(user.id, 'favorites', Array.from(favoriteIds));
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    }
-  };
+  }, [loadFromCache, saveToCache]);
 
   const value = useMemo(
     () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges }),
-    [historyItems, analytics, loading, hasLocalChanges]
+    [historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges]
   );
 
   return <PromptDataContext.Provider value={value}>{children}</PromptDataContext.Provider>;
