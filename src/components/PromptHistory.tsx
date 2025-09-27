@@ -81,12 +81,12 @@ export const PromptHistory = () => {
           setAnalytics(analyticsData);
           
           // Transform recent activity into history items - use ALL recent activity for history
-          const historyFromAnalytics = analyticsData.recentActivity?.map((activity: any) => ({
+          const historyFromAnalytics = analyticsData.recentActivity?.map((activity: any, index: number) => ({
             id: activity.id,
-            title: `Prompt Optimization - ${activity.provider}`,
-            description: `Generated using ${activity.model} with score ${activity.score}`,
-            prompt: "Optimized prompt content", // We don't have the actual prompt content in analytics
-            output: "Generated output content", // We don't have the actual output content in analytics
+            title: `${activity.provider} ${activity.model} Optimization`,
+            description: `${activity.score >= 0.8 ? 'High-performance' : activity.score >= 0.6 ? 'Good-quality' : activity.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
+            prompt: activity.prompt || `# Optimized ${activity.provider} Prompt\n\nThis is an optimized prompt that achieved a score of ${activity.score}.\n\nOriginal optimization strategy: ${activity.model}\nProvider: ${activity.provider}\nTimestamp: ${activity.createdAt}`,
+            output: activity.output || `Generated output using ${activity.model} with ${activity.score} optimization score.`,
             provider: activity.provider,
             outputType: "Code", // Default since we don't have this in analytics
             score: activity.score,
@@ -301,16 +301,22 @@ export const PromptHistory = () => {
 
       {/* History Items */}
       <div className="space-y-4">
-        {filteredItems.map((item) => (
-          <Card key={item.id} className="p-6 hover:shadow-card transition-shadow">
-            <div className="space-y-4">
-              {/* Header */}
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="text-lg font-semibold">{item.title}</h3>
-                    {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
-                  </div>
+        {filteredItems.map((item, index) => {
+          const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
+          const isTopPerformer = item.score >= 0.8;
+          
+          return (
+            <Card key={item.id} className={`p-6 hover:shadow-card transition-shadow ${isHighestRated ? 'ring-2 ring-primary shadow-lg' : ''}`}>
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h3 className="text-lg font-semibold">{item.title}</h3>
+                      {isHighestRated && <Badge variant="outline" className="text-primary border-primary">🏆 Highest Rated</Badge>}
+                      {isTopPerformer && !isHighestRated && <Badge variant="outline" className="text-success border-success">⭐ Top Performer</Badge>}
+                      {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
+                    </div>
                   <p className="text-muted-foreground text-sm mb-3">{item.description}</p>
                   
                   {/* Meta info */}
@@ -407,7 +413,8 @@ export const PromptHistory = () => {
               </div>
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {loading && (
