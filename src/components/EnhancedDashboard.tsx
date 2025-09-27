@@ -81,7 +81,7 @@ export const EnhancedDashboard = () => {
     const providers = Object.entries(analytics.usage.providerStats);
     if (providers.length === 0) return "No data";
     
-    const best = providers.reduce((best, [name, stats]) => 
+    const best = providers.reduce((best, [name, stats]: [string, any]) => 
       stats.avgScore > best.score ? { name, score: stats.avgScore } : best
     , { name: '', score: 0 });
     

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { usePromptData } from "@/context/PromptDataContext";
+import { usePromptData, type PromptHistoryItem } from "@/context/PromptDataContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,19 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface PromptHistoryItem {
-  id: string;
-  title: string;
-  description: string;
-  prompt: string;
-  output: string;
-  provider: string;
-  outputType: string;
-  score: number;
-  timestamp: string;
-  tags: string[];
-  isFavorite: boolean;
-}
 
 export const PromptHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
