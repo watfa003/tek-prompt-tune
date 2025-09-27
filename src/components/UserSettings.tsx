@@ -40,7 +40,7 @@ export const UserSettings = () => {
   const { theme: currentTheme, setTheme } = useTheme();
   if (loading) {
     return (
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-4xl animate-fade-in">
         <div className="flex items-center justify-center h-64">
           <div className="text-muted-foreground">Loading settings...</div>
         </div>
@@ -49,7 +49,7 @@ export const UserSettings = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

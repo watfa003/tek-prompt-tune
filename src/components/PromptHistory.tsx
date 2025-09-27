@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePromptData, type PromptHistoryItem } from "@/context/PromptDataContext";
 import { Card } from "@/components/ui/card";
@@ -43,7 +43,6 @@ export const PromptHistory = () => {
   const navigate = useNavigate();
   
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
-
   const [isNavigating, setIsNavigating] = useState(false);
 
   // When selecting for influence, auto-switch to favorites tab
@@ -53,48 +52,54 @@ export const PromptHistory = () => {
     }
   }, [isSelectingForInfluence]);
 
+// duplicate state/effect removed
 
-  const filteredItems = historyItems.filter(item => {
-    // Filter by tab (all or favorites)
-    if (activeTab === "favorites" && !item.isFavorite) return false;
-    
-    const matchesSearch = 
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesProvider = filterProvider === "all" || 
-      item.provider.toLowerCase().includes(filterProvider.toLowerCase()) ||
-      (filterProvider === "OpenAI" && item.provider.toLowerCase().includes("openai")) ||
-      (filterProvider === "Claude" && item.provider.toLowerCase().includes("claude")) ||
-      (filterProvider === "Gemini" && item.provider.toLowerCase().includes("gemini")) ||
-      (filterProvider === "Groq" && item.provider.toLowerCase().includes("groq"));
-    
-    const matchesOutputType = filterOutputType === "all" || 
-      item.outputType.toLowerCase() === filterOutputType.toLowerCase();
-    
-    const matchesScore = filterScore === "all" || 
-      (filterScore === "excellent" && item.score >= 0.8) ||
-      (filterScore === "good" && item.score >= 0.6 && item.score < 0.8) ||
-      (filterScore === "fair" && item.score >= 0.4 && item.score < 0.6) ||
-      (filterScore === "needs-work" && item.score < 0.4);
-    
-    return matchesSearch && matchesProvider && matchesOutputType && matchesScore;
-  }).sort((a, b) => {
-    switch (sortBy) {
-      case "newest":
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      case "oldest":
-        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-      case "score":
-        return (b.score || 0) - (a.score || 0);
-      case "title":
-        return a.title.localeCompare(b.title);
-      default:
-        return 0;
-    }
-  });
+
+  const filteredItems = useMemo(() => {
+    const base = historyItems.filter(item => {
+      // Filter by tab (all or favorites)
+      if (activeTab === "favorites" && !item.isFavorite) return false;
+      
+      const matchesSearch = 
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesProvider = filterProvider === "all" || 
+        item.provider.toLowerCase().includes(filterProvider.toLowerCase()) ||
+        (filterProvider === "OpenAI" && item.provider.toLowerCase().includes("openai")) ||
+        (filterProvider === "Claude" && item.provider.toLowerCase().includes("claude")) ||
+        (filterProvider === "Gemini" && item.provider.toLowerCase().includes("gemini")) ||
+        (filterProvider === "Groq" && item.provider.toLowerCase().includes("groq"));
+      
+      const matchesOutputType = filterOutputType === "all" || 
+        item.outputType.toLowerCase() === filterOutputType.toLowerCase();
+      
+      const matchesScore = filterScore === "all" || 
+        (filterScore === "excellent" && item.score >= 0.8) ||
+        (filterScore === "good" && item.score >= 0.6 && item.score < 0.8) ||
+        (filterScore === "fair" && item.score >= 0.4 && item.score < 0.6) ||
+        (filterScore === "needs-work" && item.score < 0.4);
+      
+      return matchesSearch && matchesProvider && matchesOutputType && matchesScore;
+    });
+
+    return base.sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        case "oldest":
+          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        case "score":
+          return (b.score || 0) - (a.score || 0);
+        case "title":
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    });
+  }, [historyItems, activeTab, searchQuery, filterProvider, filterOutputType, filterScore, sortBy]);
 
   const getScoreBadge = (score: number) => {
     // Handle decimal scores properly
