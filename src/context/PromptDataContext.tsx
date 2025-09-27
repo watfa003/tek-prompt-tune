@@ -289,12 +289,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         })));
       }
       
-      // Load analytics after loading history
-      await loadAnalytics();
+      // Load analytics after loading history will be triggered by separate effect
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
-  }, [loadFromCache, saveToCache, loadAnalytics]);
+  }, [loadFromCache, saveToCache]);
 
   // Reload analytics whenever history items change
   useEffect(() => {
