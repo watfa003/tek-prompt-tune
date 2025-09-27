@@ -16,6 +16,10 @@ interface PromptResultsProps {
   influence?: string;
   influenceType?: string;
   influenceWeight?: number;
+  variants?: number;
+  maxTokens?: number;
+  temperature?: number;
+  optimizationMode?: 'speed' | 'deep';
 }
 
 interface OptimizationResult {
@@ -49,8 +53,11 @@ export const PromptResults = ({
   llmModel, 
   outputType, 
   influence, 
-  influenceType, 
-  influenceWeight 
+  influenceWeight,
+  variants = 3,
+  maxTokens = 2048,
+  temperature = 0.7,
+  optimizationMode = 'deep'
 }: PromptResultsProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
@@ -81,12 +88,13 @@ export const PromptResults = ({
           aiProvider: aiProvider.toLowerCase(),
           modelName: llmModel,
           outputType,
-          variants: 3,
+          variants,
           userId: user.id,
-          maxTokens: 2048,
-          temperature: 0.7,
+          maxTokens,
+          temperature,
           influence: influence || '',
-          influenceWeight: influenceWeight || 0
+          influenceWeight: influenceWeight || 0,
+          mode: optimizationMode
         }
       });
 

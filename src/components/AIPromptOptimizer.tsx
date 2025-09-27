@@ -177,8 +177,8 @@ const PromptOptimizerForm = ({
           />
         </div>
 
-        {/* Optimization Mode for Optimize tab */}
-        {mode === 'optimize' && setOptimizationMode && optimizationMode && (
+        {/* Optimization Mode for both modes */}
+        {setOptimizationMode && optimizationMode && (
           <div className="space-y-4">
             <Label className="text-base font-semibold">Optimization Mode</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -525,6 +525,7 @@ export const AIPromptOptimizer: React.FC = () => {
   const [generateMaxTokens, setGenerateMaxTokens] = useState([2048]);
   const [generateTemperature, setGenerateTemperature] = useState([0.7]);
   const [generateAdvancedOpen, setGenerateAdvancedOpen] = useState(false);
+  const [generateOptimizationMode, setGenerateOptimizationMode] = useState<'speed' | 'deep'>('deep');
 
   // State for the optimizer functionality
   const [originalPrompt, setOriginalPrompt] = useState('');
@@ -739,6 +740,8 @@ export const AIPromptOptimizer: React.FC = () => {
             setInfluenceWeight={setInfluenceWeight}
             advancedOpen={generateAdvancedOpen}
             setAdvancedOpen={setGenerateAdvancedOpen}
+            optimizationMode={generateOptimizationMode}
+            setOptimizationMode={setGenerateOptimizationMode}
             onSubmit={handleGenerate}
             isLoading={false}
           />
@@ -751,6 +754,10 @@ export const AIPromptOptimizer: React.FC = () => {
               outputType={selectedOutputType}
               influence={selectedInfluence}
               influenceWeight={influenceWeight[0]}
+              variants={generateVariants}
+              maxTokens={generateMaxTokens[0]}
+              temperature={generateTemperature[0]}
+              optimizationMode={generateOptimizationMode}
             />
           )}
         </TabsContent>
