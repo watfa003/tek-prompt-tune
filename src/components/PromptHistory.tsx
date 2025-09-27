@@ -434,6 +434,7 @@ export const PromptHistory = () => {
                   variant="outline"
                   onClick={() => {
                     if (isSelectingForInfluence) {
+                      console.log('Favorite selected for influence:', item.prompt);
                       navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.prompt)}&selectedType=favorite`);
                     }
                   }}

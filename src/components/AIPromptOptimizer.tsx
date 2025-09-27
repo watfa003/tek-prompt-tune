@@ -524,7 +524,10 @@ const navigate = useNavigate();
     const selectedTemplate = searchParams.get('selectedTemplate');
     const selectedType = searchParams.get('selectedType');
     
+    console.log('AIPromptOptimizer URL params:', { selectedTemplate, selectedType });
+    
     if (selectedTemplate && selectedType) {
+      console.log('Setting influence:', selectedTemplate, selectedType);
       setSelectedInfluence(selectedTemplate);
       setInfluenceType(selectedType);
       // Clear the URL params
