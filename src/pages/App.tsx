@@ -18,6 +18,7 @@ import { PromptTemplates } from "@/components/PromptTemplates";
 import { PromptHistory } from "@/components/PromptHistory";
 import { UserSettings } from "@/components/UserSettings";
 import AIAgent from "@/pages/AIAgent";
+import { PromptDataProvider } from "@/context/PromptDataContext";
 
 const AppPage = () => {
   const location = useLocation();
@@ -115,33 +116,35 @@ const AppPage = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        
-        <div className="flex-1 flex flex-col">
-          <header className="border-b border-border/40 bg-background/95 backdrop-blur">
-            <div className="h-16 flex items-center justify-between px-6">
-              <div className="flex items-center space-x-4">
-                <SidebarTrigger />
-                <Link to="/" className="flex items-center space-x-2 text-primary">
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="font-semibold">Back to Home</span>
-                </Link>
+      <PromptDataProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <AppSidebar />
+          
+          <div className="flex-1 flex flex-col">
+            <header className="border-b border-border/40 bg-background/95 backdrop-blur">
+              <div className="h-16 flex items-center justify-between px-6">
+                <div className="flex items-center space-x-4">
+                  <SidebarTrigger />
+                  <Link to="/" className="flex items-center space-x-2 text-primary">
+                    <ArrowLeft className="h-4 w-4" />
+                    <span className="font-semibold">Back to Home</span>
+                  </Link>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    PrompTek
+                  </Badge>
+                </div>
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                  PrompTek
-                </Badge>
-              </div>
-            </div>
-          </header>
+            </header>
 
-          <main className="flex-1 p-6 overflow-auto">
-            {renderContent()}
-          </main>
+            <main className="flex-1 p-6 overflow-auto">
+              {renderContent()}
+            </main>
+          </div>
         </div>
-      </div>
+      </PromptDataProvider>
     </SidebarProvider>
   );
 };

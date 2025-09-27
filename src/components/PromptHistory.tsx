@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { usePromptData } from "@/context/PromptDataContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,200 +49,13 @@ export const PromptHistory = () => {
   const [filterScore, setFilterScore] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [activeTab, setActiveTab] = useState<"all" | "favorites">("all");
-  const [historyItems, setHistoryItems] = useState<PromptHistoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [analytics, setAnalytics] = useState<any>(null);
+  const { historyItems, analytics, loading, toggleFavorite: toggleFavoriteGlobal } = usePromptData();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        // Fetch analytics for overview stats (once)
-        const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
-        url.searchParams.set('userId', user.id);
-        url.searchParams.set('timeframe', '7d');
-
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA',
-          },
-        });
-
-        if (response.ok) {
-          const analyticsData = await response.json();
-          setAnalytics(analyticsData);
-        }
-
-        // Fetch actual prompt history from database (once)
-        const { data: promptsData, error: promptsError } = await supabase
-          .from('prompts')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        const { data: optimizationData, error: optimizationError } = await supabase
-          .from('optimization_history')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (promptsError || optimizationError) {
-          console.error('Error fetching history:', { promptsError, optimizationError });
-          return;
-        }
-
-        // Combine and transform the data
-        const combinedHistory: PromptHistoryItem[] = [];
-
-        // Add prompts data
-        promptsData?.forEach((prompt) => {
-          combinedHistory.push({
-            id: prompt.id,
-            title: `${prompt.ai_provider} ${prompt.model_name} Optimization`,
-            description: `${prompt.score >= 0.8 ? "High-performance" : prompt.score >= 0.6 ? "Good-quality" : prompt.score >= 0.4 ? "Standard" : "Experimental"} prompt optimization`,
-            prompt: prompt.original_prompt,
-            output: prompt.optimized_prompt || "Optimization in progress...",
-            provider: prompt.ai_provider,
-            outputType: prompt.output_type || "Code",
-            score: prompt.score || 0,
-            timestamp: new Date(prompt.created_at).toLocaleString(),
-            tags: [prompt.ai_provider.toLowerCase(), prompt.model_name.toLowerCase().replace(/[^a-z0-9]/g, "-")],
-            isFavorite: false // Will add favorite functionality
-          });
-        });
-
-        // Add optimization history data
-        optimizationData?.forEach((opt) => {
-          combinedHistory.push({
-            id: opt.id,
-            title: `Optimization Variant - Score ${opt.score?.toFixed(2) || 'N/A'}`,
-            description: `Optimized variant with ${opt.tokens_used || 'unknown'} tokens`,
-            prompt: opt.variant_prompt,
-            output: opt.ai_response || "No response recorded",
-            provider: "Optimization",
-            outputType: "Variant",
-            score: opt.score || 0,
-            timestamp: new Date(opt.created_at).toLocaleString(),
-            tags: ["optimization", "variant"],
-            isFavorite: false
-          });
-        });
-
-        // Sort by creation date
-        combinedHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setHistoryItems(combinedHistory);
-
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const setupRealTimeListeners = () => {
-      // Listen for new prompts
-      const promptsChannel = supabase
-        .channel('new-prompts')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'prompts'
-          },
-          (payload) => {
-            const newPrompt = payload.new as any;
-            const newItem: PromptHistoryItem = {
-              id: newPrompt.id,
-              title: `${newPrompt.ai_provider} ${newPrompt.model_name} Optimization`,
-              description: `${newPrompt.score >= 0.8 ? "High-performance" : newPrompt.score >= 0.6 ? "Good-quality" : newPrompt.score >= 0.4 ? "Standard" : "Experimental"} prompt optimization`,
-              prompt: newPrompt.original_prompt,
-              output: newPrompt.optimized_prompt || "Optimization in progress...",
-              provider: newPrompt.ai_provider,
-              outputType: newPrompt.output_type || "Code",
-              score: newPrompt.score || 0,
-              timestamp: new Date(newPrompt.created_at).toLocaleString(),
-              tags: [newPrompt.ai_provider.toLowerCase(), newPrompt.model_name.toLowerCase().replace(/[^a-z0-9]/g, "-")],
-              isFavorite: false
-            };
-            
-            setHistoryItems(prev => [newItem, ...prev]);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'prompts'
-          },
-          (payload) => {
-            const updatedPrompt = payload.new as any;
-            setHistoryItems(prev => prev.map(item => 
-              item.id === updatedPrompt.id 
-                ? {
-                    ...item,
-                    output: updatedPrompt.optimized_prompt || item.output,
-                    score: updatedPrompt.score || item.score,
-                    description: `${updatedPrompt.score >= 0.8 ? "High-performance" : updatedPrompt.score >= 0.6 ? "Good-quality" : updatedPrompt.score >= 0.4 ? "Standard" : "Experimental"} prompt optimization`
-                  }
-                : item
-            ));
-          }
-        )
-        .subscribe();
-
-      // Listen for new optimization history
-      const optimizationChannel = supabase
-        .channel('new-optimizations')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'optimization_history'
-          },
-          (payload) => {
-            const newOpt = payload.new as any;
-            const newItem: PromptHistoryItem = {
-              id: newOpt.id,
-              title: `Optimization Variant - Score ${newOpt.score?.toFixed(2) || 'N/A'}`,
-              description: `Optimized variant with ${newOpt.tokens_used || 'unknown'} tokens`,
-              prompt: newOpt.variant_prompt,
-              output: newOpt.ai_response || "No response recorded",
-              provider: "Optimization",
-              outputType: "Variant",
-              score: newOpt.score || 0,
-              timestamp: new Date(newOpt.created_at).toLocaleString(),
-              tags: ["optimization", "variant"],
-              isFavorite: false
-            };
-            
-            setHistoryItems(prev => [newItem, ...prev]);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(promptsChannel);
-        supabase.removeChannel(optimizationChannel);
-      };
-    };
-
-    fetchInitialData();
-    const cleanup = setupRealTimeListeners();
-
-    return cleanup;
-  }, []);
 
   const filteredItems = historyItems.filter(item => {
     // Filter by tab (all or favorites)
@@ -307,11 +120,9 @@ export const PromptHistory = () => {
     if (!item) return;
 
     const newFavoriteStatus = !item.isFavorite;
-    
-    // Update local state immediately for better UX
-    setHistoryItems(prev => prev.map(h => 
-      h.id === itemId ? { ...h, isFavorite: newFavoriteStatus } : h
-    ));
+
+    // Update via global provider so state persists across tabs
+    toggleFavoriteGlobal(itemId);
 
     toast({
       title: newFavoriteStatus ? "Added to favorites" : "Removed from favorites",

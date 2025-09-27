@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
   Bookmark,
   Loader2
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { usePromptData } from "@/context/PromptDataContext";
 
 interface AnalyticsData {
   overview: {
@@ -73,122 +73,8 @@ interface AnalyticsData {
 }
 
 export const EnhancedDashboard = () => {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { analytics, loading } = usePromptData();
 
-  useEffect(() => {
-    const fetchInitialAnalytics = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
-        url.searchParams.set('userId', user.id);
-        url.searchParams.set('timeframe', '7d');
-
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA',
-          },
-        });
-
-        if (response.ok) {
-          const analyticsData = await response.json();
-          setAnalytics(analyticsData);
-        }
-      } catch (error) {
-        console.error('Error in fetchInitialAnalytics:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const setupRealTimeUpdates = () => {
-      // Listen for new prompts to update stats
-      const promptsChannel = supabase
-        .channel('dashboard-prompts')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'prompts'
-          },
-          (payload) => {
-            const newPrompt = payload.new as any;
-            
-            setAnalytics(prev => {
-              if (!prev) return prev;
-              
-              // Update overview stats
-              const updatedOverview = {
-                ...prev.overview,
-                totalPrompts: prev.overview.totalPrompts + 1,
-                completedPrompts: newPrompt.status === 'completed' ? prev.overview.completedPrompts + 1 : prev.overview.completedPrompts
-              };
-
-              // Add to recent activity
-              const newActivity = {
-                id: newPrompt.id,
-                type: 'prompt_optimization',
-                score: newPrompt.score || 0,
-                provider: newPrompt.ai_provider,
-                model: newPrompt.model_name,
-                createdAt: newPrompt.created_at,
-                status: newPrompt.status || 'completed'
-              };
-
-              const updatedRecentActivity = [newActivity, ...prev.recentActivity].slice(0, 10);
-
-              return {
-                ...prev,
-                overview: updatedOverview,
-                recentActivity: updatedRecentActivity
-              };
-            });
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'prompts'
-          },
-          (payload) => {
-            const updatedPrompt = payload.new as any;
-            
-            setAnalytics(prev => {
-              if (!prev) return prev;
-              
-              // Update recent activity with new score/status
-              const updatedRecentActivity = prev.recentActivity.map(activity =>
-                activity.id === updatedPrompt.id
-                  ? { ...activity, score: updatedPrompt.score || activity.score, status: updatedPrompt.status || activity.status }
-                  : activity
-              );
-
-              return {
-                ...prev,
-                recentActivity: updatedRecentActivity
-              };
-            });
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(promptsChannel);
-      };
-    };
-
-    fetchInitialAnalytics();
-    const cleanup = setupRealTimeUpdates();
-
-    return cleanup;
-  }, []);
 
   const getBestProvider = () => {
     if (!analytics?.usage.providerStats) return "No data";
