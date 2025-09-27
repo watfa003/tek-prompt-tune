@@ -371,6 +371,17 @@ export const UserSettings = () => {
               onCheckedChange={(checked) => setSettings({ ...settings, autoSave: checked })}
             />
           </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Show Only Best Variant in History</p>
+              <p className="text-sm text-muted-foreground">Display only the best variant instead of all variants in history</p>
+            </div>
+            <Switch
+              checked={settings.showOnlyBestInHistory}
+              onCheckedChange={(checked) => setSettings({ ...settings, showOnlyBestInHistory: checked })}
+            />
+          </div>
         </div>
       </Card>
 

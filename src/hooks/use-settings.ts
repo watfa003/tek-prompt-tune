@@ -30,6 +30,9 @@ export interface UserSettings {
   compactMode: boolean;
   showScores: boolean;
   autoSave: boolean;
+  
+  // History
+  showOnlyBestInHistory: boolean;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -60,6 +63,9 @@ const DEFAULT_SETTINGS: UserSettings = {
   compactMode: false,
   showScores: true,
   autoSave: true,
+  
+  // History
+  showOnlyBestInHistory: false,
 };
 
 export const useSettings = () => {
@@ -116,6 +122,7 @@ export const useSettings = () => {
           compactMode: data.compact_mode ?? DEFAULT_SETTINGS.compactMode,
           showScores: data.show_scores ?? DEFAULT_SETTINGS.showScores,
           autoSave: data.auto_save ?? DEFAULT_SETTINGS.autoSave,
+          showOnlyBestInHistory: data.show_only_best_in_history ?? DEFAULT_SETTINGS.showOnlyBestInHistory,
         };
         setSettings(loadedSettings);
       } else {
@@ -149,6 +156,7 @@ export const useSettings = () => {
             compact_mode: DEFAULT_SETTINGS.compactMode,
             show_scores: DEFAULT_SETTINGS.showScores,
             auto_save: DEFAULT_SETTINGS.autoSave,
+            show_only_best_in_history: DEFAULT_SETTINGS.showOnlyBestInHistory,
           };
 
           await supabase.from('user_settings').upsert(settingsData, { onConflict: 'user_id' });
@@ -194,6 +202,7 @@ export const useSettings = () => {
         compact_mode: settings.compactMode,
         show_scores: settings.showScores,
         auto_save: settings.autoSave,
+        show_only_best_in_history: settings.showOnlyBestInHistory,
       };
 
       const { error } = await supabase
