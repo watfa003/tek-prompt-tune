@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePromptData, type PromptHistoryItem } from "@/context/PromptDataContext";
 import { Card } from "@/components/ui/card";
@@ -43,6 +43,13 @@ export const PromptHistory = () => {
   const navigate = useNavigate();
   
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
+
+  // When selecting for influence, auto-switch to favorites tab
+  React.useEffect(() => {
+    if (isSelectingForInfluence) {
+      setActiveTab("favorites");
+    }
+  }, [isSelectingForInfluence]);
 
 
   const filteredItems = historyItems.filter(item => {
