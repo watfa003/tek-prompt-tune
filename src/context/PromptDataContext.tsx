@@ -166,47 +166,69 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setFavoriteIds(new Set(cachedFavorites));
       }
 
-      // Fetch recent prompts with full data from Supabase
-      const { data: prompts, error: promptsError } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('user_id', user.user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (promptsError) throw promptsError;
-
-      // Fetch optimization history for sample outputs
-      const promptIds = prompts?.map(p => p.id) || [];
+      // Fetch all optimization history with prompt data to show all variants
       const { data: optimizations, error: optError } = await supabase
         .from('optimization_history')
-        .select('*')
-        .in('prompt_id', promptIds)
-        .order('score', { ascending: false });
+        .select(`
+          *,
+          prompts (
+            id,
+            original_prompt,
+            task_description,
+            ai_provider,
+            model_name,
+            output_type,
+            created_at
+          )
+        `)
+        .eq('user_id', user.user.id)
+        .order('created_at', { ascending: false })
+        .limit(200);
 
-      if (optError) console.warn('Could not fetch optimizations:', optError);
+      if (optError) throw optError;
 
-      // Map prompts to history items with sample output
-      const historyItems: PromptHistoryItem[] = prompts?.map((prompt) => {
-        // Find the best optimization result for sample output
-        const bestOpt = optimizations?.find(opt => opt.prompt_id === prompt.id);
-        
-        return {
-          id: prompt.id,
-          title: `${prompt.ai_provider} ${prompt.model_name} Optimization`,
-          description: `${prompt.score >= 0.8 ? 'High-performance' : prompt.score >= 0.6 ? 'Good-quality' : prompt.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
-          prompt: prompt.original_prompt,
-          output: prompt.optimized_prompt || 'Optimization in progress...',
-          sampleOutput: bestOpt?.ai_response || undefined,
-          provider: prompt.ai_provider,
-          outputType: prompt.output_type || 'Code',
-          score: prompt.score || 0,
-          timestamp: new Date(prompt.created_at).toLocaleString(),
-          tags: [prompt.ai_provider?.toLowerCase?.() || 'provider', (prompt.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
-          isFavorite: false,
-          isBestVariant: false, // Only set to true when explicitly marked as best by AI
-        };
-      }) || [];
+      // Group variants by prompt_id to identify best performers
+      const variantsByPrompt = new Map<string, any[]>();
+      (optimizations || []).forEach(variant => {
+        if (!variant.prompt_id) return;
+        if (!variantsByPrompt.has(variant.prompt_id)) {
+          variantsByPrompt.set(variant.prompt_id, []);
+        }
+        variantsByPrompt.get(variant.prompt_id)!.push(variant);
+      });
+
+      // Map all variants to history items
+      const historyItems: PromptHistoryItem[] = (optimizations || [])
+        .filter(variant => variant.prompts) // Only include variants with prompt data
+        .map((variant) => {
+          const prompt = variant.prompts;
+          
+          // Find the best variant for this prompt (highest score)
+          const allVariants = variantsByPrompt.get(variant.prompt_id) || [];
+          const bestVariant = allVariants.reduce((best, current) => 
+            (current.score || 0) > (best.score || 0) ? current : best
+          , allVariants[0]);
+          
+          const isBestVariant = variant.id === bestVariant.id;
+          
+          return {
+            id: variant.id,
+            title: `${prompt.ai_provider} ${prompt.model_name} ${isBestVariant ? '(Best)' : 'Variant'}`,
+            description: isBestVariant 
+              ? `Top performing variant (Score: ${(variant.score || 0).toFixed(2)})`
+              : `Variant optimization (Score: ${(variant.score || 0).toFixed(2)})`,
+            prompt: prompt.original_prompt,
+            output: variant.variant_prompt || 'Optimization in progress...',
+            sampleOutput: variant.ai_response || undefined,
+            provider: prompt.ai_provider,
+            outputType: prompt.output_type || 'Code',
+            score: variant.score || 0,
+            timestamp: new Date(variant.created_at).toLocaleString(),
+            tags: [prompt.ai_provider?.toLowerCase?.() || 'provider', (prompt.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
+            isFavorite: false,
+            isBestVariant,
+          };
+        });
 
       console.log('Loaded history items from Supabase:', historyItems.length);
       setHistoryItems(historyItems);

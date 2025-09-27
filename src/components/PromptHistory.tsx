@@ -18,7 +18,8 @@ import {
   Calendar,
   TrendingUp,
   Download,
-  Share2
+  Share2,
+  Trophy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -299,7 +300,7 @@ export const PromptHistory = () => {
       <div className="space-y-4">
         {filteredItems.map((item, index) => {
           const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
-          // Only show top performer star for items explicitly marked as best variant by AI
+          // Show top performer badge for the best variant (regardless of actual score)
           const isTopPerformer = item.isBestVariant === true;
           
           return (
@@ -310,8 +311,10 @@ export const PromptHistory = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <h3 className="text-lg font-semibold">{item.title}</h3>
-                      {isHighestRated && <Badge variant="outline" className="text-primary border-primary">🏆 Highest Rated</Badge>}
-                      {isTopPerformer && !isHighestRated && <Badge variant="outline" className="text-success border-success">⭐ Top Performer</Badge>}
+                      {isTopPerformer && <Badge variant="outline" className="text-primary border-primary bg-primary/10">
+                        <Trophy className="h-3 w-3 mr-1" />
+                        Top Performer
+                      </Badge>}
                       {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
                     </div>
                   <p className="text-muted-foreground text-sm mb-3">{item.description}</p>
