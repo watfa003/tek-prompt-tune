@@ -156,6 +156,28 @@ export const PromptHistory = () => {
   const renderHistoryItem = (item: PromptHistoryItem, index: number) => {
     const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
     const isTopPerformer = item.isBestVariant === true;
+    
+    // Determine if this is the best variant in its session when showing all variants
+    let isBestInSession = false;
+    if (!settings.showOnlyBestInHistory) {
+      // Group all history items by session to find the best variant
+      const timestamp = new Date(item.timestamp).getTime();
+      const roundedTime = Math.floor(timestamp / (10 * 60 * 1000)); // 10-minute windows
+      const sessionKey = `${item.prompt.substring(0, 100)}_${roundedTime}`;
+      
+      const sessionItems = historyItems.filter(historyItem => {
+        const historyTimestamp = new Date(historyItem.timestamp).getTime();
+        const historyRoundedTime = Math.floor(historyTimestamp / (10 * 60 * 1000));
+        const historySessionKey = `${historyItem.prompt.substring(0, 100)}_${historyRoundedTime}`;
+        return historySessionKey === sessionKey;
+      });
+      
+      // Check if this item has the highest score in its session
+      const bestInSession = sessionItems.reduce((best, current) => 
+        current.score > best.score ? current : best
+      );
+      isBestInSession = item.id === bestInSession.id && sessionItems.length > 1;
+    }
 
     return (
       <Card key={item.id} className={`p-6 hover:shadow-card transition-shadow ${isHighestRated ? 'ring-2 ring-primary shadow-lg' : ''}`}>
@@ -165,6 +187,12 @@ export const PromptHistory = () => {
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
                 <h3 className="text-lg font-semibold">{item.title}</h3>
+                {isBestInSession && (
+                  <Badge variant="outline" className="text-success border-success bg-success/10">
+                    <Trophy className="h-3 w-3 mr-1" />
+                    Best Variant
+                  </Badge>
+                )}
                 {isTopPerformer && (
                   <Badge variant="outline" className="text-primary border-primary bg-primary/10">
                     <Trophy className="h-3 w-3 mr-1" />
