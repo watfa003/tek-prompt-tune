@@ -55,7 +55,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
-  // Load analytics data
+  // Load analytics data from history items
   const loadAnalytics = useCallback(async () => {
     try {
       const { data: user } = await supabase.auth.getUser();
@@ -67,31 +67,117 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setAnalytics(cached);
       }
 
-      // Calculate analytics from prompts
-      const { data: prompts } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('user_id', user.user.id);
+      // Calculate analytics from current history items
+      if (historyItems.length > 0) {
+        // Calculate score distribution
+        const scoreDistribution = {
+          excellent: historyItems.filter(item => item.score >= 0.8).length,
+          good: historyItems.filter(item => item.score >= 0.6 && item.score < 0.8).length,
+          average: historyItems.filter(item => item.score >= 0.4 && item.score < 0.6).length,
+          poor: historyItems.filter(item => item.score < 0.4).length,
+        };
 
-      if (prompts) {
+        // Calculate success rate (score >= 0.6)
+        const successfulPrompts = historyItems.filter(item => item.score >= 0.6).length;
+        const successRate = historyItems.length > 0 ? (successfulPrompts / historyItems.length) * 100 : 0;
+
+        // Calculate provider stats
+        const providerStats: Record<string, { count: number; avgScore: number; totalScore: number }> = {};
+        historyItems.forEach(item => {
+          if (!providerStats[item.provider]) {
+            providerStats[item.provider] = { count: 0, avgScore: 0, totalScore: 0 };
+          }
+          providerStats[item.provider].count++;
+          providerStats[item.provider].totalScore += item.score;
+          providerStats[item.provider].avgScore = providerStats[item.provider].totalScore / providerStats[item.provider].count;
+        });
+
+        // Calculate output type stats
+        const outputTypeStats: Record<string, { count: number; avgScore: number; totalScore: number }> = {};
+        historyItems.forEach(item => {
+          if (!outputTypeStats[item.outputType]) {
+            outputTypeStats[item.outputType] = { count: 0, avgScore: 0, totalScore: 0 };
+          }
+          outputTypeStats[item.outputType].count++;
+          outputTypeStats[item.outputType].totalScore += item.score;
+          outputTypeStats[item.outputType].avgScore = outputTypeStats[item.outputType].totalScore / outputTypeStats[item.outputType].count;
+        });
+
+        // Calculate average score
+        const totalScore = historyItems.reduce((sum, item) => sum + item.score, 0);
+        const averageScore = historyItems.length > 0 ? totalScore / historyItems.length : 0;
+
+        // Determine improvement trend (simple logic based on recent vs older performance)
+        const recentItems = historyItems.slice(0, Math.min(10, Math.floor(historyItems.length / 3)));
+        const olderItems = historyItems.slice(-Math.min(10, Math.floor(historyItems.length / 3)));
+        const recentAvg = recentItems.length > 0 ? recentItems.reduce((sum, item) => sum + item.score, 0) / recentItems.length : 0;
+        const olderAvg = olderItems.length > 0 ? olderItems.reduce((sum, item) => sum + item.score, 0) / olderItems.length : 0;
+        
+        let improvementTrend = 'stable';
+        if (recentAvg > olderAvg + 0.05) improvementTrend = 'improving';
+        else if (recentAvg < olderAvg - 0.05) improvementTrend = 'declining';
+
+        // Generate insights based on data
+        const insights: string[] = [];
+        const topProvider = Object.entries(providerStats).reduce((best, [name, stats]) => 
+          stats.avgScore > best.score ? { name, score: stats.avgScore } : best
+        , { name: '', score: 0 });
+        
+        if (topProvider.name) {
+          insights.push(`Your best performing AI provider is ${topProvider.name} with an average score of ${(topProvider.score * 100).toFixed(1)}%`);
+        }
+        
+        if (successRate > 80) {
+          insights.push(`Excellent work! ${successRate.toFixed(1)}% of your prompts score above 60%`);
+        } else if (successRate < 50) {
+          insights.push(`Consider experimenting with different optimization strategies to improve your success rate (currently ${successRate.toFixed(1)}%)`);
+        }
+
+        if (improvementTrend === 'improving') {
+          insights.push('Your recent optimizations are performing better than your earlier ones - keep up the great work!');
+        }
+
         const analytics = {
           overview: {
-            totalPrompts: prompts.length,
-            completedPrompts: prompts.filter(p => p.status === 'completed').length,
-            averageScore: prompts.reduce((sum, p) => sum + (p.score || 0), 0) / prompts.length,
+            totalPrompts: historyItems.length,
+            completedPrompts: historyItems.length, // All loaded items are completed
+            averageScore,
+            totalOptimizations: historyItems.length,
+            totalChatSessions: 0, // This would need to be fetched from chat_sessions table
+            totalTokensUsed: 0, // This would need token data
+            successRate,
           },
           performance: {
-            dailyStats: [],
+            scoreDistribution,
+            averageScore,
+            improvementTrend,
+            dailyStats: [], // Could be calculated by grouping by date
           },
-          recentActivity: prompts.slice(0, 10).map(p => ({
-            id: p.id,
+          usage: {
+            providerStats,
+            modelStats: {}, // Could extract from titles/tags
+            outputTypeStats,
+            tokenAnalytics: {
+              total: 0,
+              average: 0,
+              trend: 'stable',
+            },
+          },
+          engagement: {
+            chatSessions: 0,
+            avgMessagesPerSession: 0,
+            activePrompts: historyItems.length,
+          },
+          recentActivity: historyItems.slice(0, 10).map(item => ({
+            id: item.id,
             type: 'prompt_optimization',
-            score: p.score || 0,
-            provider: p.ai_provider,
-            model: p.model_name,
-            createdAt: p.created_at,
-            status: p.status || 'completed',
+            score: item.score,
+            provider: item.provider,
+            model: 'N/A', // Could extract from title
+            createdAt: item.timestamp,
+            status: 'completed',
           })),
+          insights,
         };
 
         setAnalytics(analytics);
@@ -100,7 +186,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (error) {
       console.error('Error loading analytics:', error);
     }
-  }, [loadFromCache, saveToCache]);
+  }, [loadFromCache, saveToCache, historyItems]);
 
   // Load initial data from Supabase with full prompt data
   const loadInitialData = useCallback(async () => {
@@ -203,12 +289,19 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         })));
       }
       
-      // Load analytics
+      // Load analytics after loading history
       await loadAnalytics();
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
   }, [loadFromCache, saveToCache, loadAnalytics]);
+
+  // Reload analytics whenever history items change
+  useEffect(() => {
+    if (historyItems.length > 0) {
+      loadAnalytics();
+    }
+  }, [historyItems, loadAnalytics]);
 
   // Add prompt to history
   const addPromptToHistory = useCallback(async (item: PromptHistoryItem) => {
