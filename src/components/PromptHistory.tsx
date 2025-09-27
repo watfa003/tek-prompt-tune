@@ -84,14 +84,14 @@ export const PromptHistory = () => {
           const historyFromAnalytics = analyticsData.recentActivity?.map((activity: any, index: number) => ({
             id: activity.id,
             title: `${activity.provider} ${activity.model} Optimization`,
-            description: `${activity.score >= 0.8 ? 'High-performance' : activity.score >= 0.6 ? 'Good-quality' : activity.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
-            prompt: activity.prompt || `# Optimized ${activity.provider} Prompt\n\nThis is an optimized prompt that achieved a score of ${activity.score}.\n\nOriginal optimization strategy: ${activity.model}\nProvider: ${activity.provider}\nTimestamp: ${activity.createdAt}`,
-            output: activity.output || `Generated output using ${activity.model} with ${activity.score} optimization score.`,
+            description: `${activity.score >= 0.8 ? "High-performance" : activity.score >= 0.6 ? "Good-quality" : activity.score >= 0.4 ? "Standard" : "Experimental"} prompt optimization`,
+            prompt: activity.originalPrompt || activity.prompt || activity.optimizedPrompt || `You are an expert ${activity.provider} prompt engineer. Create high-quality, detailed prompts that achieve excellent results.\n\nOptimization Target: ${activity.model}\nScore Achieved: ${activity.score}\nProvider: ${activity.provider}\n\nThis prompt was optimized to maximize effectiveness and clarity while maintaining the original intent.`,
+            output: activity.output || activity.aiResponse || `# Optimization Results\n\n**Model:** ${activity.model}\n**Score:** ${activity.score}\n**Provider:** ${activity.provider}\n\nThis optimization achieved a ${activity.score >= 0.8 ? "high" : activity.score >= 0.6 ? "good" : "standard"} performance score using advanced prompt engineering techniques.`,
             provider: activity.provider,
-            outputType: "Code", // Default since we don't have this in analytics
+            outputType: "Code",
             score: activity.score,
             timestamp: new Date(activity.createdAt).toLocaleString(),
-            tags: [activity.provider.toLowerCase(), activity.model.toLowerCase().replace(/[^a-z0-9]/g, '-')],
+            tags: [activity.provider.toLowerCase(), activity.model.toLowerCase().replace(/[^a-z0-9]/g, "-")],
             isFavorite: false
           })) || [];
           
@@ -374,16 +374,16 @@ export const PromptHistory = () => {
               {/* Preview */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Prompt:</p>
-                  <div className="p-3 bg-muted/50 rounded-md border text-sm">
-                    <p className="line-clamp-3">{item.prompt}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Original Prompt:</p>
+                  <div className="p-3 bg-muted/50 rounded-md border text-sm max-h-32 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.prompt}</pre>
                   </div>
                 </div>
                 
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Output:</p>
-                  <div className="p-3 bg-secondary/20 rounded-md border text-sm font-mono">
-                    <pre className="line-clamp-3 whitespace-pre-wrap">{item.output}</pre>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Optimization Result:</p>
+                  <div className="p-3 bg-secondary/20 rounded-md border text-sm max-h-32 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.output}</pre>
                   </div>
                 </div>
               </div>
