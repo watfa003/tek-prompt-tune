@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-// Shared types kept minimal to avoid conflicts
 export interface PromptHistoryItem {
   id: string;
   title: string;
@@ -22,123 +21,204 @@ interface PromptDataContextValue {
   historyItems: PromptHistoryItem[];
   analytics: any;
   loading: boolean;
-  toggleFavorite: (id: string) => void;
-  addPromptToHistory: (prompt: PromptHistoryItem) => Promise<void>;
+  toggleFavorite: (id: string) => Promise<void>;
+  addPromptToHistory: (item: PromptHistoryItem) => Promise<void>;
   hasLocalChanges: boolean;
 }
 
-const PromptDataContext = createContext<PromptDataContextValue | undefined>(undefined);
+const PromptDataContext = createContext<PromptDataContextValue | null>(null);
 
 export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const initializedRef = useRef(false);
   const [historyItems, setHistoryItems] = useState<PromptHistoryItem[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
-  const [loading, setLoading] = useState(false); // Default to false, only show loading for new users
+  const [loading, setLoading] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [hasLocalChanges, setHasLocalChanges] = useState(false);
   const [pendingQueue, setPendingQueue] = useState<PromptHistoryItem[]>([]);
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
+  const initializedRef = useRef(false);
 
-  // Cache keys
-  const getCacheKey = (userId: string, type: string) => `prompt_${type}_${userId}`;
-
-  // Load from localStorage immediately
-  const loadFromCache = useCallback((userId: string) => {
+  // Cache management
+  const CACHE_VERSION = 'v2';
+  const loadFromCache = useCallback((userId: string, key: string) => {
     try {
-      const cachedHistory = localStorage.getItem(getCacheKey(userId, 'history'));
-      const cachedAnalytics = localStorage.getItem(getCacheKey(userId, 'analytics'));
-      const cachedFavorites = localStorage.getItem(getCacheKey(userId, 'favorites'));
+      const cached = localStorage.getItem(`prompt_data_${CACHE_VERSION}_${userId}_${key}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+      console.warn('Cache load error:', error);
+      return null;
+    }
+  }, []);
 
-      if (cachedHistory) {
-        const historyData = JSON.parse(cachedHistory);
-        setHistoryItems(historyData);
-      }
+  const saveToCache = useCallback((userId: string, key: string, data: any) => {
+    try {
+      localStorage.setItem(`prompt_data_${CACHE_VERSION}_${userId}_${key}`, JSON.stringify(data));
+    } catch (error) {
+      console.warn('Cache save error:', error);
+    }
+  }, []);
 
+  // Load analytics
+  const loadAnalytics = useCallback(async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      // Try to load from cache first
+      const cachedAnalytics = loadFromCache(user.user.id, 'analytics');
       if (cachedAnalytics) {
-        const analyticsData = JSON.parse(cachedAnalytics);
-        setAnalytics(analyticsData);
+        setAnalytics(cachedAnalytics);
       }
 
-      if (cachedFavorites) {
-        const favoritesData = JSON.parse(cachedFavorites);
-        setFavoriteIds(new Set(favoritesData));
-      }
+      // Calculate analytics from recent prompts
+      const { data: prompts } = await supabase
+        .from('prompts')
+        .select('score, created_at, ai_provider, model_name, status')
+        .eq('user_id', user.user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-      return {
-        hasHistory: !!cachedHistory,
-        hasAnalytics: !!cachedAnalytics,
-        hasFavorites: !!cachedFavorites
-      };
-    } catch (error) {
-      console.error('Error loading from cache:', error);
-      return { hasHistory: false, hasAnalytics: false, hasFavorites: false };
-    }
-  }, []);
-
-  // Save to localStorage
-  const saveToCache = useCallback((userId: string, type: string, data: any) => {
-    try {
-      localStorage.setItem(getCacheKey(userId, type), JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving to cache:', error);
-    }
-  }, []);
-
-  // Add prompt to history with local-first approach
-  const addPromptToHistory = useCallback(async (prompt: PromptHistoryItem): Promise<void> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Immediately add to local state and cache
-      setHistoryItems((prev) => {
-        const exists = prev.some(existing => existing.id === prompt.id);
-        if (exists) return prev;
+      if (prompts) {
+        const analytics = {
+          overview: {
+            totalPrompts: prompts.length,
+            completedPrompts: prompts.filter(p => p.status === 'completed').length,
+            averageScore: prompts.length > 0 ? prompts.reduce((sum, p) => sum + (p.score || 0), 0) / prompts.length : 0,
+          },
+          performance: {
+            dailyStats: [], // Could be calculated from prompts
+          },
+          recentActivity: prompts.slice(0, 10).map((p, i) => ({
+            id: p.ai_provider + i,
+            type: 'prompt_optimization',
+            score: p.score || 0,
+            provider: p.ai_provider,
+            model: p.model_name,
+            createdAt: p.created_at,
+            status: p.status || 'completed',
+          })),
+        };
         
-        const updated = [prompt, ...prev];
-        // Save to localStorage immediately
-        saveToCache(user.id, 'history', updated);
+        setAnalytics(analytics);
+        saveToCache(user.user.id, 'analytics', analytics);
+      }
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    }
+  }, [loadFromCache, saveToCache]);
+
+  // Load initial data from Supabase with full prompt data
+  const loadInitialData = useCallback(async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      // Load cached data instantly for immediate display
+      const cachedHistory = loadFromCache(user.user.id, 'history') as PromptHistoryItem[] | null;
+      const cachedFavorites = loadFromCache(user.user.id, 'favorites') as string[] | null;
+      
+      if (cachedHistory) {
+        setHistoryItems(cachedHistory);
+        console.log('Loaded cached history:', cachedHistory.length);
+      }
+      
+      if (cachedFavorites) {
+        setFavoriteIds(new Set(cachedFavorites));
+      }
+
+      // Fetch recent prompts with full data from Supabase
+      const { data: prompts, error: promptsError } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('user_id', user.user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (promptsError) throw promptsError;
+
+      // Fetch optimization history for sample outputs
+      const promptIds = prompts?.map(p => p.id) || [];
+      const { data: optimizations, error: optError } = await supabase
+        .from('optimization_history')
+        .select('*')
+        .in('prompt_id', promptIds)
+        .order('score', { ascending: false });
+
+      if (optError) console.warn('Could not fetch optimizations:', optError);
+
+      // Map prompts to history items with sample output
+      const historyItems: PromptHistoryItem[] = prompts?.map((prompt) => {
+        // Find the best optimization result for sample output
+        const bestOpt = optimizations?.find(opt => opt.prompt_id === prompt.id);
+        
+        return {
+          id: prompt.id,
+          title: `${prompt.ai_provider} ${prompt.model_name} Optimization`,
+          description: `${prompt.score >= 0.8 ? 'High-performance' : prompt.score >= 0.6 ? 'Good-quality' : prompt.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
+          prompt: prompt.original_prompt,
+          output: prompt.optimized_prompt || 'Optimization in progress...',
+          sampleOutput: bestOpt?.ai_response || undefined,
+          provider: prompt.ai_provider,
+          outputType: prompt.output_type || 'Code',
+          score: prompt.score || 0,
+          timestamp: new Date(prompt.created_at).toLocaleString(),
+          tags: [prompt.ai_provider?.toLowerCase?.() || 'provider', (prompt.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
+          isFavorite: false,
+          isBestVariant: true,
+        };
+      }) || [];
+
+      console.log('Loaded history items from Supabase:', historyItems.length);
+      setHistoryItems(historyItems);
+      saveToCache(user.user.id, 'history', historyItems);
+      
+      // Load favorites
+      const { data: favorites } = await supabase
+        .from('user_favorites')
+        .select('item_id')
+        .eq('user_id', user.user.id);
+
+      if (favorites) {
+        const favoriteIds = new Set(favorites.map(f => f.item_id));
+        setFavoriteIds(favoriteIds);
+        saveToCache(user.user.id, 'favorites', Array.from(favoriteIds));
+        
+        // Update history items with favorite status
+        setHistoryItems(prev => prev.map(item => ({
+          ...item,
+          isFavorite: favoriteIds.has(item.id)
+        })));
+      }
+      
+      // Load analytics
+      await loadAnalytics();
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    }
+  }, [loadFromCache, saveToCache, loadAnalytics]);
+
+  // Add prompt to history
+  const addPromptToHistory = useCallback(async (item: PromptHistoryItem) => {
+    try {
+      // Add to state and cache immediately (local-first)
+      setHistoryItems((prev) => {
+        const exists = prev.some(h => h.id === item.id);
+        if (exists) return prev;
+        const updated = [item, ...prev];
+        
+        // Save to cache async
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) saveToCache(user.id, 'history', updated);
+        });
+        
         return updated;
       });
       
+      console.log('Added prompt to local history:', item.title);
       setHasLocalChanges(true);
-      
-      // Try to sync to Supabase in background
-      try {
-        // Attempt to save to Supabase
-        // Note: This assumes the prompt was already saved by the edge function
-        // This is just for updating local analytics
-        setAnalytics((prev: any) => {
-          if (!prev) return prev;
-          const newActivity = {
-            id: prompt.id,
-            type: 'prompt_optimization',
-            score: prompt.score,
-            provider: prompt.provider,
-            model: prompt.tags[1] || 'unknown',
-            createdAt: new Date().toISOString(),
-            status: 'completed',
-          };
-          const updated = {
-            ...prev,
-            overview: {
-              ...prev.overview,
-              totalPrompts: (prev.overview?.totalPrompts || 0) + 1,
-              completedPrompts: (prev.overview?.completedPrompts || 0) + 1,
-            },
-            recentActivity: [newActivity, ...(prev.recentActivity || [])].slice(0, 10),
-          };
-          saveToCache(user.id, 'analytics', updated);
-          return updated;
-        });
-        
-        setHasLocalChanges(false);
-      } catch (error) {
-        console.error('Failed to sync prompt to backend, queuing for retry:', error);
-        setPendingQueue(prev => [...prev, prompt]);
-      }
     } catch (error) {
-      console.error('Error adding prompt to history:', error);
-      throw error;
+      console.error('Error adding to history:', error);
+      // Queue for retry
+      setPendingQueue(prev => [...prev, item]);
     }
   }, [saveToCache]);
 
@@ -146,48 +226,27 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const retryQueuedPrompts = useCallback(async () => {
     if (pendingQueue.length === 0) return;
     
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    console.log('Retrying queued prompts:', pendingQueue.length);
+    const successful: string[] = [];
     
-    const successfullyQueued: string[] = [];
-    
-    for (const prompt of pendingQueue) {
+    for (const item of pendingQueue) {
       try {
-        // Since the prompt was already added to local state,
-        // we just need to ensure analytics are updated
-        setAnalytics((prev: any) => {
-          if (!prev) return prev;
-          const updated = {
-            ...prev,
-            overview: {
-              ...prev.overview,
-              totalPrompts: (prev.overview?.totalPrompts || 0) + 1,
-              completedPrompts: (prev.overview?.completedPrompts || 0) + 1,
-            },
-          };
-          saveToCache(user.id, 'analytics', updated);
-          return updated;
-        });
-        
-        successfullyQueued.push(prompt.id);
+        await addPromptToHistory(item);
+        successful.push(item.id);
       } catch (error) {
-        console.error('Failed to retry queued prompt:', prompt.id, error);
+        console.error('Retry failed for:', item.id, error);
       }
     }
     
-    // Remove successfully processed items from queue
-    setPendingQueue(prev => prev.filter(p => !successfullyQueued.includes(p.id)));
-    
-    if (successfullyQueued.length > 0) {
-      setHasLocalChanges(false);
-    }
-  }, [pendingQueue, saveToCache]);
+    // Remove successful items from queue
+    setPendingQueue(prev => prev.filter(item => !successful.includes(item.id)));
+  }, [pendingQueue, addPromptToHistory]);
 
-  // Toggle favorite function
+  // Toggle favorite
   const toggleFavorite = useCallback(async (id: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
 
       const isCurrentlyFavorited = favoriteIds.has(id);
       
@@ -196,7 +255,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         await supabase
           .from('user_favorites')
           .delete()
-          .eq('user_id', user.id)
+          .eq('user_id', user.user.id)
           .eq('item_id', id);
         
         const newFavoriteIds = new Set(favoriteIds);
@@ -210,7 +269,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         await supabase
           .from('user_favorites')
           .insert({
-            user_id: user.id,
+            user_id: user.user.id,
             item_id: id,
             item_type: itemType
           });
@@ -223,12 +282,12 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Update local state and cache
       setHistoryItems((prev) => {
         const updated = prev.map((h) => (h.id === id ? { ...h, isFavorite: !isCurrentlyFavorited } : h));
-        saveToCache(user.id, 'history', updated);
+        saveToCache(user.user.id, 'history', updated);
         return updated;
       });
       
       // Update favorites cache
-      saveToCache(user.id, 'favorites', Array.from(favoriteIds));
+      saveToCache(user.user.id, 'favorites', Array.from(favoriteIds));
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
@@ -250,155 +309,52 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const init = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        // Load cached data immediately
-        const cache = loadFromCache(user.id);
-
-        // Only show loading if no cached data exists
-        if (!cache.hasHistory && !cache.hasAnalytics) {
-          setLoading(true);
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user) {
+          setLoading(false);
+          return;
         }
 
-        // Background refresh from database (only if no cache or need fresh data)
-        const refreshPromises: Promise<any>[] = [];
+        // Load initial data
+        await loadInitialData();
 
-        // Fetch analytics if not cached
-        if (!cache.hasAnalytics) {
-          refreshPromises.push(
-            (async () => {
-              try {
-                const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
-                url.searchParams.set('userId', user.id);
-                url.searchParams.set('timeframe', '7d');
-
-                const session = await supabase.auth.getSession();
-                const response = await fetch(url.toString(), {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${session.data.session?.access_token}`,
-                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA',
-                  },
-                });
-
-                if (response.ok) {
-                  const analyticsData = await response.json();
-                  setAnalytics(analyticsData);
-                  saveToCache(user.id, 'analytics', analyticsData);
-                }
-              } catch (e) {
-                console.error('Analytics fetch failed:', e);
-              }
-            })()
-          );
-        }
-
-        // Fetch favorites if not cached
-        if (!cache.hasFavorites) {
-          refreshPromises.push(
-            (async () => {
-              const { data: favoritesData } = await supabase
-                .from('user_favorites')
-                .select('item_id, item_type')
-                .eq('user_id', user.id);
-
-              const favoriteIdSet = new Set<string>();
-              favoritesData?.forEach(fav => favoriteIdSet.add(fav.item_id));
-              setFavoriteIds(favoriteIdSet);
-              saveToCache(user.id, 'favorites', Array.from(favoriteIdSet));
-            })()
-          );
-        }
-
-        // Fetch history if not cached
-        if (!cache.hasHistory) {
-          refreshPromises.push(
-            (async () => {
-              const [{ data: promptsData, error: promptsError }, { data: optimizationData, error: optimizationError }] = await Promise.all([
-                supabase.from('prompts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                supabase.from('optimization_history').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-              ]);
-
-              if (promptsError || optimizationError) {
-                console.error('Error fetching history:', { promptsError, optimizationError });
-                return;
-              }
-
-              const combined: PromptHistoryItem[] = [];
-              const currentFavorites = favoriteIds.size > 0 ? favoriteIds : new Set(cache.hasFavorites ? JSON.parse(localStorage.getItem(getCacheKey(user.id, 'favorites')) || '[]') : []);
-
-              promptsData?.forEach((p: any) => {
-                combined.push({
-                  id: p.id,
-                  title: `${p.ai_provider} ${p.model_name} Optimization`,
-                  description: `${p.score >= 0.8 ? 'High-performance' : p.score >= 0.6 ? 'Good-quality' : p.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
-                  prompt: p.original_prompt,
-                  output: p.optimized_prompt || 'Optimization in progress...',
-                  provider: p.ai_provider,
-                  outputType: p.output_type || 'Code',
-                  score: p.score || 0,
-                  timestamp: new Date(p.created_at).toLocaleString(),
-                  tags: [p.ai_provider?.toLowerCase?.() || 'provider', (p.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
-                  isFavorite: currentFavorites.has(p.id),
-                });
-              });
-
-              optimizationData?.forEach((o: any) => {
-                combined.push({
-                  id: o.id,
-                  title: `Optimization Variant - Score ${o.score?.toFixed(2) || 'N/A'}`,
-                  description: `Optimized variant with ${o.tokens_used || 'unknown'} tokens`,
-                  prompt: o.variant_prompt,
-                  output: o.ai_response || 'No response recorded',
-                  provider: 'Optimization',
-                  outputType: 'Variant',
-                  score: o.score || 0,
-                  timestamp: new Date(o.created_at).toLocaleString(),
-                  tags: ['optimization', 'variant'],
-                  isFavorite: currentFavorites.has(o.id),
-                });
-              });
-
-              combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-              setHistoryItems(combined);
-              saveToCache(user.id, 'history', combined);
-            })()
-          );
-        }
-
-        // Wait for all background refreshes
-        await Promise.all(refreshPromises);
-
-        // Setup realtime listeners for new prompts (append only)
+        // Set up real-time subscriptions
         promptsChannel = supabase
           .channel('provider-prompts')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prompts' }, (payload) => {
             console.log('New prompt inserted:', payload.new);
             const np: any = payload.new;
-            if (np.user_id !== user.id) return; // Guard: only current user's events
-            const item: PromptHistoryItem = {
+            if (np.user_id !== user.user.id) return; // Guard
+            
+            const makeItem = (): PromptHistoryItem => ({
               id: np.id,
               title: `${np.ai_provider} ${np.model_name} Optimization`,
               description: `${np.score >= 0.8 ? 'High-performance' : np.score >= 0.6 ? 'Good-quality' : np.score >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
               prompt: np.original_prompt,
               output: np.optimized_prompt || 'Optimization in progress...',
+              sampleOutput: undefined, // Will be populated when optimization_history is updated
               provider: np.ai_provider,
               outputType: np.output_type || 'Code',
               score: np.score || 0,
               timestamp: new Date(np.created_at).toLocaleString(),
               tags: [np.ai_provider?.toLowerCase?.() || 'provider', (np.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
               isFavorite: false,
-            };
+              isBestVariant: true,
+            });
             
+            let wasNew = false;
             setHistoryItems((prev) => {
-              // Check if item already exists to avoid duplicates
-              const exists = prev.some(existing => existing.id === item.id);
-              if (exists) return prev;
-              
-              const updated = [item, ...prev];
-              saveToCache(user.id, 'history', updated);
-              console.log('Added new prompt to history:', item.title);
+              const idx = prev.findIndex(i => i.id === np.id);
+              let updated: PromptHistoryItem[];
+              if (idx === -1) {
+                // New item
+                wasNew = true;
+                updated = [makeItem(), ...prev];
+              } else {
+                updated = prev.map((item, i) => i === idx ? { ...item, ...makeItem(), isFavorite: item.isFavorite, sampleOutput: item.sampleOutput } : item);
+              }
+              saveToCache(user.user.id, 'history', updated);
+              console.log(idx === -1 ? 'Added new prompt to history:' : 'Updated prompt in history:', np.id);
               return updated;
             });
 
@@ -423,14 +379,14 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 },
                 recentActivity: [newActivity, ...(prev.recentActivity || [])].slice(0, 10),
               };
-              saveToCache(user.id, 'analytics', updated);
+              saveToCache(user.user.id, 'analytics', updated);
               return updated;
             });
           })
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'prompts' }, (payload) => {
             console.log('Prompt updated:', payload.new);
             const np: any = payload.new;
-            if (np.user_id !== user.id) return; // Guard
+            if (np.user_id !== user.user.id) return; // Guard
             
             const makeItem = (): PromptHistoryItem => ({
               id: np.id,
@@ -444,6 +400,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               timestamp: new Date(np.created_at).toLocaleString(),
               tags: [np.ai_provider?.toLowerCase?.() || 'provider', (np.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
               isFavorite: false,
+              isBestVariant: true,
             });
             
             let wasNew = false;
@@ -455,9 +412,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 wasNew = true;
                 updated = [makeItem(), ...prev];
               } else {
-                updated = prev.map((item, i) => i === idx ? { ...item, ...makeItem(), isFavorite: item.isFavorite } : item);
+                updated = prev.map((item, i) => i === idx ? { ...item, ...makeItem(), isFavorite: item.isFavorite, sampleOutput: item.sampleOutput } : item);
               }
-              saveToCache(user.id, 'history', updated);
+              saveToCache(user.user.id, 'history', updated);
               console.log(idx === -1 ? 'Upserted missing prompt on UPDATE' : 'Patched prompt on UPDATE', np.id);
               return updated;
             });
@@ -483,7 +440,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 },
                 recentActivity: [newActivity, ...(prev.recentActivity || [])].slice(0, 10),
               };
-              saveToCache(user.id, 'analytics', updated);
+              saveToCache(user.user.id, 'analytics', updated);
               return updated;
             });
           })
@@ -494,62 +451,46 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'optimization_history' }, (payload) => {
             console.log('New optimization inserted:', payload.new);
             const no: any = payload.new;
-            if (no.user_id !== user.id) return; // Guard
-            const item: PromptHistoryItem = {
-              id: no.id,
-              title: `Optimization Variant - Score ${no.score?.toFixed(2) || 'N/A'}`,
-              description: `Optimized variant with ${no.tokens_used || 'unknown'} tokens`,
-              prompt: no.variant_prompt,
-              output: no.ai_response || 'No response recorded',
-              provider: 'Optimization',
-              outputType: 'Variant',
-              score: no.score || 0,
-              timestamp: new Date(no.created_at).toLocaleString(),
-              tags: ['optimization', 'variant'],
-              isFavorite: false,
-            };
+            if (no.user_id !== user.user.id) return; // Guard
             
+            // Update the corresponding prompt's sample output
             setHistoryItems((prev) => {
-              // Check if item already exists to avoid duplicates
-              const exists = prev.some(existing => existing.id === item.id);
-              if (exists) return prev;
-              
-              const updated = [item, ...prev];
-              saveToCache(user.id, 'history', updated);
-              console.log('Added new optimization to history:', item.title);
+              const updated = prev.map(item => {
+                if (item.id === no.prompt_id) {
+                  // Only update if this is a better score or first sample output
+                  if (!item.sampleOutput || (no.score && item.score && no.score >= item.score)) {
+                    return {
+                      ...item,
+                      sampleOutput: no.ai_response || undefined
+                    };
+                  }
+                }
+                return item;
+              });
+              saveToCache(user.user.id, 'history', updated);
+              console.log('Updated sample output for prompt:', no.prompt_id);
               return updated;
             });
           })
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'optimization_history' }, (payload) => {
             console.log('Optimization updated:', payload.new);
             const no: any = payload.new;
-            if (no.user_id !== user.id) return; // Guard
+            if (no.user_id !== user.user.id) return; // Guard
             
-            const makeItem = (): PromptHistoryItem => ({
-              id: no.id,
-              title: `Optimization Variant - Score ${no.score?.toFixed(2) || 'N/A'}`,
-              description: `Optimized variant with ${no.tokens_used || 'unknown'} tokens`,
-              prompt: no.variant_prompt,
-              output: no.ai_response || 'No response recorded',
-              provider: 'Optimization',
-              outputType: 'Variant',
-              score: no.score || 0,
-              timestamp: new Date(no.created_at).toLocaleString(),
-              tags: ['optimization', 'variant'],
-              isFavorite: false,
-            });
-            
+            // Update the corresponding prompt's sample output if this is a better result
             setHistoryItems((prev) => {
-              const idx = prev.findIndex(i => i.id === no.id);
-              let updated: PromptHistoryItem[];
-              if (idx === -1) {
-                // Missed INSERT; upsert on UPDATE
-                updated = [makeItem(), ...prev];
-              } else {
-                updated = prev.map((item, i) => i === idx ? { ...item, ...makeItem(), isFavorite: item.isFavorite } : item);
-              }
-              saveToCache(user.id, 'history', updated);
-              console.log(idx === -1 ? 'Upserted missing optimization on UPDATE' : 'Patched optimization on UPDATE', no.id);
+              const updated = prev.map(item => {
+                if (item.id === no.prompt_id) {
+                  if (!item.sampleOutput || (no.score && no.score > (item.score || 0))) {
+                    return {
+                      ...item,
+                      sampleOutput: no.ai_response || undefined
+                    };
+                  }
+                }
+                return item;
+              });
+              saveToCache(user.user.id, 'history', updated);
               return updated;
             });
           })
@@ -567,7 +508,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (promptsChannel) supabase.removeChannel(promptsChannel);
       if (optimizationChannel) supabase.removeChannel(optimizationChannel);
     };
-  }, [loadFromCache, saveToCache]);
+  }, [loadFromCache, saveToCache, loadInitialData]);
 
   const value = useMemo(
     () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges }),

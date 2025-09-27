@@ -593,13 +593,18 @@ const navigate = useNavigate();
       // Append to history immediately (local-first)
       try {
         const d: any = data;
+        // Find the best variant with actual output
+        const bestVariant = d?.variants?.reduce((best: any, current: any) => {
+          return (!best || (current.score > best.score)) ? current : best;
+        }, null);
+        
         const historyItem = {
           id: d?.promptId,
           title: `${aiProvider} ${modelName} Optimization`,
           description: `${(d?.bestScore ?? 0) >= 0.8 ? 'High-performance' : (d?.bestScore ?? 0) >= 0.6 ? 'Good-quality' : (d?.bestScore ?? 0) >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
           prompt: d?.originalPrompt || originalPrompt,
           output: d?.bestOptimizedPrompt || d?.variants?.[0]?.prompt || '',
-          sampleOutput: d?.bestActualOutput || d?.variants?.[0]?.actualOutput || '',
+          sampleOutput: bestVariant?.actualOutput || d?.bestActualOutput || '',
           provider: aiProvider,
           outputType: outputType || 'Code',
           score: d?.bestScore ?? 0,
