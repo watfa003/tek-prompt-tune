@@ -131,6 +131,28 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
 
   const startOptimization = useCallback(async (p: OptimizerPayload, opts?: { resume?: boolean }) => {
     if (runningRef.current) return; // prevent duplicate calls
+    
+    // If resuming, first check if we already have results stored that came in while away
+    if (opts?.resume) {
+      const storedResult = localStorage.getItem(`promptOptimizer_result_${p.mode}`);
+      if (storedResult) {
+        try {
+          const parsedResult = JSON.parse(storedResult);
+          console.log('Found completed results from background optimization');
+          if (p.mode === 'speed') {
+            setSpeedResult(parsedResult);
+          } else {
+            setResult(parsedResult);
+          }
+          setIsOptimizing(false);
+          runningRef.current = false;
+          return;
+        } catch (e) {
+          console.error('Error parsing stored result:', e);
+        }
+      }
+    }
+    
     runningRef.current = true;
     setError(null);
     setPayload(p);
@@ -160,9 +182,15 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       if (error) throw error;
 
       if (p.mode === 'speed') {
+        console.log('Speed optimization completed:', data);
         setSpeedResult(data);
+        // Store result for background completion detection
+        localStorage.setItem(`promptOptimizer_result_${p.mode}`, JSON.stringify(data));
       } else {
+        console.log('Deep optimization completed:', data);
         setResult(data);
+        // Store result for background completion detection
+        localStorage.setItem(`promptOptimizer_result_${p.mode}`, JSON.stringify(data));
       }
 
       await appendToHistory(data, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
@@ -188,7 +216,16 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   // Resume on load if we were optimizing and have payload but no results
   useEffect(() => {
     if (isOptimizing && payload && !result && !speedResult && !runningRef.current) {
-      startOptimization(payload, { resume: true });
+      console.log('Resuming background optimization...');
+      // Check if optimization actually completed while away
+      setTimeout(() => {
+        if (runningRef.current) {
+          console.log('Still running, will continue...');
+        } else {
+          console.log('Attempting to resume optimization');
+          startOptimization(payload, { resume: true });
+        }
+      }, 100);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
