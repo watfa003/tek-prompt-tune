@@ -227,7 +227,7 @@ Instructions:
           optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         }
         
-        if (outputType && outputType !== 'text') {
+        if (!isPromptCreationRequest && outputType && outputType !== 'text') {
           optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
         }
         
@@ -254,43 +254,49 @@ Instructions:
           return null;
         }
 
-        // Test the optimized prompt with the user's selected model
+        // Test or score
         let actualResponse = '';
         let actualScore = 0;
         
-        try {
-          console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
-          const testResponse = await callAIProvider(
-            aiProvider,
-            modelName,
-            optimizedPrompt,
-            Math.min(maxTokens, 4096),
-            temperature
-          );
-          
-          if (testResponse) {
-            actualResponse = testResponse;
-            // Score based on the actual response from the user's selected model
-            // Use fast evaluation for very long responses (over 2 pages)
-            const responseWords = testResponse.split(' ').length;
-            if (responseWords > 1500) { // Roughly 2 pages
-              console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
-              actualScore = fastSkimEvaluation(testResponse, strategy.weight);
+        if (isPromptCreationRequest) {
+          // Do not run the optimized prompt; the user asked for a prompt, not execution
+          actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
+          console.log('Creation mode: generated prompt from instructions. Skipping execution test.');
+        } else {
+          try {
+            console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
+            const testResponse = await callAIProvider(
+              aiProvider,
+              modelName,
+              optimizedPrompt,
+              Math.min(maxTokens, 4096),
+              temperature
+            );
+            
+            if (testResponse) {
+              actualResponse = testResponse;
+              // Score based on the actual response from the user's selected model
+              // Use fast evaluation for very long responses (over 2 pages)
+              const responseWords = testResponse.split(' ').length;
+              if (responseWords > 1500) { // Roughly 2 pages
+                console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
+                actualScore = fastSkimEvaluation(testResponse, strategy.weight);
+              } else {
+                actualScore = evaluateOutput(testResponse, strategy.weight);
+              }
+              console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
             } else {
-              actualScore = evaluateOutput(testResponse, strategy.weight);
+              // Fallback to scoring the optimized prompt if response fails
+              actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
+              actualResponse = `Optimization completed using ${strategy.name} strategy`;
+              console.log(`Using fallback scoring for strategy: ${strategyKey}`);
             }
-            console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
-          } else {
-            // Fallback to scoring the optimized prompt if response fails
+          } catch (error) {
+            console.error(`Error testing with user model ${modelName}:`, error);
+            // Fallback to scoring the optimized prompt
             actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
             actualResponse = `Optimization completed using ${strategy.name} strategy`;
-            console.log(`Using fallback scoring for strategy: ${strategyKey}`);
           }
-        } catch (error) {
-          console.error(`Error testing with user model ${modelName}:`, error);
-          // Fallback to scoring the optimized prompt
-          actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
-          actualResponse = `Optimization completed using ${strategy.name} strategy`;
         }
 
         return {
@@ -298,13 +304,13 @@ Instructions:
           strategy: strategy.name,
           score: actualScore,
           response: actualResponse,
-          metrics: {
-            tokens_used: optimizedPrompt.length,
-            response_length: actualResponse.length,
-            prompt_length: originalPrompt.length,
-            strategy_weight: strategy.weight * 100,
-            tested_with_target_model: actualResponse !== `Optimization completed using ${strategy.name} strategy`
-          }
+            metrics: {
+              tokens_used: optimizedPrompt.length,
+              response_length: actualResponse.length,
+              prompt_length: originalPrompt.length,
+              strategy_weight: strategy.weight * 100,
+              tested_with_target_model: (!isPromptCreationRequest) && (actualResponse !== `Optimization completed using ${strategy.name} strategy`)
+            }
         };
 
       } catch (error) {
