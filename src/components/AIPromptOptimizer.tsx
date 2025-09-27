@@ -36,6 +36,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { usePromptData } from '@/context/PromptDataContext';
 
 interface OptimizationResult {
   promptId: string;
@@ -495,7 +496,8 @@ export const AIPromptOptimizer: React.FC = () => {
   const { settings } = useSettings();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+const navigate = useNavigate();
+  const { addPromptToHistory } = usePromptData();
 
   // State for the optimizer functionality
   const [originalPrompt, setOriginalPrompt] = useState('');
@@ -586,6 +588,29 @@ export const AIPromptOptimizer: React.FC = () => {
       } else {
         setResult(data);
         setShowRating(true);
+      }
+
+      // Append to history immediately (local-first)
+      try {
+        const d: any = data;
+        const historyItem = {
+          id: d?.promptId,
+          title: `${aiProvider} ${modelName} Optimization`,
+          description: `${(d?.bestScore ?? 0) >= 0.8 ? 'High-performance' : (d?.bestScore ?? 0) >= 0.6 ? 'Good-quality' : (d?.bestScore ?? 0) >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
+          prompt: d?.originalPrompt || originalPrompt,
+          output: d?.bestOptimizedPrompt || d?.variants?.[0]?.prompt || '',
+          provider: aiProvider,
+          outputType: outputType || 'Code',
+          score: d?.bestScore ?? 0,
+          timestamp: new Date().toLocaleString(),
+          tags: [aiProvider?.toLowerCase?.() || 'provider', (modelName || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
+          isFavorite: false,
+        } as const;
+        if (historyItem.id) {
+          await addPromptToHistory(historyItem as any);
+        }
+      } catch (e) {
+        console.error('Failed to append to local history', e);
       }
 
       toast({
