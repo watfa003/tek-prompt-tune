@@ -44,6 +44,8 @@ export const PromptHistory = () => {
   
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
 
+  const [isNavigating, setIsNavigating] = useState(false);
+
   // When selecting for influence, auto-switch to favorites tab
   React.useEffect(() => {
     if (isSelectingForInfluence) {
@@ -404,7 +406,9 @@ export const PromptHistory = () => {
                 </div>
                 
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Optimization Result:</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                    {isSelectingForInfluence ? "Optimized Prompt (Will be used for influence):" : "Optimization Result:"}
+                  </p>
                   <div className="p-3 bg-secondary/20 rounded-md border text-sm max-h-32 overflow-y-auto">
                     <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.output}</pre>
                   </div>
@@ -439,16 +443,29 @@ export const PromptHistory = () => {
                 <Button 
                   size="sm" 
                   variant="outline"
-                  onClick={() => {
+                  onClick={async () => {
                     if (isSelectingForInfluence) {
-                      console.log('Favorite selected for influence:', item.prompt);
-                      navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.prompt)}&selectedType=favorite`);
+                      setIsNavigating(true);
+                      console.log('Favorite selected for influence:', item.output);
+                      // Use the optimized prompt (output) instead of original prompt
+                      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for smooth transition
+                      navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.output)}&selectedType=favorite`);
                     }
                   }}
+                  disabled={isNavigating}
                   style={{ display: isSelectingForInfluence ? 'flex' : 'none' }}
                 >
-                  <Play className="h-3 w-3 mr-1" />
-                  Select for Influence
+                  {isNavigating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                      Selecting...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-3 w-3 mr-1" />
+                      Select for Influence
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
