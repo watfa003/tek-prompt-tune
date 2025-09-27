@@ -63,6 +63,448 @@ interface OptimizationResult {
   };
 }
 
+// Shared UI Component for both tabs
+const PromptOptimizerForm = ({ 
+  mode, 
+  taskDescription, 
+  setTaskDescription,
+  originalPrompt,
+  setOriginalPrompt,
+  selectedProvider,
+  setSelectedProvider,
+  selectedLLM,
+  setSelectedLLM,
+  selectedOutputType,
+  setSelectedOutputType,
+  variants,
+  setVariants,
+  maxTokens,
+  setMaxTokens,
+  temperature,
+  setTemperature,
+  selectedInfluence,
+  setSelectedInfluence,
+  influenceType,
+  setInfluenceType,
+  influenceWeight,
+  setInfluenceWeight,
+  advancedOpen,
+  setAdvancedOpen,
+  optimizationMode,
+  setOptimizationMode,
+  onSubmit,
+  isLoading
+}: {
+  mode: 'generate' | 'optimize';
+  taskDescription: string;
+  setTaskDescription: (value: string) => void;
+  originalPrompt?: string;
+  setOriginalPrompt?: (value: string) => void;
+  selectedProvider: string;
+  setSelectedProvider: (value: string) => void;
+  selectedLLM: string;
+  setSelectedLLM: (value: string) => void;
+  selectedOutputType: string;
+  setSelectedOutputType: (value: string) => void;
+  variants: number;
+  setVariants: (value: number) => void;
+  maxTokens: number[];
+  setMaxTokens: (value: number[]) => void;
+  temperature: number[];
+  setTemperature: (value: number[]) => void;
+  selectedInfluence: string;
+  setSelectedInfluence: (value: string) => void;
+  influenceType: string;
+  setInfluenceType: (value: string) => void;
+  influenceWeight: number[];
+  setInfluenceWeight: (value: number[]) => void;
+  advancedOpen: boolean;
+  setAdvancedOpen: (value: boolean) => void;
+  optimizationMode?: 'speed' | 'deep';
+  setOptimizationMode?: (value: 'speed' | 'deep') => void;
+  onSubmit: () => void;
+  isLoading: boolean;
+}) => {
+
+  const clearInfluence = () => {
+    setInfluenceType("");
+    setSelectedInfluence("");
+  };
+
+  return (
+    <Card className="p-6 shadow-card">
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">
+            {mode === 'generate' ? 'Generate Optimized Prompts' : 'Optimize Existing Prompt'}
+          </h2>
+          <p className="text-muted-foreground">
+            {mode === 'generate' 
+              ? 'Describe your task and let our AI optimize prompts for maximum effectiveness.'
+              : 'Optimize your existing prompt using advanced AI techniques and multiple strategies.'
+            }
+          </p>
+        </div>
+
+        {/* Original Prompt for Optimize mode */}
+        {mode === 'optimize' && (
+          <div className="space-y-2">
+            <Label htmlFor="original-prompt" className="text-sm font-medium">Original Prompt</Label>
+            <Textarea
+              id="original-prompt"
+              placeholder="Enter your existing prompt to optimize..."
+              value={originalPrompt}
+              onChange={(e) => setOriginalPrompt?.(e.target.value)}
+              className="min-h-[120px] resize-none"
+            />
+          </div>
+        )}
+
+        {/* Task Description */}
+        <div className="space-y-2">
+          <Label htmlFor="task" className="text-sm font-medium">
+            {mode === 'generate' ? 'Task Description' : 'Task Description (Optional)'}
+          </Label>
+          <Textarea
+            id="task"
+            placeholder={mode === 'generate' 
+              ? "Describe what you want the AI to do..." 
+              : "Describe the context or goal for this prompt..."
+            }
+            value={taskDescription}
+            onChange={(e) => setTaskDescription(e.target.value)}
+            className="min-h-[120px] resize-none"
+          />
+        </div>
+
+        {/* Optimization Mode for Optimize tab */}
+        {mode === 'optimize' && setOptimizationMode && optimizationMode && (
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Optimization Mode</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                type="button"
+                variant={optimizationMode === 'speed' ? 'default' : 'outline'}
+                onClick={() => setOptimizationMode('speed')}
+                className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                  optimizationMode === 'speed' 
+                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105' 
+                    : 'hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <Zap className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold text-lg">⚡ Speed Mode</div>
+                    <div className="text-sm opacity-90 mt-1">Ultra-fast optimization</div>
+                    <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Under 12 seconds • Cached patterns • Quick results
+                    </div>
+                  </div>
+                </div>
+              </Button>
+              
+              <Button
+                type="button"
+                variant={optimizationMode === 'deep' ? 'default' : 'outline'}
+                onClick={() => setOptimizationMode('deep')}
+                className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                  optimizationMode === 'deep' 
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' 
+                    : 'hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <Brain className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold text-lg">🔍 Deep Mode</div>
+                    <div className="text-sm opacity-90 mt-1">Advanced AI optimization</div>
+                    <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      Slower • Full AI processing • Highest quality
+                    </div>
+                  </div>
+                </div>
+              </Button>
+            </div>
+            
+            <div className={`p-4 rounded-lg border-l-4 transition-all duration-300 ${
+              optimizationMode === 'speed' 
+                ? 'bg-yellow-50 border-yellow-400 dark:bg-yellow-950/20' 
+                : 'bg-blue-50 border-blue-400 dark:bg-blue-950/20'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                {optimizationMode === 'speed' ? <Zap className="h-4 w-4" /> : <Brain className="h-4 w-4" />}
+                <span className="font-medium">
+                  {optimizationMode === 'speed' ? 'Speed Mode Selected' : 'Deep Mode Selected'}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {optimizationMode === 'speed' 
+                  ? 'Uses cached optimization patterns and heuristics for instant results. Perfect for quick iterations and testing.'
+                  : 'Leverages multiple AI models to create the highest quality optimizations. Best for final prompts and complex requirements.'
+                }
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Influence Section */}
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <Label className="text-sm font-medium">Influence Optimization (Optional)</Label>
+          </div>
+          
+          {selectedInfluence ? (
+            <Card className="p-4 bg-primary/5 border-primary/20">
+              <div className="flex items-start justify-between space-x-3">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Badge variant="outline" className="text-xs">
+                      {influenceType === "template" ? "Template" : "Favorited Prompt"}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {influenceWeight[0]}% influence
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedInfluence}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearInfluence}
+                  className="h-auto p-1"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium text-muted-foreground">Influence Weight</Label>
+                  <span className="text-xs text-muted-foreground">{influenceWeight[0]}%</span>
+                </div>
+                <Slider
+                  value={influenceWeight}
+                  onValueChange={setInfluenceWeight}
+                  max={100}
+                  min={0}
+                  step={5}
+                  className="w-full"
+                />
+              </div>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Template Style</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <Link to="/app/templates?selectForInfluence=true">
+                    <Button variant="outline" className="w-full h-auto p-3 text-left">
+                      <div className="flex flex-col items-start space-y-1">
+                        <span className="font-medium">Browse Templates</span>
+                        <span className="text-xs text-muted-foreground">View all available templates</span>
+                      </div>
+                    </Button>
+                  </Link>
+                  <Link to="/app/history?selectForInfluence=true">
+                    <Button variant="outline" className="w-full h-auto p-3 text-left">
+                      <div className="flex flex-col items-start space-y-1">
+                        <span className="font-medium">My Favorited Prompts</span>
+                        <span className="text-xs text-muted-foreground">Choose from saved favorites</span>
+                      </div>
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Influence Weight</Label>
+                  <span className="text-sm text-muted-foreground">{influenceWeight[0]}%</span>
+                </div>
+                <Slider
+                  value={influenceWeight}
+                  onValueChange={setInfluenceWeight}
+                  max={100}
+                  min={0}
+                  step={5}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Provider and Model Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">AI Provider</Label>
+            <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select AI provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                <SelectItem value="google">Google (Gemini)</SelectItem>
+                <SelectItem value="groq">Groq</SelectItem>
+                <SelectItem value="mistral">Mistral</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">LLM Model</Label>
+            <Select value={selectedLLM} onValueChange={setSelectedLLM}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select LLM model" />
+              </SelectTrigger>
+              <SelectContent>
+                {selectedProvider === "openai" && (
+                  <>
+                    <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
+                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                  </>
+                )}
+                {selectedProvider === "anthropic" && (
+                  <>
+                    <SelectItem value="claude-opus-4-1-20250805">Claude 4 Opus</SelectItem>
+                    <SelectItem value="claude-sonnet-4-20250514">Claude 4 Sonnet</SelectItem>
+                    <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
+                  </>
+                )}
+                {selectedProvider === "google" && (
+                  <>
+                    <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                    <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
+                  </>
+                )}
+                {selectedProvider === "groq" && (
+                  <>
+                    <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
+                  </>
+                )}
+                {selectedProvider === "mistral" && (
+                  <>
+                    <SelectItem value="mistral-large">Mistral Large</SelectItem>
+                    <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Output Type</Label>
+            <Select value={selectedOutputType} onValueChange={setSelectedOutputType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select output type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Text</SelectItem>
+                <SelectItem value="code">Code</SelectItem>
+                <SelectItem value="json">JSON</SelectItem>
+                <SelectItem value="list">List</SelectItem>
+                <SelectItem value="essay">Essay</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Variants Selection */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Variants to Generate</Label>
+          <Select value={variants.toString()} onValueChange={(value) => setVariants(parseInt(value))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2 Variants</SelectItem>
+              <SelectItem value="3">3 Variants</SelectItem>
+              <SelectItem value="4">4 Variants</SelectItem>
+              <SelectItem value="5">5 Variants</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Advanced Settings */}
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <div className="flex items-center space-x-2">
+                <Settings className="h-4 w-4" />
+                <span>Advanced Settings</span>
+              </div>
+              <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${advancedOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Max Tokens</Label>
+                  <span className="text-sm text-muted-foreground">{maxTokens[0]}</span>
+                </div>
+                <Slider
+                  value={maxTokens}
+                  onValueChange={setMaxTokens}
+                  max={4096}
+                  min={256}
+                  step={128}
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Temperature</Label>
+                  <span className="text-sm text-muted-foreground">{temperature[0].toFixed(1)}</span>
+                </div>
+                <Slider
+                  value={temperature}
+                  onValueChange={setTemperature}
+                  max={2}
+                  min={0}
+                  step={0.1}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Submit Button */}
+        <Button
+          onClick={onSubmit}
+          disabled={
+            (mode === 'generate' && (!taskDescription || !selectedProvider || !selectedLLM || !selectedOutputType)) ||
+            (mode === 'optimize' && (!originalPrompt?.trim() || isLoading))
+          }
+          className="w-full bg-gradient-primary"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              {mode === 'generate' ? 'Generating Prompts...' : 'Optimizing Prompt...'}
+            </>
+          ) : (
+            <>
+              {mode === 'generate' ? <Zap className="h-4 w-4 mr-2" /> : <Target className="h-4 w-4 mr-2" />}
+              {mode === 'generate' ? 'Generate Prompts' : 'Optimize Prompt'}
+            </>
+          )}
+        </Button>
+      </div>
+    </Card>
+  );
+};
+
 export const AIPromptOptimizer: React.FC = () => {
   const { settings } = useSettings();
   const { toast } = useToast();
@@ -82,8 +524,6 @@ export const AIPromptOptimizer: React.FC = () => {
   const [generateVariants, setGenerateVariants] = useState(3);
   const [generateMaxTokens, setGenerateMaxTokens] = useState([2048]);
   const [generateTemperature, setGenerateTemperature] = useState([0.7]);
-  const [generateInfluence, setGenerateInfluence] = useState('');
-  const [generateInfluenceWeight, setGenerateInfluenceWeight] = useState([75]);
   const [generateAdvancedOpen, setGenerateAdvancedOpen] = useState(false);
 
   // State for the optimizer functionality
@@ -145,11 +585,6 @@ export const AIPromptOptimizer: React.FC = () => {
     }
   };
 
-  const clearInfluence = () => {
-    setInfluenceType("");
-    setSelectedInfluence("");
-  };
-
   const optimizePrompt = async () => {
     if (!originalPrompt.trim()) {
       toast({
@@ -180,8 +615,8 @@ export const AIPromptOptimizer: React.FC = () => {
           userId: user.id,
           maxTokens: maxTokens[0],
           temperature: temperature[0],
-          influence: optimizerInfluence || selectedInfluence,
-          influenceWeight: optimizerInfluenceWeight[0] || influenceWeight[0],
+          influence: selectedInfluence || optimizerInfluence,
+          influenceWeight: influenceWeight[0] || optimizerInfluenceWeight[0],
           mode: optimizationMode
         }
       });
@@ -280,298 +715,33 @@ export const AIPromptOptimizer: React.FC = () => {
         </TabsList>
 
         <TabsContent value="generate">
-          <Card className="p-6 shadow-card">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Generate Optimized Prompts</h2>
-                <p className="text-muted-foreground">
-                  Describe your task and let our AI optimize prompts for maximum effectiveness.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-3 space-y-2">
-                  <Label htmlFor="task" className="text-sm font-medium">Task Description</Label>
-                  <Textarea
-                    id="task"
-                    placeholder="Describe what you want the AI to do..."
-                    value={taskDescription}
-                    onChange={(e) => setTaskDescription(e.target.value)}
-                    className="min-h-[120px] resize-none"
-                  />
-                </div>
-
-                {/* Influence Section */}
-                <div className="lg:col-span-3 space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Lightbulb className="h-4 w-4 text-primary" />
-                    <Label className="text-sm font-medium">Influence Optimization (Optional)</Label>
-                  </div>
-                  
-                  {selectedInfluence ? (
-                    <Card className="p-4 bg-primary/5 border-primary/20">
-                      <div className="flex items-start justify-between space-x-3">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Badge variant="outline" className="text-xs">
-                              {influenceType === "template" ? "Template" : "Favorited Template"}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              {influenceWeight[0]}% influence
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedInfluence}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={clearInfluence}
-                          className="h-auto p-1"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      
-                      <div className="mt-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-medium text-muted-foreground">Influence Weight</Label>
-                          <span className="text-xs text-muted-foreground">{influenceWeight[0]}%</span>
-                        </div>
-                        <Slider
-                          value={influenceWeight}
-                          onValueChange={setInfluenceWeight}
-                          max={100}
-                          min={0}
-                          step={5}
-                          className="w-full"
-                        />
-                      </div>
-                    </Card>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Template Style</Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <Link to="/app/templates?selectForInfluence=true">
-                            <Button variant="outline" className="w-full h-auto p-3 text-left">
-                              <div className="flex flex-col items-start space-y-1">
-                                <span className="font-medium">Browse Templates</span>
-                                <span className="text-xs text-muted-foreground">View all available templates</span>
-                              </div>
-                            </Button>
-                          </Link>
-                          <Link to="/app/history?selectForInfluence=true">
-                            <Button variant="outline" className="w-full h-auto p-3 text-left">
-                              <div className="flex flex-col items-start space-y-1">
-                                <span className="font-medium">My Favorited Prompts</span>
-                                <span className="text-xs text-muted-foreground">Choose from saved favorites</span>
-                              </div>
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm font-medium">Influence Weight</Label>
-                          <span className="text-sm text-muted-foreground">{influenceWeight[0]}%</span>
-                        </div>
-                        <Slider
-                          value={influenceWeight}
-                          onValueChange={setInfluenceWeight}
-                          max={100}
-                          min={0}
-                          step={5}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">AI Provider</Label>
-                  <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select AI provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                      <SelectItem value="google">Google (Gemini)</SelectItem>
-                      <SelectItem value="groq">Groq</SelectItem>
-                      <SelectItem value="mistral">Mistral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">LLM Model</Label>
-                  <Select value={selectedLLM} onValueChange={setSelectedLLM}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select LLM model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedProvider === "openai" && (
-                        <>
-                          <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
-                          <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                          <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                        </>
-                      )}
-                      {selectedProvider === "anthropic" && (
-                        <>
-                          <SelectItem value="claude-opus-4-1-20250805">Claude 4 Opus</SelectItem>
-                          <SelectItem value="claude-sonnet-4-20250514">Claude 4 Sonnet</SelectItem>
-                          <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
-                        </>
-                      )}
-                      {selectedProvider === "google" && (
-                        <>
-                          <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
-                          <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
-                        </>
-                      )}
-                      {selectedProvider === "groq" && (
-                        <>
-                          <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
-                        </>
-                      )}
-                      {selectedProvider === "mistral" && (
-                        <>
-                          <SelectItem value="mistral-large">Mistral Large</SelectItem>
-                          <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
-                        </>
-                      )}
-                      {!selectedProvider && (
-                        <SelectItem disabled value="none">Select a provider first</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Output Type</Label>
-                  <Select value={selectedOutputType} onValueChange={setSelectedOutputType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select output type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="code">Code</SelectItem>
-                      <SelectItem value="json">JSON</SelectItem>
-                      <SelectItem value="list">List</SelectItem>
-                      <SelectItem value="essay">Essay</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Variants to Generate</Label>
-                  <Select value={generateVariants.toString()} onValueChange={(value) => setGenerateVariants(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2">2 Variants</SelectItem>
-                      <SelectItem value="3">3 Variants</SelectItem>
-                      <SelectItem value="4">4 Variants</SelectItem>
-                      <SelectItem value="5">5 Variants</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Collapsible open={generateAdvancedOpen} onOpenChange={setGenerateAdvancedOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Settings className="h-4 w-4" />
-                      <span>Advanced Settings</span>
-                    </div>
-                    <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${generateAdvancedOpen ? 'rotate-180' : ''}`} />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Max Tokens</Label>
-                        <span className="text-sm text-muted-foreground">{generateMaxTokens[0]}</span>
-                      </div>
-                      <Slider
-                        value={generateMaxTokens}
-                        onValueChange={setGenerateMaxTokens}
-                        max={4096}
-                        min={256}
-                        step={128}
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Temperature</Label>
-                        <span className="text-sm text-muted-foreground">{generateTemperature[0].toFixed(1)}</span>
-                      </div>
-                      <Slider
-                        value={generateTemperature}
-                        onValueChange={setGenerateTemperature}
-                        max={2}
-                        min={0}
-                        step={0.1}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 pt-4 border-t border-border/40">
-                    <div className="flex items-center space-x-2">
-                      <Lightbulb className="h-4 w-4 text-primary" />
-                      <Label className="text-sm font-medium">Additional Influence (Optional)</Label>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Textarea
-                        placeholder="Enter an example prompt or style to influence the generation..."
-                        value={generateInfluence}
-                        onChange={(e) => setGenerateInfluence(e.target.value)}
-                        className="min-h-[80px] resize-none"
-                      />
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm font-medium">Additional Influence Weight</Label>
-                          <span className="text-sm text-muted-foreground">{generateInfluenceWeight[0]}%</span>
-                        </div>
-                        <Slider
-                          value={generateInfluenceWeight}
-                          onValueChange={setGenerateInfluenceWeight}
-                          max={100}
-                          min={0}
-                          step={5}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleGenerate} 
-                  className="w-full bg-gradient-primary"
-                  disabled={!taskDescription || !selectedProvider || !selectedLLM || !selectedOutputType}
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Generate Prompts
-                </Button>
-              </div>
-            </div>
-          </Card>
+          <PromptOptimizerForm
+            mode="generate"
+            taskDescription={taskDescription}
+            setTaskDescription={setTaskDescription}
+            selectedProvider={selectedProvider}
+            setSelectedProvider={setSelectedProvider}
+            selectedLLM={selectedLLM}
+            setSelectedLLM={setSelectedLLM}
+            selectedOutputType={selectedOutputType}
+            setSelectedOutputType={setSelectedOutputType}
+            variants={generateVariants}
+            setVariants={setGenerateVariants}
+            maxTokens={generateMaxTokens}
+            setMaxTokens={setGenerateMaxTokens}
+            temperature={generateTemperature}
+            setTemperature={setGenerateTemperature}
+            selectedInfluence={selectedInfluence}
+            setSelectedInfluence={setSelectedInfluence}
+            influenceType={influenceType}
+            setInfluenceType={setInfluenceType}
+            influenceWeight={influenceWeight}
+            setInfluenceWeight={setInfluenceWeight}
+            advancedOpen={generateAdvancedOpen}
+            setAdvancedOpen={setGenerateAdvancedOpen}
+            onSubmit={handleGenerate}
+            isLoading={false}
+          />
 
           {showResults && (
             <PromptResults 
@@ -580,307 +750,43 @@ export const AIPromptOptimizer: React.FC = () => {
               llmModel={selectedLLM}
               outputType={selectedOutputType}
               influence={selectedInfluence}
-              influenceType={influenceType}
               influenceWeight={influenceWeight[0]}
             />
           )}
         </TabsContent>
 
         <TabsContent value="optimize">
-          <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm">
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2 flex items-center justify-center space-x-2">
-                  <Target className="h-6 w-6 text-primary" />
-                  <span>AI Prompt Optimizer</span>
-                </h2>
-                <p className="text-muted-foreground">
-                  Transform your prompts with AI-powered optimization strategies for better results
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Original Prompt</Label>
-                  <Textarea
-                    placeholder="Enter your prompt that needs optimization..."
-                    value={originalPrompt}
-                    onChange={(e) => setOriginalPrompt(e.target.value)}
-                    className="min-h-[120px] resize-none"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Task Description (Optional)</Label>
-                  <Textarea
-                    placeholder="Describe the context or goal for this prompt..."
-                    value={optimizerTaskDescription}
-                    onChange={(e) => setOptimizerTaskDescription(e.target.value)}
-                    className="min-h-[80px] resize-none"
-                  />
-                </div>
-
-                {/* Optimization Mode Selection */}
-                <div className="space-y-3">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    <Brain className="h-4 w-4" />
-                    Choose Optimization Mode
-                  </Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button
-                      type="button"
-                      variant={optimizationMode === 'speed' ? 'default' : 'outline'}
-                      onClick={() => setOptimizationMode('speed')}
-                      className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
-                        optimizationMode === 'speed' 
-                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105' 
-                          : 'hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Zap className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <div className="font-semibold text-lg">⚡ Speed Mode</div>
-                          <div className="text-sm opacity-90 mt-1">Lightning fast optimization</div>
-                          <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            ~5 seconds • Cached heuristics • Multiple variants
-                          </div>
-                        </div>
-                      </div>
-                    </Button>
-                    
-                    <Button
-                      type="button"
-                      variant={optimizationMode === 'deep' ? 'default' : 'outline'}
-                      onClick={() => setOptimizationMode('deep')}
-                      className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
-                        optimizationMode === 'deep' 
-                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' 
-                          : 'hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Brain className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <div className="font-semibold text-lg">🔍 Deep Mode</div>
-                          <div className="text-sm opacity-90 mt-1">Advanced AI optimization</div>
-                          <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
-                            <Sparkles className="h-3 w-3" />
-                            Slower • Full AI processing • Highest quality
-                          </div>
-                        </div>
-                      </div>
-                    </Button>
-                  </div>
-                  
-                  <div className={`p-4 rounded-lg border-l-4 transition-all duration-300 ${
-                    optimizationMode === 'speed' 
-                      ? 'bg-yellow-50 border-yellow-400 dark:bg-yellow-950/20' 
-                      : 'bg-blue-50 border-blue-400 dark:bg-blue-950/20'
-                  }`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      {optimizationMode === 'speed' ? <Zap className="h-4 w-4" /> : <Brain className="h-4 w-4" />}
-                      <span className="font-medium">
-                        {optimizationMode === 'speed' ? 'Speed Mode Selected' : 'Deep Mode Selected'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {optimizationMode === 'speed' 
-                        ? 'Uses cached optimization patterns and heuristics for instant results. Perfect for quick iterations and testing.'
-                        : 'Leverages multiple AI models to create the highest quality optimizations. Best for final prompts and complex requirements.'
-                      }
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">AI Provider</Label>
-                    <Select value={aiProvider} onValueChange={setAiProvider}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="openai">OpenAI</SelectItem>
-                        <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                        <SelectItem value="google">Google (Gemini)</SelectItem>
-                        <SelectItem value="groq">Groq</SelectItem>
-                        <SelectItem value="mistral">Mistral</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Model</Label>
-                    <Select value={modelName} onValueChange={setModelName}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {aiProvider === "openai" && (
-                          <>
-                            <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
-                            <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                            <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                          </>
-                        )}
-                        {aiProvider === "anthropic" && (
-                          <>
-                            <SelectItem value="claude-opus-4-1-20250805">Claude 4 Opus</SelectItem>
-                            <SelectItem value="claude-sonnet-4-20250514">Claude 4 Sonnet</SelectItem>
-                            <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
-                          </>
-                        )}
-                        {aiProvider === "google" && (
-                          <>
-                            <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
-                            <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
-                          </>
-                        )}
-                        {aiProvider === "groq" && (
-                          <>
-                            <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
-                          </>
-                        )}
-                        {aiProvider === "mistral" && (
-                          <>
-                            <SelectItem value="mistral-large">Mistral Large</SelectItem>
-                            <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Output Type</Label>
-                    <Select value={outputType} onValueChange={setOutputType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="code">Code</SelectItem>
-                        <SelectItem value="json">JSON</SelectItem>
-                        <SelectItem value="list">List</SelectItem>
-                        <SelectItem value="essay">Essay</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Variants to Generate</Label>
-                    <Select value={variants.toString()} onValueChange={(value) => setVariants(parseInt(value))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2">2 Variants</SelectItem>
-                        <SelectItem value="3">3 Variants</SelectItem>
-                        <SelectItem value="4">4 Variants</SelectItem>
-                        <SelectItem value="5">5 Variants</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Settings className="h-4 w-4" />
-                        <span>Advanced Settings</span>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${advancedOpen ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-4 pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm font-medium">Max Tokens</Label>
-                          <span className="text-sm text-muted-foreground">{maxTokens[0]}</span>
-                        </div>
-                        <Slider
-                          value={maxTokens}
-                          onValueChange={setMaxTokens}
-                          max={4096}
-                          min={256}
-                          step={128}
-                          className="w-full"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm font-medium">Temperature</Label>
-                          <span className="text-sm text-muted-foreground">{temperature[0].toFixed(1)}</span>
-                        </div>
-                        <Slider
-                          value={temperature}
-                          onValueChange={setTemperature}
-                          max={2}
-                          min={0}
-                          step={0.1}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 pt-4 border-t border-border/40">
-                      <div className="flex items-center space-x-2">
-                        <Lightbulb className="h-4 w-4 text-primary" />
-                        <Label className="text-sm font-medium">Influence Optimization (Optional)</Label>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Textarea
-                          placeholder="Enter an example prompt or style to influence the optimization..."
-                          value={optimizerInfluence}
-                          onChange={(e) => setOptimizerInfluence(e.target.value)}
-                          className="min-h-[80px] resize-none"
-                        />
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">Influence Weight</Label>
-                            <span className="text-sm text-muted-foreground">{optimizerInfluenceWeight[0]}%</span>
-                          </div>
-                          <Slider
-                            value={optimizerInfluenceWeight}
-                            onValueChange={setOptimizerInfluenceWeight}
-                            max={100}
-                            min={0}
-                            step={5}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-
-                <Button
-                  onClick={optimizePrompt}
-                  disabled={!originalPrompt.trim() || isOptimizing}
-                  className="w-full bg-gradient-primary"
-                >
-                  {isOptimizing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Optimizing Prompt...
-                    </>
-                  ) : (
-                    <>
-                      <Target className="h-4 w-4 mr-2" />
-                      Optimize Prompt
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </Card>
+          <PromptOptimizerForm
+            mode="optimize"
+            taskDescription={optimizerTaskDescription}
+            setTaskDescription={setOptimizerTaskDescription}
+            originalPrompt={originalPrompt}
+            setOriginalPrompt={setOriginalPrompt}
+            selectedProvider={aiProvider}
+            setSelectedProvider={setAiProvider}
+            selectedLLM={modelName}
+            setSelectedLLM={setModelName}
+            selectedOutputType={outputType}
+            setSelectedOutputType={setOutputType}
+            variants={variants}
+            setVariants={setVariants}
+            maxTokens={maxTokens}
+            setMaxTokens={setMaxTokens}
+            temperature={temperature}
+            setTemperature={setTemperature}
+            selectedInfluence={selectedInfluence}
+            setSelectedInfluence={setSelectedInfluence}
+            influenceType={influenceType}
+            setInfluenceType={setInfluenceType}
+            influenceWeight={influenceWeight}
+            setInfluenceWeight={setInfluenceWeight}
+            advancedOpen={advancedOpen}
+            setAdvancedOpen={setAdvancedOpen}
+            optimizationMode={optimizationMode}
+            setOptimizationMode={setOptimizationMode}
+            onSubmit={optimizePrompt}
+            isLoading={isOptimizing}
+          />
 
           {/* Speed Mode Results */}
           {speedResult && (
@@ -911,7 +817,7 @@ export const AIPromptOptimizer: React.FC = () => {
                 </CardContent>
               </Card>
               
-{(speedResult.variants || []).map((variant: any, index: number) => (
+              {(speedResult.variants || []).map((variant: any, index: number) => (
                 <Card key={index}>
                   <CardContent className="pt-6">
                     <div className="relative">
