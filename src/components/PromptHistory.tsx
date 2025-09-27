@@ -299,6 +299,7 @@ export const PromptHistory = () => {
       <div className="space-y-4">
         {filteredItems.map((item, index) => {
           const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
+          // Only show top performer star for items explicitly marked as best variant by AI
           const isTopPerformer = item.isBestVariant === true;
           
           return (

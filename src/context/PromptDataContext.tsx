@@ -163,7 +163,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           timestamp: new Date(prompt.created_at).toLocaleString(),
           tags: [prompt.ai_provider?.toLowerCase?.() || 'provider', (prompt.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
           isFavorite: false,
-          isBestVariant: true,
+          isBestVariant: false, // Only set to true when explicitly marked as best by AI
         };
       }) || [];
 
@@ -339,7 +339,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               timestamp: new Date(np.created_at).toLocaleString(),
               tags: [np.ai_provider?.toLowerCase?.() || 'provider', (np.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
               isFavorite: false,
-              isBestVariant: true,
+              isBestVariant: false, // Only set when explicitly marked by the optimizer
             });
             
             let wasNew = false;
@@ -400,7 +400,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               timestamp: new Date(np.created_at).toLocaleString(),
               tags: [np.ai_provider?.toLowerCase?.() || 'provider', (np.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
               isFavorite: false,
-              isBestVariant: true,
+              isBestVariant: false, // Only set when explicitly marked by the optimizer
             });
             
             let wasNew = false;
