@@ -48,6 +48,7 @@ export const PromptHistory = () => {
   const [filterOutputType, setFilterOutputType] = useState("all");
   const [filterScore, setFilterScore] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [activeTab, setActiveTab] = useState<"all" | "favorites">("all");
   const [historyItems, setHistoryItems] = useState<PromptHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -58,12 +59,12 @@ export const PromptHistory = () => {
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchHistoryData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Use same analytics call as dashboard - 7d timeframe
+        // Fetch analytics for overview stats
         const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
         url.searchParams.set('userId', user.id);
         url.searchParams.set('timeframe', '7d');
@@ -79,35 +80,81 @@ export const PromptHistory = () => {
         if (response.ok) {
           const analyticsData = await response.json();
           setAnalytics(analyticsData);
-          
-          // Transform recent activity into history items - use ALL recent activity for history
-          const historyFromAnalytics = analyticsData.recentActivity?.map((activity: any, index: number) => ({
-            id: activity.id,
-            title: `${activity.provider} ${activity.model} Optimization`,
-            description: `${activity.score >= 0.8 ? "High-performance" : activity.score >= 0.6 ? "Good-quality" : activity.score >= 0.4 ? "Standard" : "Experimental"} prompt optimization`,
-            prompt: activity.originalPrompt || activity.prompt || activity.optimizedPrompt || `You are an expert ${activity.provider} prompt engineer. Create high-quality, detailed prompts that achieve excellent results.\n\nOptimization Target: ${activity.model}\nScore Achieved: ${activity.score}\nProvider: ${activity.provider}\n\nThis prompt was optimized to maximize effectiveness and clarity while maintaining the original intent.`,
-            output: activity.output || activity.aiResponse || `# Optimization Results\n\n**Model:** ${activity.model}\n**Score:** ${activity.score}\n**Provider:** ${activity.provider}\n\nThis optimization achieved a ${activity.score >= 0.8 ? "high" : activity.score >= 0.6 ? "good" : "standard"} performance score using advanced prompt engineering techniques.`,
-            provider: activity.provider,
-            outputType: "Code",
-            score: activity.score,
-            timestamp: new Date(activity.createdAt).toLocaleString(),
-            tags: [activity.provider.toLowerCase(), activity.model.toLowerCase().replace(/[^a-z0-9]/g, "-")],
-            isFavorite: false
-          })) || [];
-          
-          setHistoryItems(historyFromAnalytics);
         }
+
+        // Fetch actual prompt history from database
+        const { data: promptsData, error: promptsError } = await supabase
+          .from('prompts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        const { data: optimizationData, error: optimizationError } = await supabase
+          .from('optimization_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (promptsError || optimizationError) {
+          console.error('Error fetching history:', { promptsError, optimizationError });
+          return;
+        }
+
+        // Combine and transform the data
+        const combinedHistory: PromptHistoryItem[] = [];
+
+        // Add prompts data
+        promptsData?.forEach((prompt) => {
+          combinedHistory.push({
+            id: prompt.id,
+            title: `${prompt.ai_provider} ${prompt.model_name} Optimization`,
+            description: `${prompt.score >= 0.8 ? "High-performance" : prompt.score >= 0.6 ? "Good-quality" : prompt.score >= 0.4 ? "Standard" : "Experimental"} prompt optimization`,
+            prompt: prompt.original_prompt,
+            output: prompt.optimized_prompt || "Optimization in progress...",
+            provider: prompt.ai_provider,
+            outputType: prompt.output_type || "Code",
+            score: prompt.score || 0,
+            timestamp: new Date(prompt.created_at).toLocaleString(),
+            tags: [prompt.ai_provider.toLowerCase(), prompt.model_name.toLowerCase().replace(/[^a-z0-9]/g, "-")],
+            isFavorite: false // Will add favorite functionality
+          });
+        });
+
+        // Add optimization history data
+        optimizationData?.forEach((opt) => {
+          combinedHistory.push({
+            id: opt.id,
+            title: `Optimization Variant - Score ${opt.score?.toFixed(2) || 'N/A'}`,
+            description: `Optimized variant with ${opt.tokens_used || 'unknown'} tokens`,
+            prompt: opt.variant_prompt,
+            output: opt.ai_response || "No response recorded",
+            provider: "Optimization",
+            outputType: "Variant",
+            score: opt.score || 0,
+            timestamp: new Date(opt.created_at).toLocaleString(),
+            tags: ["optimization", "variant"],
+            isFavorite: false
+          });
+        });
+
+        // Sort by creation date
+        combinedHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setHistoryItems(combinedHistory);
+
       } catch (error) {
-        console.error('Error fetching analytics:', error);
+        console.error('Error fetching history data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalytics();
+    fetchHistoryData();
   }, []);
 
   const filteredItems = historyItems.filter(item => {
+    // Filter by tab (all or favorites)
+    if (activeTab === "favorites" && !item.isFavorite) return false;
+    
     const matchesSearch = 
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -153,6 +200,23 @@ export const PromptHistory = () => {
     });
   };
 
+  const toggleFavorite = async (itemId: string) => {
+    const item = historyItems.find(h => h.id === itemId);
+    if (!item) return;
+
+    const newFavoriteStatus = !item.isFavorite;
+    
+    // Update local state immediately for better UX
+    setHistoryItems(prev => prev.map(h => 
+      h.id === itemId ? { ...h, isFavorite: newFavoriteStatus } : h
+    ));
+
+    toast({
+      title: newFavoriteStatus ? "Added to favorites" : "Removed from favorites",
+      description: "Prompt favorite status updated.",
+    });
+  };
+
   const providers = ["all", "OpenAI", "Claude", "Gemini", "Groq"];
   const outputTypes = ["all", "Code", "Essay", "JSON", "Structured Data"];
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
@@ -178,6 +242,31 @@ export const PromptHistory = () => {
             Share
           </Button>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex space-x-1 p-1 bg-muted rounded-lg w-fit">
+        <button
+          onClick={() => setActiveTab("all")}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === "all" 
+              ? "bg-background text-foreground shadow-sm" 
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          All History ({historyItems.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("favorites")}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === "favorites" 
+              ? "bg-background text-foreground shadow-sm" 
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Star className="h-4 w-4 mr-1 inline" />
+          Favorites ({historyItems.filter(item => item.isFavorite).length})
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -350,7 +439,7 @@ export const PromptHistory = () => {
                       <Play className="h-4 w-4 mr-2" />
                       Re-run
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toggleFavorite(item.id)}>
                       <Star className="h-4 w-4 mr-2" />
                       {item.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                     </DropdownMenuItem>
