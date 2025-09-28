@@ -406,6 +406,7 @@ const PromptOptimizerForm = ({
                 <SelectItem value="essay">Essay</SelectItem>
               </SelectContent>
             </Select>
+          </div>
         </div>
 
         {/* Variants Selection */}
@@ -725,6 +726,13 @@ export const AIPromptOptimizer: React.FC = () => {
             </Button>
           </div>
         </Card>
+      )}
+      {aiProvider === 'google' && (
+        <div className="flex items-center justify-end -mt-2 mb-2">
+          <Button variant="outline" onClick={runGeminiDiagnostic} className="border-primary/30 hover:bg-primary/10">
+            <Sparkles className="h-4 w-4 mr-2" /> Test Gemini
+          </Button>
+        </div>
       )}
 
       <PromptOptimizerForm
