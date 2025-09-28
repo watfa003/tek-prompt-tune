@@ -42,11 +42,7 @@ const AI_PROVIDERS = {
     baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
     apiKey: groqApiKey,
     models: {
-      'llama-3.1-70b-versatile': { name: 'llama-3.1-70b-versatile', maxTokens: 4096 },
-      'llama-3.1-8b-instant': { name: 'llama-3.1-8b-instant', maxTokens: 2048 },
-      'llama3-70b-8192': { name: 'llama3-70b-8192', maxTokens: 4096 },
-      'llama3-8b-8192': { name: 'llama3-8b-8192', maxTokens: 2048 },
-      'mixtral-8x7b-32768': { name: 'mixtral-8x7b-32768', maxTokens: 4096 }
+      'llama-3.1-8b': { name: 'llama-3.1-8b-instant', maxTokens: 2048 }
     }
   },
   mistral: {
@@ -76,7 +72,7 @@ const OPTIMIZATION_MODELS = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
   mistral: 'mistral-medium',
-  groq: 'llama-3.1-8b-instant',
+  groq: 'llama-3.1-8b',
   google: 'gemini-1.5-pro'
 };
 
@@ -440,7 +436,11 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
     throw new Error(`Provider ${provider} not configured`);
   }
 
-  const modelConfig = (providerConfig.models as any)[model];
+  let modelConfig = (providerConfig.models as any)[model];
+  if (!modelConfig && provider === 'groq') {
+    // Fallback to the only supported Groq model we expose
+    modelConfig = (providerConfig.models as any)['llama-3.1-8b'];
+  }
   if (!modelConfig) {
     throw new Error(`Model ${model} not available`);
   }

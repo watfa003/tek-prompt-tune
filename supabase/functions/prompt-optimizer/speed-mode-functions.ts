@@ -17,7 +17,7 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
   google: 'gemini-1.5-pro',
-  groq: 'llama-3.1-8b-instant',
+  groq: 'llama3-8b-8192',
   mistral: 'mistral-small-latest',
 };
 
