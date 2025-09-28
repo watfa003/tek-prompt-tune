@@ -54,18 +54,15 @@ const AI_PROVIDERS = {
     }
   },
   google: {
-    baseUrl: 'https://generativelanguage.googleapis.com/v1/models',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models',
     apiKey: googleApiKey,
     models: {
-      // Canonical model IDs
+      'gemini-2.0-flash': { name: 'gemini-2.0-flash', maxTokens: 4096 },
       'gemini-1.5-flash': { name: 'gemini-1.5-flash', maxTokens: 4096 },
       'gemini-1.5-pro': { name: 'gemini-1.5-pro', maxTokens: 4096 },
-      'gemini-2.0-flash-exp': { name: 'gemini-2.0-flash-exp', maxTokens: 4096 },
-      // Aliases mapping to canonical IDs
-      'gemini-1.5-flash-latest': { name: 'gemini-1.5-flash', maxTokens: 4096 },
-      'gemini-1.5-pro-latest': { name: 'gemini-1.5-pro', maxTokens: 4096 },
+      // UI aliases mapping to supported models
       'gemini-pro': { name: 'gemini-1.5-pro', maxTokens: 4096 },
-      'gemini-ultra': { name: 'gemini-2.0-flash-exp', maxTokens: 4096 }
+      'gemini-ultra': { name: 'gemini-2.0-flash', maxTokens: 4096 }
     }
   }
 };
@@ -76,7 +73,7 @@ const OPTIMIZATION_MODELS = {
   anthropic: 'claude-3-5-haiku-20241022',
   mistral: 'mistral-medium',
   groq: 'llama-3.1-8b',
-  google: 'gemini-1.5-flash'
+  google: 'gemini-1.5-pro'
 };
 
 // Faster optimization strategies (simplified for speed)
@@ -536,12 +533,9 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-goog-api-key': providerConfig.apiKey,
-      'Authorization': `Bearer ${providerConfig.apiKey}`,
     },
     body: JSON.stringify({
       contents: [{
-        role: 'user',
         parts: [{ text: prompt }]
       }],
       generationConfig: {
@@ -564,17 +558,12 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
     throw new Error('Google API returned no candidates');
   }
   
-  const parts = data.candidates[0]?.content?.parts || [];
-  if (!Array.isArray(parts) || parts.length === 0) {
+  if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
     console.error('Google API response has no content parts:', data.candidates[0]);
     throw new Error('Google API returned no content parts');
   }
   
-  const text = parts.map((p: any) => p?.text).filter(Boolean).join('\n').trim();
-  if (!text) {
-    throw new Error('Google API returned empty text');
-  }
-  return text;
+  return data.candidates[0].content.parts[0].text;
 }
 
 // Advanced evaluation logic with length-based analysis

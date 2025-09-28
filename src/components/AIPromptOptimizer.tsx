@@ -372,9 +372,8 @@ const PromptOptimizerForm = ({
                 )}
                 {selectedProvider === "google" && (
                   <>
-                    <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
-                    <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
-                    <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</SelectItem>
+                    <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                    <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
                   </>
                 )}
                 {selectedProvider === "groq" && (
@@ -602,18 +601,6 @@ export const AIPromptOptimizer: React.FC = () => {
     }
   }, [settings]);
 
-  // Ensure a valid default model is selected when provider changes
-  React.useEffect(() => {
-    const defaults: Record<string, string> = {
-      openai: 'gpt-4o-mini',
-      anthropic: 'claude-3-5-haiku-20241022',
-      google: 'gemini-1.5-flash',
-      groq: 'llama-3.1-8b',
-      mistral: 'mistral-medium',
-    };
-    setModelName(defaults[aiProvider] || 'gpt-4o-mini');
-  }, [aiProvider]);
-
   const optimizePrompt = async () => {
     if (!originalPrompt.trim()) {
       toast({
@@ -668,20 +655,6 @@ export const AIPromptOptimizer: React.FC = () => {
     });
   };
 
-  // Diagnostic: quick Gemini test
-  const runGeminiDiagnostic = async () => {
-    if (aiProvider !== 'google') return;
-    try {
-      const { data, error } = await supabase.functions.invoke('gemini-diagnostic', {
-        body: { model: modelName || 'gemini-1.5-flash' }
-      });
-      if (error) throw error;
-      toast({ title: 'Gemini OK', description: (data?.text || 'Response received').slice(0, 120) });
-    } catch (e: any) {
-      toast({ title: 'Gemini failed', description: e?.message || 'Unknown error', variant: 'destructive' });
-    }
-  };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({
@@ -726,13 +699,6 @@ export const AIPromptOptimizer: React.FC = () => {
             </Button>
           </div>
         </Card>
-      )}
-      {aiProvider === 'google' && (
-        <div className="flex items-center justify-end -mt-2 mb-2">
-          <Button variant="outline" onClick={runGeminiDiagnostic} className="border-primary/30 hover:bg-primary/10">
-            <Sparkles className="h-4 w-4 mr-2" /> Test Gemini
-          </Button>
-        </div>
       )}
 
       <PromptOptimizerForm

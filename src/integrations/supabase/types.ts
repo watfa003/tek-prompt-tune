@@ -174,27 +174,6 @@ export type Database = {
         }
         Relationships: []
       }
-      prompt_counter: {
-        Row: {
-          created_at: string
-          id: string
-          total: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          total?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          total?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       prompt_templates: {
         Row: {
           category: string | null
@@ -446,13 +425,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      increment_prompt_counter: {
-        Args: { delta?: number }
-        Returns: {
-          id: string
-          total: number
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

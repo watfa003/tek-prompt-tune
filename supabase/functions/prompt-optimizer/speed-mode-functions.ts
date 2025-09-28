@@ -8,7 +8,7 @@ const mistralApiKey = Deno.env.get('MISTRAL_API_KEY');
 const AI_PROVIDERS = {
   openai: { baseUrl: 'https://api.openai.com/v1/chat/completions', apiKey: openAIApiKey },
   anthropic: { baseUrl: 'https://api.anthropic.com/v1/messages', apiKey: anthropicApiKey },
-  google: { baseUrl: 'https://generativelanguage.googleapis.com/v1/models', apiKey: googleApiKey },
+  google: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models', apiKey: googleApiKey },
   groq: { baseUrl: 'https://api.groq.com/openai/v1/chat/completions', apiKey: groqApiKey },
   mistral: { baseUrl: 'https://api.mistral.ai/v1/chat/completions', apiKey: mistralApiKey },
 } as const;
@@ -16,9 +16,9 @@ const AI_PROVIDERS = {
 const OPTIMIZATION_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
-  google: 'gemini-1.5-flash',
-  groq: 'llama-3.1-8b-instant',
-  mistral: 'mistral-medium',
+  google: 'gemini-1.5-pro',
+  groq: 'llama3-8b-8192',
+  mistral: 'mistral-small-latest',
 };
 
 export async function handleSpeedMode(
@@ -564,10 +564,10 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
     const url = `${cfg.baseUrl}/${model}:generateContent?key=${cfg.apiKey}`;
     const res = await fetch(url, { 
       method: 'POST', 
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': cfg.apiKey, 'Authorization': `Bearer ${cfg.apiKey}` }, 
+      headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ 
-        contents: [{ role: 'user', parts: [{ text: prompt }] }], 
-        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } 
+        contents: [{ parts: [{ text: prompt }] }], 
+        generationConfig: { maxOutputTokens: maxTokens } 
       }),
       signal: controller.signal
     });
@@ -579,8 +579,7 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
       return null; 
     }
     const data = await res.json();
-    const parts = data?.candidates?.[0]?.content?.parts;
-    const txt = Array.isArray(parts) ? parts.map((p: any) => p.text).filter(Boolean).join('\n').trim() : null;
+    const txt = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n').trim();
     return txt || null;
   } catch (error) {
     clearTimeout(timeoutId);

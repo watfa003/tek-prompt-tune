@@ -56,36 +56,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
-  // Persistent counter helpers
-  const loadCounters = useCallback((userId: string) => {
-    try {
-      const cached = localStorage.getItem(`prompt_counters_${userId}`);
-      return cached ? JSON.parse(cached) : {
-        totalPrompts: 0,
-        totalOptimizations: 0,
-        sessionCount: 0
-      };
-    } catch (error) {
-      console.error('Error loading counters:', error);
-      return { totalPrompts: 0, totalOptimizations: 0, sessionCount: 0 };
-    }
-  }, []);
-
-  const saveCounters = useCallback((userId: string, counters: any) => {
-    try {
-      localStorage.setItem(`prompt_counters_${userId}`, JSON.stringify(counters));
-    } catch (error) {
-      console.error('Error saving counters:', error);
-    }
-  }, []);
-
-  const incrementCounter = useCallback((userId: string, counterType: 'totalPrompts' | 'totalOptimizations' | 'sessionCount') => {
-    const counters = loadCounters(userId);
-    counters[counterType] = (counters[counterType] || 0) + 1;
-    saveCounters(userId, counters);
-    return counters;
-  }, [loadCounters, saveCounters]);
-
   // Load analytics data from history items
   const loadAnalytics = useCallback(async () => {
     try {
@@ -168,20 +138,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           insights.push('Your recent optimizations are performing better than your earlier ones - keep up the great work!');
         }
 
-        // Get persistent counters
-        const counters = loadCounters(user.user.id);
-        
-        // Use the max of database items and persistent counters to ensure counters only go up
-        const totalPrompts = Math.max(historyItems.length, counters.totalPrompts || 0);
-        const totalOptimizations = Math.max(historyItems.length, counters.totalOptimizations || 0);
-
         const analytics = {
           overview: {
-            totalPrompts,
-            completedPrompts: totalPrompts, // All loaded items are completed
+            totalPrompts: historyItems.length,
+            completedPrompts: historyItems.length, // All loaded items are completed
             averageScore,
-            totalOptimizations,
-            totalChatSessions: counters.sessionCount || 0,
+            totalOptimizations: historyItems.length,
+            totalChatSessions: 0, // This would need to be fetched from chat_sessions table
             totalTokensUsed: 0, // This would need token data
             successRate,
           },
@@ -224,7 +187,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (error) {
       console.error('Error loading analytics:', error);
     }
-  }, [loadFromCache, saveToCache, loadCounters, historyItems]);
+  }, [loadFromCache, saveToCache, historyItems]);
 
   // Load initial data from Supabase with full prompt data
   const loadInitialData = useCallback(async () => {
@@ -344,9 +307,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Add prompt to history
   const addPromptToHistory = useCallback(async (item: PromptHistoryItem) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       // Add to state and cache immediately (local-first)
       setHistoryItems((prev) => {
         const exists = prev.some(h => h.id === item.id);
@@ -354,79 +314,28 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const updated = [item, ...prev];
         
         // Save to cache async
-        saveToCache(user.id, 'history', updated);
-        
-        // Increment persistent counters
-        incrementCounter(user.id, 'totalPrompts');
-        incrementCounter(user.id, 'totalOptimizations');
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) {
+            saveToCache(user.id, 'history', updated);
+          }
+        });
 
         return updated;
       });
 
       setHasLocalChanges(true);
 
-      // Try to increment global counter in Supabase (with offline fallback)
-      try {
-        await supabase.rpc('increment_prompt_counter', { delta: 1 });
-      } catch (e) {
-        try {
-          const pendingRaw = localStorage.getItem('prompt_counter_pending_delta');
-          const pending = (pendingRaw ? Number(JSON.parse(pendingRaw)) : 0) || 0;
-          localStorage.setItem('prompt_counter_pending_delta', JSON.stringify(pending + 1));
-          const localRaw = localStorage.getItem('prompt_counter_local_total');
-          const localTotal = (localRaw ? Number(JSON.parse(localRaw)) : 0) || 0;
-          localStorage.setItem('prompt_counter_local_total', JSON.stringify(localTotal + 1));
-        } catch {}
-      }
-
-      // Immediately try to sync to Supabase
-      try {
-        const { data: promptData, error: promptError } = await supabase
-          .from('prompts')
-          .insert({
-            user_id: user.id,
-            original_prompt: item.prompt,
-            optimized_prompt: item.output,
-            task_description: item.description,
-            ai_provider: item.provider,
-            model_name: item.provider, // Using provider as model for now
-            output_type: item.outputType,
-            score: item.score,
-            status: 'completed'
-          })
-          .select('id')
-          .single();
-
-        if (promptError) throw promptError;
-
-        // Create optimization history record
-        await supabase
-          .from('optimization_history')
-          .insert({
-            user_id: user.id,
-            prompt_id: promptData.id,
-            variant_prompt: item.output,
-            ai_response: item.sampleOutput || item.output,
-            score: item.score,
-            generation_time_ms: 1000,
-            tokens_used: 100
-          });
-
-        console.log('Successfully synced new prompt to Supabase');
-      } catch (syncError) {
-        console.error('Failed to sync immediately, will retry later:', syncError);
-        // Queue for background sync to Supabase
-        setPendingQueue(prev => {
-          const exists = prev.some(p => p.id === item.id);
-          return exists ? prev : [...prev, item];
-        });
-      }
+      // Queue for background sync to Supabase
+      setPendingQueue(prev => {
+        const exists = prev.some(p => p.id === item.id);
+        return exists ? prev : [...prev, item];
+      });
     } catch (error) {
       console.error('Error adding prompt to history:', error);
     }
-  }, [saveToCache, incrementCounter]);
+  }, [saveToCache]);
 
-  // Retry queued prompts - properly sync to Supabase
+  // Retry queued prompts
   const retryQueuedPrompts = useCallback(async () => {
     if (pendingQueue.length === 0) return;
 
@@ -434,44 +343,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     for (const item of pendingQueue) {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) continue;
-
-        // Create a prompt record first
-        const { data: promptData, error: promptError } = await supabase
-          .from('prompts')
-          .insert({
-            user_id: user.id,
-            original_prompt: item.prompt,
-            optimized_prompt: item.output,
-            task_description: item.description,
-            ai_provider: item.provider,
-            model_name: item.provider, // Using provider as model for now
-            output_type: item.outputType,
-            score: item.score,
-            status: 'completed'
-          })
-          .select('id')
-          .single();
-
-        if (promptError) throw promptError;
-
-        // Create optimization history record
-        const { error: optError } = await supabase
-          .from('optimization_history')
-          .insert({
-            user_id: user.id,
-            prompt_id: promptData.id,
-            variant_prompt: item.output,
-            ai_response: item.sampleOutput || item.output,
-            score: item.score,
-            generation_time_ms: 1000,
-            tokens_used: 100
-          });
-
-        if (optError) throw optError;
+        console.log('Queue processing not implemented for optimization history');
         successful.push(item.id);
-        console.log('Successfully synced prompt to Supabase:', item.id);
       } catch (error) {
         console.error('Failed to sync prompt:', item.id, error);
       }
@@ -479,7 +352,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     // Remove successful items from queue
     setPendingQueue(prev => prev.filter(item => !successful.includes(item.id)));
-  }, [pendingQueue]);
+  }, [pendingQueue, addPromptToHistory]);
 
   // Toggle favorite
   const toggleFavorite = useCallback(async (id: string) => {
@@ -603,11 +476,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
             setHistoryItems((prev) => {
               const updated = [newHistoryItem, ...prev];
-              
-              // Increment persistent counters for real-time additions
-              incrementCounter(user.user.id, 'totalPrompts');
-              incrementCounter(user.user.id, 'totalOptimizations');
-              
               const globalBest = updated.reduce((best, current) =>
                 (current.score || 0) > (best.score || 0) ? current : best
               );
@@ -640,38 +508,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (promptsChannel) supabase.removeChannel(promptsChannel);
       if (optimizationChannel) supabase.removeChannel(optimizationChannel);
     };
-  }, [loadInitialData, saveToCache, incrementCounter]);
-
-  // Auto-retry queued prompts on connection restore
-  useEffect(() => {
-    const handleOnline = () => {
-      if (pendingQueue.length > 0) {
-        console.log('Connection restored, retrying queued prompts...');
-        retryQueuedPrompts();
-      }
-    };
-    
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [pendingQueue, retryQueuedPrompts]);
-
-  // Auto-retry queued prompts periodically
-  useEffect(() => {
-    if (pendingQueue.length === 0) return;
-    
-    const interval = setInterval(() => {
-      retryQueuedPrompts();
-    }, 30000); // Retry every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, [pendingQueue, retryQueuedPrompts]);
-
-  // Recalculate analytics whenever historyItems change
-  useEffect(() => {
-    if (historyItems.length > 0) {
-      loadAnalytics();
-    }
-  }, [historyItems, loadAnalytics]);
+  }, [loadInitialData, saveToCache]);
 
   const value = useMemo(
     () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges }),
