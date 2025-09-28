@@ -378,7 +378,11 @@ const PromptOptimizerForm = ({
                 )}
                 {selectedProvider === "groq" && (
                   <>
-                    <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
+                    <SelectItem value="llama-3.1-70b-versatile">Llama 3.1 70B Versatile</SelectItem>
+                    <SelectItem value="llama-3.1-8b-instant">Llama 3.1 8B Instant</SelectItem>
+                    <SelectItem value="llama3-70b-8192">Llama 3 70B</SelectItem>
+                    <SelectItem value="llama3-8b-8192">Llama 3 8B</SelectItem>
+                    <SelectItem value="mixtral-8x7b-32768">Mixtral 8x7B</SelectItem>
                   </>
                 )}
                 {selectedProvider === "mistral" && (
