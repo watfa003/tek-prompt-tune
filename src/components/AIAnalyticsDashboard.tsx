@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +18,7 @@ import {
   RefreshCw,
   Loader2
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { usePromptData } from '@/context/PromptDataContext';
 
 interface AnalyticsData {
   overview: {
@@ -76,42 +75,9 @@ interface AnalyticsData {
 }
 
 export const AIAnalyticsDashboard: React.FC = () => {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const { analytics, loading } = usePromptData();
   const [timeframe, setTimeframe] = useState('7d');
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [timeframe]);
-
-  const loadAnalytics = async () => {
-    setIsLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const response = await fetch(`https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics?userId=${user.id}&timeframe=${timeframe}`, {
-        headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch analytics');
-      const data = await response.json();
-      setAnalytics(data);
-    } catch (error) {
-      console.error('Error loading analytics:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load analytics data",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -141,7 +107,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm">
         <div className="flex items-center justify-center h-64">
@@ -185,7 +151,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
               <SelectItem value="30d">Last 30 days</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={loadAnalytics} disabled={isLoading}>
+          <Button variant="outline" disabled={loading}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -207,7 +173,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Average Score</p>
-              <p className="text-2xl font-bold">{analytics.overview.averageScore}%</p>
+              <p className="text-2xl font-bold">{(analytics.overview.averageScore * 100).toFixed(1)}%</p>
             </div>
             <Award className="h-8 w-8 text-primary" />
           </div>
@@ -332,7 +298,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
             <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/40">
               <h3 className="font-semibold mb-4">AI Providers</h3>
               <div className="space-y-3">
-                {Object.entries(analytics.usage.providerStats).map(([provider, stats]) => (
+                {Object.entries(analytics.usage.providerStats).map(([provider, stats]: [string, any]) => (
                   <div key={provider} className="flex items-center justify-between">
                     <span className="text-sm capitalize">{provider}</span>
                     <div className="text-right">
@@ -350,7 +316,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
             <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/40">
               <h3 className="font-semibold mb-4">Models</h3>
               <div className="space-y-3">
-                {Object.entries(analytics.usage.modelStats).map(([model, stats]) => (
+                {Object.entries(analytics.usage.modelStats).map(([model, stats]: [string, any]) => (
                   <div key={model} className="flex items-center justify-between">
                     <span className="text-sm">{model}</span>
                     <div className="text-right">
@@ -368,7 +334,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
             <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/40">
               <h3 className="font-semibold mb-4">Output Types</h3>
               <div className="space-y-3">
-                {Object.entries(analytics.usage.outputTypeStats).map(([type, stats]) => (
+                {Object.entries(analytics.usage.outputTypeStats).map(([type, stats]: [string, any]) => (
                   <div key={type} className="flex items-center justify-between">
                     <span className="text-sm capitalize">{type}</span>
                     <div className="text-right">
