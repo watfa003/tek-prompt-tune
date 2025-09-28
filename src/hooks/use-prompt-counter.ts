@@ -46,10 +46,14 @@ export function usePromptCounter() {
           .select("id,total")
           .single();
         if (insertError) throw insertError;
-        setTotal(inserted.total);
+        const pending = readNumber(PENDING_DELTA_KEY, 0);
+        setTotal(inserted.total + pending);
         writeNumber(LOCAL_FALLBACK_TOTAL_KEY, inserted.total);
       } else {
-        setTotal(data.total);
+        const pending = readNumber(PENDING_DELTA_KEY, 0);
+        const local = readNumber(LOCAL_FALLBACK_TOTAL_KEY, 0);
+        const computed = Math.max(data.total, local) + pending;
+        setTotal(computed);
         writeNumber(LOCAL_FALLBACK_TOTAL_KEY, data.total);
       }
     } catch (e: any) {
