@@ -8,7 +8,7 @@ const mistralApiKey = Deno.env.get('MISTRAL_API_KEY');
 const AI_PROVIDERS = {
   openai: { baseUrl: 'https://api.openai.com/v1/chat/completions', apiKey: openAIApiKey },
   anthropic: { baseUrl: 'https://api.anthropic.com/v1/messages', apiKey: anthropicApiKey },
-  google: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models', apiKey: googleApiKey },
+  google: { baseUrl: 'https://generativelanguage.googleapis.com/v1/models', apiKey: googleApiKey },
   groq: { baseUrl: 'https://api.groq.com/openai/v1/chat/completions', apiKey: groqApiKey },
   mistral: { baseUrl: 'https://api.mistral.ai/v1/chat/completions', apiKey: mistralApiKey },
 } as const;

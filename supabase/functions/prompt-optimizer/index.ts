@@ -54,7 +54,7 @@ const AI_PROVIDERS = {
     }
   },
   google: {
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1/models',
     apiKey: googleApiKey,
     models: {
       'gemini-1.5-flash-latest': { name: 'gemini-1.5-flash-latest', maxTokens: 4096 },
