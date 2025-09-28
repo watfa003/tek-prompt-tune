@@ -379,17 +379,54 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         } catch {}
       }
 
-      // Queue for background sync to Supabase
-      setPendingQueue(prev => {
-        const exists = prev.some(p => p.id === item.id);
-        return exists ? prev : [...prev, item];
-      });
+      // Immediately try to sync to Supabase
+      try {
+        const { data: promptData, error: promptError } = await supabase
+          .from('prompts')
+          .insert({
+            user_id: user.id,
+            original_prompt: item.prompt,
+            optimized_prompt: item.output,
+            task_description: item.description,
+            ai_provider: item.provider,
+            model_name: item.provider, // Using provider as model for now
+            output_type: item.outputType,
+            score: item.score,
+            status: 'completed'
+          })
+          .select('id')
+          .single();
+
+        if (promptError) throw promptError;
+
+        // Create optimization history record
+        await supabase
+          .from('optimization_history')
+          .insert({
+            user_id: user.id,
+            prompt_id: promptData.id,
+            variant_prompt: item.output,
+            ai_response: item.sampleOutput || item.output,
+            score: item.score,
+            generation_time_ms: 1000,
+            tokens_used: 100
+          });
+
+        console.log('Successfully synced new prompt to Supabase');
+      } catch (syncError) {
+        console.error('Failed to sync immediately, will retry later:', syncError);
+        // Queue for background sync to Supabase
+        setPendingQueue(prev => {
+          const exists = prev.some(p => p.id === item.id);
+          return exists ? prev : [...prev, item];
+        });
+      }
     } catch (error) {
       console.error('Error adding prompt to history:', error);
     }
   }, [saveToCache, incrementCounter]);
 
-  // Retry queued prompts
+  // Retry queued prompts - properly sync to Supabase
   const retryQueuedPrompts = useCallback(async () => {
     if (pendingQueue.length === 0) return;
 
@@ -397,8 +434,44 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     for (const item of pendingQueue) {
       try {
-        console.log('Queue processing not implemented for optimization history');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) continue;
+
+        // Create a prompt record first
+        const { data: promptData, error: promptError } = await supabase
+          .from('prompts')
+          .insert({
+            user_id: user.id,
+            original_prompt: item.prompt,
+            optimized_prompt: item.output,
+            task_description: item.description,
+            ai_provider: item.provider,
+            model_name: item.provider, // Using provider as model for now
+            output_type: item.outputType,
+            score: item.score,
+            status: 'completed'
+          })
+          .select('id')
+          .single();
+
+        if (promptError) throw promptError;
+
+        // Create optimization history record
+        const { error: optError } = await supabase
+          .from('optimization_history')
+          .insert({
+            user_id: user.id,
+            prompt_id: promptData.id,
+            variant_prompt: item.output,
+            ai_response: item.sampleOutput || item.output,
+            score: item.score,
+            generation_time_ms: 1000,
+            tokens_used: 100
+          });
+
+        if (optError) throw optError;
         successful.push(item.id);
+        console.log('Successfully synced prompt to Supabase:', item.id);
       } catch (error) {
         console.error('Failed to sync prompt:', item.id, error);
       }
@@ -406,7 +479,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     // Remove successful items from queue
     setPendingQueue(prev => prev.filter(item => !successful.includes(item.id)));
-  }, [pendingQueue, addPromptToHistory]);
+  }, [pendingQueue]);
 
   // Toggle favorite
   const toggleFavorite = useCallback(async (id: string) => {
@@ -567,7 +640,31 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (promptsChannel) supabase.removeChannel(promptsChannel);
       if (optimizationChannel) supabase.removeChannel(optimizationChannel);
     };
-  }, [loadInitialData, saveToCache]);
+  }, [loadInitialData, saveToCache, incrementCounter]);
+
+  // Auto-retry queued prompts on connection restore
+  useEffect(() => {
+    const handleOnline = () => {
+      if (pendingQueue.length > 0) {
+        console.log('Connection restored, retrying queued prompts...');
+        retryQueuedPrompts();
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [pendingQueue, retryQueuedPrompts]);
+
+  // Auto-retry queued prompts periodically
+  useEffect(() => {
+    if (pendingQueue.length === 0) return;
+    
+    const interval = setInterval(() => {
+      retryQueuedPrompts();
+    }, 30000); // Retry every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [pendingQueue, retryQueuedPrompts]);
 
   // Recalculate analytics whenever historyItems change
   useEffect(() => {
