@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePromptData } from "@/context/PromptDataContext";
 import { useSettings } from "@/hooks/use-settings";
 
 const navigationItems = [
@@ -49,14 +50,15 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { settings } = useSettings();
+  const { historyItems } = usePromptData();
   const currentPath = location.pathname;
   const [searchQuery, setSearchQuery] = useState("");
   const [userInfo, setUserInfo] = useState<{ email: string; displayName: string } | null>(null);
-  const [recentPrompts, setRecentPrompts] = useState<any[]>([]);
   
-  const isCollapsed = state === "collapsed";
+  // Get favorite items from history
+  const favoriteItems = historyItems.filter(item => item.isFavorite);
 
-  // Load user information and recent prompts
+  // Load user information
   React.useEffect(() => {
     const loadUserInfo = async () => {
       try {
@@ -67,25 +69,6 @@ export function AppSidebar() {
             email: user.email || '',
             displayName: displayName
           });
-
-          // Load recent prompts
-          const { data: prompts, error } = await supabase
-            .from('prompts')
-            .select('id, original_prompt, ai_provider, score, created_at, output_type')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-          if (!error && prompts) {
-            setRecentPrompts(prompts.map(p => ({
-              id: p.id,
-              title: p.original_prompt.substring(0, 30) + (p.original_prompt.length > 30 ? '...' : ''),
-              provider: p.ai_provider,
-              score: Math.round((p.score || 0) * 3), // Convert 0-1 scale to 0-3 scale for display
-              timestamp: new Date(p.created_at).toLocaleString(),
-              type: p.output_type || 'text'
-            })));
-          }
         }
       } catch (error) {
         console.error('Error loading user info:', error);
@@ -95,6 +78,7 @@ export function AppSidebar() {
     loadUserInfo();
   }, [settings]);
 
+  const isCollapsed = state === "collapsed";
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -124,8 +108,9 @@ export function AppSidebar() {
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50";
 
-  const filteredPrompts = recentPrompts.filter(prompt =>
-    prompt.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredFavorites = favoriteItems.filter(item =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -178,13 +163,13 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Saved Prompts */}
+        {/* Favorites */}
         {!isCollapsed && (
           <SidebarGroup className="mt-6">
             <SidebarGroupLabel className="flex items-center justify-between">
-              <span className="text-muted-foreground">Saved Prompts</span>
+              <span className="text-muted-foreground">Favorites</span>
               <Badge variant="secondary" className="text-xs">
-                {recentPrompts.length}
+                {favoriteItems.length}
               </Badge>
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -193,7 +178,7 @@ export function AppSidebar() {
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search prompts..."
+                    placeholder="Search favorites..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-8 h-8 text-xs"
@@ -202,45 +187,45 @@ export function AppSidebar() {
 
                 {/* Prompt List */}
                 <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {filteredPrompts.map((prompt) => (
-                    <Card key={prompt.id} className="p-2 hover:bg-muted/50 cursor-pointer transition-colors">
+                  {filteredFavorites.map((item) => (
+                    <Card key={item.id} className="p-2 hover:bg-muted/50 cursor-pointer transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-1">
                             <Bookmark className="h-3 w-3 text-primary" />
                             <p className="text-sm font-medium truncate">
-                              {prompt.title}
+                              {item.title}
                             </p>
                           </div>
                           <div className="flex items-center space-x-2 mt-1">
                             <Badge variant="outline" className="text-xs">
-                              {prompt.provider}
+                              {item.provider}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {prompt.type}
+                              {item.outputType}
                             </Badge>
                           </div>
                           <div className="flex items-center space-x-1 mt-1">
                             <Clock className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">
-                              {prompt.timestamp}
+                              {item.timestamp}
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          {Array.from({ length: prompt.score }).map((_, i) => (
-                            <Star key={i} className="h-3 w-3 fill-primary text-primary" />
-                          ))}
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-primary">
+                            {(item.score * 100).toFixed(0)}%
+                          </span>
                         </div>
                       </div>
                     </Card>
                   ))}
                 </div>
 
-                {filteredPrompts.length === 0 && (
+                {filteredFavorites.length === 0 && (
                   <div className="text-center py-4">
                     <p className="text-sm text-muted-foreground">
-                      {searchQuery ? "No prompts found" : "No saved prompts yet"}
+                      {searchQuery ? "No favorites found" : "No favorites yet"}
                     </p>
                   </div>
                 )}
