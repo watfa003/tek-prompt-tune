@@ -16,9 +16,9 @@ const AI_PROVIDERS = {
 const OPTIMIZATION_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
-  google: 'gemini-1.5-pro',
-  groq: 'llama3-8b-8192',
-  mistral: 'mistral-small-latest',
+  google: 'gemini-1.5-flash-latest',
+  groq: 'llama-3.1-8b-instant',
+  mistral: 'mistral-medium',
 };
 
 export async function handleSpeedMode(
