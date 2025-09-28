@@ -25,6 +25,9 @@ const AI_PROVIDERS = {
     apiKey: openAIApiKey,
     models: {
       'gpt-5-2025-08-07': { name: 'gpt-5-2025-08-07', maxTokens: 4096 },
+      'gpt-5-mini-2025-08-07': { name: 'gpt-5-mini-2025-08-07', maxTokens: 4096 },
+      'gpt-5-nano-2025-08-07': { name: 'gpt-5-nano-2025-08-07', maxTokens: 4096 },
+      'gpt-4.1-2025-04-14': { name: 'gpt-4.1-2025-04-14', maxTokens: 4096 },
       'gpt-4o': { name: 'gpt-4o', maxTokens: 4096 },
       'gpt-4o-mini': { name: 'gpt-4o-mini', maxTokens: 4096 }
     }
