@@ -76,7 +76,7 @@ const OPTIMIZATION_MODELS = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
   mistral: 'mistral-medium',
-  groq: 'llama-3.1-8b',
+  groq: 'llama-3.1-8b-instant',
   google: 'gemini-1.5-pro'
 };
 
