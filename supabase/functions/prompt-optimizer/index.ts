@@ -536,6 +536,7 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
     },
     body: JSON.stringify({
       contents: [{
+        role: 'user',
         parts: [{ text: prompt }]
       }],
       generationConfig: {
@@ -558,12 +559,17 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
     throw new Error('Google API returned no candidates');
   }
   
-  if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+  const parts = data.candidates[0]?.content?.parts || [];
+  if (!Array.isArray(parts) || parts.length === 0) {
     console.error('Google API response has no content parts:', data.candidates[0]);
     throw new Error('Google API returned no content parts');
   }
   
-  return data.candidates[0].content.parts[0].text;
+  const text = parts.map((p: any) => p?.text).filter(Boolean).join('\n').trim();
+  if (!text) {
+    throw new Error('Google API returned empty text');
+  }
+  return text;
 }
 
 // Advanced evaluation logic with length-based analysis

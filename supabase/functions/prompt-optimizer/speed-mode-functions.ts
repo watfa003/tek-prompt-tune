@@ -566,8 +566,8 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ 
-        contents: [{ parts: [{ text: prompt }] }], 
-        generationConfig: { maxOutputTokens: maxTokens } 
+        contents: [{ role: 'user', parts: [{ text: prompt }] }], 
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } 
       }),
       signal: controller.signal
     });
@@ -579,7 +579,8 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
       return null; 
     }
     const data = await res.json();
-    const txt = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n').trim();
+    const parts = data?.candidates?.[0]?.content?.parts;
+    const txt = Array.isArray(parts) ? parts.map((p: any) => p.text).filter(Boolean).join('\n').trim() : null;
     return txt || null;
   } catch (error) {
     clearTimeout(timeoutId);
