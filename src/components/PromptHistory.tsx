@@ -47,12 +47,15 @@ export const PromptHistory = () => {
   const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // When selecting for influence, auto-switch to favorites tab
-  React.useEffect(() => {
-    if (isSelectingForInfluence) {
-      setActiveTab("favorites");
-    }
-  }, [isSelectingForInfluence]);
+   // Handle tab from URL params and selecting for influence
+   React.useEffect(() => {
+     const tabParam = searchParams.get('tab');
+     if (tabParam === 'favorites') {
+       setActiveTab("favorites");
+     } else if (isSelectingForInfluence) {
+       setActiveTab("favorites");
+     }
+   }, [searchParams, isSelectingForInfluence]);
 
   const filteredItems = useMemo(() => {
     let base = historyItems.filter(item => {

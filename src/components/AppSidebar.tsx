@@ -191,7 +191,7 @@ export function AppSidebar() {
                     <Card 
                       key={item.id} 
                       className="p-2 hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => navigate('/app/history')}
+                      onClick={() => navigate('/app/history?tab=favorites')}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
