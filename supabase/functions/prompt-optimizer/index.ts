@@ -222,8 +222,8 @@ serve(async (req) => {
 
         // Single API call for optimization using cheaper model
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
-        // Ensure minimum 512 tokens for optimization to guarantee meaningful response
-        const optimizationTokens = Math.max(512, Math.min(maxTokens, 4096));
+        // Ensure minimum 256 tokens for optimization, but use at least 512 for testing
+        const optimizationTokens = Math.max(256, Math.min(maxTokens, 4096));
         const optimizedPrompt = await callAIProvider(
           aiProvider, 
           optimizationModel, 
@@ -231,12 +231,6 @@ serve(async (req) => {
           optimizationTokens,
           temperature
         );
-
-        // Validate optimization response
-        if (!optimizedPrompt || optimizedPrompt.trim().length < 10) {
-          console.error('Optimization produced empty or too short response:', optimizedPrompt);
-          throw new Error('AI failed to generate meaningful optimization - response too short');
-        }
         
         if (!optimizedPrompt) {
           console.error('Failed to get optimization response for strategy:', strategyKey);
@@ -249,8 +243,8 @@ serve(async (req) => {
         
         try {
           console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
-          // Ensure minimum 1024 tokens for testing to guarantee substantial AI response
-          const testTokens = Math.max(1024, Math.min(maxTokens, 4096));
+          // Ensure minimum 512 tokens for AI to respond meaningfully
+          const testTokens = Math.max(512, Math.min(maxTokens, 4096));
           const testResponse = await callAIProvider(
             aiProvider,
             modelName,
@@ -258,12 +252,6 @@ serve(async (req) => {
             testTokens,
             temperature
           );
-
-          // Validate test response
-          if (!testResponse || testResponse.trim().length < 20) {
-            console.error('Test response too short or empty:', testResponse);
-            throw new Error('AI failed to generate meaningful test response');
-          }
           
           if (testResponse) {
             actualResponse = testResponse;
