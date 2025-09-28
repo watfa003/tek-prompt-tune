@@ -80,27 +80,27 @@ const OPTIMIZATION_MODELS = {
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
     name: "Clarity Enhancement",
-    systemPrompt: "Make this prompt clearer and more specific:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to take the given prompt and make it clearer and more specific. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.3
   },
   specificity: {
     name: "Specificity Improvement", 
-    systemPrompt: "Add specific details and examples to this prompt:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to add specific details and examples to make this prompt more precise. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.25
   },
   efficiency: {
     name: "Efficiency Optimization",
-    systemPrompt: "Optimize this prompt for better AI performance:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to optimize this prompt for better AI performance and efficiency. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.2
   },
   structure: {
     name: "Structure and Steps",
-    systemPrompt: "Improve the logical structure with step-by-step instructions and sections:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to improve the logical structure with step-by-step instructions and clear sections. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.15
   },
   constraints: {
     name: "Constraints and Format",
-    systemPrompt: "Add constraints, acceptance criteria, and a precise output format:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to add constraints, acceptance criteria, and a precise output format. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.1
   }
 };
@@ -202,8 +202,8 @@ serve(async (req) => {
           optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyInsights.patterns.slice(0, 3).join(', ')}`;
         }
         
-        // Critical rules: keep user's intent and only improve the prompt
-        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+         // Critical rules: keep user's intent and only improve the prompt
+         optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         
         if (outputType && outputType !== 'text') {
           optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
@@ -258,18 +258,30 @@ serve(async (req) => {
               actualScore = evaluateOutput(testResponse, strategy.weight);
             }
             console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
-          } else {
-            // Fallback to scoring the optimized prompt if response fails
-            actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
-            actualResponse = `Optimization completed using ${strategy.name} strategy`;
-            console.log(`Using fallback scoring for strategy: ${strategyKey}`);
-          }
-        } catch (error) {
-          console.error(`Error testing with user model ${modelName}:`, error);
-          // Fallback to scoring the optimized prompt
-          actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
-          actualResponse = `Optimization completed using ${strategy.name} strategy`;
-        }
+         } else {
+           // If no response, re-score the optimized prompt but ensure it's actually optimized
+           if (optimizedPrompt.length > originalPrompt.length * 0.8) {
+             actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
+             actualResponse = `Successfully optimized using ${strategy.name} strategy`;
+           } else {
+             // Prompt wasn't properly optimized, give low score
+             actualScore = strategy.weight * 0.3;
+             actualResponse = `Partial optimization using ${strategy.name} strategy`;
+           }
+           console.log(`Using fallback scoring for strategy: ${strategyKey}`);
+         }
+       } catch (error) {
+         console.error(`Error testing with user model ${modelName}:`, error);
+         // Ensure we still have a properly optimized prompt even in error cases
+         if (optimizedPrompt && optimizedPrompt.length > originalPrompt.length * 0.8) {
+           actualScore = evaluateOutput(optimizedPrompt, strategy.weight);
+           actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
+         } else {
+           // If optimization failed completely, return a lower score
+           actualScore = strategy.weight * 0.2;
+           actualResponse = `Limited optimization using ${strategy.name} strategy`;
+         }
+       }
 
         return {
           prompt: optimizedPrompt,
