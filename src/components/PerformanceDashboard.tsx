@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Target, Zap, BarChart3, Calendar, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePromptCounter } from "@/hooks/use-prompt-counter";
 
 interface AnalyticsData {
   overview: {
@@ -62,6 +63,7 @@ interface AnalyticsData {
 export const PerformanceDashboard = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { total: globalTotal, loading: counterLoading } = usePromptCounter();
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -170,7 +172,7 @@ export const PerformanceDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Prompts</p>
-              <p className="text-2xl font-bold">{analytics.overview.totalPrompts}</p>
+              <p className="text-2xl font-bold">{(globalTotal ?? analytics.overview.totalPrompts)}</p>
             </div>
             <Target className="h-8 w-8 text-primary" />
           </div>
