@@ -359,6 +359,9 @@ const PromptOptimizerForm = ({
                 {selectedProvider === "openai" && (
                   <>
                     <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
+                    <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 mini</SelectItem>
+                    <SelectItem value="gpt-5-nano-2025-08-07">GPT-5 nano</SelectItem>
+                    <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1</SelectItem>
                     <SelectItem value="gpt-4o">GPT-4o</SelectItem>
                     <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
                   </>

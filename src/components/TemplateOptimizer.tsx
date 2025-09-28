@@ -182,7 +182,7 @@ export const TemplateOptimizer = () => {
   const getModelOptions = () => {
     switch (aiProvider) {
       case "openai":
-        return ["gpt-5-2025-08-07", "gpt-4o", "gpt-4o-mini"];
+        return ["gpt-5-2025-08-07", "gpt-5-mini-2025-08-07", "gpt-5-nano-2025-08-07", "gpt-4.1-2025-04-14", "gpt-4o", "gpt-4o-mini"];
       case "anthropic":
         return ["claude-opus-4-1-20250805", "claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"];
       case "mistral":
