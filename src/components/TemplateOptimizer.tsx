@@ -190,7 +190,7 @@ export const TemplateOptimizer = () => {
       case "google":
         return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"];
       case "groq":
-        return ["llama-3.1-8b"];
+        return ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768"];
       default:
         return ["gpt-4o-mini"];
     }

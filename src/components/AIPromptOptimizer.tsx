@@ -379,7 +379,11 @@ const PromptOptimizerForm = ({
                 )}
                 {selectedProvider === "groq" && (
                   <>
-                    <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
+                    <SelectItem value="llama-3.1-70b-versatile">Llama 3.1 70B Versatile</SelectItem>
+                    <SelectItem value="llama-3.1-8b-instant">Llama 3.1 8B Instant</SelectItem>
+                    <SelectItem value="llama3-70b-8192">Llama3 70B</SelectItem>
+                    <SelectItem value="llama3-8b-8192">Llama3 8B</SelectItem>
+                    <SelectItem value="mixtral-8x7b-32768">Mixtral 8x7B</SelectItem>
                   </>
                 )}
                 {selectedProvider === "mistral" && (
@@ -608,7 +612,7 @@ export const AIPromptOptimizer: React.FC = () => {
       openai: 'gpt-4o-mini',
       anthropic: 'claude-3-5-haiku-20241022',
       google: 'gemini-1.5-flash',
-      groq: 'llama-3.1-8b',
+      groq: 'llama-3.1-8b-instant',
       mistral: 'mistral-medium',
     };
     setModelName(defaults[aiProvider] || 'gpt-4o-mini');

@@ -42,7 +42,13 @@ const AI_PROVIDERS = {
     baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
     apiKey: groqApiKey,
     models: {
-      'llama-3.1-8b': { name: 'llama-3.1-8b-instant', maxTokens: 2048 }
+      'llama-3.1-70b-versatile': { name: 'llama-3.1-70b-versatile', maxTokens: 8192 },
+      'llama-3.1-8b-instant': { name: 'llama-3.1-8b-instant', maxTokens: 8192 },
+      'llama3-70b-8192': { name: 'llama3-70b-8192', maxTokens: 8192 },
+      'llama3-8b-8192': { name: 'llama3-8b-8192', maxTokens: 8192 },
+      'mixtral-8x7b-32768': { name: 'mixtral-8x7b-32768', maxTokens: 32768 },
+      // Alias for backward compatibility
+      'llama-3.1-8b': { name: 'llama-3.1-8b-instant', maxTokens: 8192 }
     }
   },
   mistral: {
@@ -75,7 +81,7 @@ const OPTIMIZATION_MODELS = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
   mistral: 'mistral-medium',
-  groq: 'llama-3.1-8b',
+  groq: 'llama-3.1-8b-instant',
   google: 'gemini-1.5-flash'
 };
 
