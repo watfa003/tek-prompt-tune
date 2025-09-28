@@ -278,13 +278,13 @@ export const PromptResults = ({
                   onClick={() => copyToClipboard(result.bestOptimizedPrompt)}
                 >
                   <Copy className="h-3 w-3 mr-1" />
-                  Copy
+                  Copy Prompt
                 </Button>
               </div>
-              <div className="bg-background/50 p-3 rounded-md">
+              <div className="bg-background/50 p-3 rounded-md mb-4">
                 <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
               </div>
-              <div className="mt-3 flex items-center space-x-4">
+              <div className="mt-3 flex items-center space-x-4 mb-4">
                 <div className="flex items-center space-x-1">
                   <span className="text-xs text-muted-foreground">Score:</span>
                   <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
@@ -292,6 +292,29 @@ export const PromptResults = ({
                   </span>
                 </div>
                 {getScoreBadge(result.bestScore)}
+              </div>
+            </Card>
+            
+            {/* Sample Output from Best Prompt */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">Sample Output</span>
+                  <span className="text-xs text-muted-foreground">AI response to the optimized prompt</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyToClipboard(result.variants.find(v => v.score === result.bestScore)?.response || '')}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy Output
+                </Button>
+              </div>
+              <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
+                <p className="text-sm whitespace-pre-wrap">
+                  {result.variants.find(v => v.score === result.bestScore)?.response || 'No response available'}
+                </p>
               </div>
             </Card>
           </TabsContent>
@@ -311,12 +334,36 @@ export const PromptResults = ({
                     onClick={() => copyToClipboard(variant.prompt)}
                   >
                     <Copy className="h-3 w-3 mr-1" />
-                    Copy
+                    Copy Prompt
                   </Button>
                 </div>
-                <div className="bg-muted/50 p-3 rounded-md mb-3">
-                  <p className="text-sm whitespace-pre-wrap">{variant.prompt}</p>
+                
+                {/* Optimized Prompt */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium mb-2">Optimized Prompt:</h4>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <p className="text-sm whitespace-pre-wrap">{variant.prompt}</p>
+                  </div>
                 </div>
+                
+                {/* Sample Output - AI Response */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium">Sample Output:</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(variant.response)}
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy Output
+                    </Button>
+                  </div>
+                  <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
+                    <p className="text-sm whitespace-pre-wrap">{variant.response}</p>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
                   <div>Tokens: {variant.metrics.tokens_used}</div>
                   <div>Response Length: {variant.metrics.response_length}</div>
