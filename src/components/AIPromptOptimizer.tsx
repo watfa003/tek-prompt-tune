@@ -372,8 +372,9 @@ const PromptOptimizerForm = ({
                 )}
                 {selectedProvider === "google" && (
                   <>
-                    <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
-                    <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
+                    <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash (latest)</SelectItem>
+                    <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro (latest)</SelectItem>
+                    <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</SelectItem>
                   </>
                 )}
                 {selectedProvider === "groq" && (
@@ -600,6 +601,18 @@ export const AIPromptOptimizer: React.FC = () => {
       setTemperature([settings.defaultTemperature]);
     }
   }, [settings]);
+
+  // Ensure a valid default model is selected when provider changes
+  React.useEffect(() => {
+    const defaults: Record<string, string> = {
+      openai: 'gpt-4o-mini',
+      anthropic: 'claude-3-5-haiku-20241022',
+      google: 'gemini-1.5-flash-latest',
+      groq: 'llama-3.1-8b',
+      mistral: 'mistral-medium',
+    };
+    setModelName(defaults[aiProvider] || 'gpt-4o-mini');
+  }, [aiProvider]);
 
   const optimizePrompt = async () => {
     if (!originalPrompt.trim()) {

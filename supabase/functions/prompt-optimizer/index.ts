@@ -57,11 +57,11 @@ const AI_PROVIDERS = {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models',
     apiKey: googleApiKey,
     models: {
+      'gemini-1.5-flash-latest': { name: 'gemini-1.5-flash-latest', maxTokens: 4096 },
+      'gemini-1.5-pro-latest': { name: 'gemini-1.5-pro-latest', maxTokens: 4096 },
       'gemini-2.0-flash-exp': { name: 'gemini-2.0-flash-exp', maxTokens: 4096 },
-      'gemini-1.5-flash': { name: 'gemini-1.5-flash', maxTokens: 4096 },
-      'gemini-1.5-pro': { name: 'gemini-1.5-pro', maxTokens: 4096 },
       // UI aliases mapping to supported models
-      'gemini-pro': { name: 'gemini-1.5-flash', maxTokens: 4096 },
+      'gemini-pro': { name: 'gemini-1.5-flash-latest', maxTokens: 4096 },
       'gemini-ultra': { name: 'gemini-2.0-flash-exp', maxTokens: 4096 }
     }
   }
@@ -73,7 +73,7 @@ const OPTIMIZATION_MODELS = {
   anthropic: 'claude-3-5-haiku-20241022',
   mistral: 'mistral-medium',
   groq: 'llama-3.1-8b',
-  google: 'gemini-1.5-flash'
+  google: 'gemini-1.5-flash-latest'
 };
 
 // Faster optimization strategies (simplified for speed)
