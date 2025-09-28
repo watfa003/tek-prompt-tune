@@ -172,7 +172,7 @@ export const PerformanceDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Prompts</p>
-              <p className="text-2xl font-bold">{Math.max(globalTotal ?? 0, analytics.overview.totalPrompts ?? 0)}</p>
+              <p className="text-2xl font-bold">{(globalTotal ?? analytics.overview.totalPrompts)}</p>
             </div>
             <Target className="h-8 w-8 text-primary" />
           </div>

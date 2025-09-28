@@ -365,6 +365,20 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       setHasLocalChanges(true);
 
+      // Try to increment global counter in Supabase (with offline fallback)
+      try {
+        await supabase.rpc('increment_prompt_counter', { delta: 1 });
+      } catch (e) {
+        try {
+          const pendingRaw = localStorage.getItem('prompt_counter_pending_delta');
+          const pending = (pendingRaw ? Number(JSON.parse(pendingRaw)) : 0) || 0;
+          localStorage.setItem('prompt_counter_pending_delta', JSON.stringify(pending + 1));
+          const localRaw = localStorage.getItem('prompt_counter_local_total');
+          const localTotal = (localRaw ? Number(JSON.parse(localRaw)) : 0) || 0;
+          localStorage.setItem('prompt_counter_local_total', JSON.stringify(localTotal + 1));
+        } catch {}
+      }
+
       // Immediately try to sync to Supabase
       try {
         const { data: promptData, error: promptError } = await supabase
@@ -399,20 +413,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           });
 
         console.log('Successfully synced new prompt to Supabase');
-
-        // Increment global counter now that the prompt is persisted
-        try {
-          await supabase.rpc('increment_prompt_counter', { delta: 1 });
-        } catch (e) {
-          try {
-            const pendingRaw = localStorage.getItem('prompt_counter_pending_delta');
-            const pending = (pendingRaw ? Number(JSON.parse(pendingRaw)) : 0) || 0;
-            localStorage.setItem('prompt_counter_pending_delta', JSON.stringify(pending + 1));
-            const localRaw = localStorage.getItem('prompt_counter_local_total');
-            const localTotal = (localRaw ? Number(JSON.parse(localRaw)) : 0) || 0;
-            localStorage.setItem('prompt_counter_local_total', JSON.stringify(localTotal + 1));
-          } catch {}
-        }
       } catch (syncError) {
         console.error('Failed to sync immediately, will retry later:', syncError);
         // Queue for background sync to Supabase
