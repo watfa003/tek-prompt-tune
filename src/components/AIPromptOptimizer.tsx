@@ -603,7 +603,23 @@ export const AIPromptOptimizer: React.FC = () => {
       setMaxTokens([settings.defaultMaxTokens]);
       setTemperature([settings.defaultTemperature]);
     }
-  }, [settings]);
+}, [settings]);
+
+// Ensure selected model is valid for provider; set sane default when switching
+React.useEffect(() => {
+  if (aiProvider === 'groq') {
+    const groqModels = [
+      'llama-3.1-70b-versatile',
+      'llama-3.1-8b-instant',
+      'llama3-70b-8192',
+      'llama3-8b-8192',
+      'mixtral-8x7b-32768',
+    ];
+    if (!groqModels.includes(modelName)) {
+      setModelName('llama-3.1-8b-instant');
+    }
+  }
+}, [aiProvider]);
 
   const optimizePrompt = async () => {
     if (!originalPrompt.trim()) {

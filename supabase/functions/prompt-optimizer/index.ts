@@ -440,11 +440,7 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
     throw new Error(`Provider ${provider} not configured`);
   }
 
-  let modelConfig = (providerConfig.models as any)[model];
-  if (!modelConfig && provider === 'groq') {
-    // Fallback to a safe default Groq model
-    modelConfig = (providerConfig.models as any)['llama-3.1-8b-instant'];
-  }
+  const modelConfig = (providerConfig.models as any)[model];
   if (!modelConfig) {
     throw new Error(`Model ${model} not available`);
   }
