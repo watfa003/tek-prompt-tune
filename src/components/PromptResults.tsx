@@ -301,7 +301,6 @@ export const PromptResults = ({
               <Card key={index} className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-2">
-                    <Badge variant="outline">{variant.strategy}</Badge>
                     <span className={`text-sm font-medium ${getScoreColor(variant.score)}`}>
                       {Math.round(variant.score * 100)}%
                     </span>
