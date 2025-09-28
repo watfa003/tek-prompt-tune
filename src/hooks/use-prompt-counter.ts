@@ -27,13 +27,14 @@ export function usePromptCounter() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const rowIdRef = useRef<string | null>(null);
 
   const fetchCurrent = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("prompt_counter")
-        .select("id,total,created_at")
-        .order("created_at", { ascending: true })
+        .select("id,total,updated_at")
+        .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -47,10 +48,12 @@ export function usePromptCounter() {
           .single();
         if (insertError) throw insertError;
         setTotal(inserted.total);
-        writeNumber(LOCAL_FALLBACK_TOTAL_KEY, inserted.total);
+        writeNumber(LOCAL_FALLBACK_TOTAL_KEY, Math.max(inserted.total, readNumber(LOCAL_FALLBACK_TOTAL_KEY, 0)));
+        rowIdRef.current = inserted.id;
       } else {
         setTotal(data.total);
-        writeNumber(LOCAL_FALLBACK_TOTAL_KEY, data.total);
+        writeNumber(LOCAL_FALLBACK_TOTAL_KEY, Math.max(data.total, readNumber(LOCAL_FALLBACK_TOTAL_KEY, 0)));
+        rowIdRef.current = data.id;
       }
     } catch (e: any) {
       // Fallback to local cached value
@@ -112,10 +115,18 @@ export function usePromptCounter() {
         "postgres_changes",
         { event: "*", schema: "public", table: "prompt_counter" },
         (payload: any) => {
-          const row = (payload.new || payload.old) as { total?: number };
+          const row = (payload.new || payload.old) as { id?: string; total?: number };
+          if (row?.id && rowIdRef.current && row.id !== rowIdRef.current) {
+            return; // Ignore changes for other rows
+          }
           if (typeof row?.total === "number") {
-            setTotal(row.total + readNumber(PENDING_DELTA_KEY, 0));
-            writeNumber(LOCAL_FALLBACK_TOTAL_KEY, row.total);
+            const pending = readNumber(PENDING_DELTA_KEY, 0);
+            const incoming = row.total + pending;
+            setTotal((t) => Math.max(t ?? 0, incoming));
+            const cached = readNumber(LOCAL_FALLBACK_TOTAL_KEY, 0);
+            if (row.total > cached) {
+              writeNumber(LOCAL_FALLBACK_TOTAL_KEY, row.total);
+            }
           } else {
             // If no total, re-fetch
             fetchCurrent();
