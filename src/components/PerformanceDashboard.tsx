@@ -83,7 +83,27 @@ export const PerformanceDashboard = () => {
 
         if (response.ok) {
           const analyticsData = await response.json();
-          setAnalytics(analyticsData);
+
+          // Overlay persistent counters from localStorage so they survive refreshes
+          let counters = { totalPrompts: 0, totalOptimizations: 0, sessionCount: 0 } as any;
+          try {
+            const cached = localStorage.getItem(`prompt_counters_${user.id}`);
+            if (cached) counters = JSON.parse(cached);
+          } catch (e) {
+            console.warn('Failed to parse counters from localStorage', e);
+          }
+
+          const merged = {
+            ...analyticsData,
+            overview: {
+              ...analyticsData.overview,
+              totalPrompts: Math.max(analyticsData.overview?.totalPrompts || 0, counters.totalPrompts || 0),
+              totalOptimizations: Math.max(analyticsData.overview?.totalOptimizations || 0, counters.totalOptimizations || 0),
+              totalChatSessions: Math.max(analyticsData.overview?.totalChatSessions || 0, counters.sessionCount || 0),
+            },
+          };
+
+          setAnalytics(merged);
         }
       } catch (error) {
         console.error('Error in fetchAnalytics:', error);
