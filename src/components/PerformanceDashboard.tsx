@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Target, Zap, BarChart3, Calendar, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { usePromptData } from "@/context/PromptDataContext";
 
 interface AnalyticsData {
   overview: {
@@ -60,40 +60,7 @@ interface AnalyticsData {
 }
 
 export const PerformanceDashboard = () => {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const url = new URL('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/ai-analytics');
-        url.searchParams.set('userId', user.id);
-        url.searchParams.set('timeframe', '7d');
-
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA',
-          },
-        });
-
-        if (response.ok) {
-          const analyticsData = await response.json();
-          setAnalytics(analyticsData);
-        }
-      } catch (error) {
-        console.error('Error in fetchAnalytics:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAnalytics();
-  }, []);
+  const { analytics, loading } = usePromptData();
 
   const getScoreColor = (score: number) => {
     if (score >= 0.8) return "text-green-500";
@@ -109,7 +76,7 @@ export const PerformanceDashboard = () => {
 
   const getBestProvider = () => {
     if (!analytics?.usage.providerStats) return "No data";
-    const providers = Object.entries(analytics.usage.providerStats);
+    const providers = Object.entries(analytics.usage.providerStats) as [string, any][];
     if (providers.length === 0) return "No data";
     
     const best = providers.reduce((best, [name, stats]) => 
@@ -196,7 +163,7 @@ export const PerformanceDashboard = () => {
           Provider Performance
         </h3>
         <div className="space-y-4">
-          {Object.entries(analytics.usage.providerStats).map(([name, stats]) => (
+          {Object.entries(analytics.usage.providerStats).map(([name, stats]: [string, any]) => (
             <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
@@ -227,7 +194,7 @@ export const PerformanceDashboard = () => {
           Output Type Performance
         </h3>
         <div className="grid md:grid-cols-2 gap-4">
-          {Object.entries(analytics.usage.outputTypeStats).map(([type, stats]) => (
+          {Object.entries(analytics.usage.outputTypeStats).map(([type, stats]: [string, any]) => (
             <div key={type} className="p-3 rounded-lg bg-muted/50">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium capitalize">{type}</span>
