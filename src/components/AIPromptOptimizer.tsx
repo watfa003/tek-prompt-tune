@@ -372,8 +372,8 @@ const PromptOptimizerForm = ({
                 )}
                 {selectedProvider === "google" && (
                   <>
-                    <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash (latest)</SelectItem>
-                    <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro (latest)</SelectItem>
+                    <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
+                    <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
                     <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</SelectItem>
                   </>
                 )}
@@ -406,7 +406,6 @@ const PromptOptimizerForm = ({
                 <SelectItem value="essay">Essay</SelectItem>
               </SelectContent>
             </Select>
-          </div>
         </div>
 
         {/* Variants Selection */}
@@ -607,7 +606,7 @@ export const AIPromptOptimizer: React.FC = () => {
     const defaults: Record<string, string> = {
       openai: 'gpt-4o-mini',
       anthropic: 'claude-3-5-haiku-20241022',
-      google: 'gemini-1.5-flash-latest',
+      google: 'gemini-1.5-flash',
       groq: 'llama-3.1-8b',
       mistral: 'mistral-medium',
     };
@@ -666,6 +665,20 @@ export const AIPromptOptimizer: React.FC = () => {
       title: "New Session Started",
       description: "Previous session cleared. You can now start a new optimization.",
     });
+  };
+
+  // Diagnostic: quick Gemini test
+  const runGeminiDiagnostic = async () => {
+    if (aiProvider !== 'google') return;
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-diagnostic', {
+        body: { model: modelName || 'gemini-1.5-flash' }
+      });
+      if (error) throw error;
+      toast({ title: 'Gemini OK', description: (data?.text || 'Response received').slice(0, 120) });
+    } catch (e: any) {
+      toast({ title: 'Gemini failed', description: e?.message || 'Unknown error', variant: 'destructive' });
+    }
   };
 
   const copyToClipboard = (text: string) => {

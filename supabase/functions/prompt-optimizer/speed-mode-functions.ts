@@ -16,7 +16,7 @@ const AI_PROVIDERS = {
 const OPTIMIZATION_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
-  google: 'gemini-1.5-flash-latest',
+  google: 'gemini-1.5-flash',
   groq: 'llama-3.1-8b-instant',
   mistral: 'mistral-medium',
 };
@@ -564,7 +564,7 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
     const url = `${cfg.baseUrl}/${model}:generateContent?key=${cfg.apiKey}`;
     const res = await fetch(url, { 
       method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': cfg.apiKey, 'Authorization': `Bearer ${cfg.apiKey}` }, 
       body: JSON.stringify({ 
         contents: [{ role: 'user', parts: [{ text: prompt }] }], 
         generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } 
