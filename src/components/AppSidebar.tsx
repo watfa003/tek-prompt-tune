@@ -188,7 +188,11 @@ export function AppSidebar() {
                 {/* Prompt List */}
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {filteredFavorites.map((item) => (
-                    <Card key={item.id} className="p-2 hover:bg-muted/50 cursor-pointer transition-colors">
+                    <Card 
+                      key={item.id} 
+                      className="p-2 hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => navigate('/app/history')}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-1">
