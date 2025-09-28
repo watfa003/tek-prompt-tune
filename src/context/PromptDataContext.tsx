@@ -56,6 +56,36 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
+  // Persistent counter helpers
+  const loadCounters = useCallback((userId: string) => {
+    try {
+      const cached = localStorage.getItem(`prompt_counters_${userId}`);
+      return cached ? JSON.parse(cached) : {
+        totalPrompts: 0,
+        totalOptimizations: 0,
+        sessionCount: 0
+      };
+    } catch (error) {
+      console.error('Error loading counters:', error);
+      return { totalPrompts: 0, totalOptimizations: 0, sessionCount: 0 };
+    }
+  }, []);
+
+  const saveCounters = useCallback((userId: string, counters: any) => {
+    try {
+      localStorage.setItem(`prompt_counters_${userId}`, JSON.stringify(counters));
+    } catch (error) {
+      console.error('Error saving counters:', error);
+    }
+  }, []);
+
+  const incrementCounter = useCallback((userId: string, counterType: 'totalPrompts' | 'totalOptimizations' | 'sessionCount') => {
+    const counters = loadCounters(userId);
+    counters[counterType] = (counters[counterType] || 0) + 1;
+    saveCounters(userId, counters);
+    return counters;
+  }, [loadCounters, saveCounters]);
+
   // Load analytics data from history items
   const loadAnalytics = useCallback(async () => {
     try {
@@ -138,13 +168,20 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           insights.push('Your recent optimizations are performing better than your earlier ones - keep up the great work!');
         }
 
+        // Get persistent counters
+        const counters = loadCounters(user.user.id);
+        
+        // Use the max of database items and persistent counters to ensure counters only go up
+        const totalPrompts = Math.max(historyItems.length, counters.totalPrompts || 0);
+        const totalOptimizations = Math.max(historyItems.length, counters.totalOptimizations || 0);
+
         const analytics = {
           overview: {
-            totalPrompts: historyItems.length,
-            completedPrompts: historyItems.length, // All loaded items are completed
+            totalPrompts,
+            completedPrompts: totalPrompts, // All loaded items are completed
             averageScore,
-            totalOptimizations: historyItems.length,
-            totalChatSessions: 0, // This would need to be fetched from chat_sessions table
+            totalOptimizations,
+            totalChatSessions: counters.sessionCount || 0,
             totalTokensUsed: 0, // This would need token data
             successRate,
           },
@@ -187,7 +224,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (error) {
       console.error('Error loading analytics:', error);
     }
-  }, [loadFromCache, saveToCache, historyItems]);
+  }, [loadFromCache, saveToCache, loadCounters, historyItems]);
 
   // Load initial data from Supabase with full prompt data
   const loadInitialData = useCallback(async () => {
@@ -307,6 +344,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Add prompt to history
   const addPromptToHistory = useCallback(async (item: PromptHistoryItem) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       // Add to state and cache immediately (local-first)
       setHistoryItems((prev) => {
         const exists = prev.some(h => h.id === item.id);
@@ -314,11 +354,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const updated = [item, ...prev];
         
         // Save to cache async
-        supabase.auth.getUser().then(({ data: { user } }) => {
-          if (user) {
-            saveToCache(user.id, 'history', updated);
-          }
-        });
+        saveToCache(user.id, 'history', updated);
+        
+        // Increment persistent counters
+        incrementCounter(user.id, 'totalPrompts');
+        incrementCounter(user.id, 'totalOptimizations');
 
         return updated;
       });
@@ -333,7 +373,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (error) {
       console.error('Error adding prompt to history:', error);
     }
-  }, [saveToCache]);
+  }, [saveToCache, incrementCounter]);
 
   // Retry queued prompts
   const retryQueuedPrompts = useCallback(async () => {
@@ -476,6 +516,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
             setHistoryItems((prev) => {
               const updated = [newHistoryItem, ...prev];
+              
+              // Increment persistent counters for real-time additions
+              incrementCounter(user.user.id, 'totalPrompts');
+              incrementCounter(user.user.id, 'totalOptimizations');
+              
               const globalBest = updated.reduce((best, current) =>
                 (current.score || 0) > (best.score || 0) ? current : best
               );
