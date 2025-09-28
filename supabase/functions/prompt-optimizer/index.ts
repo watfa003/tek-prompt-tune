@@ -222,11 +222,13 @@ serve(async (req) => {
 
         // Single API call for optimization using cheaper model
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
+        // Ensure minimum 256 tokens for optimization, but use at least 512 for testing
+        const optimizationTokens = Math.max(256, Math.min(maxTokens, 4096));
         const optimizedPrompt = await callAIProvider(
           aiProvider, 
           optimizationModel, 
           optimizationPrompt, 
-          Math.min(maxTokens, 4096), // Respect user setting but cap at reasonable limit
+          optimizationTokens,
           temperature
         );
         
@@ -241,11 +243,13 @@ serve(async (req) => {
         
         try {
           console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
+          // Ensure minimum 512 tokens for AI to respond meaningfully
+          const testTokens = Math.max(512, Math.min(maxTokens, 4096));
           const testResponse = await callAIProvider(
             aiProvider,
             modelName,
             optimizedPrompt,
-            Math.min(maxTokens, 4096),
+            testTokens,
             temperature
           );
           
