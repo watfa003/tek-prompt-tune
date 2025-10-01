@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      agents: {
+        Row: {
+          created_at: string
+          id: string
+          max_tokens: number | null
+          mode: string
+          model: string
+          name: string
+          provider: string
+          temperature: number | null
+          updated_at: string
+          user_id: string
+          user_prompt: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_tokens?: number | null
+          mode?: string
+          model: string
+          name: string
+          provider: string
+          temperature?: number | null
+          updated_at?: string
+          user_id: string
+          user_prompt?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_tokens?: number | null
+          mode?: string
+          model?: string
+          name?: string
+          provider?: string
+          temperature?: number | null
+          updated_at?: string
+          user_id?: string
+          user_prompt?: string | null
+        }
+        Relationships: []
+      }
+      api_keys: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          key: string
+          name: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          key: string
+          name?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           content: string
@@ -171,6 +248,27 @@ export type Database = {
           total_optimizations?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      prompt_counter: {
+        Row: {
+          created_at: string
+          id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          total?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -425,7 +523,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_prompt_counter: {
+        Args: { delta?: number }
+        Returns: {
+          id: string
+          total: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Slider } from "@/components/ui/slider";
-import { Zap, Settings, ChevronDown, ArrowLeft, Lightbulb, X } from "lucide-react";
+import { Zap, Settings, ChevronDown, ArrowLeft, Lightbulb, X, Code } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -18,10 +18,23 @@ import { PromptTemplates } from "@/components/PromptTemplates";
 import { PromptHistory } from "@/components/PromptHistory";
 import { UserSettings } from "@/components/UserSettings";
 import AIAgent from "@/pages/AIAgent";
+import APIManagement from "@/pages/APIManagement";
 import { PromptDataProvider } from "@/context/PromptDataContext";
+import { AppModeProvider, useAppMode } from "@/context/AppModeContext";
 
 const AppPage = () => {
+  return (
+    <AppModeProvider>
+      <PromptDataProvider>
+        <AppPageContent />
+      </PromptDataProvider>
+    </AppModeProvider>
+  );
+};
+
+const AppPageContent = () => {
   const location = useLocation();
+  const { mode, setMode } = useAppMode();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [taskDescription, setTaskDescription] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("");
@@ -36,7 +49,7 @@ const AppPage = () => {
   const [influenceType, setInfluenceType] = useState("");
   const [influenceWeight, setInfluenceWeight] = useState([75]);
   const [searchParams] = useSearchParams();
-const navigate = useNavigate();
+  const navigate = useNavigate();
   const TemplateOptimizer = React.lazy(() => import('@/components/TemplateOptimizer').then(module => ({ default: module.TemplateOptimizer })));
 
 
@@ -84,8 +97,14 @@ const navigate = useNavigate();
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  // Determine which content to show based on current path
+  // Determine which content to show based on current path and mode
   const renderContent = () => {
+    // If in API mode, show API management regardless of path
+    if (mode === 'api') {
+      return <APIManagement />;
+    }
+
+    // Otherwise show optimizer content based on path
     switch (location.pathname) {
       case '/app':
       case '/app/':
@@ -108,7 +127,6 @@ const navigate = useNavigate();
 
   return (
     <SidebarProvider>
-      <PromptDataProvider>
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
           
@@ -123,7 +141,28 @@ const navigate = useNavigate();
                   </Link>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 border rounded-lg p-1">
+                    <Button
+                      variant={mode === 'optimizer' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setMode('optimizer')}
+                      className="gap-2"
+                    >
+                      <Zap className="h-4 w-4" />
+                      Optimizer
+                    </Button>
+                    <Button
+                      variant={mode === 'api' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setMode('api')}
+                      className="gap-2"
+                    >
+                      <Code className="h-4 w-4" />
+                      API
+                    </Button>
+                  </div>
+                  
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     PrompTek
                   </Badge>
@@ -133,31 +172,11 @@ const navigate = useNavigate();
 
             <main className="flex-1 p-6 overflow-auto">
               <div className={`transition-opacity duration-200 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
-                <div className={location.pathname.startsWith('/app/history') ? 'animate-fade-in' : 'hidden'}>
-                  <PromptHistory />
-                </div>
-                <div className={location.pathname.startsWith('/app/settings') ? 'animate-fade-in' : 'hidden'}>
-                  <UserSettings />
-                </div>
-                <div className={(location.pathname === '/app' || location.pathname === '/app/') ? 'animate-fade-in' : 'hidden'}>
-                  <EnhancedDashboard />
-                </div>
-                {location.pathname.startsWith('/app/templates') && (
-                  <PromptTemplates onUseTemplate={handleUseTemplate} />
-                )}
-                {location.pathname.startsWith('/app/ai-agent') && (
-                  <AIAgent />
-                )}
-                {location.pathname.startsWith('/app/template-optimizer') && (
-                  <React.Suspense fallback={<div>Loading...</div>}>
-                    <TemplateOptimizer />
-                  </React.Suspense>
-                )}
+                {renderContent()}
               </div>
             </main>
           </div>
         </div>
-      </PromptDataProvider>
     </SidebarProvider>
   );
 };
