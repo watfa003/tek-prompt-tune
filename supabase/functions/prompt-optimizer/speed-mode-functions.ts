@@ -17,7 +17,7 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
   google: 'gemini-2.5-flash',
-  groq: 'llama3-8b-8192',
+  groq: 'llama-3.1-8b-instant',
   mistral: 'mistral-small-latest',
 };
 
@@ -170,12 +170,13 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     let optimizedPrompt = '';
     try {
       console.log(`🔄 Generating variant ${i + 1}/${numVariants} using strategy: ${strategy}`);
+      const tempForVariant = Math.min(1, Math.max(0.1, (temperature ?? 0.7) + i * 0.1));
       optimizedPrompt = await callAIProvider(
         aiProvider,
         optimizationModel,
         instruction,
         Math.min(maxTokens || 1024, 4096),
-        temperature ?? 0.7
+        tempForVariant
       ) || '';
     } catch (e) {
       console.error(`❌ Optimization API call failed for strategy ${strategy}:`, e);
@@ -183,8 +184,43 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
 
     // Fallback if provider returns nothing
     if (!optimizedPrompt.trim()) {
-      console.log(`⚠️ Empty response for ${strategy}, using fallback optimization`);
-      optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
+      console.log(`⚠️ Empty response for ${strategy}, attempting provider-specific retry`);
+      // Special retry for Google: fallback to a more permissive model
+      if (aiProvider === 'google') {
+        try {
+          const retry = await callAIProvider(
+            'google',
+            'gemini-2.0-flash',
+            instruction,
+            Math.min(maxTokens || 1024, 2048),
+            Math.min(1, (temperature ?? 0.7) + 0.1)
+          );
+          if (retry && retry.trim()) {
+            optimizedPrompt = retry.trim();
+          }
+        } catch (err) {
+          console.error('🔁 Google retry failed:', err);
+        }
+      }
+      // If still empty, use strategy-specific deep-mode fallback for diversity
+      if (!optimizedPrompt.trim()) {
+        switch (strategy) {
+          case 'specificity':
+            optimizedPrompt = applyDeepModeSpecificityOptimization(originalPrompt, taskDescription, outputType, insights);
+            break;
+          case 'structure':
+            optimizedPrompt = applyDeepModeStructureOptimization(originalPrompt, taskDescription, outputType);
+            break;
+          case 'efficiency':
+            optimizedPrompt = applyDeepModeEfficiencyOptimization(originalPrompt, taskDescription, outputType);
+            break;
+          case 'constraints':
+            optimizedPrompt = applyDeepModeConstraintsOptimization(originalPrompt, taskDescription, outputType);
+            break;
+          default:
+            optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
+        }
+      }
     }
 
     // Ensure uniqueness with up to 2 retries
