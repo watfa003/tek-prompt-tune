@@ -21,13 +21,38 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
     name: '',
     provider: '',
     model: '',
-    mode: 'chat',
+    mode: 'speed' as 'speed' | 'deep',
     systemPrompt: '',
     outputType: '',
     variants: 3,
     maxTokens: 2048,
     temperature: 0.7
   });
+
+  // Auto-select model based on provider
+  const handleProviderChange = (provider: string) => {
+    let defaultModel = '';
+    
+    switch (provider) {
+      case 'openai':
+        defaultModel = 'gpt-4o-mini';
+        break;
+      case 'anthropic':
+        defaultModel = 'claude-3-5-haiku-20241022';
+        break;
+      case 'google':
+        defaultModel = 'gemini-2.5-flash';
+        break;
+      case 'groq':
+        defaultModel = 'llama-3.1-8b';
+        break;
+      case 'mistral':
+        defaultModel = 'mistral-medium';
+        break;
+    }
+    
+    setFormData({ ...formData, provider, model: defaultModel });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +105,7 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
         name: '',
         provider: '',
         model: '',
-        mode: 'chat',
+        mode: 'speed',
         systemPrompt: '',
         outputType: '',
         variants: 3,
@@ -132,97 +157,109 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
           />
         </div>
 
-        {/* Provider and Model Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">AI Provider</Label>
-            <Select 
-              value={formData.provider} 
-              onValueChange={(value) => setFormData({ ...formData, provider: value, model: '' })}
+        {/* Mode Selection */}
+        <div className="space-y-4">
+          <Label className="text-base font-semibold">Optimization Mode</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button
+              type="button"
+              variant={formData.mode === 'speed' ? 'default' : 'outline'}
+              onClick={() => setFormData({ ...formData, mode: 'speed' })}
+              className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                formData.mode === 'speed' 
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105' 
+                  : 'hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950'
+              }`}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select AI provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="openai">OpenAI</SelectItem>
-                <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                <SelectItem value="google">Google (Gemini)</SelectItem>
-                <SelectItem value="groq">Groq</SelectItem>
-                <SelectItem value="mistral">Mistral</SelectItem>
-              </SelectContent>
-            </Select>
+              <div className="flex items-start gap-3 w-full">
+                <Loader2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold text-lg">⚡ Speed Mode</div>
+                  <div className="text-sm opacity-90 mt-1">Ultra-fast processing</div>
+                </div>
+              </div>
+            </Button>
+            
+            <Button
+              type="button"
+              variant={formData.mode === 'deep' ? 'default' : 'outline'}
+              onClick={() => setFormData({ ...formData, mode: 'deep' })}
+              className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                formData.mode === 'deep' 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' 
+                  : 'hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950'
+              }`}
+            >
+              <div className="flex items-start gap-3 w-full">
+                <Settings className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold text-lg">🔍 Deep Mode</div>
+                  <div className="text-sm opacity-90 mt-1">Advanced AI optimization</div>
+                </div>
+              </div>
+            </Button>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">LLM Model</Label>
-            <Select 
-              value={formData.model} 
-              onValueChange={(value) => setFormData({ ...formData, model: value })}
-              disabled={!formData.provider}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select LLM model" />
-              </SelectTrigger>
-              <SelectContent>
-                {formData.provider === "openai" && (
-                  <>
-                    <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
-                    <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 mini</SelectItem>
-                    <SelectItem value="gpt-5-nano-2025-08-07">GPT-5 nano</SelectItem>
-                    <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                  </>
-                )}
-                {formData.provider === "anthropic" && (
-                  <>
-                    <SelectItem value="claude-opus-4-1-20250805">Claude 4 Opus</SelectItem>
-                    <SelectItem value="claude-sonnet-4-20250514">Claude 4 Sonnet</SelectItem>
-                    <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
-                  </>
-                )}
-                {formData.provider === "google" && (
-                  <>
-                    <SelectItem value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite</SelectItem>
-                    <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                    <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</SelectItem>
-                    <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                    <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                  </>
-                )}
-                {formData.provider === "groq" && (
-                  <>
-                    <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
-                  </>
-                )}
-                {formData.provider === "mistral" && (
-                  <>
-                    <SelectItem value="mistral-large">Mistral Large</SelectItem>
-                    <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Provider Selection */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">AI Provider</Label>
+          <Select 
+            value={formData.provider} 
+            onValueChange={handleProviderChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select AI provider" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="openai">OpenAI</SelectItem>
+              <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+              <SelectItem value="google">Google (Gemini)</SelectItem>
+              <SelectItem value="groq">Groq</SelectItem>
+              <SelectItem value="mistral">Mistral</SelectItem>
+            </SelectContent>
+          </Select>
+          {formData.model && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Using model: <span className="font-medium">{formData.model}</span>
+            </p>
+          )}
+        </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Output Type</Label>
-            <Select 
-              value={formData.outputType} 
-              onValueChange={(value) => setFormData({ ...formData, outputType: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select output type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="code">Code</SelectItem>
-                <SelectItem value="text">Text</SelectItem>
-                <SelectItem value="analysis">Analysis</SelectItem>
-                <SelectItem value="creative">Creative Writing</SelectItem>
-                <SelectItem value="technical">Technical Documentation</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Output Type */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Output Type</Label>
+          <Select 
+            value={formData.outputType} 
+            onValueChange={(value) => setFormData({ ...formData, outputType: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select output type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="code">Code</SelectItem>
+              <SelectItem value="text">Text</SelectItem>
+              <SelectItem value="analysis">Analysis</SelectItem>
+              <SelectItem value="creative">Creative Writing</SelectItem>
+              <SelectItem value="technical">Technical Documentation</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Max Tokens Slider */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Max Tokens</Label>
+            <span className="text-sm text-muted-foreground">{formData.maxTokens}</span>
           </div>
+          <Slider
+            value={[formData.maxTokens]}
+            onValueChange={([value]) => setFormData({ ...formData, maxTokens: value })}
+            min={100}
+            max={32000}
+            step={100}
+            className="w-full"
+          />
         </div>
 
         {/* Advanced Settings */}
@@ -253,21 +290,6 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
                   min={1}
                   max={10}
                   step={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Max Tokens</Label>
-                  <span className="text-sm text-muted-foreground">{formData.maxTokens}</span>
-                </div>
-                <Slider
-                  value={[formData.maxTokens]}
-                  onValueChange={([value]) => setFormData({ ...formData, maxTokens: value })}
-                  min={100}
-                  max={32000}
-                  step={100}
                   className="w-full"
                 />
               </div>
