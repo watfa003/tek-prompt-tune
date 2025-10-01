@@ -225,14 +225,14 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           )
         `)
         .eq('user_id', user.user.id)
-        .order('created_at', { ascending: false })
+        .order('score', { ascending: false })
         .limit(500);
 
       if (optError) throw optError;
 
-      // Filter out variants without necessary fields
+      // Filter out variants without prompt data and ensure we have valid data
       const validVariants = (optimizations || [])
-        .filter(variant => variant.variant_prompt && variant.score !== null);
+        .filter(variant => variant.prompts && variant.variant_prompt && variant.score !== null);
 
       // Find the globally best variant (highest score across ALL variants)
       const globalBestVariant = validVariants.length > 0 
@@ -241,16 +241,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           )
         : null;
 
+      // Map all variants to history items
       const historyItems: PromptHistoryItem[] = validVariants.map((variant) => {
-        const prompt = variant.prompts || {
-          id: variant.prompt_id,
-          original_prompt: '(original prompt unavailable)',
-          task_description: '',
-          ai_provider: 'unknown',
-          model_name: 'unknown',
-          output_type: 'Code',
-          created_at: variant.created_at,
-        };
+        const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
         return {
@@ -315,8 +308,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const addPromptToHistory = useCallback(async (item: PromptHistoryItem) => {
     try {
       // Add to state and cache immediately (local-first)
-      // ALWAYS add to history, even if it's a duplicate prompt
       setHistoryItems((prev) => {
+        const exists = prev.some(h => h.id === item.id);
+        if (exists) return prev;
         const updated = [item, ...prev];
         
         // Save to cache async
@@ -332,8 +326,10 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setHasLocalChanges(true);
 
       // Queue for background sync to Supabase
-      // Always queue, even duplicates
-      setPendingQueue(prev => [...prev, item]);
+      setPendingQueue(prev => {
+        const exists = prev.some(p => p.id === item.id);
+        return exists ? prev : [...prev, item];
+      });
     } catch (error) {
       console.error('Error adding prompt to history:', error);
     }
