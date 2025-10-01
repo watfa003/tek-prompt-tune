@@ -106,8 +106,11 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         return (!best || (current.score > best.score)) ? current : best;
       }, null);
 
+      // Generate unique ID for each optimization run
+      const uniqueId = `${data?.promptId || 'local'}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
       const historyItem = {
-        id: data?.promptId,
+        id: uniqueId,
         title: `${provider} ${modelName} Optimization`,
         description: `${(data?.bestScore ?? 0) >= 0.8 ? 'High-performance' : (data?.bestScore ?? 0) >= 0.6 ? 'Good-quality' : (data?.bestScore ?? 0) >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
         prompt: data?.originalPrompt || originalPrompt,
@@ -121,9 +124,8 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         isFavorite: false,
         isBestVariant: true,
       } as const;
-      if (historyItem.id) {
-        await addPromptToHistory(historyItem as any);
-      }
+      
+      await addPromptToHistory(historyItem as any);
     } catch (e) {
       console.error('Failed to append to local history', e);
     }

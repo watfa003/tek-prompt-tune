@@ -307,10 +307,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Add prompt to history
   const addPromptToHistory = useCallback(async (item: PromptHistoryItem) => {
     try {
-      // Add to state and cache immediately (local-first)
+      // Add to state and cache immediately (local-first) - always add, no deduplication
       setHistoryItems((prev) => {
-        const exists = prev.some(h => h.id === item.id);
-        if (exists) return prev;
         const updated = [item, ...prev];
         
         // Save to cache async
@@ -325,11 +323,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       setHasLocalChanges(true);
 
-      // Queue for background sync to Supabase
-      setPendingQueue(prev => {
-        const exists = prev.some(p => p.id === item.id);
-        return exists ? prev : [...prev, item];
-      });
+      // Queue for background sync to Supabase - always add, no deduplication
+      setPendingQueue(prev => [...prev, item]);
     } catch (error) {
       console.error('Error adding prompt to history:', error);
     }
