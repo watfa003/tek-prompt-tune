@@ -156,6 +156,15 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     runningRef.current = true;
     setError(null);
     setPayload(p);
+
+    // Ensure only the latest result is shown: clear previous results unless resuming
+    if (!opts?.resume) {
+      setResult(null);
+      setSpeedResult(null);
+      localStorage.removeItem('promptOptimizer_result_speed');
+      localStorage.removeItem('promptOptimizer_result_deep');
+    }
+
     setIsOptimizing(true);
 
     try {

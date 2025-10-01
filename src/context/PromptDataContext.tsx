@@ -225,14 +225,14 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           )
         `)
         .eq('user_id', user.user.id)
-        .order('score', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(500);
 
       if (optError) throw optError;
 
-      // Filter out variants without prompt data and ensure we have valid data
+      // Filter out variants without necessary fields
       const validVariants = (optimizations || [])
-        .filter(variant => variant.prompts && variant.variant_prompt && variant.score !== null);
+        .filter(variant => variant.variant_prompt && variant.score !== null);
 
       // Find the globally best variant (highest score across ALL variants)
       const globalBestVariant = validVariants.length > 0 
@@ -241,9 +241,16 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           )
         : null;
 
-      // Map all variants to history items
       const historyItems: PromptHistoryItem[] = validVariants.map((variant) => {
-        const prompt = variant.prompts;
+        const prompt = variant.prompts || {
+          id: variant.prompt_id,
+          original_prompt: '(original prompt unavailable)',
+          task_description: '',
+          ai_provider: 'unknown',
+          model_name: 'unknown',
+          output_type: 'Code',
+          created_at: variant.created_at,
+        };
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
         return {
