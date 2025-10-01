@@ -486,7 +486,7 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
 }
 
 async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
-  console.log(`Making API call to ${providerConfig.baseUrl} with model: ${model}`);
+  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}`);
   
     const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
     const payload: any = {
@@ -500,7 +500,7 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
       payload.temperature = Math.min(temperature, 1.0);
     }
 
-    console.log('openai-compatible payload', { model, isNewerModel, max: isNewerModel ? payload.max_completion_tokens : payload.max_tokens });
+    console.log('📦 Payload:', { model, isNewerModel, max: isNewerModel ? payload.max_completion_tokens : payload.max_tokens });
 
     const response = await fetch(providerConfig.baseUrl, {
       method: 'POST',
@@ -511,19 +511,22 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
       body: JSON.stringify(payload),
     });
 
-  console.log(`API response status: ${response.status} for model: ${model}`);
+  console.log(`📡 Response status: ${response.status} for model: ${model}`);
   
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`API call failed for ${model}:`, errorText);
+    console.error(`❌ API call failed for ${model}:`, errorText);
     throw new Error(`API call failed: ${response.statusText} - ${errorText}`);
   }
 
   const data = await response.json();
+  console.log(`✅ OpenAI-compatible API success: ${model}`);
   return data.choices[0].message.content;
 }
 
 async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
+  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}`);
+  
   const response = await fetch(providerConfig.baseUrl, {
     method: 'POST',
     headers: {
@@ -539,14 +542,19 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ Anthropic API error (${response.status}):`, errorText);
     throw new Error(`Anthropic API call failed: ${response.statusText}`);
   }
 
   const data = await response.json();
+  console.log(`✅ Anthropic API success: ${model}`);
   return data.content[0].text;
 }
 
 async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
+  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}`);
+  
   const response = await fetch(`${providerConfig.baseUrl}/${model}:generateContent?key=${providerConfig.apiKey}`, {
     method: 'POST',
     headers: {
@@ -565,22 +573,23 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Google API error details:', errorText);
+    console.error(`❌ Google API error (${response.status}):`, errorText);
     throw new Error(`Google API call failed: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   const data = await response.json();
   
   if (!data.candidates || data.candidates.length === 0) {
-    console.error('Google API response has no candidates:', data);
+    console.error('❌ Google API response has no candidates:', JSON.stringify(data));
     throw new Error('Google API returned no candidates');
   }
   
   if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
-    console.error('Google API response has no content parts:', data.candidates[0]);
+    console.error('❌ Google API response has no content parts:', JSON.stringify(data.candidates[0]));
     throw new Error('Google API returned no content parts');
   }
   
+  console.log(`✅ Google API success: ${model}`);
   return data.candidates[0].content.parts[0].text;
 }
 

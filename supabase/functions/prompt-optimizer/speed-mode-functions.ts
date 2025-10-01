@@ -26,10 +26,11 @@ export async function handleSpeedMode(
   { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7 }: any
 ) {
   console.log('🚀 Running Speed Mode optimization...');
+  console.log(`📋 Config: provider=${aiProvider}, model=${modelName}, variants=${requestedVariants}, maxTokens=${maxTokens}`);
   
-  // 12-second timeout for all operations
+  // 20-second timeout for all operations (increased for slower models)
   const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Speed mode timeout: 12 seconds exceeded')), 12000);
+    setTimeout(() => reject(new Error('Speed mode timeout: 20 seconds exceeded')), 20000);
   });
   
   try {
@@ -67,14 +68,13 @@ export async function handleSpeedMode(
     console.log(`✨ Speed optimization completed in ${processingTime}ms with ${variants.length} variants. Best variant score: ${bestVariant.score}`);
     console.log(`🎯 Best prompt preview: ${bestVariant.prompt.substring(0, 100)}...`);
 
-    // Store speed optimization result
+    // Store speed optimization result (simplified to avoid schema issues)
     const { data: speedResult, error } = await supabase
       .from('speed_optimizations')
       .insert({
         user_id: userId,
         original_prompt: originalPrompt,
         optimized_prompt: bestVariant.prompt,
-        mode: 'speed',
         optimization_strategy: bestVariant.strategy,
         processing_time_ms: processingTime
       })
@@ -83,6 +83,7 @@ export async function handleSpeedMode(
 
     if (error) {
       console.error('❌ Error saving speed optimization:', error);
+      // Don't fail the entire request if DB save fails
     }
 
     const corsHeaders = {
@@ -168,6 +169,7 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
 
     let optimizedPrompt = '';
     try {
+      console.log(`🔄 Generating variant ${i + 1}/${numVariants} using strategy: ${strategy}`);
       optimizedPrompt = await callAIProvider(
         aiProvider,
         optimizationModel,
@@ -176,11 +178,12 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
         temperature ?? 0.7
       ) || '';
     } catch (e) {
-      console.error('Optimization API call failed for strategy', strategy, e);
+      console.error(`❌ Optimization API call failed for strategy ${strategy}:`, e);
     }
 
     // Fallback if provider returns nothing
     if (!optimizedPrompt.trim()) {
+      console.log(`⚠️ Empty response for ${strategy}, using fallback optimization`);
       optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
     }
 
@@ -484,9 +487,9 @@ async function callOpenAICompatible(provider: string, model: string, prompt: str
     payload.temperature = Math.min(temperature, 1.0);
   }
   
-  // Add 8-second timeout for API calls
+  // Add 15-second timeout for API calls (increased for reliability)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
   
   try {
     const res = await fetch(cfg.baseUrl, { 
@@ -515,9 +518,9 @@ async function callAnthropic(model: string, prompt: string, maxTokens: number): 
   const cfg = AI_PROVIDERS.anthropic;
   if (!cfg.apiKey) throw new Error('Anthropic API key missing');
   
-  // Add 8-second timeout for API calls
+  // Add 15-second timeout for API calls (increased for reliability)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
   
   try {
     const res = await fetch(cfg.baseUrl, { 
@@ -556,12 +559,13 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
   const cfg = AI_PROVIDERS.google;
   if (!cfg.apiKey) throw new Error('Google API key missing');
   
-  // Add 8-second timeout for API calls
+  // Add 15-second timeout for API calls (increased for reliability)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
   
   try {
     const url = `${cfg.baseUrl}/${model}:generateContent?key=${cfg.apiKey}`;
+    console.log(`🔵 Google API call: ${model}`);
     const res = await fetch(url, { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
@@ -575,11 +579,14 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
     
     if (!res.ok) { 
       const errorText = await res.text();
-      console.error('google failed:', errorText); 
+      console.error(`❌ Google API error (${res.status}):`, errorText); 
       return null; 
     }
     const data = await res.json();
     const txt = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n').trim();
+    if (!txt) {
+      console.error('❌ Google API returned empty response:', JSON.stringify(data));
+    }
     return txt || null;
   } catch (error) {
     clearTimeout(timeoutId);
