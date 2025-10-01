@@ -16,7 +16,7 @@ const AI_PROVIDERS = {
 const OPTIMIZATION_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
-  google: 'gemini-2.5-flash',
+  google: 'gemini-2.0-flash-lite',
   groq: 'llama-3.1-8b-instant',
   mistral: 'mistral-small-latest',
 };
@@ -120,6 +120,60 @@ export async function handleSpeedMode(
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     };
+
+    // Graceful timeout fallback: return deterministic local variants instead of 500
+    const isTimeout = error instanceof Error && /Speed mode timeout/i.test(error.message);
+    if (isTimeout) {
+      const strategies = ['clarity', 'specificity', 'structure'];
+      const fallbacks = strategies.slice(0, Math.max(1, Math.min(requestedVariants || 3, 3))).map((s) => {
+        let prompt = '';
+        switch (s) {
+          case 'specificity':
+            prompt = applyDeepModeSpecificityOptimization(originalPrompt, taskDescription, outputType, null);
+            break;
+          case 'structure':
+            prompt = applyDeepModeStructureOptimization(originalPrompt, taskDescription, outputType);
+            break;
+          default:
+            prompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
+        }
+        return {
+          prompt,
+          strategy: getStrategyDisplayName(s),
+          score: calculateDeepModeStyleScore(prompt, originalPrompt, s),
+          response: `Optimization completed using ${getStrategyDisplayName(s)} strategy (timeout fallback)`,
+          metrics: {
+            tokens_used: prompt.length,
+            response_length: prompt.length,
+            prompt_length: originalPrompt.length,
+            strategy_weight: getStrategyWeight(s) * 100
+          }
+        };
+      });
+
+      const bestVariant = selectBestVariant(fallbacks);
+      const processingTime = Date.now() - startTime;
+
+      return new Response(JSON.stringify({
+        originalPrompt,
+        bestOptimizedPrompt: bestVariant.prompt,
+        optimizedPrompt: bestVariant.prompt,
+        bestScore: bestVariant.score,
+        variants: fallbacks,
+        mode: 'speed',
+        strategy: bestVariant.strategy,
+        processingTimeMs: processingTime,
+        requiresRating: true,
+        improvement: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
+        summary: {
+          improvementScore: bestVariant.score - 0.5,
+          bestStrategy: bestVariant.strategy,
+          totalVariants: fallbacks.length,
+          processingTimeMs: processingTime
+        }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     return new Response(JSON.stringify({ 
       error: 'Speed mode optimization failed',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -157,15 +211,10 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   // Track uniqueness
   const seen = new Set<string>();
   
-  // Generate variants using selected strategies
-  for (let i = 0; i < selectedStrategies.length && variants.length < numVariants; i++) {
-    const strategy = selectedStrategies[i];
-
-    // Build an instruction for the LLM just like deep mode
+  // Generate variants using selected strategies (run in parallel for speed)
+  const optimizationModel = OPTIMIZATION_MODELS[aiProvider] || modelName;
+  const tasks = selectedStrategies.slice(0, numVariants).map((strategy, i) => (async () => {
     const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights);
-
-    // Choose a cheaper optimization model (deep mode style)
-    const optimizationModel = OPTIMIZATION_MODELS[aiProvider] || modelName;
 
     let optimizedPrompt = '';
     try {
@@ -182,44 +231,39 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
       console.error(`❌ Optimization API call failed for strategy ${strategy}:`, e);
     }
 
-    // Fallback if provider returns nothing
-    if (!optimizedPrompt.trim()) {
-      console.log(`⚠️ Empty response for ${strategy}, attempting provider-specific retry`);
-      // Special retry for Google: fallback to a more permissive model
-      if (aiProvider === 'google') {
-        try {
-          const retry = await callAIProvider(
-            'google',
-            'gemini-2.0-flash',
-            instruction,
-            Math.min(maxTokens || 1024, 2048),
-            Math.min(1, (temperature ?? 0.7) + 0.1)
-          );
-          if (retry && retry.trim()) {
-            optimizedPrompt = retry.trim();
-          }
-        } catch (err) {
-          console.error('🔁 Google retry failed:', err);
-        }
+    // Provider-specific retry for Google
+    if (!optimizedPrompt.trim() && aiProvider === 'google') {
+      try {
+        const retry = await callAIProvider(
+          'google',
+          'gemini-2.0-flash',
+          instruction,
+          Math.min(maxTokens || 1024, 2048),
+          Math.min(1, (temperature ?? 0.7) + 0.1)
+        );
+        if (retry && retry.trim()) optimizedPrompt = retry.trim();
+      } catch (err) {
+        console.error('🔁 Google retry failed:', err);
       }
-      // If still empty, use strategy-specific deep-mode fallback for diversity
-      if (!optimizedPrompt.trim()) {
-        switch (strategy) {
-          case 'specificity':
-            optimizedPrompt = applyDeepModeSpecificityOptimization(originalPrompt, taskDescription, outputType, insights);
-            break;
-          case 'structure':
-            optimizedPrompt = applyDeepModeStructureOptimization(originalPrompt, taskDescription, outputType);
-            break;
-          case 'efficiency':
-            optimizedPrompt = applyDeepModeEfficiencyOptimization(originalPrompt, taskDescription, outputType);
-            break;
-          case 'constraints':
-            optimizedPrompt = applyDeepModeConstraintsOptimization(originalPrompt, taskDescription, outputType);
-            break;
-          default:
-            optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
-        }
+    }
+
+    // Strategy-specific local fallback
+    if (!optimizedPrompt.trim()) {
+      switch (strategy) {
+        case 'specificity':
+          optimizedPrompt = applyDeepModeSpecificityOptimization(originalPrompt, taskDescription, outputType, insights);
+          break;
+        case 'structure':
+          optimizedPrompt = applyDeepModeStructureOptimization(originalPrompt, taskDescription, outputType);
+          break;
+        case 'efficiency':
+          optimizedPrompt = applyDeepModeEfficiencyOptimization(originalPrompt, taskDescription, outputType);
+          break;
+        case 'constraints':
+          optimizedPrompt = applyDeepModeConstraintsOptimization(originalPrompt, taskDescription, outputType);
+          break;
+        default:
+          optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
       }
     }
 
@@ -241,10 +285,8 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     }
 
     seen.add(normalizeText(optimizedPrompt));
-
     const score = calculateDeepModeStyleScore(optimizedPrompt, originalPrompt, strategy);
-
-    variants.push({
+    return {
       prompt: optimizedPrompt,
       strategy: getStrategyDisplayName(strategy),
       score,
@@ -255,9 +297,33 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
         prompt_length: originalPrompt.length,
         strategy_weight: getStrategyWeight(strategy) * 100
       }
+    };
+  })());
+
+  const settled = await Promise.allSettled(tasks);
+  for (const r of settled) {
+    if (r.status === 'fulfilled' && r.value?.prompt) variants.push(r.value);
+  }
+
+  // If some failed, fill with deterministic fallbacks to keep count
+  while (variants.length < numVariants) {
+    const missingIdx = variants.length;
+    const strategy = selectedStrategies[missingIdx] || 'clarity';
+    const fallback = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
+    variants.push({
+      prompt: fallback,
+      strategy: getStrategyDisplayName(strategy),
+      score: calculateDeepModeStyleScore(fallback, originalPrompt, strategy),
+      response: `Optimization completed using ${getStrategyDisplayName(strategy)} strategy (fallback)`,
+      metrics: {
+        tokens_used: fallback.length,
+        response_length: fallback.length,
+        prompt_length: originalPrompt.length,
+        strategy_weight: getStrategyWeight(strategy) * 100
+      }
     });
   }
-  
+
   // Sort by score (highest first) and log the results
   const sortedVariants = variants.sort((a, b) => b.score - a.score);
   console.log(`📊 Generated ${sortedVariants.length} variants. Scores: ${sortedVariants.map(v => v.score.toFixed(3)).join(', ')}`);
