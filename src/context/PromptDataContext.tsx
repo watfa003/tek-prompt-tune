@@ -270,8 +270,15 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
 
       console.log('Loaded history items from Supabase:', historyItems.length);
-      setHistoryItems(historyItems);
-      saveToCache(user.user.id, 'history', historyItems);
+      setHistoryItems((prev) => {
+        const existingIds = new Set(prev.map(i => i.id));
+        const merged = [
+          ...historyItems,
+          ...prev.filter(i => !existingIds.has(i.id))
+        ];
+        saveToCache(user.user.id, 'history', merged);
+        return merged;
+      });
       
       // Load favorites
       const { data: favorites } = await supabase

@@ -146,6 +146,10 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           } else {
             setResult(parsedResult);
           }
+          // Also append to history when resuming
+          await appendToHistory(parsedResult, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+          // Clear stored result to avoid duplicate history on next load
+          localStorage.removeItem(`promptOptimizer_result_${p.mode}`);
           setIsOptimizing(false);
           runningRef.current = false;
           return;
