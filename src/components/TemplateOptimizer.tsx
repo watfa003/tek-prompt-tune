@@ -188,7 +188,7 @@ export const TemplateOptimizer = () => {
       case "mistral":
         return ["mistral-large", "mistral-medium"];
       case "google":
-        return ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-pro", "gemini-ultra"];
+        return ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"];
       case "groq":
         return ["llama-3.1-8b"];
       default:
