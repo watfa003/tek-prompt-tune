@@ -24,6 +24,9 @@ import {
   Settings,
   Zap,
   RefreshCw,
+  Code,
+  Key,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,13 +36,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptData } from "@/context/PromptDataContext";
 import { useSettings } from "@/hooks/use-settings";
+import { useAppMode } from "@/context/AppModeContext";
 
-const navigationItems = [
+const optimizerNavigationItems = [
   { title: "Dashboard", url: "/app", icon: Home },
   { title: "AI Agent", url: "/app/ai-agent", icon: Bot },
   { title: "History", url: "/app/history", icon: History },
   { title: "Templates", url: "/app/templates", icon: FileText },
   { title: "Settings", url: "/app/settings", icon: Settings },
+];
+
+const apiNavigationItems = [
+  { title: "Agents", section: "agents", icon: Bot },
+  { title: "Create Agent", section: "create", icon: Zap },
+  { title: "API Keys", section: "keys", icon: Key },
+  { title: "Documentation", section: "docs", icon: BookOpen },
 ];
 
 // Real saved prompts will be loaded from Supabase
@@ -51,6 +62,7 @@ export function AppSidebar() {
   const { toast } = useToast();
   const { settings } = useSettings();
   const { historyItems } = usePromptData();
+  const { mode, apiSection, setApiSection } = useAppMode();
   const currentPath = location.pathname;
   const [searchQuery, setSearchQuery] = useState("");
   const [userInfo, setUserInfo] = useState<{ email: string; displayName: string } | null>(null);
@@ -105,6 +117,7 @@ export function AppSidebar() {
   };
 
   const isActive = (path: string) => currentPath === path;
+  const isApiSectionActive = (section: string) => mode === 'api' && apiSection === section;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50";
 
@@ -112,6 +125,8 @@ export function AppSidebar() {
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const navigationItems = mode === 'api' ? apiNavigationItems : optimizerNavigationItems;
 
   return (
     <Sidebar
@@ -138,7 +153,9 @@ export function AppSidebar() {
 
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-muted-foreground">
+            {mode === 'api' ? 'API Management' : 'Navigation'}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
@@ -147,11 +164,17 @@ export function AppSidebar() {
                     <Button
                       variant="ghost"
                       onClick={() => {
-                        if (currentPath !== item.url) {
+                        if (mode === 'api' && 'section' in item) {
+                          setApiSection(item.section);
+                        } else if ('url' in item && currentPath !== item.url) {
                           navigate(item.url);
                         }
                       }}
-                      className={`w-full justify-start transition-all duration-200 hover:scale-[1.02] ${isActive(item.url) ? getNavCls({ isActive: true }) : getNavCls({ isActive: false })}`}
+                      className={`w-full justify-start transition-all duration-200 hover:scale-[1.02] ${
+                        mode === 'api' && 'section' in item
+                          ? isApiSectionActive(item.section) ? getNavCls({ isActive: true }) : getNavCls({ isActive: false })
+                          : 'url' in item && isActive(item.url) ? getNavCls({ isActive: true }) : getNavCls({ isActive: false })
+                      }`}
                     >
                       <item.icon className="h-4 w-4" />
                       {!isCollapsed && <span>{item.title}</span>}
@@ -163,8 +186,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Favorites */}
-        {!isCollapsed && (
+        {/* Favorites - Only show in optimizer mode */}
+        {!isCollapsed && mode === 'optimizer' && (
           <SidebarGroup className="mt-6">
             <SidebarGroupLabel className="flex items-center justify-between">
               <span className="text-muted-foreground">Favorites</span>
