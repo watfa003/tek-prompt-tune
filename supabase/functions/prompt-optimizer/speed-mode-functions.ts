@@ -95,17 +95,14 @@ export async function handleSpeedMode(
       promptId: speedResult?.id,
       originalPrompt,
       bestOptimizedPrompt: bestVariant.prompt,
-      optimizedPrompt: bestVariant.prompt, // Ensure both fields are set for compatibility
-      bestScore: bestVariant.score,
+      optimizedPrompt: bestVariant.prompt,
       variants: variants,
       mode: 'speed',
       strategy: bestVariant.strategy,
       processingTimeMs: processingTime,
       speedResultId: speedResult?.id,
-      requiresRating: true,
       improvement: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
       summary: {
-        improvementScore: bestVariant.score - 0.5,
         bestStrategy: bestVariant.strategy,
         totalVariants: variants.length,
         processingTimeMs: processingTime
@@ -140,11 +137,9 @@ export async function handleSpeedMode(
         return {
           prompt,
           strategy: getStrategyDisplayName(s),
-          score: calculateDeepModeStyleScore(prompt, originalPrompt, s),
           response: `Optimization completed using ${getStrategyDisplayName(s)} strategy (timeout fallback)`,
           metrics: {
             tokens_used: prompt.length,
-            response_length: prompt.length,
             prompt_length: originalPrompt.length,
             strategy_weight: getStrategyWeight(s) * 100
           }
@@ -158,15 +153,12 @@ export async function handleSpeedMode(
         originalPrompt,
         bestOptimizedPrompt: bestVariant.prompt,
         optimizedPrompt: bestVariant.prompt,
-        bestScore: bestVariant.score,
         variants: fallbacks,
         mode: 'speed',
         strategy: bestVariant.strategy,
         processingTimeMs: processingTime,
-        requiresRating: true,
         improvement: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
         summary: {
-          improvementScore: bestVariant.score - 0.5,
           bestStrategy: bestVariant.strategy,
           totalVariants: fallbacks.length,
           processingTimeMs: processingTime
@@ -285,15 +277,12 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     }
 
     seen.add(normalizeText(optimizedPrompt));
-    const score = calculateDeepModeStyleScore(optimizedPrompt, originalPrompt, strategy);
     return {
       prompt: optimizedPrompt,
       strategy: getStrategyDisplayName(strategy),
-      score,
       response: `Optimization completed using ${getStrategyDisplayName(strategy)} strategy`,
       metrics: {
         tokens_used: optimizedPrompt.length,
-        response_length: optimizedPrompt.length,
         prompt_length: originalPrompt.length,
         strategy_weight: getStrategyWeight(strategy) * 100
       }
@@ -313,30 +302,27 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     variants.push({
       prompt: fallback,
       strategy: getStrategyDisplayName(strategy),
-      score: calculateDeepModeStyleScore(fallback, originalPrompt, strategy),
       response: `Optimization completed using ${getStrategyDisplayName(strategy)} strategy (fallback)`,
       metrics: {
         tokens_used: fallback.length,
-        response_length: fallback.length,
         prompt_length: originalPrompt.length,
         strategy_weight: getStrategyWeight(strategy) * 100
       }
     });
   }
 
-  // Sort by score (highest first) and log the results
-  const sortedVariants = variants.sort((a, b) => b.score - a.score);
-  console.log(`📊 Generated ${sortedVariants.length} variants. Scores: ${sortedVariants.map(v => v.score.toFixed(3)).join(', ')}`);
+  // No scoring in speed mode - just return variants as-is
+  console.log(`📊 Generated ${variants.length} variants`);
   
-  return sortedVariants;
+  return variants;
 }
 
 function selectBestVariant(variants: any[]): any {
-  // Return the highest scoring variant (already sorted by score in generateSpeedVariants)
+  // In speed mode, just return the first variant (no scoring)
   if (variants.length === 0) {
     throw new Error('No variants available to select from');
   }
-  console.log(`🏆 Selected best variant with score: ${variants[0].score} and strategy: ${variants[0].strategy}`);
+  console.log(`🏆 Selected first variant with strategy: ${variants[0].strategy}`);
   return variants[0];
 }
 
