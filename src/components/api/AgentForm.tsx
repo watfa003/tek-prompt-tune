@@ -278,22 +278,6 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
           </Select>
         </div>
 
-        {/* Max Tokens Slider */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Max Tokens</Label>
-            <span className="text-sm text-muted-foreground">{formData.maxTokens}</span>
-          </div>
-          <Slider
-            value={[formData.maxTokens]}
-            onValueChange={([value]) => setFormData({ ...formData, maxTokens: value })}
-            min={100}
-            max={32000}
-            step={100}
-            className="w-full"
-          />
-        </div>
-
         {/* Advanced Settings */}
         <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
           <CollapsibleTrigger asChild>
@@ -311,6 +295,21 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-4">
             <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Max Tokens</Label>
+                  <span className="text-sm text-muted-foreground">{formData.maxTokens}</span>
+                </div>
+                <Slider
+                  value={[formData.maxTokens]}
+                  onValueChange={([value]) => setFormData({ ...formData, maxTokens: value })}
+                  min={256}
+                  max={4028}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Number of Variants</Label>
