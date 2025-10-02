@@ -41,6 +41,9 @@ verify_jwt = true
 [functions.template-manager]
 verify_jwt = false
 
+[functions.agent-invoke]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083

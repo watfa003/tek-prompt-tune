@@ -9,7 +9,9 @@ export function APIDocs() {
     toast.success('Copied to clipboard');
   };
 
-  const curlExample = `curl -X POST https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/agent-invoke \\
+  const baseUrl = 'https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/agent-invoke';
+  
+  const curlExample = `curl -X POST ${baseUrl} \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -44,13 +46,13 @@ export function APIDocs() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => copyToClipboard('https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/agent-invoke')}
+                  onClick={() => copyToClipboard(baseUrl)}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
               <code className="block bg-muted p-3 rounded text-xs overflow-x-auto">
-                https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/agent-invoke
+                {baseUrl}
               </code>
             </div>
           </div>
