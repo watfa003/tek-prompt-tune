@@ -384,6 +384,7 @@ export type Database = {
           generation_time_ms: number | null
           id: string
           model_name: string
+          optimization_strategy: string | null
           optimized_prompt: string
           original_prompt: string
           output_type: string | null
@@ -398,6 +399,7 @@ export type Database = {
           generation_time_ms?: number | null
           id?: string
           model_name: string
+          optimization_strategy?: string | null
           optimized_prompt: string
           original_prompt: string
           output_type?: string | null
@@ -412,6 +414,7 @@ export type Database = {
           generation_time_ms?: number | null
           id?: string
           model_name?: string
+          optimization_strategy?: string | null
           optimized_prompt?: string
           original_prompt?: string
           output_type?: string | null
