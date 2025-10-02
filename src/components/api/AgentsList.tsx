@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Search, Copy } from 'lucide-react';
+import { Trash2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import {
@@ -108,31 +108,22 @@ export function AgentsList() {
         ) : (
           <div className="grid gap-4">
             {filteredAgents.map((agent) => (
-              <Card key={agent.id}>
+              <Card key={agent.id} className="border-l-4 border-l-primary/50 hover:border-l-primary transition-colors bg-gradient-to-r from-primary/5 to-transparent">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle>{agent.name}</CardTitle>
-                      <CardDescription>{agent.provider} - {agent.model}</CardDescription>
-                      <div className="mt-2 flex items-center gap-2">
-                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                          {agent.id}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(agent.id);
-                            toast.success('Agent ID copied to clipboard');
-                          }}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <CardTitle className="flex items-center gap-2">
+                        {agent.name}
+                        <Badge variant="secondary" className="ml-auto">{agent.mode}</Badge>
+                      </CardTitle>
+                      <CardDescription className="font-medium text-foreground/70">
+                        {agent.provider} - {agent.model}
+                      </CardDescription>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => setDeleteId(agent.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -141,9 +132,12 @@ export function AgentsList() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <Badge variant="secondary">{agent.mode}</Badge>
-                    <Badge variant="outline">Tokens: {agent.max_tokens}</Badge>
-                    <Badge variant="outline">Temp: {agent.temperature}</Badge>
+                    <Badge variant="outline" className="border-primary/30 bg-primary/5">
+                      Tokens: {agent.max_tokens}
+                    </Badge>
+                    <Badge variant="outline" className="border-accent/30 bg-accent/5">
+                      Temp: {agent.temperature}
+                    </Badge>
                   </div>
                   {agent.user_prompt && (
                     <p className="text-sm text-muted-foreground line-clamp-2">
