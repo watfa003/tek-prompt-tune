@@ -278,6 +278,24 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
           </Select>
         </div>
 
+        {/* Number of Variants */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Number of Variants</Label>
+          <div className="grid grid-cols-5 gap-2">
+            {[1, 2, 3, 4, 5].map((num) => (
+              <Button
+                key={num}
+                type="button"
+                variant={formData.variants === num ? 'default' : 'outline'}
+                onClick={() => setFormData({ ...formData, variants: num })}
+                className="w-full"
+              >
+                {num}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         {/* Advanced Settings */}
         <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
           <CollapsibleTrigger asChild>
@@ -305,21 +323,6 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
                   onValueChange={([value]) => setFormData({ ...formData, maxTokens: value })}
                   min={256}
                   max={4028}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Number of Variants</Label>
-                  <span className="text-sm text-muted-foreground">{formData.variants}</span>
-                </div>
-                <Slider
-                  value={[formData.variants]}
-                  onValueChange={([value]) => setFormData({ ...formData, variants: value })}
-                  min={1}
-                  max={5}
                   step={1}
                   className="w-full"
                 />
