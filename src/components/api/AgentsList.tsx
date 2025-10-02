@@ -44,6 +44,34 @@ export function AgentsList() {
   const [editAgent, setEditAgent] = useState<Agent | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const modelOptions: Record<string, { value: string; label: string }[]> = {
+    openai: [
+      { value: 'gpt-5-2025-08-07', label: 'GPT-5' },
+      { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 Mini' },
+      { value: 'gpt-5-nano-2025-08-07', label: 'GPT-5 Nano' },
+      { value: 'gpt-4.1-2025-04-14', label: 'GPT-4.1' },
+      { value: 'gpt-4o', label: 'GPT-4o' },
+      { value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
+    ],
+    anthropic: [
+      { value: 'claude-opus-4-1-20250805', label: 'Claude Opus 4.1' },
+      { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+      { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' }
+    ],
+    google: [
+      { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+      { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+      { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' }
+    ],
+    groq: [
+      { value: 'llama-3.1-8b', label: 'Llama 3.1 8B' }
+    ],
+    mistral: [
+      { value: 'mistral-large', label: 'Mistral Large' },
+      { value: 'mistral-medium', label: 'Mistral Medium' }
+    ]
+  };
+
   const loadAgents = async () => {
     try {
       const { data, error } = await supabase
@@ -280,7 +308,11 @@ export function AgentsList() {
                   <Label>Provider</Label>
                   <Select
                     value={editAgent.provider}
-                    onValueChange={(value) => setEditAgent({ ...editAgent, provider: value })}
+                    onValueChange={(value) => {
+                      // Update provider and set first model as default
+                      const defaultModel = modelOptions[value]?.[0]?.value || editAgent.model;
+                      setEditAgent({ ...editAgent, provider: value, model: defaultModel });
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -296,12 +328,25 @@ export function AgentsList() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-model">Model</Label>
-                  <Input
-                    id="edit-model"
+                  <Label>Target Model</Label>
+                  <Select
                     value={editAgent.model}
-                    onChange={(e) => setEditAgent({ ...editAgent, model: e.target.value })}
-                  />
+                    onValueChange={(value) => setEditAgent({ ...editAgent, model: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {modelOptions[editAgent.provider]?.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Used for testing in deep mode
+                  </p>
                 </div>
               </div>
 

@@ -29,28 +29,38 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
     temperature: 0.7
   });
 
-  // Auto-select model based on provider
+  // Model options per provider
+  const modelOptions: Record<string, { value: string; label: string }[]> = {
+    openai: [
+      { value: 'gpt-5-2025-08-07', label: 'GPT-5' },
+      { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 Mini' },
+      { value: 'gpt-5-nano-2025-08-07', label: 'GPT-5 Nano' },
+      { value: 'gpt-4.1-2025-04-14', label: 'GPT-4.1' },
+      { value: 'gpt-4o', label: 'GPT-4o' },
+      { value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
+    ],
+    anthropic: [
+      { value: 'claude-opus-4-1-20250805', label: 'Claude Opus 4.1' },
+      { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+      { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' }
+    ],
+    google: [
+      { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+      { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+      { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' }
+    ],
+    groq: [
+      { value: 'llama-3.1-8b', label: 'Llama 3.1 8B' }
+    ],
+    mistral: [
+      { value: 'mistral-large', label: 'Mistral Large' },
+      { value: 'mistral-medium', label: 'Mistral Medium' }
+    ]
+  };
+
+  // Auto-select first model when provider changes
   const handleProviderChange = (provider: string) => {
-    let defaultModel = '';
-    
-    switch (provider) {
-      case 'openai':
-        defaultModel = 'gpt-4o-mini';
-        break;
-      case 'anthropic':
-        defaultModel = 'claude-3-5-haiku-20241022';
-        break;
-      case 'google':
-        defaultModel = 'gemini-2.5-flash';
-        break;
-      case 'groq':
-        defaultModel = 'llama-3.1-8b';
-        break;
-      case 'mistral':
-        defaultModel = 'mistral-medium';
-        break;
-    }
-    
+    const defaultModel = modelOptions[provider]?.[0]?.value || '';
     setFormData({ ...formData, provider, model: defaultModel });
   };
 
@@ -221,12 +231,32 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
               <SelectItem value="mistral">Mistral</SelectItem>
             </SelectContent>
           </Select>
-          {formData.model && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Using model: <span className="font-medium">{formData.model}</span>
-            </p>
-          )}
         </div>
+
+        {/* Model Selection - appears after provider is selected */}
+        {formData.provider && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Target Model</Label>
+            <Select 
+              value={formData.model} 
+              onValueChange={(value) => setFormData({ ...formData, model: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select target model" />
+              </SelectTrigger>
+              <SelectContent>
+                {modelOptions[formData.provider]?.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              This model will be used to test optimized prompts in deep mode
+            </p>
+          </div>
+        )}
 
         {/* Output Type */}
         <div className="space-y-2">
