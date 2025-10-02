@@ -111,11 +111,24 @@ export function APIKeysList() {
               <Card key={apiKey.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="text-base">{apiKey.name || 'API Key'}</CardTitle>
                       <CardDescription>
                         Agent: {apiKey.agents?.name || 'Unknown'}
                       </CardDescription>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Agent ID:</span>
+                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                          {apiKey.agent_id}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(apiKey.agent_id)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <Button

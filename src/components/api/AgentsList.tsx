@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Search } from 'lucide-react';
+import { Trash2, Search, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import {
@@ -111,9 +111,24 @@ export function AgentsList() {
               <Card key={agent.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle>{agent.name}</CardTitle>
                       <CardDescription>{agent.provider} - {agent.model}</CardDescription>
+                      <div className="mt-2 flex items-center gap-2">
+                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                          {agent.id}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(agent.id);
+                            toast.success('Agent ID copied to clipboard');
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     <Button
                       variant="ghost"
