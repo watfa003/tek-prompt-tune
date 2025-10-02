@@ -374,11 +374,11 @@ export function AgentsList() {
                   <Label>Number of Variants</Label>
                   <span className="text-sm text-muted-foreground">{editAgent.variants}</span>
                 </div>
-                <Slider
+               <Slider
                   value={[editAgent.variants]}
                   onValueChange={([value]) => setEditAgent({ ...editAgent, variants: value })}
                   min={1}
-                  max={10}
+                  max={5}
                   step={1}
                 />
               </div>

@@ -320,7 +320,7 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
                   value={[formData.variants]}
                   onValueChange={([value]) => setFormData({ ...formData, variants: value })}
                   min={1}
-                  max={10}
+                  max={5}
                   step={1}
                   className="w-full"
                 />
