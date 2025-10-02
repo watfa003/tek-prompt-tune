@@ -201,19 +201,26 @@ serve(async (req) => {
   }
 
   try {
-    // Extract API key from Authorization header
+    // Get request body
+    const body = await req.json();
+    const { agent_id, input, apiKey } = body;
+    
+    // Extract API key from Authorization header OR request body
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let finalApiKey: string;
+    
+    if (apiKey) {
+      // Support apiKey in request body (for n8n and other clients)
+      finalApiKey = apiKey;
+    } else if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Support Bearer token in Authorization header
+      finalApiKey = authHeader.replace('Bearer ', '');
+    } else {
       return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
+        JSON.stringify({ error: 'Missing API key. Provide either "apiKey" in request body or "Authorization: Bearer YOUR_KEY" header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const apiKey = authHeader.replace('Bearer ', '');
-    
-    // Get request body
-    const { agent_id, input } = await req.json();
     
     if (!agent_id || !input) {
       return new Response(
@@ -235,7 +242,7 @@ serve(async (req) => {
     const { data: keyData, error: keyError } = await supabase
       .from('api_keys')
       .select('user_id, agent_id')
-      .eq('key', apiKey)
+      .eq('key', finalApiKey)
       .single();
 
     if (keyError || !keyData) {
@@ -294,6 +301,7 @@ serve(async (req) => {
     // Return response
     return new Response(
       JSON.stringify({
+        agentId: agent_id,
         output,
         tokens_used: output.length,
         model: agent.model,

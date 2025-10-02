@@ -12,21 +12,31 @@ export function APIDocs() {
   const baseUrl = 'https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/agent-invoke';
   
   const curlExample = `curl -X POST ${baseUrl} \\
-  -H "Authorization: Bearer pk_abc123def456" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "apiKey": "YOUR_API_KEY",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+    "input": "Write me a product description"
+  }'`;
+
+  const curlBearerExample = `curl -X POST ${baseUrl} \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "agent_id": "550e8400-e29b-41d4-a716-446655440000",
-    "input": "Write a function that calculates fibonacci numbers"
+    "input": "Write me a product description"
   }'`;
 
   const requestExample = `{
+  "apiKey": "YOUR_API_KEY",
   "agent_id": "550e8400-e29b-41d4-a716-446655440000",
-  "input": "Write a function that calculates fibonacci numbers"
+  "input": "Write me a product description"
 }`;
 
   const responseExample = `{
-  "output": "Here's a function that calculates fibonacci numbers:\\n\\nfunction fibonacci(n) {\\n  if (n <= 1) return n;\\n  return fibonacci(n - 1) + fibonacci(n - 2);\\n}",
-  "tokens_used": 87,
+  "agentId": "550e8400-e29b-41d4-a716-446655440000",
+  "output": "Introducing our premium product - crafted with precision and designed for excellence. This innovative solution combines cutting-edge technology with elegant design...",
+  "tokens_used": 187,
   "model": "gpt-4o-mini",
   "provider": "openai",
   "processing_time_ms": 1234,
@@ -64,12 +74,23 @@ export function APIDocs() {
       <Card>
         <CardHeader>
           <CardTitle>Authentication</CardTitle>
-          <CardDescription>Include your API key in the Authorization header</CardDescription>
+          <CardDescription>Two ways to authenticate your requests</CardDescription>
         </CardHeader>
         <CardContent>
-          <code className="block bg-muted p-3 rounded text-sm">
-            Authorization: Bearer YOUR_API_KEY
-          </code>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-semibold mb-2">Option 1: Request Body (Recommended for n8n)</p>
+              <code className="block bg-muted p-3 rounded text-sm">
+                {`{ "apiKey": "YOUR_API_KEY", ... }`}
+              </code>
+            </div>
+            <div>
+              <p className="text-sm font-semibold mb-2">Option 2: Authorization Header</p>
+              <code className="block bg-muted p-3 rounded text-sm">
+                Authorization: Bearer YOUR_API_KEY
+              </code>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -77,8 +98,8 @@ export function APIDocs() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>cURL Example</CardTitle>
-              <CardDescription>Example request using cURL</CardDescription>
+              <CardTitle>cURL Example (n8n Compatible)</CardTitle>
+              <CardDescription>API key in request body - works perfectly with n8n HTTP Request node</CardDescription>
             </div>
             <Button
               variant="ghost"
@@ -92,6 +113,29 @@ export function APIDocs() {
         <CardContent>
           <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
             {curlExample}
+          </pre>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Alternative: Bearer Token</CardTitle>
+              <CardDescription>Using Authorization header instead</CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => copyToClipboard(curlBearerExample)}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+            {curlBearerExample}
           </pre>
         </CardContent>
       </Card>
