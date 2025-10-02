@@ -286,32 +286,57 @@ serve(async (req) => {
 
     const startTime = Date.now();
 
-    // Determine system prompt based on agent mode
-    let systemPrompt: string;
+    // For optimization modes (speed/deep), call the prompt optimizer
     if (agent.mode === 'speed' || agent.mode === 'deep') {
-      // Use prompt optimization system prompt for optimization modes
-      systemPrompt = `You are PrompTek AI Agent, an expert in prompt engineering and optimization. You help users:
+      console.log('Calling prompt-optimizer for optimization mode');
+      
+      // Call the prompt-optimizer function
+      const { data: optimizerData, error: optimizerError } = await supabase.functions.invoke('prompt-optimizer', {
+        body: {
+          originalPrompt: input,
+          userId: keyData.user_id,
+          aiProvider: agent.provider,
+          modelName: agent.model,
+          outputType: 'text',
+          variants: 3,
+          maxTokens: agent.max_tokens || 2048,
+          temperature: agent.temperature || 0.7,
+          mode: agent.mode
+        }
+      });
 
-1. **Generate optimized prompts** for various AI models and use cases
-2. **Analyze and score prompts** based on clarity, specificity, and effectiveness
-3. **Suggest improvements** to existing prompts
-4. **Provide prompt engineering best practices**
-5. **Create variants** of prompts for A/B testing
+      if (optimizerError) {
+        console.error('Optimizer error:', optimizerError);
+        throw new Error(`Optimizer error: ${optimizerError.message}`);
+      }
 
-Key principles:
-- Be specific and actionable in your suggestions
-- Consider the target AI model and use case
-- Focus on clarity, context, and desired output format
-- Suggest measurable improvements
-- Explain your reasoning
+      const processingTime = Date.now() - startTime;
 
-Always provide practical, implementable advice for prompt optimization.`;
-    } else {
-      // Use custom system prompt for chat mode
-      systemPrompt = agent.user_prompt || 'You are a helpful AI assistant.';
+      // Return the optimized prompt
+      return new Response(
+        JSON.stringify({
+          agentId: agent_id,
+          optimized_prompt: optimizerData.bestOptimizedPrompt,
+          original_prompt: input,
+          score: optimizerData.bestScore,
+          strategy: optimizerData.summary.bestStrategy,
+          variants_count: optimizerData.summary.totalVariants,
+          improvement_score: optimizerData.summary.improvementScore,
+          model: agent.model,
+          provider: agent.provider,
+          processing_time_ms: processingTime,
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
-    // Call AI provider with agent configuration
+    // For chat mode, use custom system prompt and call AI provider
+    const systemPrompt = agent.user_prompt || 'You are a helpful AI assistant.';
+    
     const output = await callAIProvider(
       agent.provider,
       agent.model,
@@ -323,7 +348,7 @@ Always provide practical, implementable advice for prompt optimization.`;
 
     const processingTime = Date.now() - startTime;
 
-    // Return response
+    // Return response for chat mode
     return new Response(
       JSON.stringify({
         agentId: agent_id,
