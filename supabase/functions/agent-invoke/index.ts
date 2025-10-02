@@ -27,6 +27,20 @@ async function callAIProvider(
 ): Promise<string> {
   console.log(`Calling ${provider} with model ${model}`);
   
+  // Validate API keys before attempting to call
+  const apiKeyMap: Record<string, string | undefined> = {
+    'openai': openAIApiKey,
+    'anthropic': anthropicApiKey,
+    'google': googleApiKey,
+    'groq': groqApiKey,
+    'mistral': mistralApiKey
+  };
+
+  const requiredApiKey = apiKeyMap[provider];
+  if (!requiredApiKey) {
+    throw new Error(`API key for ${provider} is not configured. Please add the ${provider.toUpperCase()}_API_KEY secret in Supabase.`);
+  }
+  
   try {
     switch (provider) {
       case 'openai': {
@@ -204,6 +218,13 @@ serve(async (req) => {
     if (!agent_id || !input) {
       return new Response(
         JSON.stringify({ error: 'agent_id and input are required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (typeof input !== 'string' || input.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'input must be a non-empty string' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

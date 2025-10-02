@@ -12,23 +12,25 @@ export function APIDocs() {
   const baseUrl = 'https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/agent-invoke';
   
   const curlExample = `curl -X POST ${baseUrl} \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Authorization: Bearer pk_abc123def456" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "agent_id": "your-agent-id",
-    "input": "Hello, how can you help me?"
+    "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+    "input": "Write a function that calculates fibonacci numbers"
   }'`;
 
   const requestExample = `{
-  "agent_id": "uuid-of-your-agent",
-  "input": "Your prompt or question here"
+  "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+  "input": "Write a function that calculates fibonacci numbers"
 }`;
 
   const responseExample = `{
-  "output": "AI generated response",
-  "tokens_used": 150,
-  "model": "gpt-4",
-  "timestamp": "2025-01-01T12:00:00Z"
+  "output": "Here's a function that calculates fibonacci numbers:\\n\\nfunction fibonacci(n) {\\n  if (n <= 1) return n;\\n  return fibonacci(n - 1) + fibonacci(n - 2);\\n}",
+  "tokens_used": 87,
+  "model": "gpt-4o-mini",
+  "provider": "openai",
+  "processing_time_ms": 1234,
+  "timestamp": "2024-01-20T12:00:00.000Z"
 }`;
 
   return (
