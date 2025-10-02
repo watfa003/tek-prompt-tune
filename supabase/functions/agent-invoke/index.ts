@@ -294,6 +294,7 @@ serve(async (req) => {
       const { data: optimizerData, error: optimizerError } = await supabase.functions.invoke('prompt-optimizer', {
         body: {
           originalPrompt: input,
+          taskDescription: agent.user_prompt || '',
           userId: keyData.user_id,
           aiProvider: agent.provider,
           modelName: agent.model,
