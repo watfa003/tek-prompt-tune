@@ -3,9 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Search } from 'lucide-react';
+import { Trash2, Search, Edit, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +39,8 @@ export function AgentsList() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editAgent, setEditAgent] = useState<Agent | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const loadAgents = async () => {
     try {
@@ -71,6 +78,36 @@ export function AgentsList() {
       setDeleteId(null);
     } catch (error: any) {
       toast.error('Failed to delete agent');
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editAgent) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('agents')
+        .update({
+          name: editAgent.name,
+          provider: editAgent.provider,
+          model: editAgent.model,
+          mode: editAgent.mode,
+          max_tokens: editAgent.max_tokens,
+          temperature: editAgent.temperature,
+          user_prompt: editAgent.user_prompt
+        })
+        .eq('id', editAgent.id);
+
+      if (error) throw error;
+
+      toast.success('Agent updated successfully');
+      setAgents(agents.map(a => a.id === editAgent.id ? editAgent : a));
+      setEditAgent(null);
+    } catch (error: any) {
+      toast.error('Failed to update agent');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -120,14 +157,24 @@ export function AgentsList() {
                         {agent.provider} - {agent.model}
                       </CardDescription>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setDeleteId(agent.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:bg-primary/10"
+                        onClick={() => setEditAgent(agent)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteId(agent.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -165,6 +212,136 @@ export function AgentsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editAgent} onOpenChange={() => setEditAgent(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Agent</DialogTitle>
+            <DialogDescription>Update your agent configuration</DialogDescription>
+          </DialogHeader>
+          
+          {editAgent && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Agent Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editAgent.name}
+                  onChange={(e) => setEditAgent({ ...editAgent, name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-prompt">System Prompt</Label>
+                <Textarea
+                  id="edit-prompt"
+                  value={editAgent.user_prompt || ''}
+                  onChange={(e) => setEditAgent({ ...editAgent, user_prompt: e.target.value })}
+                  className="min-h-[120px]"
+                  placeholder="You are a helpful AI assistant..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Mode</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    type="button"
+                    variant={editAgent.mode === 'speed' ? 'default' : 'outline'}
+                    onClick={() => setEditAgent({ ...editAgent, mode: 'speed' })}
+                    className="h-auto p-4"
+                  >
+                    <div className="text-left">
+                      <div className="font-semibold">⚡ Speed Mode</div>
+                      <div className="text-xs opacity-80">Ultra-fast processing</div>
+                    </div>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={editAgent.mode === 'deep' ? 'default' : 'outline'}
+                    onClick={() => setEditAgent({ ...editAgent, mode: 'deep' })}
+                    className="h-auto p-4"
+                  >
+                    <div className="text-left">
+                      <div className="font-semibold">🔍 Deep Mode</div>
+                      <div className="text-xs opacity-80">Advanced optimization</div>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Provider</Label>
+                  <Select
+                    value={editAgent.provider}
+                    onValueChange={(value) => setEditAgent({ ...editAgent, provider: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="openai">OpenAI</SelectItem>
+                      <SelectItem value="anthropic">Anthropic</SelectItem>
+                      <SelectItem value="google">Google</SelectItem>
+                      <SelectItem value="groq">Groq</SelectItem>
+                      <SelectItem value="mistral">Mistral</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-model">Model</Label>
+                  <Input
+                    id="edit-model"
+                    value={editAgent.model}
+                    onChange={(e) => setEditAgent({ ...editAgent, model: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Max Tokens</Label>
+                  <span className="text-sm text-muted-foreground">{editAgent.max_tokens}</span>
+                </div>
+                <Slider
+                  value={[editAgent.max_tokens]}
+                  onValueChange={([value]) => setEditAgent({ ...editAgent, max_tokens: value })}
+                  min={100}
+                  max={32000}
+                  step={100}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Temperature</Label>
+                  <span className="text-sm text-muted-foreground">{editAgent.temperature.toFixed(1)}</span>
+                </div>
+                <Slider
+                  value={[editAgent.temperature]}
+                  onValueChange={([value]) => setEditAgent({ ...editAgent, temperature: value })}
+                  min={0}
+                  max={1}
+                  step={0.1}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button variant="outline" onClick={() => setEditAgent(null)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdate} disabled={saving} className="flex-1">
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
