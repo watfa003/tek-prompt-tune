@@ -286,11 +286,36 @@ serve(async (req) => {
 
     const startTime = Date.now();
 
+    // Determine system prompt based on agent mode
+    let systemPrompt: string;
+    if (agent.mode === 'speed' || agent.mode === 'deep') {
+      // Use prompt optimization system prompt for optimization modes
+      systemPrompt = `You are PrompTek AI Agent, an expert in prompt engineering and optimization. You help users:
+
+1. **Generate optimized prompts** for various AI models and use cases
+2. **Analyze and score prompts** based on clarity, specificity, and effectiveness
+3. **Suggest improvements** to existing prompts
+4. **Provide prompt engineering best practices**
+5. **Create variants** of prompts for A/B testing
+
+Key principles:
+- Be specific and actionable in your suggestions
+- Consider the target AI model and use case
+- Focus on clarity, context, and desired output format
+- Suggest measurable improvements
+- Explain your reasoning
+
+Always provide practical, implementable advice for prompt optimization.`;
+    } else {
+      // Use custom system prompt for chat mode
+      systemPrompt = agent.user_prompt || 'You are a helpful AI assistant.';
+    }
+
     // Call AI provider with agent configuration
     const output = await callAIProvider(
       agent.provider,
       agent.model,
-      agent.user_prompt || 'You are a helpful AI assistant.',
+      systemPrompt,
       input,
       agent.max_tokens || 2048,
       agent.temperature || 0.7
