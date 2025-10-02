@@ -79,7 +79,9 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
           mode: formData.mode,
           max_tokens: formData.maxTokens,
           temperature: formData.temperature,
-          user_prompt: formData.systemPrompt
+          user_prompt: formData.systemPrompt,
+          output_type: formData.outputType,
+          variants: formData.variants
         })
         .select()
         .single();

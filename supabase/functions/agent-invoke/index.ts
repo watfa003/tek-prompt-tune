@@ -297,8 +297,8 @@ serve(async (req) => {
           userId: keyData.user_id,
           aiProvider: agent.provider,
           modelName: agent.model,
-          outputType: 'text',
-          variants: 3,
+          outputType: agent.output_type || 'text',
+          variants: agent.variants || 3,
           maxTokens: agent.max_tokens || 2048,
           temperature: agent.temperature || 0.7,
           mode: agent.mode

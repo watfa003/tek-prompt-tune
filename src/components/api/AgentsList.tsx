@@ -32,6 +32,8 @@ interface Agent {
   temperature: number;
   user_prompt: string | null;
   created_at: string;
+  output_type: string;
+  variants: number;
 }
 
 export function AgentsList() {
@@ -95,7 +97,9 @@ export function AgentsList() {
           mode: editAgent.mode,
           max_tokens: editAgent.max_tokens,
           temperature: editAgent.temperature,
-          user_prompt: editAgent.user_prompt
+          user_prompt: editAgent.user_prompt,
+          output_type: editAgent.output_type,
+          variants: editAgent.variants
         })
         .eq('id', editAgent.id);
 
@@ -299,6 +303,39 @@ export function AgentsList() {
                     onChange={(e) => setEditAgent({ ...editAgent, model: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Output Type</Label>
+                <Select
+                  value={editAgent.output_type}
+                  onValueChange={(value) => setEditAgent({ ...editAgent, output_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="code">Code</SelectItem>
+                    <SelectItem value="text">Text</SelectItem>
+                    <SelectItem value="analysis">Analysis</SelectItem>
+                    <SelectItem value="creative">Creative Writing</SelectItem>
+                    <SelectItem value="technical">Technical Documentation</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Number of Variants</Label>
+                  <span className="text-sm text-muted-foreground">{editAgent.variants}</span>
+                </div>
+                <Slider
+                  value={[editAgent.variants]}
+                  onValueChange={([value]) => setEditAgent({ ...editAgent, variants: value })}
+                  min={1}
+                  max={10}
+                  step={1}
+                />
               </div>
 
               <div className="space-y-2">

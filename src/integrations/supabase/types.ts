@@ -22,11 +22,13 @@ export type Database = {
           mode: string
           model: string
           name: string
+          output_type: string | null
           provider: string
           temperature: number | null
           updated_at: string
           user_id: string
           user_prompt: string | null
+          variants: number | null
         }
         Insert: {
           created_at?: string
@@ -35,11 +37,13 @@ export type Database = {
           mode?: string
           model: string
           name: string
+          output_type?: string | null
           provider: string
           temperature?: number | null
           updated_at?: string
           user_id: string
           user_prompt?: string | null
+          variants?: number | null
         }
         Update: {
           created_at?: string
@@ -48,11 +52,13 @@ export type Database = {
           mode?: string
           model?: string
           name?: string
+          output_type?: string | null
           provider?: string
           temperature?: number | null
           updated_at?: string
           user_id?: string
           user_prompt?: string | null
+          variants?: number | null
         }
         Relationships: []
       }
