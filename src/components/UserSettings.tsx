@@ -188,30 +188,20 @@ export const UserSettings = () => {
               <span>1.0 (Very Creative)</span>
             </div>
           </div>
-        </div>
-      </Card>
-
-      {/* Advanced Settings */}
-      <Card className="p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Settings className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Advanced Settings</h2>
-        </div>
-        
-        <div className="space-y-4">
+          
           <div className="space-y-2">
             <Label>Max Tokens: {settings.defaultMaxTokens}</Label>
             <Slider
               value={[settings.defaultMaxTokens]}
               onValueChange={([value]) => setSettings({ ...settings, defaultMaxTokens: value })}
-              max={4028}
+              max={4000}
               min={256}
               step={256}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>256</span>
-              <span>4028</span>
+              <span>4000</span>
             </div>
           </div>
         </div>
