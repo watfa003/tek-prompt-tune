@@ -315,11 +315,11 @@ export function AgentsList() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="code">Code</SelectItem>
                     <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="analysis">Analysis</SelectItem>
-                    <SelectItem value="creative">Creative Writing</SelectItem>
-                    <SelectItem value="technical">Technical Documentation</SelectItem>
+                    <SelectItem value="code">Code</SelectItem>
+                    <SelectItem value="json">JSON</SelectItem>
+                    <SelectItem value="list">List</SelectItem>
+                    <SelectItem value="essay">Essay</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

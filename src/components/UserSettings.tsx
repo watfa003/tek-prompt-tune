@@ -149,10 +149,11 @@ export const UserSettings = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Code">Code</SelectItem>
-                <SelectItem value="Essay">Essay</SelectItem>
-                <SelectItem value="JSON">JSON</SelectItem>
-                <SelectItem value="Structured Data">Structured Data</SelectItem>
+                <SelectItem value="text">Text</SelectItem>
+                <SelectItem value="code">Code</SelectItem>
+                <SelectItem value="json">JSON</SelectItem>
+                <SelectItem value="list">List</SelectItem>
+                <SelectItem value="essay">Essay</SelectItem>
               </SelectContent>
             </Select>
           </div>
