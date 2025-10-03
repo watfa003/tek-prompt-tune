@@ -15,7 +15,7 @@ export function APIDocs() {
   -H "Content-Type: application/json" \\
   -d '{
     "apiKey": "YOUR_API_KEY",
-    "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+    "agent_id": "YOUR_AGENT_ID",
     "input": "Write me a product description"
   }'`;
 
@@ -23,18 +23,18 @@ export function APIDocs() {
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+    "agent_id": "YOUR_AGENT_ID",
     "input": "Write me a product description"
   }'`;
 
   const requestExample = `{
   "apiKey": "YOUR_API_KEY",
-  "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+  "agent_id": "YOUR_AGENT_ID",
   "input": "Write me a product description"
 }`;
 
   const responseExample = `{
-  "agentId": "550e8400-e29b-41d4-a716-446655440000",
+  "agentId": "YOUR_AGENT_ID",
   "output": "Introducing our premium product - crafted with precision and designed for excellence. This innovative solution combines cutting-edge technology with elegant design...",
   "tokens_used": 187,
   "model": "gpt-4o-mini",
@@ -47,8 +47,47 @@ export function APIDocs() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
+          <CardTitle>Getting Started</CardTitle>
+          <CardDescription>Follow these steps to use your AI agents via API</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-sm">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">1</div>
+              <div>
+                <p className="font-medium">Create an Agent</p>
+                <p className="text-muted-foreground text-xs">Go to the "Create Agent" tab and configure your AI agent</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">2</div>
+              <div>
+                <p className="font-medium">Generate an API Key</p>
+                <p className="text-muted-foreground text-xs">Go to "API Keys" tab and create a new key for your agent</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">3</div>
+              <div>
+                <p className="font-medium">Get Your Agent ID</p>
+                <p className="text-muted-foreground text-xs">Copy your agent ID from the "Your Agents" tab</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">4</div>
+              <div>
+                <p className="font-medium">Make API Calls</p>
+                <p className="text-muted-foreground text-xs">Use the examples below to invoke your agent</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>API Endpoint</CardTitle>
-          <CardDescription>Use this endpoint to invoke your agents</CardDescription>
+          <CardDescription>Base URL for all agent invocations</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -144,8 +183,8 @@ export function APIDocs() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Request Body</CardTitle>
-              <CardDescription>JSON payload structure</CardDescription>
+              <CardTitle>Request Parameters</CardTitle>
+              <CardDescription>Required fields for your API request</CardDescription>
             </div>
             <Button
               variant="ghost"
@@ -157,9 +196,26 @@ export function APIDocs() {
           </div>
         </CardHeader>
         <CardContent>
-          <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">
-            {requestExample}
-          </pre>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium mb-1">apiKey (string, required)</p>
+              <p className="text-xs text-muted-foreground mb-2">Your API key from the "API Keys" tab. Can also be sent as a Bearer token in the Authorization header.</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1">agent_id (string, required)</p>
+              <p className="text-xs text-muted-foreground mb-2">The unique ID of your agent. Find this in the "Your Agents" tab by clicking on any agent.</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1">input (string, required)</p>
+              <p className="text-xs text-muted-foreground mb-2">The prompt or question you want to send to your AI agent.</p>
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm font-semibold mb-2">Example Request:</p>
+              <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">
+                {requestExample}
+              </pre>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
