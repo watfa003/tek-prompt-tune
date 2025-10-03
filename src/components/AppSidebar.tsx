@@ -50,6 +50,7 @@ const apiNavigationItems = [
   { title: "Agents", section: "agents", icon: Bot },
   { title: "Create Agent", section: "create", icon: Zap },
   { title: "API Keys", section: "keys", icon: Key },
+  { title: "Logs", section: "logs", icon: FileText },
   { title: "Documentation", section: "docs", icon: BookOpen },
 ];
 

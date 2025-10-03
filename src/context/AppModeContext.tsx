@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 type AppMode = 'optimizer' | 'api';
-type ApiSection = 'agents' | 'create' | 'keys' | 'docs';
+type ApiSection = 'agents' | 'create' | 'keys' | 'docs' | 'logs';
 
 interface AppModeContextType {
   mode: AppMode;

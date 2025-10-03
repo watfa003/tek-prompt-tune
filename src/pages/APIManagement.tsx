@@ -3,6 +3,7 @@ import { AgentForm } from '@/components/api/AgentForm';
 import { AgentsList } from '@/components/api/AgentsList';
 import { APIKeysList } from '@/components/api/APIKeysList';
 import { APIDocs } from '@/components/api/APIDocs';
+import { AgentLogs } from '@/components/api/AgentLogs';
 import { useAppMode } from '@/context/AppModeContext';
 
 export default function APIManagement() {
@@ -23,6 +24,8 @@ export default function APIManagement() {
         return <APIKeysList key={`keys-${refreshKey}`} />;
       case 'docs':
         return <APIDocs />;
+      case 'logs':
+        return <AgentLogs />;
       default:
         return <AgentsList key={refreshKey} />;
     }
@@ -38,6 +41,8 @@ export default function APIManagement() {
         return { title: 'API Keys', description: 'Manage your API keys and access tokens' };
       case 'docs':
         return { title: 'API Documentation', description: 'Learn how to use the API endpoints' };
+      case 'logs':
+        return { title: 'Agent Logs', description: 'View execution logs for your agents' };
       default:
         return { title: 'API Management', description: 'Manage your AI agents and API keys' };
     }
