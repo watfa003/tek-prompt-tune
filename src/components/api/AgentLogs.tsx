@@ -233,22 +233,22 @@ export function AgentLogs() {
 
       {/* Logs Display */}
       <Card>
-        <CardContent className="p-6">
-          <ScrollArea className="h-[600px] w-full pr-4">
+        <CardContent className="p-4">
+          <ScrollArea className="h-[600px] w-full">
             {loadingLogs ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : logs.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 pr-2">
                 {logs.map((log, idx) => {
                   const style = getLevelStyle(log.level);
                   return (
                     <div
                       key={idx}
-                      className={`rounded-lg border-l-4 ${style.border} ${style.bg} border border-border/50 p-4 transition-all hover:shadow-md`}
+                      className={`rounded-lg border-l-4 ${style.border} ${style.bg} border border-border/50 p-3 transition-all hover:shadow-md`}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge className={style.badge}>
