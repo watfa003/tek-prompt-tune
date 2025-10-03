@@ -76,79 +76,38 @@ export function AgentLogs() {
     setLoadingLogs(true);
     
     try {
-      const allLogs: LogEntry[] = [];
-      
-      // Get logs for selected agent(s)
-      const agentsToFetch = selectedAgent === 'all' ? agents : agents.filter(a => a.id === selectedAgent);
-      
-      for (const agent of agentsToFetch) {
-        // Mock logs with more variety and color-coded types
-        const mockAgentLogs: LogEntry[] = [
-          {
-            timestamp: new Date(Date.now() - 5000).toISOString(),
-            level: 'success',
-            message: `Agent invoked successfully - Response generated in 1.2s`,
-            agentId: agent.id,
-            agentName: agent.name,
-            optimizedPrompt: `You are an expert ${agent.model} assistant. Provide clear, concise, and accurate responses. Focus on practical solutions and best practices.`,
-            originalPrompt: `Help me with ${agent.model}`,
-            metadata: { 
-              tokens: 250, 
-              model: agent.model,
-              responseTime: '1.2s',
-              improvements: 'Added specificity, clarity, and structure'
-            }
-          },
-          {
-            timestamp: new Date(Date.now() - 60000).toISOString(),
-            level: 'info',
-            message: `Processing request with ${agent.model}`,
-            agentId: agent.id,
-            agentName: agent.name,
-            metadata: { provider: agent.provider }
-          },
-          {
-            timestamp: new Date(Date.now() - 120000).toISOString(),
-            level: 'warning',
-            message: 'Rate limit approaching - 80% of quota used',
-            agentId: agent.id,
-            agentName: agent.name,
-            metadata: { quotaUsed: '80%', remaining: 200 }
-          },
-          {
-            timestamp: new Date(Date.now() - 180000).toISOString(),
-            level: 'success',
-            message: `Generated response with ${agent.provider}`,
-            agentId: agent.id,
-            agentName: agent.name,
-            optimizedPrompt: `Act as a professional code reviewer. Analyze the following code for bugs, performance issues, and best practices. Provide specific actionable feedback.`,
-            originalPrompt: `Review my code`,
-            metadata: { 
-              tokens: 180,
-              responseTime: '0.8s',
-              improvements: 'Enhanced role definition, added specific evaluation criteria'
-            }
-          },
-          {
-            timestamp: new Date(Date.now() - 240000).toISOString(),
-            level: 'error',
-            message: 'API timeout - Request took longer than 30s',
-            agentId: agent.id,
-            agentName: agent.name,
-            metadata: { 
-              error: 'TIMEOUT',
-              duration: '30s'
-            }
-          }
-        ];
-        
-        allLogs.push(...mockAgentLogs);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let query = supabase
+        .from('agent_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      // Filter by specific agent if not 'all'
+      if (selectedAgent !== 'all') {
+        query = query.eq('agent_id', selectedAgent);
       }
-      
-      // Sort by timestamp descending
-      allLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      
-      setLogs(allLogs);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Transform database logs to LogEntry format
+      const transformedLogs: LogEntry[] = (data || []).map(log => ({
+        timestamp: log.created_at,
+        level: log.level,
+        message: log.message,
+        agentId: log.agent_id,
+        agentName: log.agent_name,
+        optimizedPrompt: log.optimized_prompt,
+        originalPrompt: log.original_prompt,
+        metadata: log.metadata
+      }));
+
+      setLogs(transformedLogs);
     } catch (error: any) {
       toast({
         title: 'Error loading logs',

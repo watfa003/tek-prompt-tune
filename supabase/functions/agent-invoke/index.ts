@@ -313,6 +313,34 @@ serve(async (req) => {
 
       const processingTime = Date.now() - startTime;
 
+      // Log the optimization result
+      const logData = {
+        user_id: keyData.user_id,
+        agent_id: agent.id,
+        agent_name: agent.name,
+        level: 'success',
+        message: `Agent optimized prompt - ${agent.mode} mode completed in ${processingTime}ms`,
+        original_prompt: input,
+        optimized_prompt: optimizerData.bestOptimizedPrompt,
+        metadata: {
+          score: optimizerData.bestScore,
+          strategy: optimizerData.summary.bestStrategy,
+          variants_count: optimizerData.summary.totalVariants,
+          improvement_score: optimizerData.summary.improvementScore,
+          model: agent.model,
+          provider: agent.provider,
+          processing_time_ms: processingTime
+        }
+      };
+
+      // Save log in background
+      EdgeRuntime.waitUntil(
+        supabase.from('agent_logs').insert(logData)
+          .then(({ error }) => {
+            if (error) console.error('Error saving agent log:', error);
+          })
+      );
+
       // Return the optimized prompt
       return new Response(
         JSON.stringify({
@@ -349,6 +377,31 @@ serve(async (req) => {
 
     const processingTime = Date.now() - startTime;
 
+    // Log the chat completion
+    const logData = {
+      user_id: keyData.user_id,
+      agent_id: agent.id,
+      agent_name: agent.name,
+      level: 'success',
+      message: `Agent invoked successfully - Response generated in ${(processingTime / 1000).toFixed(1)}s`,
+      original_prompt: input,
+      metadata: {
+        tokens_used: output.length,
+        model: agent.model,
+        provider: agent.provider,
+        processing_time_ms: processingTime,
+        output_preview: output.substring(0, 200) + (output.length > 200 ? '...' : '')
+      }
+    };
+
+    // Save log in background
+    EdgeRuntime.waitUntil(
+      supabase.from('agent_logs').insert(logData)
+        .then(({ error }) => {
+          if (error) console.error('Error saving agent log:', error);
+        })
+    );
+
     // Return response for chat mode
     return new Response(
       JSON.stringify({
@@ -368,6 +421,42 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('Agent invocation error:', error);
+    
+    // Try to log the error if we have enough context
+    try {
+      const body = await req.clone().json();
+      const { agent_id } = body;
+      
+      if (agent_id && supabaseUrl && supabaseServiceKey) {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Get agent details for logging
+        const { data: agent } = await supabase
+          .from('agents')
+          .select('id, name, user_id')
+          .eq('id', agent_id)
+          .single();
+        
+        if (agent) {
+          EdgeRuntime.waitUntil(
+            supabase.from('agent_logs').insert({
+              user_id: agent.user_id,
+              agent_id: agent.id,
+              agent_name: agent.name,
+              level: 'error',
+              message: `Agent invocation failed: ${error.message}`,
+              metadata: {
+                error: error.toString(),
+                stack: error.stack
+              }
+            })
+          );
+        }
+      }
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
+    
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error',

@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_logs: {
+        Row: {
+          agent_id: string
+          agent_name: string
+          created_at: string
+          id: string
+          level: string
+          message: string
+          metadata: Json | null
+          optimized_prompt: string | null
+          original_prompt: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          agent_name: string
+          created_at?: string
+          id?: string
+          level?: string
+          message: string
+          metadata?: Json | null
+          optimized_prompt?: string | null
+          original_prompt?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          agent_name?: string
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          metadata?: Json | null
+          optimized_prompt?: string | null
+          original_prompt?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       agents: {
         Row: {
           created_at: string
@@ -388,6 +427,7 @@ export type Database = {
           optimized_prompt: string
           original_prompt: string
           output_type: string | null
+          processing_time_ms: number | null
           score: number | null
           strategy: string
           user_id: string
@@ -403,6 +443,7 @@ export type Database = {
           optimized_prompt: string
           original_prompt: string
           output_type?: string | null
+          processing_time_ms?: number | null
           score?: number | null
           strategy: string
           user_id: string
@@ -418,6 +459,7 @@ export type Database = {
           optimized_prompt?: string
           original_prompt?: string
           output_type?: string | null
+          processing_time_ms?: number | null
           score?: number | null
           strategy?: string
           user_id?: string
