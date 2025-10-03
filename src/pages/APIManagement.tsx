@@ -51,12 +51,8 @@ export default function APIManagement() {
   const { title, description } = getSectionTitle();
 
   return (
-    <div className="container max-w-6xl mx-auto space-y-6">
+    <div className="container max-w-6xl mx-auto">
       <div>
-        <p className="text-muted-foreground">{description}</p>
-      </div>
-
-      <div className="mt-6">
         {renderSection()}
       </div>
     </div>

@@ -175,35 +175,32 @@ export function AgentLogs() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Agent Selector */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl">Agent Logs</CardTitle>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefreshLogs}
-              disabled={loadingLogs}
-              className="gap-2"
-            >
-              {loadingLogs ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Refresh
-            </Button>
-          </div>
-          <CardDescription>
-            View real-time execution logs for your AI agents
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="space-y-6">
+      {/* Title and Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Activity className="h-7 w-7 text-primary" />
+          <h1 className="text-3xl font-bold">Agent Logs</h1>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefreshLogs}
+          disabled={loadingLogs}
+          className="gap-2"
+        >
+          {loadingLogs ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Refresh
+        </Button>
+      </div>
+
+      {/* Agent Selector Card */}
+      <Card className="border-primary/20">
+        <CardContent className="p-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Agent</label>
             <Select value={selectedAgent} onValueChange={setSelectedAgent}>
