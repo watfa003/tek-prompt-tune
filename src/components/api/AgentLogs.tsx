@@ -22,6 +22,9 @@ interface LogEntry {
   metadata?: any;
   agentId: string;
   agentName: string;
+  optimizedPrompt?: string;
+  originalPrompt?: string;
+  requestDetails?: any;
 }
 
 export function AgentLogs() {
@@ -87,10 +90,13 @@ export function AgentLogs() {
             message: `Agent invoked successfully - Response generated in 1.2s`,
             agentId: agent.id,
             agentName: agent.name,
+            optimizedPrompt: `You are an expert ${agent.model} assistant. Provide clear, concise, and accurate responses. Focus on practical solutions and best practices.`,
+            originalPrompt: `Help me with ${agent.model}`,
             metadata: { 
               tokens: 250, 
               model: agent.model,
-              responseTime: '1.2s'
+              responseTime: '1.2s',
+              improvements: 'Added specificity, clarity, and structure'
             }
           },
           {
@@ -115,9 +121,12 @@ export function AgentLogs() {
             message: `Generated response with ${agent.provider}`,
             agentId: agent.id,
             agentName: agent.name,
+            optimizedPrompt: `Act as a professional code reviewer. Analyze the following code for bugs, performance issues, and best practices. Provide specific actionable feedback.`,
+            originalPrompt: `Review my code`,
             metadata: { 
               tokens: 180,
-              responseTime: '0.8s'
+              responseTime: '0.8s',
+              improvements: 'Enhanced role definition, added specific evaluation criteria'
             }
           },
           {
@@ -299,15 +308,34 @@ export function AgentLogs() {
                             </span>
                           </div>
                           <p className="text-sm leading-relaxed">{log.message}</p>
-                          {log.metadata && (
+                          {(log.optimizedPrompt || log.metadata) && (
                             <details className="group">
                               <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors">
                                 <span className="group-open:hidden">Show details ▼</span>
                                 <span className="hidden group-open:inline">Hide details ▲</span>
                               </summary>
-                              <pre className="mt-2 overflow-x-auto rounded-md bg-muted/50 p-3 text-xs border border-border/30">
-                                {JSON.stringify(log.metadata, null, 2)}
-                              </pre>
+                              <div className="mt-3 space-y-3">
+                                {log.originalPrompt && log.optimizedPrompt && (
+                                  <div className="space-y-2">
+                                    <div className="rounded-md bg-muted/30 p-3 border border-border/30">
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Original Prompt:</p>
+                                      <p className="text-xs text-foreground/90">{log.originalPrompt}</p>
+                                    </div>
+                                    <div className="rounded-md bg-primary/5 p-3 border border-primary/20">
+                                      <p className="text-xs font-medium text-primary mb-1">Optimized Prompt:</p>
+                                      <p className="text-xs text-foreground">{log.optimizedPrompt}</p>
+                                    </div>
+                                  </div>
+                                )}
+                                {log.metadata && (
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Metadata:</p>
+                                    <pre className="overflow-x-auto rounded-md bg-muted/50 p-3 text-xs border border-border/30">
+                                      {JSON.stringify(log.metadata, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
                             </details>
                           )}
                         </div>
