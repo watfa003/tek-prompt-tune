@@ -183,10 +183,23 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl">{template.title}</DialogTitle>
-            <DialogDescription>
-              {template.description}
-            </DialogDescription>
+            <div className="flex justify-between items-start gap-4">
+              <div className="flex-1">
+                <DialogTitle className="text-2xl">{template.title}</DialogTitle>
+                <DialogDescription>
+                  {template.description}
+                </DialogDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFavorite}
+                disabled={loading}
+                className="shrink-0"
+              >
+                <Heart className={`w-5 h-5 transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
+              </Button>
+            </div>
           </DialogHeader>
           
           <div className="space-y-4">
