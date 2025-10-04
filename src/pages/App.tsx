@@ -90,6 +90,22 @@ const AppPageContent = () => {
     setSelectedInfluence("");
   };
 
+  // Handle URL parameters for templates and influence
+  React.useEffect(() => {
+    const influence = searchParams.get('influence');
+    const influenceTypeParam = searchParams.get('influenceType');
+    const promptParam = searchParams.get('prompt');
+    
+    if (influence && influenceTypeParam) {
+      setSelectedInfluence(influence);
+      setInfluenceType(influenceTypeParam);
+    }
+    
+    if (promptParam) {
+      setTaskDescription(promptParam);
+    }
+  }, [searchParams]);
+
   // Handle smooth transitions between routes
   React.useEffect(() => {
     setIsTransitioning(true);

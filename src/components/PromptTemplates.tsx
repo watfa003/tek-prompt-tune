@@ -126,7 +126,10 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
     if (isSelectingForInfluence) {
       navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(template)}&selectedType=template`);
     } else {
+      // Set template as both the initial prompt AND as influence guidance
       onUseTemplate(template, outputType || 'text');
+      // Also navigate to the optimizer with template pre-filled as influence
+      navigate(`/app?influence=${encodeURIComponent(template)}&influenceType=template&prompt=${encodeURIComponent(template)}`);
     }
   };
 

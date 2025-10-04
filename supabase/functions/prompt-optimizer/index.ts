@@ -207,12 +207,13 @@ serve(async (req) => {
          // Critical rules: keep user's intent and only improve the prompt
          optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         
-        if (outputType && outputType !== 'text') {
-          optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
+        // If there's a template being used (passed via influence), integrate it into the optimization
+        if (influence && influence.trim().length > 0) {
+          optimizationPrompt += `\n\nIMPORTANT - Template Guidance:\nThe user selected this template as guidance for style and structure:\n"${influence}"\n\nUse this template's style, structure, and approach when optimizing the prompt. Incorporate its best practices while keeping the user's original intent.`;
         }
         
-        if (influence && influenceWeight > 0) {
-          optimizationPrompt += `\n\nStyle influence (${influenceWeight}%): ${influence.slice(0, 200)}`;
+        if (outputType && outputType !== 'text') {
+          optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
         }
 
         if (taskDescription) {
