@@ -23,6 +23,7 @@ import {
 import { useSettings } from "@/hooks/use-settings";
 import { useThemeSettings } from "@/hooks/use-theme-settings";
 import { useTheme } from "next-themes";
+import { ProfileSettings } from "@/components/ProfileSettings";
 
 export const UserSettings = () => {
   const {
@@ -77,6 +78,9 @@ export const UserSettings = () => {
           </Button>
         </div>
       </div>
+
+      {/* Public Profile Settings */}
+      <ProfileSettings />
 
       {/* Profile Settings */}
       <Card className="p-6">
