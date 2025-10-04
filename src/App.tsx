@@ -8,6 +8,7 @@ import AppPage from "./pages/App";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/user/:username" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
           <Route path="/app/*" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
           <Route path="/app/generate" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />

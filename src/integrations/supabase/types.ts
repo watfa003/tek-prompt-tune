@@ -296,6 +296,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       prompt_counter: {
         Row: {
           created_at: string
@@ -322,6 +349,7 @@ export type Database = {
           category: string | null
           created_at: string
           description: string | null
+          favorites_count: number
           id: string
           is_public: boolean | null
           output_type: string | null
@@ -331,11 +359,13 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          uses_count: number
         }
         Insert: {
           category?: string | null
           created_at?: string
           description?: string | null
+          favorites_count?: number
           id?: string
           is_public?: boolean | null
           output_type?: string | null
@@ -345,11 +375,13 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          uses_count?: number
         }
         Update: {
           category?: string | null
           created_at?: string
           description?: string | null
+          favorites_count?: number
           id?: string
           is_public?: boolean | null
           output_type?: string | null
@@ -359,6 +391,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          uses_count?: number
         }
         Relationships: []
       }
@@ -574,12 +607,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrement_template_favorites: {
+        Args: { template_id: string }
+        Returns: undefined
+      }
       increment_prompt_counter: {
         Args: { delta?: number }
         Returns: {
           id: string
           total: number
         }[]
+      }
+      increment_template_favorites: {
+        Args: { template_id: string }
+        Returns: undefined
+      }
+      increment_template_uses: {
+        Args: { template_id: string }
+        Returns: undefined
       }
     }
     Enums: {
