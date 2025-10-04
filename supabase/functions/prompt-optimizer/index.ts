@@ -135,7 +135,7 @@ serve(async (req) => {
       templateCategory = 'custom'
     } = await req.json();
 
-    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode, isTemplate });
+    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode, isTemplate, influenceWeight });
 
     if (!originalPrompt || !userId) {
       return new Response(
@@ -208,8 +208,18 @@ serve(async (req) => {
          optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         
         // If there's a template being used (passed via influence), integrate it into the optimization
-        if (influence && influence.trim().length > 0) {
-          optimizationPrompt += `\n\nIMPORTANT - Template Guidance:\nThe user selected this template as guidance for style and structure:\n"${influence}"\n\nUse this template's style, structure, and approach when optimizing the prompt. Incorporate its best practices while keeping the user's original intent.`;
+        if (influence && influence.trim().length > 0 && influenceWeight > 0) {
+          const weightDescription = influenceWeight >= 75 ? "heavily" : influenceWeight >= 50 ? "moderately" : "lightly";
+          optimizationPrompt += `\n\nIMPORTANT - Template Guidance (${influenceWeight}% influence):\nThe user selected this template as guidance for style and structure:\n"${influence}"\n\nYou should ${weightDescription} incorporate this template's style, structure, and approach when optimizing the prompt. At ${influenceWeight}% influence, ${
+            influenceWeight >= 75 
+              ? "closely follow the template's patterns and structure while adapting to the user's specific needs"
+              : influenceWeight >= 50
+              ? "balance the template's approach with the user's original style"
+              : "take light inspiration from the template while primarily keeping the user's original approach"
+          }.`;
+        } else if (influence && influence.trim().length > 0) {
+          // If influence exists but weight is 0, just mention it lightly
+          optimizationPrompt += `\n\nNote: Template available for reference but not actively applied (0% influence): "${influence.slice(0, 100)}..."`;
         }
         
         if (outputType && outputType !== 'text') {
