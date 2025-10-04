@@ -60,19 +60,23 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
     setLoading(true);
     try {
       if (isFavorited) {
-        await supabase
+        const { error: deleteError } = await supabase
           .from('user_favorites')
           .delete()
           .eq('user_id', user.id)
           .eq('item_id', template.id)
           .eq('item_type', 'template');
 
-        await supabase.rpc('decrement_template_favorites', { template_id: template.id });
+        if (deleteError) throw deleteError;
+
+        const { error: rpcError } = await supabase.rpc('decrement_template_favorites', { template_id: template.id });
+        if (rpcError) throw rpcError;
+
         setFavCount(prev => Math.max(0, prev - 1));
         setIsFavorited(false);
         toast.success("Removed from favorites");
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('user_favorites')
           .insert({
             user_id: user.id,
@@ -80,14 +84,18 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
             item_type: 'template'
           });
 
-        await supabase.rpc('increment_template_favorites', { template_id: template.id });
+        if (insertError) throw insertError;
+
+        const { error: rpcError } = await supabase.rpc('increment_template_favorites', { template_id: template.id });
+        if (rpcError) throw rpcError;
+
         setFavCount(prev => prev + 1);
         setIsFavorited(true);
         toast.success("Added to favorites");
       }
     } catch (error: any) {
       console.error('Error toggling favorite:', error);
-      toast.error("Failed to update favorite");
+      toast.error(error.message || "Failed to update favorite");
     } finally {
       setLoading(false);
     }
