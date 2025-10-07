@@ -49,70 +49,69 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
   const [activeTab, setActiveTab] = useState("featured");
 
   useEffect(() => {
-    loadTemplates();
-    loadFavorites();
+    let isMounted = true;
+    const loadData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // Parallel queries for all data
+        const [templatesRes, favoritesRes] = await Promise.all([
+          supabase
+            .from('prompt_templates')
+            .select('id, title, description, category, template, favorites_count, uses_count, user_id, output_type, is_official')
+            .eq('is_public', true)
+            .order('uses_count', { ascending: false }),
+          session?.user ? supabase
+            .from('user_favorites')
+            .select('item_id')
+            .eq('user_id', session.user.id)
+            .eq('item_type', 'template') : Promise.resolve({ data: null })
+        ]);
+
+        if (!isMounted) return;
+
+        if (templatesRes.error) throw templatesRes.error;
+        
+        const templatesData = templatesRes.data || [];
+        const featured = templatesData.slice(0, 20);
+        setFeaturedTemplates(featured);
+        setTemplates(templatesData);
+
+        // Load favorite templates and profiles in parallel
+        const favoriteIds = favoritesRes.data?.map(f => f.item_id) || [];
+        const userIds = [...new Set(templatesData.map(t => t.user_id))];
+        
+        const [favTemplatesRes, profilesRes] = await Promise.all([
+          favoriteIds.length > 0 ? supabase
+            .from('prompt_templates')
+            .select('id, title, description, category, template, favorites_count, uses_count, user_id, output_type, is_official')
+            .in('id', favoriteIds) : Promise.resolve({ data: [] }),
+          userIds.length > 0 ? supabase
+            .from('profiles')
+            .select('user_id, username')
+            .in('user_id', userIds) : Promise.resolve({ data: [] })
+        ]);
+
+        if (!isMounted) return;
+
+        setFavoriteTemplates(favTemplatesRes.data || []);
+        
+        const map: ProfileMap = {};
+        profilesRes.data?.forEach(p => {
+          map[p.user_id] = p.username;
+        });
+        setProfileMap(map);
+      } catch (error) {
+        console.error('Error loading templates:', error);
+        if (isMounted) toast.error("Failed to load templates");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadData();
+    return () => { isMounted = false; };
   }, []);
-
-  const loadTemplates = async () => {
-    try {
-      const { data: templatesData, error } = await supabase
-        .from('prompt_templates')
-        .select('*')
-        .eq('is_public', true)
-        .order('uses_count', { ascending: false });
-
-      if (error) throw error;
-
-      const featured = templatesData?.slice(0, 20) || [];
-      setFeaturedTemplates(featured);
-      setTemplates(templatesData || []);
-
-      // Load profiles for all template creators
-      const userIds = [...new Set(templatesData?.map(t => t.user_id) || [])];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, username')
-        .in('user_id', userIds);
-
-      const map: ProfileMap = {};
-      profiles?.forEach(p => {
-        map[p.user_id] = p.username;
-      });
-      setProfileMap(map);
-    } catch (error) {
-      console.error('Error loading templates:', error);
-      toast.error("Failed to load templates");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadFavorites = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: favorites } = await supabase
-        .from('user_favorites')
-        .select('item_id')
-        .eq('user_id', user.id)
-        .eq('item_type', 'template');
-
-      if (!favorites) return;
-
-      const favoriteIds = favorites.map(f => f.item_id);
-      if (favoriteIds.length === 0) return;
-
-      const { data: templatesData } = await supabase
-        .from('prompt_templates')
-        .select('*')
-        .in('id', favoriteIds);
-
-      setFavoriteTemplates(templatesData || []);
-    } catch (error) {
-      console.error('Error loading favorites:', error);
-    }
-  };
 
   const applyFilters = (templateList: Template[]) => {
     return templateList.filter(template => {
