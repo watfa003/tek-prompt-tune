@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TemplateCreationDialog } from "@/components/templates/TemplateCreationDialog";
@@ -210,8 +210,18 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
           placeholder="Search by title, description, or username..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
+          className="pl-10 pr-10"
         />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
+            onClick={() => setSearchQuery("")}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2">
