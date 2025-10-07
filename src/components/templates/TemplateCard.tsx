@@ -51,7 +51,9 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
     setIsFavorited(!!data);
   };
 
-  const toggleFavorite = async () => {
+  const toggleFavorite = async (e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Prevent card click when clicking favorite button
+    
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error("Please sign in to favorite templates");
@@ -59,6 +61,13 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
     }
 
     setLoading(true);
+    
+    // Optimistic UI update
+    const previousFavorited = isFavorited;
+    const previousCount = favCount;
+    setIsFavorited(!isFavorited);
+    setFavCount(prev => isFavorited ? Math.max(0, prev - 1) : prev + 1);
+    
     try {
       if (isFavorited) {
         const { error: deleteError } = await supabase
@@ -73,8 +82,6 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
         const { error: rpcError } = await supabase.rpc('decrement_template_favorites', { template_id: template.id });
         if (rpcError) throw rpcError;
 
-        setFavCount(prev => Math.max(0, prev - 1));
-        setIsFavorited(false);
         toast.success("Removed from favorites");
       } else {
         const { error: insertError } = await supabase
@@ -90,11 +97,12 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
         const { error: rpcError } = await supabase.rpc('increment_template_favorites', { template_id: template.id });
         if (rpcError) throw rpcError;
 
-        setFavCount(prev => prev + 1);
-        setIsFavorited(true);
         toast.success("Added to favorites");
       }
     } catch (error: any) {
+      // Revert optimistic update on error
+      setIsFavorited(previousFavorited);
+      setFavCount(previousCount);
       console.error('Error toggling favorite:', error);
       toast.error(error.message || "Failed to update favorite");
     } finally {
@@ -138,9 +146,15 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
               size="icon"
               onClick={toggleFavorite}
               disabled={loading}
-              className="shrink-0"
+              className="shrink-0 transition-all duration-200 hover:scale-110"
             >
-              <Heart className={`w-5 h-5 transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
+              <Heart 
+                className={`w-5 h-5 transition-all duration-300 ${
+                  isFavorited 
+                    ? 'fill-red-500 text-red-500 scale-110' 
+                    : 'text-muted-foreground hover:text-red-500 hover:scale-105'
+                }`} 
+              />
             </Button>
           </div>
         </CardHeader>
@@ -200,11 +214,17 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggleFavorite}
+                onClick={(e) => toggleFavorite(e)}
                 disabled={loading}
-                className="shrink-0"
+                className="shrink-0 transition-all duration-200 hover:scale-110"
               >
-                <Heart className={`w-5 h-5 transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
+                <Heart 
+                  className={`w-5 h-5 transition-all duration-300 ${
+                    isFavorited 
+                      ? 'fill-red-500 text-red-500 scale-110' 
+                      : 'text-muted-foreground hover:text-red-500 hover:scale-105'
+                  }`} 
+                />
               </Button>
             </div>
           </DialogHeader>
