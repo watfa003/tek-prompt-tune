@@ -114,18 +114,24 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
     }
   };
 
-  const filteredTemplates = templates.filter(template => {
-    const matchesCategory = selectedCategory === "All" || template.category === selectedCategory;
-    const matchesFilter = templateFilter === "all" || 
-      (templateFilter === "official" && template.is_official === true) ||
-      (templateFilter === "community" && template.is_official !== true);
-    const username = profileMap[template.user_id] || "";
-    const matchesSearch = 
-      template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      username.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesFilter && matchesSearch;
-  });
+  const applyFilters = (templateList: Template[]) => {
+    return templateList.filter(template => {
+      const matchesCategory = selectedCategory === "All" || template.category === selectedCategory;
+      const matchesFilter = templateFilter === "all" || 
+        (templateFilter === "official" && template.is_official === true) ||
+        (templateFilter === "community" && template.is_official !== true);
+      const username = profileMap[template.user_id] || "";
+      const matchesSearch = 
+        template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        template.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        username.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesFilter && matchesSearch;
+    });
+  };
+
+  const filteredTemplates = applyFilters(templates);
+  const filteredFeaturedTemplates = applyFilters(featuredTemplates);
+  const filteredFavoriteTemplates = applyFilters(favoriteTemplates);
 
   const handleUseTemplate = (template: string, outputType: string) => {
     if (isSelectingForInfluence) {
@@ -231,7 +237,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
 
         <TabsContent value="featured" className="space-y-4">
           <p className="text-sm text-muted-foreground">Most used templates by the community</p>
-          {featuredTemplates.length === 0 ? (
+          {filteredFeaturedTemplates.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 No featured templates yet
@@ -239,7 +245,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredTemplates.map((template) => (
+              {filteredFeaturedTemplates.map((template) => (
                 <TemplateCard
                   key={template.id}
                   template={template}
@@ -274,7 +280,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
 
         <TabsContent value="favorites" className="space-y-4">
           <p className="text-sm text-muted-foreground">Your favorited templates</p>
-          {favoriteTemplates.length === 0 ? (
+          {filteredFavoriteTemplates.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 No favorites yet. Start exploring and favoriting templates!
@@ -282,7 +288,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {favoriteTemplates.map((template) => (
+              {filteredFavoriteTemplates.map((template) => (
                 <TemplateCard
                   key={template.id}
                   template={template}
