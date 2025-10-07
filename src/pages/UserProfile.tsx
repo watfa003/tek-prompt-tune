@@ -1,9 +1,10 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Heart, FileText } from "lucide-react";
+import { User, Heart, FileText, ArrowLeft } from "lucide-react";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 
 interface Profile {
@@ -26,6 +27,7 @@ interface Template {
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [stats, setStats] = useState({ totalTemplates: 0, totalFavorites: 0 });
@@ -93,6 +95,12 @@ export default function UserProfile() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="flex items-center">
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="gap-2">
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
+      </div>
       <Card>
         <CardHeader>
           <div className="flex items-start gap-6">
