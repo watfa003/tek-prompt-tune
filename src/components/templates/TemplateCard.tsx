@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-
+import { useTemplatesData } from "@/context/TemplatesDataContext";
 interface TemplateCardProps {
   template: {
     id: string;
@@ -29,6 +29,7 @@ interface TemplateCardProps {
 }
 
 export function TemplateCard({ template, username, onUseTemplate, onFavoriteChange, onDelete }: TemplateCardProps) {
+  const { setTemplateFavoritesCount } = useTemplatesData();
   const [isFavorited, setIsFavorited] = useState(false);
   const [favCount, setFavCount] = useState(template.favorites_count);
   const [useCount, setUseCount] = useState(template.uses_count);
@@ -37,7 +38,6 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-
   useEffect(() => {
     checkIfFavorited();
     getCurrentUser();
@@ -119,6 +119,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
         .maybeSingle();
       if (typeof refreshed?.favorites_count === 'number') {
         setFavCount(refreshed.favorites_count);
+        setTemplateFavoritesCount(template.id, refreshed.favorites_count);
       }
 
       // Notify parent on success

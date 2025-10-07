@@ -27,6 +27,7 @@ interface TemplatesDataContextValue {
   refresh: () => Promise<void>;
   updateFavoriteLocally: (id: string, favorited: boolean) => void;
   removeTemplateLocally: (id: string) => void;
+  setTemplateFavoritesCount: (id: string, count: number) => void;
 }
 
 const TemplatesDataContext = createContext<TemplatesDataContextValue | undefined>(undefined);
@@ -106,22 +107,29 @@ export const TemplatesDataProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
-  const removeTemplateLocally = (id: string) => {
-    setTemplates(prev => prev.filter(t => t.id !== id));
-    setFeaturedTemplates(prev => prev.filter(t => t.id !== id));
-    setFavoriteTemplates(prev => prev.filter(t => t.id !== id));
-  };
+const removeTemplateLocally = (id: string) => {
+  setTemplates(prev => prev.filter(t => t.id !== id));
+  setFeaturedTemplates(prev => prev.filter(t => t.id !== id));
+  setFavoriteTemplates(prev => prev.filter(t => t.id !== id));
+};
 
-  const value = useMemo(() => ({
-    templates,
-    featuredTemplates,
-    favoriteTemplates,
-    profileMap,
-    loading,
-    refresh: loadData,
-    updateFavoriteLocally,
-    removeTemplateLocally,
-  }), [templates, featuredTemplates, favoriteTemplates, profileMap, loading]);
+const setTemplateFavoritesCount = (id: string, count: number) => {
+  setTemplates(prev => prev.map(t => t.id === id ? { ...t, favorites_count: count } : t));
+  setFeaturedTemplates(prev => prev.map(t => t.id === id ? { ...t, favorites_count: count } : t));
+  setFavoriteTemplates(prev => prev.map(t => t.id === id ? { ...t, favorites_count: count } : t));
+};
+
+const value = useMemo(() => ({
+  templates,
+  featuredTemplates,
+  favoriteTemplates,
+  profileMap,
+  loading,
+  refresh: loadData,
+  updateFavoriteLocally,
+  removeTemplateLocally,
+  setTemplateFavoritesCount,
+}), [templates, featuredTemplates, favoriteTemplates, profileMap, loading]);
 
   return (
     <TemplatesDataContext.Provider value={value}>
