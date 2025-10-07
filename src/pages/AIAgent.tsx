@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIPromptOptimizer } from '@/components/AIPromptOptimizer';
 import { AIAnalyticsDashboard } from '@/components/AIAnalyticsDashboard';
-import { AutoPilot } from '@/components/AutoPilot';
 import { OptimizerSessionProvider } from '@/context/OptimizerSessionContext';
-import { Zap, BarChart3, Sparkles } from 'lucide-react';
+import { Zap, BarChart3 } from 'lucide-react';
 
 const AIAgent = () => {
   // Persist active tab to localStorage so it never resets
@@ -32,14 +31,10 @@ const AIAgent = () => {
 
         <OptimizerSessionProvider>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="optimize" className="flex items-center space-x-2">
                 <Zap className="h-4 w-4" />
                 <span>Optimize</span>
-              </TabsTrigger>
-              <TabsTrigger value="autopilot" className="flex items-center space-x-2">
-                <Sparkles className="h-4 w-4" />
-                <span>AutoPilot</span>
               </TabsTrigger>
               <TabsTrigger value="analytics" className="flex items-center space-x-2">
                 <BarChart3 className="h-4 w-4" />
@@ -47,13 +42,9 @@ const AIAgent = () => {
               </TabsTrigger>
             </TabsList>
 
-            {/* Keep all tabs always mounted, only show/hide them */}
+            {/* Keep both tabs always mounted, only show/hide them */}
             <div className={`${activeTab === 'optimize' ? 'block' : 'hidden'}`}>
               <AIPromptOptimizer />
-            </div>
-            
-            <div className={`${activeTab === 'autopilot' ? 'block' : 'hidden'}`}>
-              <AutoPilot />
             </div>
             
             <div className={`${activeTab === 'analytics' ? 'block' : 'hidden'}`}>

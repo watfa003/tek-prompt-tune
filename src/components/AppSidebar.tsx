@@ -23,7 +23,6 @@ import {
   Bookmark,
   Settings,
   Zap,
-  Sparkles,
   RefreshCw,
   Code,
   Key,
@@ -42,7 +41,6 @@ import { useAppMode } from "@/context/AppModeContext";
 const optimizerNavigationItems = [
   { title: "Dashboard", url: "/app", icon: Home },
   { title: "AI Agent", url: "/app/ai-agent", icon: Bot },
-  { title: "AutoPilot", url: "/app/autopilot", icon: Sparkles },
   { title: "History", url: "/app/history", icon: History },
   { title: "Templates", url: "/app/templates", icon: FileText },
   { title: "Settings", url: "/app/settings", icon: Settings },

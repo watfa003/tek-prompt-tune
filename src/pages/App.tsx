@@ -136,9 +136,6 @@ const AppPageContent = () => {
         return <UserSettings />;
       case '/app/ai-agent':
         return <AIAgent />;
-      case '/app/autopilot':
-        const AutoPilotPage = React.lazy(() => import('@/pages/AutoPilot'));
-        return <React.Suspense fallback={<div>Loading...</div>}><AutoPilotPage /></React.Suspense>;
       default:
         return <EnhancedDashboard />;
     }
