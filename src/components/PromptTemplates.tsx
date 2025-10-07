@@ -20,6 +20,7 @@ interface Template {
   uses_count: number;
   user_id: string;
   output_type: string | null;
+  is_official?: boolean;
 }
 
 interface ProfileMap {
@@ -41,10 +42,12 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
   
   const [templates, setTemplates] = useState<Template[]>([]);
   const [featuredTemplates, setFeaturedTemplates] = useState<Template[]>([]);
+  const [officialTemplates, setOfficialTemplates] = useState<Template[]>([]);
+  const [communityTemplates, setCommunityTemplates] = useState<Template[]>([]);
   const [favoriteTemplates, setFavoriteTemplates] = useState<Template[]>([]);
   const [profileMap, setProfileMap] = useState<ProfileMap>({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("featured");
+  const [activeTab, setActiveTab] = useState("promptek");
 
   useEffect(() => {
     loadTemplates();
@@ -62,7 +65,12 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
       if (error) throw error;
 
       const featured = templatesData?.slice(0, 20) || [];
+      const official = templatesData?.filter(t => t.is_official === true) || [];
+      const community = templatesData?.filter(t => t.is_official !== true) || [];
+      
       setFeaturedTemplates(featured);
+      setOfficialTemplates(official);
+      setCommunityTemplates(community);
       setTemplates(templatesData || []);
 
       // Load profiles for all template creators
@@ -191,10 +199,55 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
+          <TabsTrigger value="promptek">PromptEK</TabsTrigger>
+          <TabsTrigger value="community">Community</TabsTrigger>
           <TabsTrigger value="featured">Featured</TabsTrigger>
-          <TabsTrigger value="all">All Templates</TabsTrigger>
           <TabsTrigger value="favorites">My Favorites</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="promptek" className="space-y-4">
+          <p className="text-sm text-muted-foreground">Official templates curated by PromptEK</p>
+          {officialTemplates.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No official templates yet
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {officialTemplates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  username={profileMap[template.user_id] || 'PromptEK'}
+                  onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="community" className="space-y-4">
+          <p className="text-sm text-muted-foreground">Templates shared by the community</p>
+          {communityTemplates.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No community templates yet
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {communityTemplates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  username={profileMap[template.user_id] || 'Unknown'}
+                  onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="featured" className="space-y-4">
           <p className="text-sm text-muted-foreground">Most used templates by the community</p>
@@ -218,28 +271,8 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
           )}
         </TabsContent>
 
-        <TabsContent value="all" className="space-y-4">
-          {filteredTemplates.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No templates found. Try adjusting your search or filters.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTemplates.map((template) => (
-                <TemplateCard
-                  key={template.id}
-                  template={template}
-                  username={profileMap[template.user_id] || 'Unknown'}
-                  onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
         <TabsContent value="favorites" className="space-y-4">
+          <p className="text-sm text-muted-foreground">Your favorited templates</p>
           {favoriteTemplates.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
