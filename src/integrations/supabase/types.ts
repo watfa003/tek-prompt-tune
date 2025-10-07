@@ -351,6 +351,7 @@ export type Database = {
           description: string | null
           favorites_count: number
           id: string
+          is_official: boolean
           is_public: boolean | null
           output_type: string | null
           rating: number | null
@@ -367,6 +368,7 @@ export type Database = {
           description?: string | null
           favorites_count?: number
           id?: string
+          is_official?: boolean
           is_public?: boolean | null
           output_type?: string | null
           rating?: number | null
@@ -383,6 +385,7 @@ export type Database = {
           description?: string | null
           favorites_count?: number
           id?: string
+          is_official?: boolean
           is_public?: boolean | null
           output_type?: string | null
           rating?: number | null
