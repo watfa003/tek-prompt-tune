@@ -128,7 +128,7 @@ const AppPageContent = () => {
       case '/app/history':
         return <PromptHistory />;
       case '/app/templates':
-        return <PromptTemplates onUseTemplate={handleUseTemplate} />;
+        return <PromptTemplates />;
       case '/app/template-optimizer':
         const TemplateOptimizer = React.lazy(() => import('@/components/TemplateOptimizer').then(module => ({ default: module.TemplateOptimizer })));
         return <React.Suspense fallback={<div>Loading...</div>}><TemplateOptimizer /></React.Suspense>;

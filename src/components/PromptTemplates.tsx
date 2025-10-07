@@ -29,17 +29,11 @@ interface ProfileMap {
 
 const categories = ["All", "Productivity", "Writing", "Code", "Marketing", "Analytics", "Creative", "Business", "Education", "Custom"];
 
-interface PromptTemplatesProps {
-  onUseTemplate: (template: string, outputType: string) => void;
-}
-
-export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
+export const PromptTemplates = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [templateFilter, setTemplateFilter] = useState<"all" | "official" | "community">("all");
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const isSelectingForInfluence = searchParams.get('selectForInfluence') === 'true';
   
   const [templates, setTemplates] = useState<Template[]>([]);
   const [featuredTemplates, setFeaturedTemplates] = useState<Template[]>([]);
@@ -133,14 +127,8 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
   const filteredFavoriteTemplates = applyFilters(favoriteTemplates);
 
   const handleUseTemplate = (template: string, outputType: string) => {
-    if (isSelectingForInfluence) {
-      navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(template)}&selectedType=template`);
-    } else {
-      // Set template as both the initial prompt AND as influence guidance
-      onUseTemplate(template, outputType || 'text');
-      // Also navigate to the optimizer with template pre-filled as influence
-      navigate(`/app?influence=${encodeURIComponent(template)}&influenceType=template&prompt=${encodeURIComponent(template)}`);
-    }
+    // Always navigate to AI Agent with template as influence
+    navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(template)}&selectedType=template`);
   };
 
   const handleFavoriteChange = (id: string, favorited: boolean) => {
@@ -175,20 +163,11 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
 
   return (
     <div className="space-y-6">
-      {isSelectingForInfluence && (
-        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-          <h3 className="font-medium text-primary mb-1">Select a Template for Influence</h3>
-          <p className="text-sm text-muted-foreground">
-            Choose a template to influence your AI optimization process.
-          </p>
-        </div>
-      )}
-
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-semibold">Templates</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            {isSelectingForInfluence ? "Select a template to influence optimization" : "Discover and share prompt templates"}
+            Discover and share prompt templates
           </p>
         </div>
         <TemplateCreationDialog onTemplateCreated={() => window.location.reload()} />
