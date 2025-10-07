@@ -23,9 +23,10 @@ interface TemplateCardProps {
   };
   username: string;
   onUseTemplate?: (template: string) => void;
+  onFavoriteChange?: (id: string, favorited: boolean) => void;
 }
 
-export function TemplateCard({ template, username, onUseTemplate }: TemplateCardProps) {
+export function TemplateCard({ template, username, onUseTemplate, onFavoriteChange }: TemplateCardProps) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favCount, setFavCount] = useState(template.favorites_count);
   const [useCount, setUseCount] = useState(template.uses_count);
@@ -99,6 +100,9 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
 
         toast.success("Added to favorites");
       }
+      // Notify parent on success
+      const newStatus = !previousFavorited;
+      (typeof onFavoriteChange === 'function') && onFavoriteChange(template.id, newStatus);
     } catch (error: any) {
       // Revert optimistic update on error
       setIsFavorited(previousFavorited);
@@ -144,7 +148,7 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleFavorite}
+              onClick={(e) => toggleFavorite(e)}
               disabled={loading}
               className="shrink-0 transition-all duration-200 hover:scale-110"
             >

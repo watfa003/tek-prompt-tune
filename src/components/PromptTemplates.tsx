@@ -144,6 +144,19 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
     }
   };
 
+  const handleFavoriteChange = (id: string, favorited: boolean) => {
+    setFavoriteTemplates((prev) => {
+      if (favorited) {
+        const existing = prev.some((t) => t.id === id);
+        if (existing) return prev;
+        const source = templates.find((t) => t.id === id) || featuredTemplates.find((t) => t.id === id);
+        return source ? [source, ...prev] : prev;
+      } else {
+        return prev.filter((t) => t.id !== id);
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -259,8 +272,9 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                 <TemplateCard
                   key={template.id}
                   template={template}
-                  username={profileMap[template.user_id] || (template.is_official ? 'PromptEK' : 'Unknown')}
+                  username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
                   onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
+                  onFavoriteChange={handleFavoriteChange}
                 />
               ))}
             </div>
@@ -280,8 +294,9 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                 <TemplateCard
                   key={template.id}
                   template={template}
-                  username={profileMap[template.user_id] || (template.is_official ? 'PromptEK' : 'Unknown')}
+                  username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
                   onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
+                  onFavoriteChange={handleFavoriteChange}
                 />
               ))}
             </div>
