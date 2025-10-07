@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,12 +25,29 @@ const categories = [
 export function TemplateCreationDialog() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "Custom",
-    template: ""
+    template: "",
+    isOfficial: false
   });
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data, error } = await supabase.rpc('is_admin');
+      if (!error && data) {
+        setIsAdmin(true);
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +82,7 @@ export function TemplateCreationDialog() {
           template: formData.template,
           user_id: user.id,
           is_public: true,
+          is_official: isAdmin ? formData.isOfficial : false,
           favorites_count: 0,
           uses_count: 0
         });
@@ -71,7 +90,7 @@ export function TemplateCreationDialog() {
       if (error) throw error;
 
       toast.success("Template created and shared!");
-      setFormData({ title: "", description: "", category: "Custom", template: "" });
+      setFormData({ title: "", description: "", category: "Custom", template: "", isOfficial: false });
       setOpen(false);
     } catch (error: any) {
       console.error('Error creating template:', error);
@@ -144,6 +163,24 @@ export function TemplateCreationDialog() {
               required
             />
           </div>
+
+          {isAdmin && (
+            <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg bg-muted/50">
+              <div className="space-y-0.5">
+                <Label htmlFor="isOfficial" className="text-base">
+                  Official PromptEK Template
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Mark this template as an official PromptEK template
+                </p>
+              </div>
+              <Switch
+                id="isOfficial"
+                checked={formData.isOfficial}
+                onCheckedChange={(checked) => setFormData({ ...formData, isOfficial: checked })}
+              />
+            </div>
+          )}
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

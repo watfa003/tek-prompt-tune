@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Copy, TrendingUp, User, Eye } from "lucide-react";
+import { Heart, Copy, TrendingUp, User, Eye, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -19,6 +19,7 @@ interface TemplateCardProps {
     favorites_count: number;
     uses_count: number;
     user_id: string;
+    is_official?: boolean;
   };
   username: string;
   onUseTemplate?: (template: string) => void;
@@ -146,6 +147,12 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
       
         <CardContent className="space-y-3">
           <div className="flex gap-2 items-center flex-wrap">
+            {template.is_official && (
+              <Badge variant="default" className="gap-1 bg-gradient-to-r from-primary to-primary/80">
+                <ShieldCheck className="w-3 h-3" />
+                Official
+              </Badge>
+            )}
             {template.category && (
               <Badge variant="secondary">{template.category}</Badge>
             )}
@@ -204,6 +211,12 @@ export function TemplateCard({ template, username, onUseTemplate }: TemplateCard
           
           <div className="space-y-4">
             <div className="flex gap-2 items-center flex-wrap">
+              {template.is_official && (
+                <Badge variant="default" className="gap-1 bg-gradient-to-r from-primary to-primary/80">
+                  <ShieldCheck className="w-3 h-3" />
+                  Official PromptEK
+                </Badge>
+              )}
               {template.category && (
                 <Badge variant="secondary">{template.category}</Badge>
               )}
