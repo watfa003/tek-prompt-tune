@@ -617,6 +617,13 @@ export const AIPromptOptimizer: React.FC = () => {
       return;
     }
 
+    // Clear the opposite mode's result before starting new optimization
+    if (optimizationMode === 'speed') {
+      setResult(null); // Clear deep mode results
+    } else {
+      setSpeedResult(null); // Clear speed mode results
+    }
+
     // Use the global session to start optimization
     await startOptimization({
       originalPrompt,
