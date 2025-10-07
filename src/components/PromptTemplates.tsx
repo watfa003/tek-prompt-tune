@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { TemplateCreationDialog } from "@/components/templates/TemplateCreationDialog";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTemplatesData } from "@/context/TemplatesDataContext";
 
 interface Template {
   id: string;
@@ -35,77 +34,8 @@ export const PromptTemplates = () => {
   const [templateFilter, setTemplateFilter] = useState<"all" | "official" | "community">("all");
   const navigate = useNavigate();
   
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [featuredTemplates, setFeaturedTemplates] = useState<Template[]>([]);
-  const [favoriteTemplates, setFavoriteTemplates] = useState<Template[]>([]);
-  const [profileMap, setProfileMap] = useState<ProfileMap>({});
-  const [loading, setLoading] = useState(true);
+  const { templates, featuredTemplates, favoriteTemplates, profileMap, loading, refresh, updateFavoriteLocally, removeTemplateLocally } = useTemplatesData();
   const [activeTab, setActiveTab] = useState("featured");
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        // Parallel queries for all data
-        const [templatesRes, favoritesRes] = await Promise.all([
-          supabase
-            .from('prompt_templates')
-            .select('id, title, description, category, template, favorites_count, uses_count, user_id, output_type, is_official')
-            .eq('is_public', true)
-            .order('uses_count', { ascending: false }),
-          session?.user ? supabase
-            .from('user_favorites')
-            .select('item_id')
-            .eq('user_id', session.user.id)
-            .eq('item_type', 'template') : Promise.resolve({ data: null })
-        ]);
-
-        if (!isMounted) return;
-
-        if (templatesRes.error) throw templatesRes.error;
-        
-        const templatesData = templatesRes.data || [];
-        const featured = templatesData.slice(0, 20);
-        setFeaturedTemplates(featured);
-        setTemplates(templatesData);
-
-        // Load favorite templates and profiles in parallel
-        const favoriteIds = favoritesRes.data?.map(f => f.item_id) || [];
-        const userIds = [...new Set(templatesData.map(t => t.user_id))];
-        
-        const [favTemplatesRes, profilesRes] = await Promise.all([
-          favoriteIds.length > 0 ? supabase
-            .from('prompt_templates')
-            .select('id, title, description, category, template, favorites_count, uses_count, user_id, output_type, is_official')
-            .in('id', favoriteIds) : Promise.resolve({ data: [] }),
-          userIds.length > 0 ? supabase
-            .from('profiles')
-            .select('user_id, username')
-            .in('user_id', userIds) : Promise.resolve({ data: [] })
-        ]);
-
-        if (!isMounted) return;
-
-        setFavoriteTemplates(favTemplatesRes.data || []);
-        
-        const map: ProfileMap = {};
-        profilesRes.data?.forEach(p => {
-          map[p.user_id] = p.username;
-        });
-        setProfileMap(map);
-      } catch (error) {
-        console.error('Error loading templates:', error);
-        if (isMounted) toast.error("Failed to load templates");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    loadData();
-    return () => { isMounted = false; };
-  }, []);
 
   const applyFilters = (templateList: Template[]) => {
     return templateList.filter(template => {
@@ -132,22 +62,11 @@ export const PromptTemplates = () => {
   };
 
   const handleFavoriteChange = (id: string, favorited: boolean) => {
-    setFavoriteTemplates((prev) => {
-      if (favorited) {
-        const existing = prev.some((t) => t.id === id);
-        if (existing) return prev;
-        const source = templates.find((t) => t.id === id) || featuredTemplates.find((t) => t.id === id);
-        return source ? [source, ...prev] : prev;
-      } else {
-        return prev.filter((t) => t.id !== id);
-      }
-    });
+    updateFavoriteLocally(id, favorited);
   };
 
   const handleDelete = (id: string) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== id));
-    setFeaturedTemplates((prev) => prev.filter((t) => t.id !== id));
-    setFavoriteTemplates((prev) => prev.filter((t) => t.id !== id));
+    removeTemplateLocally(id);
   };
 
   if (loading) {

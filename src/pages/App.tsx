@@ -21,12 +21,15 @@ import AIAgent from "@/pages/AIAgent";
 import APIManagement from "@/pages/APIManagement";
 import { PromptDataProvider } from "@/context/PromptDataContext";
 import { AppModeProvider, useAppMode } from "@/context/AppModeContext";
+import { TemplatesDataProvider } from "@/context/TemplatesDataContext";
 
 const AppPage = () => {
   return (
     <AppModeProvider>
       <PromptDataProvider>
-        <AppPageContent />
+        <TemplatesDataProvider>
+          <AppPageContent />
+        </TemplatesDataProvider>
       </PromptDataProvider>
     </AppModeProvider>
   );
