@@ -156,6 +156,12 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
     });
   };
 
+  const handleDelete = (id: string) => {
+    setTemplates((prev) => prev.filter((t) => t.id !== id));
+    setFeaturedTemplates((prev) => prev.filter((t) => t.id !== id));
+    setFavoriteTemplates((prev) => prev.filter((t) => t.id !== id));
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -274,6 +280,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                   username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
                   onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
                   onFavoriteChange={handleFavoriteChange}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -296,6 +303,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                   username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
                   onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
                   onFavoriteChange={handleFavoriteChange}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -319,6 +327,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                   username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
                   onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
                   onFavoriteChange={handleFavoriteChange}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>

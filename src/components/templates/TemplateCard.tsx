@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Copy, TrendingUp, User, Eye, ShieldCheck } from "lucide-react";
+import { Heart, Copy, TrendingUp, User, Eye, ShieldCheck, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 
 interface TemplateCardProps {
@@ -24,18 +25,28 @@ interface TemplateCardProps {
   username: string;
   onUseTemplate?: (template: string) => void;
   onFavoriteChange?: (id: string, favorited: boolean) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function TemplateCard({ template, username, onUseTemplate, onFavoriteChange }: TemplateCardProps) {
+export function TemplateCard({ template, username, onUseTemplate, onFavoriteChange, onDelete }: TemplateCardProps) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favCount, setFavCount] = useState(template.favorites_count);
   const [useCount, setUseCount] = useState(template.uses_count);
   const [loading, setLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     checkIfFavorited();
+    getCurrentUser();
   }, [template.id]);
+
+  const getCurrentUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setCurrentUserId(session?.user?.id || null);
+  };
 
   const checkIfFavorited = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -144,6 +155,35 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
     toast.success("Template copied to clipboard!");
   };
 
+  const handleDelete = async () => {
+    if (!currentUserId || currentUserId !== template.user_id) {
+      toast.error("You can only delete your own templates");
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('prompt_templates')
+        .delete()
+        .eq('id', template.id)
+        .eq('user_id', currentUserId);
+
+      if (error) throw error;
+
+      toast.success("Template deleted successfully");
+      setDeleteDialogOpen(false);
+      onDelete?.(template.id);
+    } catch (error: any) {
+      console.error('Error deleting template:', error);
+      toast.error(error.message || "Failed to delete template");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const isOwner = currentUserId && currentUserId === template.user_id;
+
   return (
     <>
       <Card className="group hover:shadow-lg transition-all duration-300 animate-fade-in">
@@ -211,6 +251,19 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
           <Button variant="outline" size="icon" onClick={copyTemplate}>
             <Copy className="w-4 h-4" />
           </Button>
+          {isOwner && (
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteDialogOpen(true);
+              }}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </CardFooter>
       </Card>
 
@@ -282,6 +335,16 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
               </Button>
+              {isOwner && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              )}
               <Button onClick={() => { handleUse(); setPreviewOpen(false); }}>
                 Use This Template
               </Button>
@@ -289,6 +352,31 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{template.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
