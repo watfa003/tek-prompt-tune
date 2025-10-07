@@ -185,7 +185,7 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
             {isSelectingForInfluence ? "Select a template to influence optimization" : "Discover and share prompt templates"}
           </p>
         </div>
-        <TemplateCreationDialog />
+        <TemplateCreationDialog onTemplateCreated={() => window.location.reload()} />
       </div>
 
       {/* Template Filter */}

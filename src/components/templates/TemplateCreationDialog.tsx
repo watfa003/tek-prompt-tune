@@ -9,6 +9,15 @@ import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const templateSchema = z.object({
+  title: z.string().trim().min(3, "Title must be at least 3 characters").max(100, "Title must be less than 100 characters"),
+  description: z.string().trim().max(500, "Description must be less than 500 characters").optional(),
+  template: z.string().trim().min(10, "Template must be at least 10 characters").max(5000, "Template must be less than 5000 characters"),
+  category: z.string(),
+  isOfficial: z.boolean()
+});
 
 const categories = [
   "Productivity",
@@ -22,7 +31,11 @@ const categories = [
   "Custom"
 ];
 
-export function TemplateCreationDialog() {
+interface TemplateCreationDialogProps {
+  onTemplateCreated?: () => void;
+}
+
+export function TemplateCreationDialog({ onTemplateCreated }: TemplateCreationDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -51,12 +64,25 @@ export function TemplateCreationDialog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate inputs
+    try {
+      templateSchema.parse(formData);
+    } catch (error: any) {
+      if (error.errors?.[0]?.message) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error("Please check your inputs");
+      }
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!user) {
+      if (!session?.user) {
         toast.error("Please sign in to create templates");
         return;
       }
@@ -65,8 +91,8 @@ export function TemplateCreationDialog() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('username')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', session.user.id)
+        .maybeSingle();
 
       if (!profile) {
         toast.error("Please set up your profile first");
@@ -76,11 +102,11 @@ export function TemplateCreationDialog() {
       const { error } = await supabase
         .from('prompt_templates')
         .insert({
-          title: formData.title,
-          description: formData.description,
+          title: formData.title.trim(),
+          description: formData.description.trim() || null,
           category: formData.category,
-          template: formData.template,
-          user_id: user.id,
+          template: formData.template.trim(),
+          user_id: session.user.id,
           is_public: true,
           is_official: isAdmin ? formData.isOfficial : false,
           favorites_count: 0,
@@ -89,9 +115,12 @@ export function TemplateCreationDialog() {
 
       if (error) throw error;
 
-      toast.success("Template created and shared!");
+      toast.success("Template created successfully!");
       setFormData({ title: "", description: "", category: "Custom", template: "", isOfficial: false });
       setOpen(false);
+      
+      // Trigger refresh
+      onTemplateCreated?.();
     } catch (error: any) {
       console.error('Error creating template:', error);
       toast.error(error.message || "Failed to create template");
@@ -117,12 +146,13 @@ export function TemplateCreationDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">Title *</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Product Description Generator"
+              maxLength={100}
               required
             />
           </div>
@@ -134,8 +164,10 @@ export function TemplateCreationDialog() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe what this template does..."
+              maxLength={500}
               rows={3}
             />
+            <p className="text-xs text-muted-foreground">{formData.description.length}/500</p>
           </div>
 
           <div className="space-y-2">
@@ -153,15 +185,17 @@ export function TemplateCreationDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template">Template Content</Label>
+            <Label htmlFor="template">Template Content *</Label>
             <Textarea
               id="template"
               value={formData.template}
               onChange={(e) => setFormData({ ...formData, template: e.target.value })}
               placeholder="Enter your prompt template here..."
+              maxLength={5000}
               rows={8}
               required
             />
+            <p className="text-xs text-muted-foreground">{formData.template.length}/5000</p>
           </div>
 
           {isAdmin && (
