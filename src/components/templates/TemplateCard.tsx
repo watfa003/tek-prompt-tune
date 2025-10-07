@@ -72,35 +72,44 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
     
     try {
       if (isFavorited) {
-        const { error: deleteError } = await supabase
-          .from('user_favorites')
-          .delete()
-          .eq('user_id', userId)
-          .eq('item_id', template.id)
-          .eq('item_type', 'template');
-
-        if (deleteError) throw deleteError;
-
-        const { error: rpcError } = await supabase.rpc('decrement_template_favorites', { template_id: template.id });
-        if (rpcError) throw rpcError;
-
+        const [deleteRes, decRes] = await Promise.all([
+          supabase
+            .from('user_favorites')
+            .delete()
+            .eq('user_id', userId)
+            .eq('item_id', template.id)
+            .eq('item_type', 'template'),
+          supabase.rpc('decrement_template_favorites', { template_id: template.id })
+        ]);
+        if (deleteRes.error) throw deleteRes.error;
+        if ((decRes as any).error) throw (decRes as any).error;
         toast.success("Removed from favorites");
       } else {
-        const { error: insertError } = await supabase
-          .from('user_favorites')
-          .insert({
-            user_id: userId,
-            item_id: template.id,
-            item_type: 'template'
-          });
-
-        if (insertError) throw insertError;
-
-        const { error: rpcError } = await supabase.rpc('increment_template_favorites', { template_id: template.id });
-        if (rpcError) throw rpcError;
-
+        const [insertRes, incRes] = await Promise.all([
+          supabase
+            .from('user_favorites')
+            .insert({
+              user_id: userId,
+              item_id: template.id,
+              item_type: 'template'
+            }),
+          supabase.rpc('increment_template_favorites', { template_id: template.id })
+        ]);
+        if (insertRes.error) throw insertRes.error;
+        if ((incRes as any).error) throw (incRes as any).error;
         toast.success("Added to favorites");
       }
+
+      // Final reconcile: fetch authoritative count to avoid drift
+      const { data: refreshed } = await supabase
+        .from('prompt_templates')
+        .select('favorites_count')
+        .eq('id', template.id)
+        .maybeSingle();
+      if (typeof refreshed?.favorites_count === 'number') {
+        setFavCount(refreshed.favorites_count);
+      }
+
       // Notify parent on success
       const newStatus = !previousFavorited;
       (typeof onFavoriteChange === 'function') && onFavoriteChange(template.id, newStatus);
