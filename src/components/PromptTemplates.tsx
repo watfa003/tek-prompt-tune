@@ -317,8 +317,9 @@ export const PromptTemplates = ({ onUseTemplate }: PromptTemplatesProps) => {
                 <TemplateCard
                   key={template.id}
                   template={template}
-                  username={profileMap[template.user_id] || (template.is_official ? 'PromptEK' : 'Unknown')}
+                  username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
                   onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
+                  onFavoriteChange={handleFavoriteChange}
                 />
               ))}
             </div>

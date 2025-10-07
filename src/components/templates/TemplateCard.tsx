@@ -38,32 +38,33 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
   }, [template.id]);
 
   const checkIfFavorited = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
 
     const { data } = await supabase
       .from('user_favorites')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('item_id', template.id)
       .eq('item_type', 'template')
-      .single();
+      .maybeSingle();
 
     setIsFavorited(!!data);
   };
 
   const toggleFavorite = async (e?: React.MouseEvent) => {
-    e?.stopPropagation(); // Prevent card click when clicking favorite button
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    e?.stopPropagation();
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) {
       toast.error("Please sign in to favorite templates");
       return;
     }
 
     setLoading(true);
-    
-    // Optimistic UI update
+
     const previousFavorited = isFavorited;
     const previousCount = favCount;
     setIsFavorited(!isFavorited);
@@ -74,7 +75,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
         const { error: deleteError } = await supabase
           .from('user_favorites')
           .delete()
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .eq('item_id', template.id)
           .eq('item_type', 'template');
 
@@ -88,7 +89,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
         const { error: insertError } = await supabase
           .from('user_favorites')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             item_id: template.id,
             item_type: 'template'
           });
