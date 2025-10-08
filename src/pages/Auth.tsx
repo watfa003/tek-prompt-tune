@@ -11,6 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<'credentials' | 'code'>('credentials');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [sentCode, setSentCode] = useState('');
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -43,18 +46,75 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const sendVerificationCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Generate a 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setSentCode(code);
+
+      // Send the code via email
+      const { error } = await supabase.functions.invoke('send-verification-email', {
+        body: {
+          email: formData.email,
+          code: code,
+          type: 'signup'
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to send verification code. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Verification code sent!",
+        description: "Check your email for the 6-digit code.",
+      });
+
+      setVerificationStep('code');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Verify the code
+      if (verificationCode !== sentCode) {
+        toast({
+          title: "Invalid code",
+          description: "The verification code you entered is incorrect.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Create the account
       const { error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             username: formData.username,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/app`
         }
       });
 
@@ -71,6 +131,11 @@ const Auth = () => {
         title: "Account created!",
         description: "Welcome to PrompTek! You can now start optimizing prompts.",
       });
+
+      // Reset verification state
+      setVerificationStep('credentials');
+      setVerificationCode('');
+      setSentCode('');
     } catch (error) {
       toast({
         title: "Error",
@@ -147,8 +212,8 @@ const Auth = () => {
 
         {/* Auth Form */}
         <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm">
-          <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
-            {isSignUp && (
+          {isSignUp && verificationStep === 'credentials' ? (
+            <form onSubmit={sendVerificationCode} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -161,59 +226,156 @@ const Auth = () => {
                   required
                 />
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-primary"
+                disabled={loading || !formData.email || !formData.password || !formData.username}
+              >
+                {loading ? 'Sending code...' : 'Send Verification Code'}
+              </Button>
+            </form>
+          ) : isSignUp && verificationStep === 'code' ? (
+            <form onSubmit={handleSignUp} className="space-y-4">
+              <div className="text-center mb-4">
+                <p className="text-sm text-muted-foreground">
+                  We sent a 6-digit code to <strong>{formData.email}</strong>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="verificationCode">Verification Code</Label>
+                <Input
+                  id="verificationCode"
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  required
+                  maxLength={6}
+                  pattern="[0-9]{6}"
+                  className="text-center text-2xl tracking-widest"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setVerificationStep('credentials');
+                    setVerificationCode('');
+                    setSentCode('');
+                  }}
+                  disabled={loading}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-gradient-primary"
+                  disabled={loading || verificationCode.length !== 6}
+                >
+                  {loading ? 'Creating account...' : 'Verify & Create Account'}
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                variant="link"
+                className="w-full"
+                onClick={sendVerificationCode}
+                disabled={loading}
+              >
+                Resend code
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-primary"
+                disabled={loading || !formData.email || !formData.password}
+              >
+                {loading ? 'Please wait...' : 'Sign In'}
+              </Button>
+            </form>
+          )}
+
+          {verificationStep === 'credentials' && (
+            <div className="mt-6 text-center">
+              <p className="text-muted-foreground">
+                {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+              </p>
+              <Button
+                variant="link"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setFormData({ username: '', email: '', password: '' });
+                  setVerificationCode('');
+                  setSentCode('');
+                }}
+                className="p-0 h-auto font-semibold"
+              >
+                {isSignUp ? 'Sign In' : 'Create Account'}
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-                minLength={6}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-gradient-primary"
-              disabled={loading || !formData.email || !formData.password || (isSignUp && !formData.username)}
-            >
-              {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-muted-foreground">
-              {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-            </p>
-            <Button
-              variant="link"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setFormData({ username: '', email: '', password: '' });
-              }}
-              className="p-0 h-auto font-semibold"
-            >
-              {isSignUp ? 'Sign In' : 'Create Account'}
-            </Button>
-          </div>
+          )}
         </Card>
 
         {/* Back to Home */}
