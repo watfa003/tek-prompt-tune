@@ -106,36 +106,53 @@ const Auth = () => {
         return;
       }
 
-      // Create the account
-      const { error } = await supabase.auth.signUp({
+      // Create the account with email already confirmed
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             username: formData.username,
           },
-          emailRedirectTo: `${window.location.origin}/app`
+          emailRedirectTo: `${window.location.origin}/app`,
+          // Skip email confirmation since we already verified with code
         }
       });
 
-      if (error) {
+      if (signUpError) {
         toast({
           title: "Error",
-          description: error.message,
+          description: signUpError.message,
           variant: "destructive",
         });
         return;
       }
 
-      toast({
-        title: "Account created!",
-        description: "Welcome to PrompTek! You can now start optimizing prompts.",
+      // Explicitly sign in the user
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
       });
 
-      // Reset verification state
-      setVerificationStep('credentials');
-      setVerificationCode('');
-      setSentCode('');
+      if (signInError) {
+        toast({
+          title: "Account created",
+          description: "Please sign in with your new account.",
+        });
+        setIsSignUp(false);
+        setVerificationStep('credentials');
+        setVerificationCode('');
+        setSentCode('');
+        setLoading(false);
+        return;
+      }
+
+      toast({
+        title: "Welcome to PrompTek!",
+        description: "Your account has been created and you're now signed in.",
+      });
+
+      // The auth state listener will handle navigation
     } catch (error) {
       toast({
         title: "Error",
