@@ -39,7 +39,7 @@ export const PromptHistory = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [activeTab, setActiveTab] = useState<"all" | "favorites">("all");
   const { historyItems, analytics, loading, toggleFavorite: toggleFavoriteGlobal } = usePromptData();
-  const { settings } = useSettings();
+  const { settings, loading: settingsLoading } = useSettings();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -160,9 +160,9 @@ export const PromptHistory = () => {
     const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
     
     // Determine if this is the best variant in its session when showing all variants
-    // ONLY show badge when explicitly NOT filtering (showOnlyBestInHistory is false)
+    // ONLY show badge when settings are loaded and NOT filtering (showOnlyBestInHistory is false)
     let isBestInSession = false;
-    if (settings && settings.showOnlyBestInHistory === false) {
+    if (!settingsLoading && settings.showOnlyBestInHistory === false) {
       // Group all history items by session to find the best variant
       const timestamp = new Date(item.timestamp).getTime();
       const roundedTime = Math.floor(timestamp / (10 * 60 * 1000)); // 10-minute windows
