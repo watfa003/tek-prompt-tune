@@ -51,6 +51,29 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // First check if email already exists
+      const { data: existingUser } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: 'dummy-check' // This will fail but tell us if email exists
+      });
+
+      // If we get here without error about invalid credentials, email might exist
+      // But we mainly check the error message
+    } catch (checkError: any) {
+      // If error is NOT "Invalid login credentials", email likely exists
+      if (checkError?.message && !checkError.message.includes('Invalid login credentials')) {
+        toast({
+          title: "Account exists",
+          description: "This email is already registered. Please sign in instead.",
+          variant: "destructive",
+        });
+        setIsSignUp(false);
+        setLoading(false);
+        return;
+      }
+    }
+
+    try {
       // Generate a 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setSentCode(code);
@@ -115,19 +138,26 @@ const Auth = () => {
         }
       });
 
-      // Handle errors - extract message from response body or error object
-      if (createError || !createData?.success) {
+      // Handle errors - the error is in FunctionInvokeError when status is non-2xx
+      if (createError) {
+        // Extract the actual error message from the FunctionInvokeError context
+        const errorContext = (createError as any)?.context;
         let errorMessage = 'Failed to create account';
         
-        // Try to get error from response body first
-        if (createData && typeof createData === 'object' && 'error' in createData) {
-          errorMessage = String(createData.error);
-        } else if (createError) {
-          errorMessage = createError.message;
+        // The error body is in the context
+        if (errorContext?.error) {
+          errorMessage = errorContext.error;
+        } else if ((createError as any)?.message) {
+          errorMessage = (createError as any).message;
         }
         
+        console.error('Account creation error:', errorMessage);
+        
         // Check if user already exists
-        if (errorMessage.toLowerCase().includes('already') || errorMessage.toLowerCase().includes('exists') || errorMessage.toLowerCase().includes('registered')) {
+        if (errorMessage.toLowerCase().includes('already') || 
+            errorMessage.toLowerCase().includes('exists') || 
+            errorMessage.toLowerCase().includes('registered') ||
+            errorMessage.toLowerCase().includes('email')) {
           toast({
             title: "Account exists",
             description: "This email is already registered. Please sign in instead.",
@@ -144,6 +174,17 @@ const Auth = () => {
         toast({
           title: "Error",
           description: errorMessage,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Check if response indicates failure
+      if (!createData?.success) {
+        toast({
+          title: "Error",
+          description: "Failed to create account. Please try again.",
           variant: "destructive",
         });
         setLoading(false);
