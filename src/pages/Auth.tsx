@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,8 @@ const Auth = () => {
   });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -49,6 +51,7 @@ const Auth = () => {
   const sendVerificationCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setEmailError(null);
 
     try {
       // Check if email already exists by attempting a sign-up
@@ -70,11 +73,14 @@ const Auth = () => {
             signupError.message.includes('registered') ||
             signupError.message.includes('exists')) {
           toast({
-            title: "Account exists",
-            description: "This email is already registered. Please sign in instead.",
+            title: "Email already used",
+            description: "This email is registered. Please sign in or use a different email.",
             variant: "destructive",
           });
-          setIsSignUp(false);
+          setEmailError("This email is already registered.");
+          setVerificationStep('credentials');
+          setIsSignUp(true);
+          emailInputRef.current?.focus();
           setLoading(false);
           return;
         }
@@ -103,11 +109,14 @@ const Auth = () => {
         const msg = (error as any)?.message?.toString?.() || '';
         if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered') || msg.toLowerCase().includes('exists')) {
           toast({
-            title: "Account exists",
-            description: "This email is already registered. Please sign in instead.",
+            title: "Email already used",
+            description: "This email is registered. Please sign in or use a different email.",
             variant: "destructive",
           });
-          setIsSignUp(false);
+          setEmailError("This email is already registered.");
+          setVerificationStep('credentials');
+          setIsSignUp(true);
+          emailInputRef.current?.focus();
         } else {
           toast({
             title: "Error",
@@ -289,10 +298,9 @@ const Auth = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    if (name === 'email' && emailError) setEmailError(null);
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -344,7 +352,16 @@ const Auth = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
+                  ref={emailInputRef}
+                  aria-invalid={!!emailError}
+                  aria-describedby={emailError ? "email-error" : undefined}
+                  className={emailError ? "border-destructive focus-visible:ring-destructive" : undefined}
                 />
+                {emailError && (
+                  <p id="email-error" className="text-sm text-destructive">
+                    {emailError}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -397,11 +414,12 @@ const Auth = () => {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {
-                    setVerificationStep('credentials');
-                    setVerificationCode('');
-                    setSentCode('');
-                  }}
+                    onClick={() => {
+                      setVerificationStep('credentials');
+                      setVerificationCode('');
+                      setSentCode('');
+                      setEmailError(null);
+                    }}
                   disabled={loading}
                 >
                   Back
@@ -476,6 +494,7 @@ const Auth = () => {
                   setFormData({ username: '', email: '', password: '' });
                   setVerificationCode('');
                   setSentCode('');
+                  setEmailError(null);
                 }}
                 className="p-0 h-auto font-semibold"
               >
