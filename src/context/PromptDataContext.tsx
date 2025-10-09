@@ -24,6 +24,7 @@ interface PromptDataContextValue {
   toggleFavorite: (id: string) => Promise<void>;
   addPromptToHistory: (item: PromptHistoryItem) => Promise<void>;
   hasLocalChanges: boolean;
+  favorites: PromptHistoryItem[];
 }
 
 const PromptDataContext = createContext<PromptDataContextValue | null>(null);
@@ -536,9 +537,14 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [loadInitialData, saveToCache]);
 
+  const favorites = useMemo(
+    () => historyItems.filter(item => item.isFavorite),
+    [historyItems]
+  );
+
   const value = useMemo(
-    () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges }),
-    [historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges]
+    () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges, favorites }),
+    [historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges, favorites]
   );
 
   return <PromptDataContext.Provider value={value}>{children}</PromptDataContext.Provider>;

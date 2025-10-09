@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Zap, 
@@ -16,10 +17,12 @@ import {
   RefreshCw, 
   Loader2, 
   FileText,
-  Plus
+  Plus,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { usePromptData } from "@/context/PromptDataContext";
 
 interface Template {
   id: string;
@@ -59,6 +62,7 @@ export const TemplateOptimizer = () => {
   const [loading, setLoading] = useState(true);
   
   const { toast } = useToast();
+  const { favorites } = usePromptData();
 
   // AI Configuration
   const [aiProvider, setAiProvider] = useState("openai");
@@ -67,6 +71,12 @@ export const TemplateOptimizer = () => {
   const [variants, setVariants] = useState(3);
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(2048);
+  const [influence, setInfluence] = useState("");
+  const [influenceWeight, setInfluenceWeight] = useState([50]);
+  
+  const handleInfluenceWeightChange = React.useCallback((value: number[]) => {
+    setInfluenceWeight(value);
+  }, []);
 
   useEffect(() => {
     loadTemplates();
@@ -125,7 +135,9 @@ export const TemplateOptimizer = () => {
           saveAsTemplate,
           templateTitle: saveAsTemplate ? templateTitle : '',
           templateDescription: saveAsTemplate ? templateDescription : '',
-          templateCategory: saveAsTemplate ? templateCategory : 'custom'
+          templateCategory: saveAsTemplate ? templateCategory : 'custom',
+          influence,
+          influenceWeight: influenceWeight[0]
         })
       });
 
@@ -382,6 +394,49 @@ export const TemplateOptimizer = () => {
                 </Select>
               </div>
             </div>
+
+            {/* Influence Selection */}
+            {favorites.length > 0 && (
+              <div className="space-y-3">
+                <Label>Use Favorite as Style Guide (Optional)</Label>
+                <Select value={influence} onValueChange={setInfluence}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="No influence selected" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {favorites.map((fav) => (
+                      <SelectItem key={fav.id} value={fav.output}>
+                        {fav.output.slice(0, 50)}...
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {influence && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Influence Weight</Label>
+                      <span className="text-sm font-medium">{influenceWeight[0]}%</span>
+                    </div>
+                    <Slider
+                      value={influenceWeight}
+                      onValueChange={handleInfluenceWeightChange}
+                      max={100}
+                      min={0}
+                      step={5}
+                      className="w-full"
+                      aria-label="Influence weight slider"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground px-1">
+                      <span>Low (0%)</span>
+                      <span>Medium (50%)</span>
+                      <span>High (100%)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center space-x-2">
               <Checkbox 
