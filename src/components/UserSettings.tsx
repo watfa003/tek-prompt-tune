@@ -53,7 +53,7 @@ export const UserSettings = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl animate-fade-in">
+    <div className="space-y-6 max-w-4xl mx-auto px-4 md:px-0 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

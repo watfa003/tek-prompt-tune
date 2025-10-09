@@ -244,7 +244,21 @@ serve(async (req) => {
           optimizationPrompt += `\n- IMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
         }
 
-        // Single API call for optimization using cheaper model
+        // Textual creativity guidance derived from user's temperature (do NOT mention parameters)
+        const temp = typeof temperature === 'number' ? temperature : 0.7;
+        let creativityLabel = 'Balanced';
+        let creativityGuidance = '- Maintain a balance between novelty and adherence to constraints.';
+        if (temp <= 0.3) {
+          creativityLabel = 'Highly deterministic';
+          creativityGuidance = '- Emphasize specificity, determinism, and reproducibility; minimize brainstorming or randomness.';
+        } else if (temp < 0.7) {
+          creativityLabel = 'Balanced';
+          creativityGuidance = '- Encourage limited variation while strictly following requirements and structure.';
+        } else {
+          creativityLabel = 'Creative';
+          creativityGuidance = '- Encourage diverse ideas and varied phrasing while still meeting acceptance criteria.';
+        }
+        optimizationPrompt += `\n\n=== CREATIVITY STYLE (Textual guidance only) ===\nTarget: ${creativityLabel}\nGuidance:\n${creativityGuidance}\n- Embed wording in the improved prompt to achieve this style without referencing model parameters.`;
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
         // Ensure minimum 256 tokens for optimization, but use at least 512 for testing
         const optimizationTokens = Math.max(256, Math.min(maxTokens, 4096));
@@ -525,7 +539,7 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
 }
 
 async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
-  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
+  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}`);
   
     const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
     const payload: any = {
@@ -536,12 +550,10 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
     if (isNewerModel) {
       payload.max_completion_tokens = maxTokens;
       // Newer models don't support temperature parameter - defaults to 1.0
-      console.log(`⚠️ Model ${model} doesn't support temperature, using default (1.0)`);
     } else {
       payload.max_tokens = maxTokens;
-      // Ensure temperature is within valid range (0.0 to 2.0)
-      payload.temperature = Math.max(0.0, Math.min(temperature, 2.0));
-      console.log(`✅ Using temperature: ${payload.temperature}`);
+      // Ignore temperature; style is enforced via prompt wording
+      console.log('ℹ️ Ignoring temperature param; using prompt-level creativity guidance');
     }
 
     console.log('📦 Payload:', { model, isNewerModel, max: isNewerModel ? payload.max_completion_tokens : payload.max_tokens, temp: payload.temperature });
@@ -568,8 +580,8 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
   return data.choices[0].message.content;
 }
 
-async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
-  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
+async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
+  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}`);
   
   const response = await fetch(providerConfig.baseUrl, {
     method: 'POST',
@@ -581,7 +593,6 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
     body: JSON.stringify({
       model: model,
       max_tokens: maxTokens,
-      temperature: Math.max(0.0, Math.min(temperature, 1.0)),
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -597,8 +608,8 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
   return data.content[0].text;
 }
 
-async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
-  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
+async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
+  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}`);
   
   const response = await fetch(`${providerConfig.baseUrl}/${model}:generateContent?key=${providerConfig.apiKey}`, {
     method: 'POST',
@@ -611,7 +622,7 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
       }],
       generationConfig: {
         maxOutputTokens: maxTokens,
-        temperature: Math.max(0.0, Math.min(temperature, 2.0)),
+        temperature: 0.7,
       }
     }),
   });
