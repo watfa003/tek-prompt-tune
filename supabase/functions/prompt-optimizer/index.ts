@@ -121,7 +121,7 @@ serve(async (req) => {
       outputType = 'text',
       variants = 3,
       userId,
-      maxTokens = 1024,
+      maxTokens = null,
       temperature = 0.7,
       influence = '',
       influenceWeight = 0,
@@ -233,8 +233,10 @@ serve(async (req) => {
           optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
         }
         
-        // CRITICAL: Integrate max_tokens as a natural constraint WITHIN the prompt
-        optimizationPrompt += `\n- IMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
+        // CRITICAL: Only integrate max_tokens if it's set
+        if (maxTokens) {
+          optimizationPrompt += `\n- IMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
+        }
 
         if (taskDescription) {
           optimizationPrompt += `\n\nContext: ${taskDescription}`;
@@ -277,8 +279,8 @@ serve(async (req) => {
         
         try {
           console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
-          // Ensure minimum 512 tokens for AI to respond meaningfully
-          const testTokens = Math.max(512, Math.min(maxTokens, 4096));
+          // Use maxTokens if set, otherwise use a reasonable default for testing
+          const testTokens = maxTokens ? Math.max(512, Math.min(maxTokens, 4096)) : 2048;
           const testResponse = await callAIProvider(
             aiProvider,
             modelName,

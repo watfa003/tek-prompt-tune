@@ -460,13 +460,13 @@ const PromptOptimizerForm = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Max Tokens</Label>
-                  <span className="text-sm text-muted-foreground">{maxTokens[0]}</span>
+                  <span className="text-sm text-muted-foreground">{maxTokens[0] === 0 ? 'No Limit' : maxTokens[0]}</span>
                 </div>
                 <Slider
                   value={maxTokens}
                   onValueChange={setMaxTokens}
+                  min={0}
                   max={8192}
-                  min={512}
                   step={256}
                   className="w-full"
                 />
@@ -546,7 +546,7 @@ export const AIPromptOptimizer: React.FC = () => {
   const [modelName, setModelName] = useState('gpt-4o-mini');
   const [outputType, setOutputType] = useState('text');
   const [variants, setVariants] = useState(3);
-  const [maxTokens, setMaxTokens] = useState([2048]);
+  const [maxTokens, setMaxTokens] = useState<number[]>([0]); // 0 means no limit
   const [temperature, setTemperature] = useState([0.7]);
   const [selectedInfluence, setSelectedInfluence] = useState('');
   const [influenceType, setInfluenceType] = useState('');
@@ -630,7 +630,7 @@ export const AIPromptOptimizer: React.FC = () => {
                     settings.defaultProvider.toLowerCase().includes('google') ? 'google' : 'openai');
       setOutputType(settings.defaultOutputType.toLowerCase());
       setVariants(settings.defaultVariants);
-      setMaxTokens([settings.defaultMaxTokens]);
+      setMaxTokens([settings.defaultMaxTokens || 0]);
       setTemperature([settings.defaultTemperature]);
     }
   }, [settings]);
@@ -660,7 +660,7 @@ export const AIPromptOptimizer: React.FC = () => {
       modelName,
       outputType,
       variants,
-      maxTokens: maxTokens[0],
+      maxTokens: maxTokens[0] === 0 ? null : maxTokens[0],
       temperature: temperature[0],
       influence: selectedInfluence,
       influenceWeight: influenceWeight[0],

@@ -55,7 +55,7 @@ export const PromptResults = ({
   influence, 
   influenceWeight,
   variants = 3,
-  maxTokens = 2048,
+  maxTokens = null,
   temperature = 0.7,
   optimizationMode = 'deep'
 }: PromptResultsProps) => {

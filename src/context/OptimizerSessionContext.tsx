@@ -12,7 +12,7 @@ export interface OptimizerPayload {
   modelName: string;
   outputType: string;
   variants: number;
-  maxTokens: number;
+  maxTokens: number | null;
   temperature: number;
   influence: string;
   influenceWeight: number;

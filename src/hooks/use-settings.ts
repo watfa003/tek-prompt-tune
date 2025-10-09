@@ -12,7 +12,7 @@ export interface UserSettings {
   defaultOutputType: string;
   defaultVariants: number;
   defaultTemperature: number;
-  defaultMaxTokens: number;
+  defaultMaxTokens: number | null;
   
   // Notifications
   emailNotifications: boolean;
@@ -45,7 +45,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   defaultOutputType: 'Code',
   defaultVariants: 3,
   defaultTemperature: 0.7,
-  defaultMaxTokens: 2048,
+  defaultMaxTokens: null,
   
   // Notifications
   emailNotifications: true,

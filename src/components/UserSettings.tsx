@@ -194,17 +194,17 @@ export const UserSettings = () => {
           </div>
           
           <div className="space-y-2">
-            <Label>Max Tokens: {settings.defaultMaxTokens}</Label>
+            <Label>Max Tokens: {settings.defaultMaxTokens === null || settings.defaultMaxTokens === 0 ? 'No Limit' : settings.defaultMaxTokens}</Label>
             <Slider
-              value={[settings.defaultMaxTokens]}
-              onValueChange={([value]) => setSettings({ ...settings, defaultMaxTokens: value })}
+              value={[settings.defaultMaxTokens || 0]}
+              onValueChange={([value]) => setSettings({ ...settings, defaultMaxTokens: value === 0 ? null : value })}
+              min={0}
               max={4000}
-              min={256}
               step={256}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>256</span>
+              <span>No Limit</span>
               <span>4000</span>
             </div>
           </div>
