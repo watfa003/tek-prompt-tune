@@ -88,6 +88,7 @@ const PromptOptimizerForm = ({
   setInfluenceType,
   influenceWeight,
   setInfluenceWeight,
+  handleInfluenceWeightChange,
   advancedOpen,
   setAdvancedOpen,
   optimizationMode,
@@ -117,6 +118,7 @@ const PromptOptimizerForm = ({
   setInfluenceType: (value: string) => void;
   influenceWeight: number[];
   setInfluenceWeight: (value: number[]) => void;
+  handleInfluenceWeightChange: (value: number[]) => void;
   advancedOpen: boolean;
   setAdvancedOpen: (value: boolean) => void;
   optimizationMode?: 'speed' | 'deep';
@@ -277,16 +279,22 @@ const PromptOptimizerForm = ({
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-medium text-muted-foreground">Influence Weight</Label>
-                  <span className="text-xs text-muted-foreground">{influenceWeight[0]}%</span>
+                  <span className="text-xs font-medium">{influenceWeight[0]}%</span>
                 </div>
                 <Slider
                   value={influenceWeight}
-                  onValueChange={setInfluenceWeight}
+                  onValueChange={handleInfluenceWeightChange}
                   max={100}
                   min={0}
                   step={5}
                   className="w-full"
+                  aria-label="Influence weight slider"
                 />
+                <div className="flex justify-between text-xs text-muted-foreground px-1">
+                  <span>Low</span>
+                  <span>Medium</span>
+                  <span>High</span>
+                </div>
               </div>
             </Card>
           ) : (
@@ -316,16 +324,22 @@ const PromptOptimizerForm = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Influence Weight</Label>
-                  <span className="text-sm text-muted-foreground">{influenceWeight[0]}%</span>
+                  <span className="text-sm font-medium">{influenceWeight[0]}%</span>
                 </div>
                 <Slider
                   value={influenceWeight}
-                  onValueChange={setInfluenceWeight}
+                  onValueChange={handleInfluenceWeightChange}
                   max={100}
                   min={0}
                   step={5}
                   className="w-full"
+                  aria-label="Influence weight slider"
                 />
+                <div className="flex justify-between text-xs text-muted-foreground px-1">
+                  <span>Low (0%)</span>
+                  <span>Medium (50%)</span>
+                  <span>High (100%)</span>
+                </div>
               </div>
             </div>
           )}
@@ -542,6 +556,11 @@ export const AIPromptOptimizer: React.FC = () => {
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
 
+  // Memoized handler to prevent slider jank
+  const handleInfluenceWeightChange = React.useCallback((value: number[]) => {
+    setInfluenceWeight(value);
+  }, []);
+
   // Auto-save draft prompts to localStorage (session state is handled by context)
   React.useEffect(() => {
     localStorage.setItem('promptOptimizer_originalPrompt', originalPrompt);
@@ -746,6 +765,7 @@ export const AIPromptOptimizer: React.FC = () => {
         setInfluenceType={setInfluenceType}
         influenceWeight={influenceWeight}
         setInfluenceWeight={setInfluenceWeight}
+        handleInfluenceWeightChange={handleInfluenceWeightChange}
         advancedOpen={advancedOpen}
         setAdvancedOpen={setAdvancedOpen}
         optimizationMode={optimizationMode}
