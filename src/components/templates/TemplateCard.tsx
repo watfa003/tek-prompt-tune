@@ -142,17 +142,28 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
   };
 
   const handleUse = async () => {
+    // Optimistic update
+    const previousCount = useCount;
+    setUseCount(prev => prev + 1);
+    
     try {
-      await supabase.rpc('increment_template_uses', { template_id: template.id });
-      setUseCount(prev => prev + 1);
+      // Call the increment in the background
+      const incrementPromise = supabase.rpc('increment_template_uses', { template_id: template.id });
       
+      // Immediately use the template (don't wait for DB)
       if (onUseTemplate) {
         onUseTemplate(template.template);
       }
+      
       toast.success("Template added to your workspace!");
+      
+      // Wait for DB confirmation
+      const { error } = await incrementPromise;
+      if (error) throw error;
     } catch (error) {
-      console.error('Error using template:', error);
-      toast.error("Failed to use template");
+      console.error('Error incrementing template uses:', error);
+      // Revert optimistic update on error
+      setUseCount(previousCount);
     }
   };
 
