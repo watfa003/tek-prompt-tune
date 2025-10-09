@@ -115,11 +115,19 @@ const Auth = () => {
         }
       });
 
+      // Handle errors - extract message from response body or error object
       if (createError || !createData?.success) {
-        const errorMessage = createError?.message || createData?.error || 'Failed to create account';
+        let errorMessage = 'Failed to create account';
+        
+        // Try to get error from response body first
+        if (createData && typeof createData === 'object' && 'error' in createData) {
+          errorMessage = String(createData.error);
+        } else if (createError) {
+          errorMessage = createError.message;
+        }
         
         // Check if user already exists
-        if (errorMessage.includes('already') || errorMessage.includes('exists')) {
+        if (errorMessage.toLowerCase().includes('already') || errorMessage.toLowerCase().includes('exists') || errorMessage.toLowerCase().includes('registered')) {
           toast({
             title: "Account exists",
             description: "This email is already registered. Please sign in instead.",
