@@ -51,29 +51,41 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // First check if email already exists
-      const { data: existingUser } = await supabase.auth.signInWithPassword({
+      // Check if email already exists by attempting a sign-up
+      // Supabase will reject if email already exists
+      const { data: signupCheck, error: signupError } = await supabase.auth.signUp({
         email: formData.email,
-        password: 'dummy-check' // This will fail but tell us if email exists
+        password: 'temp-check-password-' + Math.random(), // Temporary password for check
+        options: {
+          data: {
+            username: 'temp-check'
+          }
+        }
       });
 
-      // If we get here without error about invalid credentials, email might exist
-      // But we mainly check the error message
-    } catch (checkError: any) {
-      // If error is NOT "Invalid login credentials", email likely exists
-      if (checkError?.message && !checkError.message.includes('Invalid login credentials')) {
-        toast({
-          title: "Account exists",
-          description: "This email is already registered. Please sign in instead.",
-          variant: "destructive",
-        });
-        setIsSignUp(false);
-        setLoading(false);
-        return;
+      // If we get a user back but no session, email might already exist
+      if (signupError) {
+        // Check for specific error messages about existing user
+        if (signupError.message.includes('already') || 
+            signupError.message.includes('registered') ||
+            signupError.message.includes('exists')) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+          setIsSignUp(false);
+          setLoading(false);
+          return;
+        }
       }
-    }
 
-    try {
+      // If a user was created during the check, we need to clean it up
+      // by signing out (Supabase auto-confirms in some cases)
+      if (signupCheck?.user) {
+        await supabase.auth.signOut();
+      }
+
       // Generate a 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setSentCode(code);
