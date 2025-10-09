@@ -246,61 +246,124 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   // Resume on load if we were optimizing and have payload but no results
   useEffect(() => {
     if (isOptimizing && payload && !result && !speedResult && !runningRef.current) {
-      console.log('Resuming background optimization...');
-      // First check if results already exist from background completion
+      console.log('Resume check: isOptimizing=true, checking for cached results...');
+      
+      // CRITICAL: Check localStorage for completed results FIRST before resuming
       const storedSpeedResult = localStorage.getItem(`promptOptimizer_result_speed`);
       const storedDeepResult = localStorage.getItem(`promptOptimizer_result_deep`);
       
-      if ((payload.mode === 'speed' && storedSpeedResult) || (payload.mode === 'deep' && storedDeepResult)) {
-        console.log('Found completed results, loading them now');
+      const hasStoredResult = (payload.mode === 'speed' && storedSpeedResult) || 
+                              (payload.mode === 'deep' && storedDeepResult);
+      
+      if (hasStoredResult) {
+        console.log('✅ Found completed results from background optimization, loading immediately');
         try {
-          const parsedResult = JSON.parse(payload.mode === 'speed' ? storedSpeedResult! : storedDeepResult!);
+          const storedData = payload.mode === 'speed' ? storedSpeedResult! : storedDeepResult!;
+          const parsedResult = JSON.parse(storedData);
+          
+          // Set the result immediately
           if (payload.mode === 'speed') {
             setSpeedResult(parsedResult);
           } else {
             setResult(parsedResult);
           }
+          
+          // Add to history
           appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+          
+          // Clean up localStorage
           localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
+          
+          // CRITICAL: Clear isOptimizing immediately to stop loading state
+          console.log('✅ Clearing isOptimizing flag - results loaded from cache');
           setIsOptimizing(false);
           runningRef.current = false;
+          
+          return; // Exit early - don't resume
         } catch (e) {
-          console.error('Error parsing stored result:', e);
-          // Fall through to resume logic
-          setTimeout(() => {
-            startOptimization(payload, { resume: true });
-          }, 100);
+          console.error('❌ Error parsing stored result:', e);
+          // Fall through to resume logic if parsing fails
         }
-      } else {
-        // No stored results, actually resume the call
-        setTimeout(() => {
-          if (!runningRef.current) {
-            console.log('Attempting to resume optimization');
-            startOptimization(payload, { resume: true });
-          }
-        }, 100);
       }
+      
+      // No stored results found, need to actually resume the API call
+      console.log('⏳ No cached results, resuming optimization API call...');
+      const timeoutId = setTimeout(() => {
+        if (!runningRef.current) {
+          startOptimization(payload, { resume: true });
+        }
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Safety: timeout long-running sessions
+  // Safety: timeout long-running sessions (2 minutes max)
   useEffect(() => {
     const checkStale = () => {
       if (isOptimizing && optimizationStartTime) {
         const elapsed = Date.now() - optimizationStartTime;
-        if (elapsed > 5 * 60 * 1000) {
+        // Reduced to 2 minutes timeout for better UX
+        if (elapsed > 2 * 60 * 1000) {
+          console.warn('⚠️ Optimization timeout after 2 minutes - auto-clearing');
           setIsOptimizing(false);
+          runningRef.current = false;
           localStorage.removeItem('promptOptimizer_isOptimizing');
           localStorage.removeItem('promptOptimizer_startTime');
-          toast({ title: 'Optimization Timeout', description: 'The previous optimization took too long and was cancelled. Please try again.', variant: 'destructive' });
+          toast({ 
+            title: 'Optimization Timeout', 
+            description: 'The optimization took too long and was cancelled. Please try again.', 
+            variant: 'destructive' 
+          });
         }
       }
     };
 
-    const id = setInterval(checkStale, 30000);
+    const id = setInterval(checkStale, 10000); // Check every 10 seconds
     return () => clearInterval(id);
   }, [isOptimizing, optimizationStartTime, toast]);
+
+  // Phase 3: Add visibility change detection for background optimization safety
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isOptimizing && payload) {
+        console.log('🔄 User returned to page - checking for background completion...');
+        
+        // Check if optimization completed while away
+        const storedResult = localStorage.getItem(`promptOptimizer_result_${payload.mode}`);
+        if (storedResult && !result && !speedResult) {
+          console.log('✅ Found background-completed results on visibility change');
+          try {
+            const parsedResult = JSON.parse(storedResult);
+            
+            if (payload.mode === 'speed') {
+              setSpeedResult(parsedResult);
+            } else {
+              setResult(parsedResult);
+            }
+            
+            appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+            localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
+            
+            // Clear loading state immediately
+            setIsOptimizing(false);
+            runningRef.current = false;
+            
+            toast({
+              title: 'Optimization Complete',
+              description: 'Your optimization finished while you were away!',
+            });
+          } catch (e) {
+            console.error('❌ Error parsing background result:', e);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isOptimizing, payload, result, speedResult, appendToHistory, toast]);
 
   const value: OptimizerSessionContextValue = {
     isOptimizing,
