@@ -106,23 +106,20 @@ const Auth = () => {
         return;
       }
 
-      // Email verified via our code - now create the account
-      // We're using admin mode to bypass Supabase's email confirmation
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            username: formData.username,
-          },
-          emailRedirectTo: `${window.location.origin}/app`,
-          // Skip Supabase's email confirmation since we already verified with our code
+      // Email verified via our code - now create the account with confirmed email
+      const { data: createData, error: createError } = await supabase.functions.invoke('create-verified-user', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          username: formData.username,
         }
       });
 
-      if (signUpError) {
+      if (createError || !createData?.success) {
+        const errorMessage = createError?.message || createData?.error || 'Failed to create account';
+        
         // Check if user already exists
-        if (signUpError.message.includes('already registered')) {
+        if (errorMessage.includes('already') || errorMessage.includes('exists')) {
           toast({
             title: "Account exists",
             description: "This email is already registered. Please sign in instead.",
@@ -138,12 +135,14 @@ const Auth = () => {
         
         toast({
           title: "Error",
-          description: signUpError.message,
+          description: errorMessage,
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
+
+      console.log('User created successfully, signing in...');
 
       // Now sign in the user immediately
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -152,7 +151,7 @@ const Auth = () => {
       });
 
       if (signInError) {
-        // Account was created but sign in failed
+        console.error('Sign in error:', signInError);
         toast({
           title: "Account created!",
           description: "Please sign in with your new credentials.",
@@ -167,7 +166,7 @@ const Auth = () => {
 
       toast({
         title: "Welcome to PrompTek!",
-        description: "Your email has been verified and you're now signed in.",
+        description: "You're now signed in and will be redirected shortly.",
       });
 
       // The auth state listener will handle navigation
