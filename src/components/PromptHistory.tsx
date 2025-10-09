@@ -129,10 +129,10 @@ export const PromptHistory = () => {
   }, [historyItems, activeTab, searchQuery, filterProvider, filterOutputType, filterScore, sortBy, settings.showOnlyBestInHistory]);
 
   const getScoreBadge = (score: number) => {
-    if (score >= 0.8) return <Badge className="bg-success text-success-foreground">Excellent (≥0.8)</Badge>;
-    if (score >= 0.6) return <Badge className="bg-warning text-warning-foreground">Good (≥0.6)</Badge>;
-    if (score >= 0.4) return <Badge className="bg-accent text-accent-foreground">Fair (≥0.4)</Badge>;
-    return <Badge variant="destructive">Needs Work (&lt;0.4)</Badge>;
+    if (score >= 0.8) return <Badge className="bg-green-500 text-white">Excellent (0.8+)</Badge>;
+    if (score >= 0.6) return <Badge className="bg-yellow-500 text-white">Good (0.6-0.8)</Badge>;
+    if (score >= 0.4) return <Badge className="bg-orange-500 text-white">Average (0.4-0.6)</Badge>;
+    return <Badge className="bg-red-500 text-white">Poor (0-0.4)</Badge>;
   };
 
   const copyToClipboard = (text: string, type: string) => {
@@ -497,10 +497,10 @@ export const PromptHistory = () => {
                 {scores.map(score => (
                   <SelectItem key={score} value={score}>
                     {score === "all" ? "All Scores" : 
-                     score === "excellent" ? "Excellent (≥0.8)" :
+                     score === "excellent" ? "Excellent (0.8+)" :
                      score === "good" ? "Good (0.6-0.8)" :
-                     score === "fair" ? "Fair (0.4-0.6)" :
-                     "Needs Work (<0.4)"}
+                     score === "fair" ? "Average (0.4-0.6)" :
+                     "Poor (0-0.4)"}
                   </SelectItem>
                 ))}
               </SelectContent>
