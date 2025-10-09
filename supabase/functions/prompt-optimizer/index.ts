@@ -665,7 +665,7 @@ function evaluateOutput(prompt: string, strategyWeight: number): number {
 
 // Full detailed evaluation for shorter outputs
 function fullDetailedEvaluation(prompt: string, words: number, sentences: number, strategyWeight: number): number {
-  // Calibrated sub-scores (0..1) with higher base values
+  // Base score starts at 0.35 for more realistic distribution
   const hasSpecificTerms = /\b(specific|detail|example|step|instruction|format|constraint|criteria|acceptance)\b/i.test(prompt);
   const hasStructure = /(?:\n\s*[-*]\s|\d+\.|:|#\s)/.test(prompt);
   const hasContext = /\b(context|background|purpose|goal|objective|audience|constraints)\b/i.test(prompt);
@@ -673,19 +673,20 @@ function fullDetailedEvaluation(prompt: string, words: number, sentences: number
   const avgWordsPerSentence = words / Math.max(sentences, 1);
 
   const accuracy = Math.min(1,
-    0.6 + (hasSpecificTerms ? 0.2 : 0) + (hasContext ? 0.1 : 0) + (hasStructure ? 0.1 : 0)
+    0.3 + (hasSpecificTerms ? 0.3 : 0) + (hasContext ? 0.2 : 0) + (hasStructure ? 0.2 : 0)
   );
 
   const sectionsCount = prompt.split(/\n\n|\n(?=[A-Z])|\d+\.|#{1,6}\s/).length;
   const completeness = Math.min(1,
-    0.6 + (words >= 50 ? 0.15 : 0) + (words >= 100 ? 0.15 : 0) + (hasStructure ? 0.1 : 0)
+    0.3 + (words >= 50 ? 0.25 : 0) + (words >= 100 ? 0.25 : 0) + (hasStructure ? 0.2 : 0)
   );
 
   const clarity = Math.min(1,
-    0.6 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 22) ? 0.2 : 0) + (hasTransitions ? 0.1 : 0)
+    0.3 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 22) ? 0.3 : 0) + (hasTransitions ? 0.2 : 0) + (sentences >= 3 ? 0.2 : 0)
   );
 
-  let score = 0.7 + 0.25 * (0.4 * accuracy + 0.35 * completeness + 0.25 * clarity);
+  // Base score starts lower for realistic distribution
+  let score = 0.35 + 0.5 * (0.4 * accuracy + 0.35 * completeness + 0.25 * clarity);
 
   // Penalties for bad quality
   const hasCutoffText = prompt.trim().endsWith('...') || /\b(tbc|to be continued)\b/i.test(prompt);
@@ -693,19 +694,19 @@ function fullDetailedEvaluation(prompt: string, words: number, sentences: number
   const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(prompt.trim());
   const isBlank = prompt.trim().length < 5;
   
-  if (isBlank || isGibberish) score = 0.2; // Very bad output
-  else if (isVeryShort) score -= 0.3; // Severe penalty for very short
+  if (isBlank || isGibberish) score = 0.15; // Poor quality
+  else if (isVeryShort) score -= 0.25; 
   else if (words < 20) score -= 0.15; 
-  else if (words < 40) score -= 0.08;
+  else if (words < 40) score -= 0.10;
   
-  if (words > 400) score -= 0.03;
-  if (hasCutoffText) score -= 0.1;
-  if (checkForRepetition(prompt)) score -= 0.08;
+  if (words > 400) score -= 0.05;
+  if (hasCutoffText) score -= 0.15;
+  if (checkForRepetition(prompt)) score -= 0.12;
 
-  // Strategy bonus
-  score += strategyWeight * 0.08;
+  // Strategy bonus (reduced for balanced scoring)
+  score += strategyWeight * 0.05;
 
-  return Math.min(1.0, Math.max(0.2, score));
+  return Math.min(0.95, Math.max(0.15, score));
 }
 
 // Compressed analysis for longer outputs
@@ -723,11 +724,12 @@ function compressedAnalysis(prompt: string, words: number, sentences: number, st
   } as const;
   const presentSections = Object.values(requiredSections).filter(Boolean).length;
 
-  const structure = Math.min(1, 0.6 + (sections >= 3 ? 0.2 : 0) + (sections >= 5 ? 0.2 : 0));
-  const coverage = Math.min(1, 0.6 + (presentSections / 5) * 0.4);
-  const clarity = Math.min(1, 0.6 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 24) ? 0.2 : 0) + (/\b(first|second|third|finally)\b/i.test(prompt) ? 0.1 : 0));
+  const structure = Math.min(1, 0.3 + (sections >= 3 ? 0.25 : 0) + (sections >= 5 ? 0.25 : 0) + (sections >= 7 ? 0.2 : 0));
+  const coverage = Math.min(1, 0.3 + (presentSections / 5) * 0.7);
+  const clarity = Math.min(1, 0.3 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 24) ? 0.3 : 0) + (/\b(first|second|third|finally)\b/i.test(prompt) ? 0.2 : 0) + (sentences >= 5 ? 0.2 : 0));
 
-  let score = 0.7 + 0.25 * (0.5 * structure + 0.3 * coverage + 0.2 * clarity);
+  // Base score starts lower for realistic distribution
+  let score = 0.35 + 0.5 * (0.5 * structure + 0.3 * coverage + 0.2 * clarity);
 
   // Penalties for bad quality
   const hasCutoffText = prompt.trim().endsWith('...') || /\b(tbc|to be continued)\b/i.test(prompt);
@@ -735,19 +737,19 @@ function compressedAnalysis(prompt: string, words: number, sentences: number, st
   const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(prompt.trim());
   const isBlank = prompt.trim().length < 5;
   
-  if (isBlank || isGibberish) score = 0.15; // Very bad output
-  else if (isVeryShort) score -= 0.25; // Severe penalty for very short long-form
-  else if (words < 200) score -= 0.1; 
-  else if (words < 350) score -= 0.05;
+  if (isBlank || isGibberish) score = 0.15; // Poor quality
+  else if (isVeryShort) score -= 0.25; 
+  else if (words < 200) score -= 0.15; 
+  else if (words < 350) score -= 0.08;
   
-  if (hasCutoffText) score -= 0.12;
-  if (checkForRepetition(prompt)) score -= 0.08;
-  if (words > 3000) score -= 0.03;
+  if (hasCutoffText) score -= 0.15;
+  if (checkForRepetition(prompt)) score -= 0.12;
+  if (words > 3000) score -= 0.05;
 
-  // Strategy bonus
-  score += strategyWeight * 0.08;
+  // Strategy bonus (reduced for balanced scoring)
+  score += strategyWeight * 0.05;
 
-  return Math.min(1.0, Math.max(0.15, score));
+  return Math.min(0.95, Math.max(0.15, score));
 }
 
 // Helper function to detect repetition
@@ -772,23 +774,24 @@ function fastSkimEvaluation(text: string, strategyWeight: number): number {
   const isNotTruncated = !text.trim().endsWith('...') && !/\b(tbc|to be continued|truncated)\b/i.test(lastPortion);
   const hasGoodTransitions = /\b(however|furthermore|additionally|therefore|moreover|consequently)\b/i.test(middlePortion);
   
-  let score = 0.75; // Start with good base score for long outputs
+  // Start with lower base score for realistic distribution
+  let score = 0.5;
   
-  // Quick bonuses
-  if (hasGoodStructure) score += 0.1;
-  if (hasVariedSentences) score += 0.05;
-  if (isNotTruncated) score += 0.05;
-  if (hasGoodTransitions) score += 0.03;
+  // Quality bonuses
+  if (hasGoodStructure) score += 0.15;
+  if (hasVariedSentences) score += 0.10;
+  if (isNotTruncated) score += 0.10;
+  if (hasGoodTransitions) score += 0.08;
   
-  // Quick penalties
-  if (words < 800) score -= 0.15; // Too short for "long" content
-  if (words > 5000) score -= 0.05; // Potentially too verbose
-  if (checkForRepetition(firstPortion + lastPortion)) score -= 0.1;
+  // Penalties
+  if (words < 800) score -= 0.20; 
+  if (words > 5000) score -= 0.10; 
+  if (checkForRepetition(firstPortion + lastPortion)) score -= 0.15;
   
-  // Strategy bonus
-  score += strategyWeight * 0.08;
+  // Strategy bonus (reduced for balanced scoring)
+  score += strategyWeight * 0.05;
   
-  return Math.min(1.0, Math.max(0.15, score));
+  return Math.min(0.95, Math.max(0.15, score));
 }
 
 // Load cached optimization insights for fast optimization
