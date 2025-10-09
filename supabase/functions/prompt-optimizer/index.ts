@@ -211,17 +211,18 @@ serve(async (req) => {
         
         // If there's a template being used (passed via influence), integrate it into the optimization
         if (influence && influence.trim().length > 0 && influenceWeight > 0) {
-          const weightDescription = influenceWeight >= 75 ? "heavily" : influenceWeight >= 50 ? "moderately" : "lightly";
-          optimizationPrompt += `\n\nIMPORTANT - Template Guidance (${influenceWeight}% influence):\nThe user selected this template as guidance for style and structure:\n"${influence}"\n\nYou should ${weightDescription} incorporate this template's style, structure, and approach when optimizing the prompt. At ${influenceWeight}% influence, ${
-            influenceWeight >= 75 
-              ? "closely follow the template's patterns and structure while adapting to the user's specific needs"
-              : influenceWeight >= 50
-              ? "balance the template's approach with the user's original style"
-              : "take light inspiration from the template while primarily keeping the user's original approach"
-          }.`;
+          optimizationPrompt += `\n\nTemplate Reference (${influenceWeight}% influence weight):\nA reference template is available:\n"${influence}"\n\nIMPORTANT INSTRUCTION ON INFLUENCE LEVEL:\n- At ${influenceWeight}%, this template should have MINIMAL impact on your optimization.\n- Your PRIMARY focus (${100 - influenceWeight}%) should be on improving the user's original prompt using the ${strategyKey} strategy.\n- Only use the template for light inspiration on tone or structure if relevant.\n- DO NOT copy the template's content, phrasing, or structure unless the influence is above 70%.\n- The lower the percentage, the more you should focus on the original prompt's intent and style.`;
+          
+          if (influenceWeight < 30) {
+            optimizationPrompt += `\n- At ${influenceWeight}%, treat the template as a minor reference only. Focus almost entirely on the original prompt.`;
+          } else if (influenceWeight < 60) {
+            optimizationPrompt += `\n- At ${influenceWeight}%, balance both approaches, but still prioritize the original prompt's style.`;
+          } else {
+            optimizationPrompt += `\n- At ${influenceWeight}%, you should closely follow the template's patterns while adapting to the user's needs.`;
+          }
         } else if (influence && influence.trim().length > 0) {
-          // If influence exists but weight is 0, just mention it lightly
-          optimizationPrompt += `\n\nNote: Template available for reference but not actively applied (0% influence): "${influence.slice(0, 100)}..."`;
+          // If influence exists but weight is 0, ignore it completely
+          optimizationPrompt += `\n\nNote: A template was provided but is set to 0% influence - completely ignore it and focus only on the original prompt.`;
         }
         
         if (outputType && outputType !== 'text') {
