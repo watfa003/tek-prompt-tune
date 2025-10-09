@@ -29,6 +29,7 @@ interface PromptDataContextValue {
 const PromptDataContext = createContext<PromptDataContextValue | null>(null);
 
 export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [historyItems, setHistoryItems] = useState<PromptHistoryItem[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,29 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [pendingQueue, setPendingQueue] = useState<PromptHistoryItem[]>([]);
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
   const initRef = useRef(false);
+
+  // Reset all state when user changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const newUserId = session?.user?.id || null;
+      
+      // If user changed, clear all prompt data state
+      if (currentUserId && newUserId !== currentUserId) {
+        console.log('User changed, clearing prompt data');
+        setHistoryItems([]);
+        setAnalytics(null);
+        setFavoriteIds(new Set());
+        setPendingQueue([]);
+        setHasLocalChanges(false);
+        initRef.current = false;
+        setLoading(true);
+      }
+      
+      setCurrentUserId(newUserId);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentUserId]);
 
   // Local storage helpers
   const loadFromCache = useCallback((userId: string, key: string) => {

@@ -94,6 +94,28 @@ export function AppSidebar() {
   const isCollapsed = state === "collapsed";
   const handleLogout = async () => {
     try {
+      // Clear all localStorage data before signing out
+      const keysToRemove = [
+        'promptOptimizer_originalPrompt',
+        'promptOptimizer_taskDescription',
+        'promptOptimizer_result',
+        'promptOptimizer_speedResult',
+        'promptOptimizer_payload',
+        'promptOptimizer_isOptimizing',
+        'promptOptimizer_startTime',
+        'aiAgent_activeTab'
+      ];
+      
+      // Remove all promptOptimizer keys
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Remove all user-specific cache keys
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('prompt_cache_') || key.startsWith('promptOptimizer_result_')) {
+          localStorage.removeItem(key);
+        }
+      });
+
       const { error } = await supabase.auth.signOut();
       if (error) {
         toast({

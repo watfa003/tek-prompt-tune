@@ -33,6 +33,7 @@ interface TemplatesDataContextValue {
 const TemplatesDataContext = createContext<TemplatesDataContextValue | undefined>(undefined);
 
 export const TemplatesDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [featuredTemplates, setFeaturedTemplates] = useState<Template[]>([]);
   const [favoriteTemplates, setFavoriteTemplates] = useState<Template[]>([]);
@@ -40,6 +41,28 @@ export const TemplatesDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   const loadedOnceRef = useRef(false);
+
+  // Reset state when user changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const newUserId = session?.user?.id || null;
+      
+      // If user changed, reload templates data
+      if (currentUserId && newUserId !== currentUserId) {
+        console.log('User changed, reloading templates');
+        setTemplates([]);
+        setFeaturedTemplates([]);
+        setFavoriteTemplates([]);
+        setProfileMap({});
+        setLoading(true);
+        loadedOnceRef.current = false;
+      }
+      
+      setCurrentUserId(newUserId);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentUserId]);
 
   const loadData = async () => {
     try {

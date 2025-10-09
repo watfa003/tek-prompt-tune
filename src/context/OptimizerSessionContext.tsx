@@ -50,6 +50,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   const { toast } = useToast();
   const { addPromptToHistory } = usePromptData();
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(() => localStorage.getItem('promptOptimizer_isOptimizing') === 'true');
   const [optimizationStartTime, setOptimizationStartTime] = useState<number | null>(() => {
     const v = localStorage.getItem('promptOptimizer_startTime');
@@ -70,6 +71,29 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   const [error, setError] = useState<string | null>(null);
 
   const runningRef = useRef(false);
+
+  // Reset all state when user changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const newUserId = session?.user?.id || null;
+      
+      // If user changed, clear all optimizer state
+      if (currentUserId && newUserId !== currentUserId) {
+        console.log('User changed, clearing optimizer session');
+        setIsOptimizing(false);
+        setOptimizationStartTime(null);
+        setPayload(null);
+        setResult(null);
+        setSpeedResult(null);
+        setError(null);
+        runningRef.current = false;
+      }
+      
+      setCurrentUserId(newUserId);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentUserId]);
 
   // Persist session to localStorage
   useEffect(() => {
