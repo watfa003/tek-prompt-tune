@@ -9,6 +9,7 @@ export interface UserSettings {
   
   // Preferences
   defaultProvider: string;
+  defaultModel?: string;
   defaultOutputType: string;
   defaultVariants: number;
   defaultTemperature: number;
@@ -41,7 +42,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   email: '',
   
   // Preferences
-  defaultProvider: 'OpenAI GPT-4',
+  defaultProvider: 'openai',
+  defaultModel: 'gpt-4o-mini',
   defaultOutputType: 'Code',
   defaultVariants: 3,
   defaultTemperature: 0.7,
@@ -107,6 +109,7 @@ export const useSettings = () => {
           name: data.name || userDisplayName,
           email: data.email || userEmail,
           defaultProvider: data.default_provider || DEFAULT_SETTINGS.defaultProvider,
+          defaultModel: data.default_model || DEFAULT_SETTINGS.defaultModel,
           defaultOutputType: data.default_output_type || DEFAULT_SETTINGS.defaultOutputType,
           defaultVariants: data.default_variants || DEFAULT_SETTINGS.defaultVariants,
           defaultTemperature: data.default_temperature || DEFAULT_SETTINGS.defaultTemperature,
@@ -141,6 +144,7 @@ export const useSettings = () => {
             name: userDisplayName,
             email: userEmail,
             default_provider: DEFAULT_SETTINGS.defaultProvider,
+            default_model: DEFAULT_SETTINGS.defaultModel,
             default_output_type: DEFAULT_SETTINGS.defaultOutputType,
             default_variants: DEFAULT_SETTINGS.defaultVariants,
             default_temperature: DEFAULT_SETTINGS.defaultTemperature,
@@ -187,6 +191,7 @@ export const useSettings = () => {
         name: settings.name,
         email: settings.email,
         default_provider: settings.defaultProvider,
+        default_model: settings.defaultModel,
         default_output_type: settings.defaultOutputType,
         default_variants: settings.defaultVariants,
         default_temperature: settings.defaultTemperature,

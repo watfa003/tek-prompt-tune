@@ -139,12 +139,62 @@ export const UserSettings = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="OpenAI GPT-4">OpenAI GPT-4</SelectItem>
-                <SelectItem value="OpenAI GPT-3.5">OpenAI GPT-3.5</SelectItem>
-                <SelectItem value="Claude 3 Opus">Claude 3 Opus</SelectItem>
-                <SelectItem value="Claude 3 Sonnet">Claude 3 Sonnet</SelectItem>
-                <SelectItem value="Google Gemini Pro">Google Gemini Pro</SelectItem>
-                <SelectItem value="Groq Llama 3">Groq Llama 3</SelectItem>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="anthropic">Anthropic</SelectItem>
+                <SelectItem value="google">Google</SelectItem>
+                <SelectItem value="groq">Groq</SelectItem>
+                <SelectItem value="mistral">Mistral</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Default LLM Model</Label>
+            <Select 
+              value={settings.defaultModel || 'gpt-4o-mini'} 
+              onValueChange={(value) => setSettings({ ...settings, defaultModel: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {settings.defaultProvider === 'openai' && (
+                  <>
+                    <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
+                    <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 Mini</SelectItem>
+                    <SelectItem value="gpt-5-nano-2025-08-07">GPT-5 Nano</SelectItem>
+                    <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1</SelectItem>
+                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                  </>
+                )}
+                {settings.defaultProvider === 'anthropic' && (
+                  <>
+                    <SelectItem value="claude-opus-4-1-20250805">Claude Opus 4.1</SelectItem>
+                    <SelectItem value="claude-sonnet-4-20250514">Claude Sonnet 4</SelectItem>
+                    <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
+                  </>
+                )}
+                {settings.defaultProvider === 'google' && (
+                  <>
+                    <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                    <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                    <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</SelectItem>
+                    <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
+                    <SelectItem value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</SelectItem>
+                  </>
+                )}
+                {settings.defaultProvider === 'groq' && (
+                  <>
+                    <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
+                  </>
+                )}
+                {settings.defaultProvider === 'mistral' && (
+                  <>
+                    <SelectItem value="mistral-large">Mistral Large</SelectItem>
+                    <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
