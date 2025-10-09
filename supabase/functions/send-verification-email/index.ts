@@ -78,7 +78,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const emailResponse = await resend.emails.send({
-      from: "PrompTek <onboarding@resend.dev>",
+      from: "PrompTek <promptekai@gmail.com>",
       to: [email],
       subject: subject,
       html: htmlContent,
