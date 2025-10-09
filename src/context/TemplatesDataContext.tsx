@@ -123,7 +123,8 @@ export const TemplatesDataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (favorited) {
         const exists = prev.some(t => t.id === id);
         if (exists) return prev;
-        const source = templates.find(t => t.id === id) || featuredTemplates.find(t => t.id === id);
+        // Get the template from all available sources and use the most up-to-date one
+        const source = [...templates, ...featuredTemplates].find(t => t.id === id);
         return source ? [source, ...prev] : prev;
       }
       return prev.filter(t => t.id !== id);
