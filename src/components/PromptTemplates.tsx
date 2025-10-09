@@ -61,8 +61,8 @@ export const PromptTemplates = () => {
     navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(template)}&selectedType=template`);
   };
 
-  const handleFavoriteChange = (id: string, favorited: boolean) => {
-    updateFavoriteLocally(id, favorited);
+  const handleFavoriteChange = (id: string, favorited: boolean, updatedCount?: number) => {
+    updateFavoriteLocally(id, favorited, updatedCount);
   };
 
   const handleDelete = (id: string) => {

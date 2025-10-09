@@ -25,7 +25,7 @@ interface TemplatesDataContextValue {
   profileMap: ProfileMap;
   loading: boolean;
   refresh: () => Promise<void>;
-  updateFavoriteLocally: (id: string, favorited: boolean) => void;
+  updateFavoriteLocally: (id: string, favorited: boolean, updatedCount?: number) => void;
   removeTemplateLocally: (id: string) => void;
   setTemplateFavoritesCount: (id: string, count: number) => void;
   setTemplateUsesCount: (id: string, count: number) => void;
@@ -119,15 +119,26 @@ export const TemplatesDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const updateFavoriteLocally = (id: string, favorited: boolean) => {
+  const updateFavoriteLocally = (id: string, favorited: boolean, updatedCount?: number) => {
     setFavoriteTemplates((prev) => {
       if (favorited) {
         const exists = prev.some(t => t.id === id);
-        if (exists) return prev;
+        if (exists) {
+          // Update count if provided
+          if (typeof updatedCount === 'number') {
+            return prev.map(t => t.id === id ? { ...t, favorites_count: updatedCount } : t);
+          }
+          return prev;
+        }
         // Get the template from all available sources and use the most up-to-date one
         const source = [...templates, ...featuredTemplates].find(t => t.id === id);
-        return source ? [source, ...prev] : prev;
+        if (source) {
+          const withUpdatedCount = typeof updatedCount === 'number' ? { ...source, favorites_count: updatedCount } : source;
+          return [withUpdatedCount, ...prev];
+        }
+        return prev;
       }
+      // Remove when unfavorited
       return prev.filter(t => t.id !== id);
     });
   };

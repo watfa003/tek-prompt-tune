@@ -24,7 +24,7 @@ interface TemplateCardProps {
   };
   username: string;
   onUseTemplate?: (template: string) => void;
-  onFavoriteChange?: (id: string, favorited: boolean) => void;
+  onFavoriteChange?: (id: string, favorited: boolean, updatedCount?: number) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -127,9 +127,9 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
         setTemplateFavoritesCount(template.id, refreshed.favorites_count);
       }
 
-      // Notify parent on success
+      // Notify parent on success with the latest count
       const newStatus = !previousFavorited;
-      (typeof onFavoriteChange === 'function') && onFavoriteChange(template.id, newStatus);
+      (typeof onFavoriteChange === 'function') && onFavoriteChange(template.id, newStatus, refreshed?.favorites_count);
     } catch (error: any) {
       // Revert optimistic update on error
       setIsFavorited(previousFavorited);
