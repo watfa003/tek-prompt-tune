@@ -559,8 +559,8 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
     instruction += `\n\n=== INFLUENCE: DISABLED (0%) ===\nA template was provided but set to 0% - COMPLETELY IGNORE IT. Focus only on the original prompt.`;
   }
   
-  // CRITICAL: Include max_tokens instruction IN the optimized prompt itself
-  instruction += `\n\nIMPORTANT: The optimized prompt should include a note at the end specifying the recommended max_tokens setting: "${maxTokens} tokens". This ensures users know the optimal token limit when using this prompt.`;
+  // CRITICAL: Integrate max_tokens as a natural constraint WITHIN the prompt
+  instruction += `\n\nIMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
   
   instruction += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
   return instruction;

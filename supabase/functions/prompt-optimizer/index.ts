@@ -233,8 +233,8 @@ serve(async (req) => {
           optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
         }
         
-        // CRITICAL: Include max_tokens instruction IN the optimized prompt itself
-        optimizationPrompt += `\n- IMPORTANT: The optimized prompt should include a note at the end specifying the recommended max_tokens setting: "${maxTokens} tokens". This ensures users know the optimal token limit when using this prompt.`;
+        // CRITICAL: Integrate max_tokens as a natural constraint WITHIN the prompt
+        optimizationPrompt += `\n- IMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
 
         if (taskDescription) {
           optimizationPrompt += `\n\nContext: ${taskDescription}`;
