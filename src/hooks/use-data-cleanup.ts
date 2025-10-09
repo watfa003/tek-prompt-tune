@@ -4,7 +4,53 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useDataCleanup = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const { toast } = useToast();
+
+  const previewCleanup = async () => {
+    setIsPreviewLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('cleanup-old-data', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: { preview: true },
+      });
+
+      if (error) throw error;
+
+      const willDelete = data.willDelete;
+      const totalToDelete = 
+        willDelete.prompts + 
+        willDelete.optimizations + 
+        willDelete.speedOptimizations + 
+        willDelete.chatSessions + 
+        willDelete.chatMessages;
+
+      toast({
+        title: 'Cleanup Preview',
+        description: `${totalToDelete} records will be deleted (Prompts: ${willDelete.prompts}, History: ${willDelete.optimizations}, Speed: ${willDelete.speedOptimizations}, Chats: ${willDelete.chatSessions + willDelete.chatMessages})`,
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error previewing cleanup:', error);
+      toast({
+        title: 'Preview failed',
+        description: error.message || 'Failed to preview cleanup',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
 
   const cleanupOldData = async () => {
     setIsLoading(true);
@@ -19,6 +65,7 @@ export const useDataCleanup = () => {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
+        body: { preview: false },
       });
 
       if (error) throw error;
@@ -59,6 +106,8 @@ export const useDataCleanup = () => {
 
   return {
     cleanupOldData,
+    previewCleanup,
     isLoading,
+    isPreviewLoading,
   };
 };

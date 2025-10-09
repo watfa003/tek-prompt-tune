@@ -36,7 +36,7 @@ export const UserSettings = () => {
     exportSettings,
   } = useSettings();
 
-  const { cleanupOldData, isLoading: isCleaningUp } = useDataCleanup();
+  const { cleanupOldData, previewCleanup, isLoading: isCleaningUp, isPreviewLoading } = useDataCleanup();
 
   // Apply theme and compact mode settings
   useThemeSettings(settings, setSettings);
@@ -301,19 +301,29 @@ export const UserSettings = () => {
           
           <div className="flex items-center justify-between p-4 border border-border rounded-md bg-muted/20">
             <div>
-              <p className="font-medium">Clean Up Old Data Now</p>
+              <p className="font-medium">Clean Up Old Data</p>
               <p className="text-sm text-muted-foreground">
                 Delete data older than {settings.dataRetentionDays === -1 ? 'forever (nothing will be deleted)' : `${settings.dataRetentionDays} days`}
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={cleanupOldData}
-              disabled={isCleaningUp || settings.dataRetentionDays === -1}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {isCleaningUp ? 'Cleaning...' : 'Clean Up Now'}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={previewCleanup}
+                disabled={isPreviewLoading || isCleaningUp || settings.dataRetentionDays === -1}
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                {isPreviewLoading ? 'Checking...' : 'Preview'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={cleanupOldData}
+                disabled={isCleaningUp || isPreviewLoading || settings.dataRetentionDays === -1}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isCleaningUp ? 'Cleaning...' : 'Clean Up Now'}
+              </Button>
+            </div>
           </div>
           
           <Separator />
