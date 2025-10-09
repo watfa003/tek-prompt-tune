@@ -189,8 +189,8 @@ const AppPageContent = () => {
               </div>
             </header>
 
-            <main className="flex-1 p-6 overflow-auto flex justify-center">
-              <div className={`transition-opacity duration-200 w-full ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
+            <main className="flex-1 p-6 overflow-auto">
+              <div className={`transition-opacity duration-200 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
                 {renderContent()}
               </div>
             </main>
