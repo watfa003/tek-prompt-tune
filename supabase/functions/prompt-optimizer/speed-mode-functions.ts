@@ -536,7 +536,7 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
     instruction += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
   }
   if (taskDescription) {
-    instruction += `\n\nContext: ${taskDescription}`;
+    instruction += `\n\n=== OPTIMIZATION INSTRUCTIONS ===\nThese are meta-instructions on HOW to optimize (not part of the prompt itself):\n${taskDescription}`;
   }
   
   // UNIFORM influence instructions - exactly the same for ALL variants

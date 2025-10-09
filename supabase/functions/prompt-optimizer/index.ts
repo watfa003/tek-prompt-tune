@@ -239,7 +239,7 @@ serve(async (req) => {
         }
 
         if (taskDescription) {
-          optimizationPrompt += `\n\nContext: ${taskDescription}`;
+          optimizationPrompt += `\n\n=== OPTIMIZATION INSTRUCTIONS ===\nThese are meta-instructions on HOW to optimize (not part of the prompt itself):\n${taskDescription}`;
         }
 
         // Single API call for optimization using cheaper model
@@ -279,8 +279,8 @@ serve(async (req) => {
         
         try {
           console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
-          // Use maxTokens if set, otherwise use a reasonable default for testing
-          const testTokens = maxTokens ? Math.max(512, Math.min(maxTokens, 4096)) : 2048;
+          // Use 1024 tokens for testing when no limit is set (faster responses), otherwise respect user's limit
+          const testTokens = maxTokens ? Math.max(512, Math.min(maxTokens, 4096)) : 1024;
           const testResponse = await callAIProvider(
             aiProvider,
             modelName,
