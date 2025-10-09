@@ -512,31 +512,32 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
 // Build deep-mode style instruction for the LLM
 function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any, influence: string = '', influenceWeight: number = 0, maxTokens: number = 1024): string {
   let instruction = '';
+  
+  // CRITICAL: Add task description as meta-instructions FIRST
+  const metaInstructions = taskDescription ? `\n\n=== HOW TO OPTIMIZE (Meta-instructions) ===\nThe following are guidance on HOW you should optimize this prompt. These are NOT part of the prompt itself:\n${taskDescription}\n\n` : '';
+  
   switch (strategy) {
     case 'clarity':
-      instruction = `Make this prompt clearer and more specific:\n\nOriginal: ${originalPrompt}`;
+      instruction = `Make this prompt clearer and more specific:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
     case 'specificity':
-      instruction = `Add specific details and examples to this prompt:\n\nOriginal: ${originalPrompt}`;
+      instruction = `Add specific details and examples to this prompt:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       if (insights?.successful_strategies?.specificity?.patterns?.length > 0) {
         instruction += `\n\nSuccessful patterns for this strategy: ${insights.successful_strategies.specificity.patterns.slice(0, 3).join(', ')}`;
       }
       break;
     case 'structure':
-      instruction = `Improve the logical structure with step-by-step instructions and sections:\n\nOriginal: ${originalPrompt}`;
+      instruction = `Improve the logical structure with step-by-step instructions and sections:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
     case 'efficiency':
-      instruction = `Optimize this prompt for better AI performance:\n\nOriginal: ${originalPrompt}`;
+      instruction = `Optimize this prompt for better AI performance:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
     case 'constraints':
-      instruction = `Add constraints, acceptance criteria, and a precise output format:\n\nOriginal: ${originalPrompt}`;
+      instruction = `Add constraints, acceptance criteria, and a precise output format:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
   }
   if (outputType && outputType !== 'text') {
     instruction += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
-  }
-  if (taskDescription) {
-    instruction += `\n\n=== OPTIMIZATION INSTRUCTIONS ===\nThese are meta-instructions on HOW to optimize (not part of the prompt itself):\n${taskDescription}`;
   }
   
   // UNIFORM influence instructions - exactly the same for ALL variants

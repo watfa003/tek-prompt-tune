@@ -198,7 +198,12 @@ serve(async (req) => {
       
       try {
         // For optimization: enhance the prompt while preserving intent
-        let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal: ${originalPrompt}`;
+        let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
+        
+        // CRITICAL: Add task description as meta-instructions FIRST, before anything else
+        if (taskDescription) {
+          optimizationPrompt += `\n\n=== HOW TO OPTIMIZE (Meta-instructions) ===\nThe following are guidance on HOW you should optimize this prompt. These are NOT part of the prompt itself:\n${taskDescription}`;
+        }
         
         // Add cached insights if available
         const strategyInsights = cachedInsights.strategies[strategyKey];
@@ -236,10 +241,6 @@ serve(async (req) => {
         // CRITICAL: Only integrate max_tokens if it's set
         if (maxTokens) {
           optimizationPrompt += `\n- IMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
-        }
-
-        if (taskDescription) {
-          optimizationPrompt += `\n\n=== OPTIMIZATION INSTRUCTIONS ===\nThese are meta-instructions on HOW to optimize (not part of the prompt itself):\n${taskDescription}`;
         }
 
         // Single API call for optimization using cheaper model
