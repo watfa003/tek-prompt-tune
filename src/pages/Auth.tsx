@@ -54,43 +54,8 @@ const Auth = () => {
     setEmailError(null);
 
     try {
-      // Check if email already exists by attempting a sign-up
-      // Supabase will reject if email already exists
-      const { data: signupCheck, error: signupError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: 'temp-check-password-' + Math.random(), // Temporary password for check
-        options: {
-          data: {
-            username: 'temp-check'
-          }
-        }
-      });
+      // Server-side duplicate check via edge function; pre-signup removed to avoid unintended user creation
 
-      // If we get a user back but no session, email might already exist
-      if (signupError) {
-        // Check for specific error messages about existing user
-        if (signupError.message.includes('already') || 
-            signupError.message.includes('registered') ||
-            signupError.message.includes('exists')) {
-          toast({
-            title: "Email already used",
-            description: "This email is registered. Please sign in or use a different email.",
-            variant: "destructive",
-          });
-          setEmailError("This email is already registered.");
-          setVerificationStep('credentials');
-          setIsSignUp(true);
-          emailInputRef.current?.focus();
-          setLoading(false);
-          return;
-        }
-      }
-
-      // If a user was created during the check, we need to clean it up
-      // by signing out (Supabase auto-confirms in some cases)
-      if (signupCheck?.user) {
-        await supabase.auth.signOut();
-      }
 
       // Generate a 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -106,8 +71,12 @@ const Auth = () => {
       });
 
       if (error) {
-        const msg = (error as any)?.message?.toString?.() || '';
-        if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered') || msg.toLowerCase().includes('exists')) {
+        const errorContext = (error as any)?.context;
+        const contextMsg = errorContext?.error || errorContext?.message || '';
+        const rawMsg = (error as any)?.message?.toString?.() || '';
+        const msg = String(contextMsg || rawMsg).toLowerCase();
+
+        if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
           toast({
             title: "Email already used",
             description: "This email is registered. Please sign in or use a different email.",
