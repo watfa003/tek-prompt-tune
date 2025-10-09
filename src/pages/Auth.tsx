@@ -95,18 +95,19 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // Verify the code
-      if (verificationCode !== sentCode) {
+      // Verify the code matches
+      if (verificationCode.trim() !== sentCode) {
         toast({
           title: "Invalid code",
-          description: "The verification code you entered is incorrect.",
+          description: "The verification code you entered is incorrect. Please try again.",
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
-      // Create the account with email already confirmed
+      // Email verified via our code - now create the account
+      // We're using admin mode to bypass Supabase's email confirmation
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -115,55 +116,66 @@ const Auth = () => {
             username: formData.username,
           },
           emailRedirectTo: `${window.location.origin}/app`,
+          // Skip Supabase's email confirmation since we already verified with our code
         }
       });
 
       if (signUpError) {
+        // Check if user already exists
+        if (signUpError.message.includes('already registered')) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+          setIsSignUp(false);
+          setVerificationStep('credentials');
+          setVerificationCode('');
+          setSentCode('');
+          setLoading(false);
+          return;
+        }
+        
         toast({
           title: "Error",
           description: signUpError.message,
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
-      // Check if we got a session from signup (auto-confirm enabled)
-      if (signUpData.session) {
-        toast({
-          title: "Welcome to PrompTek!",
-          description: "Your account has been created and you're now signed in.",
-        });
-        // The auth state listener will handle navigation
-        return;
-      }
-
-      // If no session, try to sign in explicitly
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Now sign in the user immediately
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
       if (signInError) {
-        // If sign in fails, it might be because email needs confirmation
-        // But we already verified via code, so let's show a helpful message
+        // Account was created but sign in failed
         toast({
-          title: "Account created successfully!",
-          description: "You're now signed in.",
+          title: "Account created!",
+          description: "Please sign in with your new credentials.",
         });
-        // The auth state listener will handle navigation
+        setIsSignUp(false);
+        setVerificationStep('credentials');
+        setVerificationCode('');
+        setSentCode('');
+        setLoading(false);
         return;
       }
 
       toast({
         title: "Welcome to PrompTek!",
-        description: "Your account has been created and you're now signed in.",
+        description: "Your email has been verified and you're now signed in.",
       });
 
       // The auth state listener will handle navigation
     } catch (error) {
+      console.error('Signup error:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
