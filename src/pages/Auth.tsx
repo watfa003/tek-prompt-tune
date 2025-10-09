@@ -70,32 +70,35 @@ const Auth = () => {
         }
       });
 
-      if (error) {
-        const errorContext = (error as any)?.context;
-        const contextMsg = errorContext?.error || errorContext?.message || '';
-        const rawMsg = (error as any)?.message?.toString?.() || '';
-        const msg = String(contextMsg || rawMsg).toLowerCase();
+        if (error) {
+          const anyErr = error as any;
+          const status = anyErr?.status ?? anyErr?.context?.status ?? anyErr?.context?.response?.status;
+          const contextMsg = anyErr?.context?.error || anyErr?.context?.message || anyErr?.context?.body || '';
+          const rawMsg = anyErr?.message?.toString?.() || '';
+          const msg = String(contextMsg || rawMsg).toLowerCase();
 
-        if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
-          toast({
-            title: "Email already used",
-            description: "This email is registered. Please sign in or use a different email.",
-            variant: "destructive",
-          });
-          setEmailError("This email is already registered.");
-          setVerificationStep('credentials');
-          setIsSignUp(true);
-          emailInputRef.current?.focus();
-        } else {
+          if (status === 409 || msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
+            setEmailError("This email is already registered.");
+            setVerificationStep('credentials');
+            setIsSignUp(true);
+            emailInputRef.current?.focus();
+            toast({
+              title: "Email already used",
+              description: "This email is registered. Please sign in or use a different email.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+
           toast({
             title: "Error",
             description: "Failed to send verification code. Please try again.",
             variant: "destructive",
           });
+          setLoading(false);
+          return;
         }
-        setLoading(false);
-        return;
-      }
 
       toast({
         title: "Verification code sent!",
