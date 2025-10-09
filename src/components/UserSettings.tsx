@@ -24,6 +24,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { useThemeSettings } from "@/hooks/use-theme-settings";
 import { useTheme } from "next-themes";
 import { ProfileSettings } from "@/components/ProfileSettings";
+import { useDataCleanup } from "@/hooks/use-data-cleanup";
 
 export const UserSettings = () => {
   const {
@@ -34,6 +35,8 @@ export const UserSettings = () => {
     resetSettings,
     exportSettings,
   } = useSettings();
+
+  const { cleanupOldData, isLoading: isCleaningUp } = useDataCleanup();
 
   // Apply theme and compact mode settings
   useThemeSettings(settings, setSettings);
@@ -290,7 +293,27 @@ export const UserSettings = () => {
                   <SelectItem value="-1">Forever</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Automatically delete data older than this period
+              </p>
             </div>
+          </div>
+          
+          <div className="flex items-center justify-between p-4 border border-border rounded-md bg-muted/20">
+            <div>
+              <p className="font-medium">Clean Up Old Data Now</p>
+              <p className="text-sm text-muted-foreground">
+                Delete data older than {settings.dataRetentionDays === -1 ? 'forever (nothing will be deleted)' : `${settings.dataRetentionDays} days`}
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={cleanupOldData}
+              disabled={isCleaningUp || settings.dataRetentionDays === -1}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {isCleaningUp ? 'Cleaning...' : 'Clean Up Now'}
+            </Button>
           </div>
           
           <Separator />
