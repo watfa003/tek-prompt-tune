@@ -247,15 +247,39 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   useEffect(() => {
     if (isOptimizing && payload && !result && !speedResult && !runningRef.current) {
       console.log('Resuming background optimization...');
-      // Check if optimization actually completed while away
-      setTimeout(() => {
-        if (runningRef.current) {
-          console.log('Still running, will continue...');
-        } else {
-          console.log('Attempting to resume optimization');
-          startOptimization(payload, { resume: true });
+      // First check if results already exist from background completion
+      const storedSpeedResult = localStorage.getItem(`promptOptimizer_result_speed`);
+      const storedDeepResult = localStorage.getItem(`promptOptimizer_result_deep`);
+      
+      if ((payload.mode === 'speed' && storedSpeedResult) || (payload.mode === 'deep' && storedDeepResult)) {
+        console.log('Found completed results, loading them now');
+        try {
+          const parsedResult = JSON.parse(payload.mode === 'speed' ? storedSpeedResult! : storedDeepResult!);
+          if (payload.mode === 'speed') {
+            setSpeedResult(parsedResult);
+          } else {
+            setResult(parsedResult);
+          }
+          appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+          localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
+          setIsOptimizing(false);
+          runningRef.current = false;
+        } catch (e) {
+          console.error('Error parsing stored result:', e);
+          // Fall through to resume logic
+          setTimeout(() => {
+            startOptimization(payload, { resume: true });
+          }, 100);
         }
-      }, 100);
+      } else {
+        // No stored results, actually resume the call
+        setTimeout(() => {
+          if (!runningRef.current) {
+            console.log('Attempting to resume optimization');
+            startOptimization(payload, { resume: true });
+          }
+        }, 100);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
