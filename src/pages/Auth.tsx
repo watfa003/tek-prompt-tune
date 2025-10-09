@@ -90,7 +90,7 @@ const Auth = () => {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setSentCode(code);
 
-      // Send the code via email
+      // Send the code via email (server will block if email already exists)
       const { error } = await supabase.functions.invoke('send-verification-email', {
         body: {
           email: formData.email,
@@ -100,11 +100,22 @@ const Auth = () => {
       });
 
       if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to send verification code. Please try again.",
-          variant: "destructive",
-        });
+        const msg = (error as any)?.message?.toString?.() || '';
+        if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered') || msg.toLowerCase().includes('exists')) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+          setIsSignUp(false);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to send verification code. Please try again.",
+            variant: "destructive",
+          });
+        }
+        setLoading(false);
         return;
       }
 
