@@ -23,7 +23,7 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
 
 export async function handleSpeedMode(
   supabase: any,
-  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7 }: any
+  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7, influence = '', influenceWeight = 0 }: any
 ) {
   console.log('🚀 Running Speed Mode optimization...');
   console.log(`📋 Config: provider=${aiProvider}, model=${modelName}, variants=${requestedVariants}, maxTokens=${maxTokens}`);
@@ -58,7 +58,9 @@ export async function handleSpeedMode(
       aiProvider,
       modelName,
       maxTokens,
-      temperature
+      temperature,
+      influence,
+      influenceWeight
     );
     
     const variants = await Promise.race([speedPromise, timeoutPromise]) as any[];
@@ -177,7 +179,7 @@ export async function handleSpeedMode(
 }
 
 // Generate multiple variants using speed heuristics (same strategies as deep mode)
-async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number): Promise<any[]> {
+async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number, influence: string = '', influenceWeight: number = 0): Promise<any[]> {
   const variants = [];
   
   // Use the same strategy selection logic as deep mode - ensure we get exactly the number requested
@@ -206,7 +208,7 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   // Generate variants using selected strategies (run in parallel for speed)
   const optimizationModel = OPTIMIZATION_MODELS[aiProvider] || modelName;
   const tasks = selectedStrategies.slice(0, numVariants).map((strategy, i) => (async () => {
-    const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights);
+    const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights, influence, influenceWeight);
 
     let optimizedPrompt = '';
     try {
@@ -508,7 +510,7 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
 }
 
 // Build deep-mode style instruction for the LLM
-function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any): string {
+function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any, influence: string = '', influenceWeight: number = 0): string {
   let instruction = '';
   switch (strategy) {
     case 'clarity':
@@ -536,6 +538,22 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
   if (taskDescription) {
     instruction += `\n\nContext: ${taskDescription}`;
   }
+  
+  // Add influence template guidance (same logic as deep mode)
+  if (influence && influence.trim().length > 0 && influenceWeight > 0) {
+    const weightDescription = influenceWeight >= 75 ? "heavily" : influenceWeight >= 50 ? "moderately" : "lightly";
+    instruction += `\n\nIMPORTANT - Template Guidance (${influenceWeight}% influence):\nThe user selected this template as guidance for style and structure:\n"${influence}"\n\nYou should ${weightDescription} incorporate this template's style, structure, and approach when optimizing the prompt. At ${influenceWeight}% influence, ${
+      influenceWeight >= 75 
+        ? "closely follow the template's patterns and structure while adapting to the user's specific needs"
+        : influenceWeight >= 50
+        ? "balance the template's approach with the user's original style"
+        : "take light inspiration from the template while primarily keeping the user's original approach"
+    }.`;
+  } else if (influence && influence.trim().length > 0) {
+    // If influence exists but weight is 0, just mention it lightly
+    instruction += `\n\nNote: Template available for reference but not actively applied (0% influence): "${influence.slice(0, 100)}..."`;
+  }
+  
   instruction += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
   return instruction;
 }

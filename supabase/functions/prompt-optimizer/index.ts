@@ -159,7 +159,9 @@ serve(async (req) => {
         aiProvider, 
         modelName,
         maxTokens,
-        temperature
+        temperature,
+        influence,
+        influenceWeight
       });
     }
 
