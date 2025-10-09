@@ -579,9 +579,9 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
       case 'mistral':
         return await callOpenAICompatible(provider, model, prompt, maxTokens, temperature);
       case 'anthropic':
-        return await callAnthropic(model, prompt, maxTokens);
+        return await callAnthropic(model, prompt, maxTokens, temperature);
       case 'google':
-        return await callGoogle(model, prompt, maxTokens);
+        return await callGoogle(model, prompt, maxTokens, temperature);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -595,14 +595,18 @@ async function callOpenAICompatible(provider: string, model: string, prompt: str
   const cfg = AI_PROVIDERS[provider as keyof typeof AI_PROVIDERS];
   if (!cfg?.apiKey) throw new Error(`${provider} API key missing`);
   
+  console.log(`🟢 ${provider} API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
+  
   const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
   const payload: any = { model, messages: [{ role: 'user', content: prompt }] };
   
   if (isNewerModel) {
     payload.max_completion_tokens = maxTokens;
+    console.log(`⚠️ Model ${model} doesn't support temperature, using default (1.0)`);
   } else {
     payload.max_tokens = maxTokens;
-    payload.temperature = Math.min(temperature, 1.0);
+    payload.temperature = Math.max(0.0, Math.min(temperature, 2.0));
+    console.log(`✅ Using temperature: ${payload.temperature}`);
   }
   
   // Add 15-second timeout for API calls (increased for reliability)
@@ -632,9 +636,11 @@ async function callOpenAICompatible(provider: string, model: string, prompt: str
   }
 }
 
-async function callAnthropic(model: string, prompt: string, maxTokens: number): Promise<string | null> {
+async function callAnthropic(model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
   const cfg = AI_PROVIDERS.anthropic;
   if (!cfg.apiKey) throw new Error('Anthropic API key missing');
+  
+  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
   
   // Add 15-second timeout for API calls (increased for reliability)
   const controller = new AbortController();
@@ -650,7 +656,8 @@ async function callAnthropic(model: string, prompt: string, maxTokens: number): 
       }, 
       body: JSON.stringify({ 
         model, 
-        max_tokens: maxTokens, 
+        max_tokens: maxTokens,
+        temperature: Math.max(0.0, Math.min(temperature, 1.0)),
         messages: [{ role: 'user', content: prompt }] 
       }),
       signal: controller.signal
@@ -673,9 +680,11 @@ async function callAnthropic(model: string, prompt: string, maxTokens: number): 
   }
 }
 
-async function callGoogle(model: string, prompt: string, maxTokens: number): Promise<string | null> {
+async function callGoogle(model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
   const cfg = AI_PROVIDERS.google;
   if (!cfg.apiKey) throw new Error('Google API key missing');
+  
+  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
   
   // Add 15-second timeout for API calls (increased for reliability)
   const controller = new AbortController();
@@ -683,13 +692,15 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
   
   try {
     const url = `${cfg.baseUrl}/${model}:generateContent?key=${cfg.apiKey}`;
-    console.log(`🔵 Google API call: ${model}`);
     const res = await fetch(url, { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ 
         contents: [{ parts: [{ text: prompt }] }], 
-        generationConfig: { maxOutputTokens: maxTokens } 
+        generationConfig: { 
+          maxOutputTokens: maxTokens,
+          temperature: Math.max(0.0, Math.min(temperature, 2.0))
+        } 
       }),
       signal: controller.signal
     });

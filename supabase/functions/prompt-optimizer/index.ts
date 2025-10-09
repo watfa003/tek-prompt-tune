@@ -525,21 +525,26 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
 }
 
 async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
-  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}`);
+  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
   
     const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
     const payload: any = {
       model: model,
       messages: [{ role: 'user', content: prompt }],
     };
+    
     if (isNewerModel) {
-      payload.max_completion_tokens = maxTokens; // Newer models use max_completion_tokens and ignore temperature
+      payload.max_completion_tokens = maxTokens;
+      // Newer models don't support temperature parameter - defaults to 1.0
+      console.log(`⚠️ Model ${model} doesn't support temperature, using default (1.0)`);
     } else {
-      payload.max_tokens = maxTokens; // Legacy models use max_tokens
-      payload.temperature = Math.min(temperature, 1.0);
+      payload.max_tokens = maxTokens;
+      // Ensure temperature is within valid range (0.0 to 2.0)
+      payload.temperature = Math.max(0.0, Math.min(temperature, 2.0));
+      console.log(`✅ Using temperature: ${payload.temperature}`);
     }
 
-    console.log('📦 Payload:', { model, isNewerModel, max: isNewerModel ? payload.max_completion_tokens : payload.max_tokens });
+    console.log('📦 Payload:', { model, isNewerModel, max: isNewerModel ? payload.max_completion_tokens : payload.max_tokens, temp: payload.temperature });
 
     const response = await fetch(providerConfig.baseUrl, {
       method: 'POST',
@@ -563,8 +568,8 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
   return data.choices[0].message.content;
 }
 
-async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
-  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}`);
+async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
+  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
   
   const response = await fetch(providerConfig.baseUrl, {
     method: 'POST',
@@ -576,6 +581,7 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
     body: JSON.stringify({
       model: model,
       max_tokens: maxTokens,
+      temperature: Math.max(0.0, Math.min(temperature, 1.0)),
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -591,8 +597,8 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
   return data.content[0].text;
 }
 
-async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
-  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}`);
+async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
+  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}, temperature: ${temperature}`);
   
   const response = await fetch(`${providerConfig.baseUrl}/${model}:generateContent?key=${providerConfig.apiKey}`, {
     method: 'POST',
@@ -605,7 +611,7 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
       }],
       generationConfig: {
         maxOutputTokens: maxTokens,
-        temperature: 0.7,
+        temperature: Math.max(0.0, Math.min(temperature, 2.0)),
       }
     }),
   });
