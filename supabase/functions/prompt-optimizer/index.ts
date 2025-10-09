@@ -198,7 +198,8 @@ serve(async (req) => {
       
       try {
         // For optimization: enhance the prompt while preserving intent
-        let optimizationPrompt = `${strategy.systemPrompt}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
+        // CRITICAL: Explicitly state the strategy being used
+        let optimizationPrompt = `You are optimizing a prompt using the ${strategy.name.toUpperCase()} strategy.\n\n${strategy.systemPrompt}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
         
         // CRITICAL: Add task description as meta-instructions FIRST, before anything else
         if (taskDescription) {
@@ -212,7 +213,7 @@ serve(async (req) => {
         }
         
         // Critical rules: keep user's intent and only improve the prompt
-        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategy.name.toUpperCase()} strategy throughout your optimization.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         
         // UNIFORM influence instructions - exactly the same for ALL variants
         if (influence && influence.trim().length > 0 && influenceWeight > 0) {

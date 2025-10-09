@@ -516,24 +516,25 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
   // CRITICAL: Add task description as meta-instructions FIRST
   const metaInstructions = taskDescription ? `\n\n=== HOW TO OPTIMIZE (Meta-instructions) ===\nThe following are guidance on HOW you should optimize this prompt. These are NOT part of the prompt itself:\n${taskDescription}\n\n` : '';
   
+  // CRITICAL: Explicitly state which strategy to use
   switch (strategy) {
     case 'clarity':
-      instruction = `Make this prompt clearer and more specific:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
+      instruction = `You are optimizing a prompt using the CLARITY ENHANCEMENT strategy. Make this prompt clearer and more specific:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
     case 'specificity':
-      instruction = `Add specific details and examples to this prompt:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
+      instruction = `You are optimizing a prompt using the SPECIFICITY IMPROVEMENT strategy. Add specific details and examples to this prompt:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       if (insights?.successful_strategies?.specificity?.patterns?.length > 0) {
         instruction += `\n\nSuccessful patterns for this strategy: ${insights.successful_strategies.specificity.patterns.slice(0, 3).join(', ')}`;
       }
       break;
     case 'structure':
-      instruction = `Improve the logical structure with step-by-step instructions and sections:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
+      instruction = `You are optimizing a prompt using the STRUCTURE AND STEPS strategy. Improve the logical structure with step-by-step instructions and sections:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
     case 'efficiency':
-      instruction = `Optimize this prompt for better AI performance:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
+      instruction = `You are optimizing a prompt using the EFFICIENCY OPTIMIZATION strategy. Optimize this prompt for better AI performance:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
     case 'constraints':
-      instruction = `Add constraints, acceptance criteria, and a precise output format:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
+      instruction = `You are optimizing a prompt using the CONSTRAINTS AND FORMAT strategy. Add constraints, acceptance criteria, and a precise output format:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
   }
   if (outputType && outputType !== 'text') {
@@ -565,7 +566,7 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
     instruction += `\n\nIMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
   }
   
-  instruction += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+  instruction += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Apply the ${strategy.toUpperCase()} strategy throughout your optimization.\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
   return instruction;
 }
 
