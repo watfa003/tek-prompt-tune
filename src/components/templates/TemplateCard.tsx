@@ -43,6 +43,11 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
     getCurrentUser();
   }, [template.id]);
 
+  // Sync local favCount with prop changes
+  useEffect(() => {
+    setFavCount(template.favorites_count);
+  }, [template.favorites_count]);
+
   const getCurrentUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     setCurrentUserId(session?.user?.id || null);
