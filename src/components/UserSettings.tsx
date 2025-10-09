@@ -379,17 +379,6 @@ export const UserSettings = () => {
           
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Compact Mode</p>
-              <p className="text-sm text-muted-foreground">Use a more compact layout to fit more content</p>
-            </div>
-            <Switch
-              checked={settings.compactMode}
-              onCheckedChange={(checked) => setSettings({ ...settings, compactMode: checked })}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
               <p className="font-medium">Show Scores</p>
               <p className="text-sm text-muted-foreground">Display prompt scores in lists and cards</p>
             </div>
