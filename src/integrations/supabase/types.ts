@@ -555,6 +555,7 @@ export type Database = {
           created_at: string
           data_retention_days: number | null
           default_max_tokens: number | null
+          default_model: string | null
           default_output_type: string | null
           default_provider: string | null
           default_temperature: number | null
@@ -580,6 +581,7 @@ export type Database = {
           created_at?: string
           data_retention_days?: number | null
           default_max_tokens?: number | null
+          default_model?: string | null
           default_output_type?: string | null
           default_provider?: string | null
           default_temperature?: number | null
@@ -605,6 +607,7 @@ export type Database = {
           created_at?: string
           data_retention_days?: number | null
           default_max_tokens?: number | null
+          default_model?: string | null
           default_output_type?: string | null
           default_provider?: string | null
           default_temperature?: number | null
