@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const supabase = createClient(supabaseUrl!, serviceKey!);
+const supabase = createClient(supabaseUrl!, serviceKey!, { auth: { persistSession: false, autoRefreshToken: false } });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,8 +29,22 @@ const handler = async (req: Request): Promise<Response> => {
     // For signups, block if email already exists
     if (type === 'signup') {
       try {
-        const { data } = await supabase.auth.admin.getUserByEmail(email);
-        if (data?.user) {
+        const target = email.toLowerCase();
+        const perPage = 200;
+        let page = 1;
+        let found = false;
+        
+        while (page <= 10 && !found) { // safety cap at 2000 users scan
+          const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+          if (error) throw error;
+          const users = data?.users || [];
+          found = users.some((u: any) => (u.email || '').toLowerCase() === target);
+          if (found) break;
+          if (users.length < perPage) break; // no more pages
+          page += 1;
+        }
+        
+        if (found) {
           return new Response(
             JSON.stringify({ error: 'Email already registered' }),
             { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -38,7 +52,11 @@ const handler = async (req: Request): Promise<Response> => {
         }
       } catch (adminErr) {
         console.error('Admin email check failed', adminErr);
-        // Do not block signups on admin check failure
+        // Fail closed: if we cannot verify, block to prevent duplicate accounts
+        return new Response(
+          JSON.stringify({ error: 'Unable to process signup at the moment' }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
       }
     }
 
