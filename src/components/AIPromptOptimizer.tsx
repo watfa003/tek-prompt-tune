@@ -572,14 +572,17 @@ export const AIPromptOptimizer: React.FC = () => {
     }
   }, [result, speedResult, isOptimizing]);
 
-  // Check for influence selection from URL params
+  // Check for influence selection from URL params - ONLY on initial mount or when params actually change
+  const initialParamsRef = React.useRef(true);
   React.useEffect(() => {
     const selectedTemplate = searchParams.get('selectedTemplate');
     const selectedType = searchParams.get('selectedType');
     
     console.log('AIPromptOptimizer URL params:', { selectedTemplate, selectedType });
     
-    if (selectedTemplate && selectedType) {
+    // Only process if we have params and this is the first time seeing them
+    if (selectedTemplate && selectedType && initialParamsRef.current) {
+      initialParamsRef.current = false;
       console.log('Adding influence to existing prompt:', selectedTemplate, selectedType);
       // Only set influence, preserve existing prompt
       setSelectedInfluence(selectedTemplate);
@@ -589,8 +592,10 @@ export const AIPromptOptimizer: React.FC = () => {
         title: "Influence Added",
         description: "Your selected prompt will now influence the optimization while preserving your current work.",
       });
-      // Clear the URL params
-      navigate('/app/ai-agent', { replace: true });
+      // Clear the URL params after a short delay to ensure state is set
+      setTimeout(() => {
+        navigate('/app/ai-agent', { replace: true });
+      }, 100);
     }
   }, [searchParams, navigate, toast]);
 
