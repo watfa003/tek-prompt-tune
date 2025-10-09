@@ -232,6 +232,9 @@ serve(async (req) => {
         if (outputType && outputType !== 'text') {
           optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
         }
+        
+        // CRITICAL: Include max_tokens instruction IN the optimized prompt itself
+        optimizationPrompt += `\n- IMPORTANT: The optimized prompt should include a note at the end specifying the recommended max_tokens setting: "${maxTokens} tokens". This ensures users know the optimal token limit when using this prompt.`;
 
         if (taskDescription) {
           optimizationPrompt += `\n\nContext: ${taskDescription}`;

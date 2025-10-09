@@ -208,7 +208,7 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   // Generate variants using selected strategies (run in parallel for speed)
   const optimizationModel = OPTIMIZATION_MODELS[aiProvider] || modelName;
   const tasks = selectedStrategies.slice(0, numVariants).map((strategy, i) => (async () => {
-    const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights, influence, influenceWeight);
+    const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights, influence, influenceWeight, maxTokens);
 
     let optimizedPrompt = '';
     try {
@@ -510,7 +510,7 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
 }
 
 // Build deep-mode style instruction for the LLM
-function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any, influence: string = '', influenceWeight: number = 0): string {
+function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any, influence: string = '', influenceWeight: number = 0, maxTokens: number = 1024): string {
   let instruction = '';
   switch (strategy) {
     case 'clarity':
@@ -558,6 +558,9 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
   } else if (influence && influence.trim().length > 0) {
     instruction += `\n\n=== INFLUENCE: DISABLED (0%) ===\nA template was provided but set to 0% - COMPLETELY IGNORE IT. Focus only on the original prompt.`;
   }
+  
+  // CRITICAL: Include max_tokens instruction IN the optimized prompt itself
+  instruction += `\n\nIMPORTANT: The optimized prompt should include a note at the end specifying the recommended max_tokens setting: "${maxTokens} tokens". This ensures users know the optimal token limit when using this prompt.`;
   
   instruction += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
   return instruction;
