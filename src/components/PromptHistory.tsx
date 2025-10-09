@@ -158,7 +158,6 @@ export const PromptHistory = () => {
 
   const renderHistoryItem = (item: PromptHistoryItem, index: number) => {
     const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
-    const isTopPerformer = item.isBestVariant === true;
     
     // Determine if this is the best variant in its session when showing all variants
     let isBestInSession = false;
@@ -194,12 +193,6 @@ export const PromptHistory = () => {
                   <Badge variant="outline" className="text-success border-success bg-success/10">
                     <Trophy className="h-3 w-3 mr-1" />
                     Best Variant
-                  </Badge>
-                )}
-                {isTopPerformer && (
-                  <Badge variant="outline" className="text-primary border-primary bg-primary/10">
-                    <Trophy className="h-3 w-3 mr-1" />
-                    Top Performer
                   </Badge>
                 )}
                 {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
