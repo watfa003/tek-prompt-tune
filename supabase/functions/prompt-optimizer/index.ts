@@ -209,20 +209,24 @@ serve(async (req) => {
         // Critical rules: keep user's intent and only improve the prompt
         optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         
-        // If there's a template being used (passed via influence), integrate it into the optimization
+        // UNIFORM influence instructions - exactly the same for ALL variants
         if (influence && influence.trim().length > 0 && influenceWeight > 0) {
-          optimizationPrompt += `\n\nTemplate Reference (${influenceWeight}% influence weight):\nA reference template is available:\n"${influence}"\n\nIMPORTANT INSTRUCTION ON INFLUENCE LEVEL:\n- At ${influenceWeight}%, this template should have MINIMAL impact on your optimization.\n- Your PRIMARY focus (${100 - influenceWeight}%) should be on improving the user's original prompt using the ${strategyKey} strategy.\n- Only use the template for light inspiration on tone or structure if relevant.\n- DO NOT copy the template's content, phrasing, or structure unless the influence is above 70%.\n- The lower the percentage, the more you should focus on the original prompt's intent and style.`;
+          const influenceStrength = 
+            influenceWeight < 30 ? 'MINIMAL' :
+            influenceWeight < 60 ? 'MODERATE' :
+            'STRONG';
+          
+          optimizationPrompt += `\n\n=== INFLUENCE TEMPLATE (${influenceWeight}% weight) ===\nReference template:\n"${influence}"\n\n🎯 CRITICAL INFLUENCE RULES - APPLY UNIFORMLY:\n`;
           
           if (influenceWeight < 30) {
-            optimizationPrompt += `\n- At ${influenceWeight}%, treat the template as a minor reference only. Focus almost entirely on the original prompt.`;
+            optimizationPrompt += `- ${influenceWeight}% = ${influenceStrength} influence\n- Use template for LIGHT INSPIRATION ONLY (tone/style hints)\n- PRIMARY FOCUS: ${100 - influenceWeight}% on original prompt\n- DO NOT copy template structure, phrasing, or patterns\n- Keep original prompt's core approach and voice`;
           } else if (influenceWeight < 60) {
-            optimizationPrompt += `\n- At ${influenceWeight}%, balance both approaches, but still prioritize the original prompt's style.`;
+            optimizationPrompt += `- ${influenceWeight}% = ${influenceStrength} influence\n- Balance template guidance with original style\n- Blend template patterns with user's approach (${influenceWeight}% template / ${100 - influenceWeight}% original)\n- Adapt helpful template elements while preserving original intent`;
           } else {
-            optimizationPrompt += `\n- At ${influenceWeight}%, you should closely follow the template's patterns while adapting to the user's needs.`;
+            optimizationPrompt += `- ${influenceWeight}% = ${influenceStrength} influence\n- Closely follow template's patterns and structure\n- Adapt template approach (${influenceWeight}%) to user's specific needs (${100 - influenceWeight}%)\n- Template is primary guide, original prompt provides the topic`;
           }
         } else if (influence && influence.trim().length > 0) {
-          // If influence exists but weight is 0, ignore it completely
-          optimizationPrompt += `\n\nNote: A template was provided but is set to 0% influence - completely ignore it and focus only on the original prompt.`;
+          optimizationPrompt += `\n\n=== INFLUENCE: DISABLED (0%) ===\nA template was provided but set to 0% - COMPLETELY IGNORE IT. Focus only on the original prompt.`;
         }
         
         if (outputType && outputType !== 'text') {
