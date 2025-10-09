@@ -29,7 +29,7 @@ interface TemplateCardProps {
 }
 
 export function TemplateCard({ template, username, onUseTemplate, onFavoriteChange, onDelete }: TemplateCardProps) {
-  const { setTemplateFavoritesCount } = useTemplatesData();
+  const { setTemplateFavoritesCount, setTemplateUsesCount } = useTemplatesData();
   const [isFavorited, setIsFavorited] = useState(false);
   const [favCount, setFavCount] = useState(template.favorites_count);
   const [useCount, setUseCount] = useState(template.uses_count);
@@ -144,7 +144,9 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
   const handleUse = async () => {
     // Optimistic update
     const previousCount = useCount;
-    setUseCount(prev => prev + 1);
+    const newCount = previousCount + 1;
+    setUseCount(newCount);
+    setTemplateUsesCount(template.id, newCount);
     
     try {
       // Call the increment in the background
@@ -164,6 +166,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
       console.error('Error incrementing template uses:', error);
       // Revert optimistic update on error
       setUseCount(previousCount);
+      setTemplateUsesCount(template.id, previousCount);
     }
   };
 

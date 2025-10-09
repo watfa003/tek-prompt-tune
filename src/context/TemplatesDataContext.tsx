@@ -28,6 +28,7 @@ interface TemplatesDataContextValue {
   updateFavoriteLocally: (id: string, favorited: boolean) => void;
   removeTemplateLocally: (id: string) => void;
   setTemplateFavoritesCount: (id: string, count: number) => void;
+  setTemplateUsesCount: (id: string, count: number) => void;
 }
 
 const TemplatesDataContext = createContext<TemplatesDataContextValue | undefined>(undefined);
@@ -143,6 +144,12 @@ const setTemplateFavoritesCount = (id: string, count: number) => {
   setFavoriteTemplates(prev => prev.map(t => t.id === id ? { ...t, favorites_count: count } : t));
 };
 
+const setTemplateUsesCount = (id: string, count: number) => {
+  setTemplates(prev => prev.map(t => t.id === id ? { ...t, uses_count: count } : t));
+  setFeaturedTemplates(prev => prev.map(t => t.id === id ? { ...t, uses_count: count } : t));
+  setFavoriteTemplates(prev => prev.map(t => t.id === id ? { ...t, uses_count: count } : t));
+};
+
 const value = useMemo(() => ({
   templates,
   featuredTemplates,
@@ -153,6 +160,7 @@ const value = useMemo(() => ({
   updateFavoriteLocally,
   removeTemplateLocally,
   setTemplateFavoritesCount,
+  setTemplateUsesCount,
 }), [templates, featuredTemplates, favoriteTemplates, profileMap, loading]);
 
   return (
