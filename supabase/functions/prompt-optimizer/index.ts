@@ -204,8 +204,8 @@ serve(async (req) => {
           optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyInsights.patterns.slice(0, 3).join(', ')}`;
         }
         
-         // Critical rules: keep user's intent and only improve the prompt
-         optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+        // Critical rules: keep user's intent and only improve the prompt
+        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
         
         // If there's a template being used (passed via influence), integrate it into the optimization
         if (influence && influence.trim().length > 0 && influenceWeight > 0) {
@@ -234,13 +234,27 @@ serve(async (req) => {
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
         // Ensure minimum 256 tokens for optimization, but use at least 512 for testing
         const optimizationTokens = Math.max(256, Math.min(maxTokens, 4096));
-        const optimizedPrompt = await callAIProvider(
+        const optimizedPromptRaw = await callAIProvider(
           aiProvider, 
           optimizationModel, 
           optimizationPrompt, 
           optimizationTokens,
           temperature
         );
+        
+        // Sanitize to ensure we only keep the improved prompt text (never an AI answer)
+        let optimizedPrompt = (optimizedPromptRaw ?? '').toString();
+        const tagMatch = optimizedPrompt.match(/<optimized_prompt>([\s\S]*?)<\/optimized_prompt>/i);
+        if (tagMatch) {
+          optimizedPrompt = tagMatch[1].trim();
+        } else {
+          const fenceMatch = optimizedPrompt.match(/```(?:\w+)?\s*([\s\S]*?)\s*```/);
+          if (fenceMatch) optimizedPrompt = fenceMatch[1].trim();
+          optimizedPrompt = optimizedPrompt
+            .replace(/^\s*Optimized Prompt:\s*/i, '')
+            .replace(/^\s*(Here is|Here’s|Sure,|Certainly,|I can|As an AI)\b[:,]?\s*/i, '')
+            .trim();
+        }
         
         if (!optimizedPrompt) {
           console.error('Failed to get optimization response for strategy:', strategyKey);
