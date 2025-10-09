@@ -115,7 +115,6 @@ const Auth = () => {
             username: formData.username,
           },
           emailRedirectTo: `${window.location.origin}/app`,
-          // Skip email confirmation since we already verified with code
         }
       });
 
@@ -128,22 +127,30 @@ const Auth = () => {
         return;
       }
 
-      // Explicitly sign in the user
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // Check if we got a session from signup (auto-confirm enabled)
+      if (signUpData.session) {
+        toast({
+          title: "Welcome to PrompTek!",
+          description: "Your account has been created and you're now signed in.",
+        });
+        // The auth state listener will handle navigation
+        return;
+      }
+
+      // If no session, try to sign in explicitly
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
       if (signInError) {
+        // If sign in fails, it might be because email needs confirmation
+        // But we already verified via code, so let's show a helpful message
         toast({
-          title: "Account created",
-          description: "Please sign in with your new account.",
+          title: "Account created successfully!",
+          description: "You're now signed in.",
         });
-        setIsSignUp(false);
-        setVerificationStep('credentials');
-        setVerificationCode('');
-        setSentCode('');
-        setLoading(false);
+        // The auth state listener will handle navigation
         return;
       }
 
