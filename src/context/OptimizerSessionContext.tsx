@@ -352,11 +352,6 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
             
             appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
             localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
-            
-            toast({
-              title: 'Optimization Complete',
-              description: 'Your optimization finished while you were away!',
-            });
           } catch (e) {
             console.error('❌ Error parsing background result:', e);
           }
@@ -366,7 +361,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isOptimizing, payload, appendToHistory, toast]);
+  }, [isOptimizing, payload, appendToHistory]);
 
   const value: OptimizerSessionContextValue = {
     isOptimizing,
