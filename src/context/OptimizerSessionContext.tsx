@@ -156,6 +156,12 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   }, [addPromptToHistory]);
 
   const startOptimization = useCallback(async (p: OptimizerPayload, opts?: { resume?: boolean }) => {
+    // Always clear any cached results before starting a brand-new optimization to avoid stale polling
+    if (!opts?.resume) {
+      localStorage.removeItem('promptOptimizer_result_speed');
+      localStorage.removeItem('promptOptimizer_result_deep');
+    }
+
     // Cancel any ongoing optimization and start fresh
     if (runningRef.current && !opts?.resume) {
       console.log('Canceling ongoing optimization to start new one');
@@ -457,28 +463,32 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
               .limit(1);
 
             if (completedPrompts && completedPrompts.length > 0) {
-              const dbPrompt = completedPrompts[0];
+              const dbPrompt = completedPrompts[0] as any;
               console.log('✅ Found completed optimization in database from background!');
-              
-              const dbResult = {
-                promptId: dbPrompt.id,
-                originalPrompt: dbPrompt.original_prompt,
-                bestOptimizedPrompt: dbPrompt.optimized_prompt,
-                bestScore: dbPrompt.score || 0,
-                variants: [],
-                summary: dbPrompt.performance_metrics
-              };
+              const createdAtMs = Date.parse(dbPrompt.created_at);
+              if (!optimizationStartTime || !createdAtMs || createdAtMs >= optimizationStartTime) {
+                const dbResult = {
+                  promptId: dbPrompt.id,
+                  originalPrompt: dbPrompt.original_prompt,
+                  bestOptimizedPrompt: dbPrompt.optimized_prompt,
+                  bestScore: dbPrompt.score || 0,
+                  variants: [],
+                  summary: dbPrompt.performance_metrics
+                };
 
-              setIsOptimizing(false);
-              runningRef.current = false;
-              
-              if (payload.mode === 'speed') {
-                setSpeedResult(dbResult);
+                setIsOptimizing(false);
+                runningRef.current = false;
+                
+                if (payload.mode === 'speed') {
+                  setSpeedResult(dbResult);
+                } else {
+                  setResult(dbResult);
+                }
+                
+                appendToHistory(dbResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
               } else {
-                setResult(dbResult);
+                console.log('🔎 Visibility check: ignoring stale DB result from previous run');
               }
-              
-              appendToHistory(dbResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
             }
           }
         } catch (dbError) {
@@ -489,7 +499,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isOptimizing, payload, appendToHistory]);
+  }, [isOptimizing, payload, optimizationStartTime, appendToHistory]);
 
   // Cross-tab/background sync: react to localStorage updates from other tabs/windows
   useEffect(() => {
@@ -553,21 +563,28 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
             .order('created_at', { ascending: false })
             .limit(1);
           if (completedPrompts && completedPrompts.length > 0) {
-            const dbPrompt = completedPrompts[0];
-            const dbResult = {
-              promptId: dbPrompt.id,
-              originalPrompt: dbPrompt.original_prompt,
-              bestOptimizedPrompt: dbPrompt.optimized_prompt,
-              bestScore: dbPrompt.score || 0,
-              variants: [],
-              summary: dbPrompt.performance_metrics
-            };
-            console.log('⏱️ Poll: found DB-completed result, finalizing');
-            setIsOptimizing(false);
-            runningRef.current = false;
-            if (payload.mode === 'speed') setSpeedResult(dbResult); else setResult(dbResult);
-            appendToHistory(dbResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
-            return;
+            const dbPrompt = completedPrompts[0] as any;
+            const createdAtMs = Date.parse(dbPrompt.created_at);
+            const startMs = optimizationStartTime ?? Date.now();
+            // Only treat as completion if the DB row was created AFTER this run started
+            if (!createdAtMs || createdAtMs >= startMs) {
+              const dbResult = {
+                promptId: dbPrompt.id,
+                originalPrompt: dbPrompt.original_prompt,
+                bestOptimizedPrompt: dbPrompt.optimized_prompt,
+                bestScore: dbPrompt.score || 0,
+                variants: [],
+                summary: dbPrompt.performance_metrics
+              };
+              console.log('⏱️ Poll: found DB-completed result, finalizing');
+              setIsOptimizing(false);
+              runningRef.current = false;
+              if (payload.mode === 'speed') setSpeedResult(dbResult); else setResult(dbResult);
+              appendToHistory(dbResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+              return;
+            } else {
+              console.log('⏱️ Poll: ignoring stale DB result from previous run');
+            }
           }
         }
       } catch (err) {
@@ -582,7 +599,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       active = false;
       clearInterval(id);
     };
-  }, [isOptimizing, payload, appendToHistory]);
+  }, [isOptimizing, payload, optimizationStartTime, appendToHistory]);
 
   const value: OptimizerSessionContextValue = {
     isOptimizing,
