@@ -334,10 +334,15 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         
         // Check if optimization completed while away
         const storedResult = localStorage.getItem(`promptOptimizer_result_${payload.mode}`);
-        if (storedResult && !result && !speedResult) {
+        if (storedResult) {
           console.log('✅ Found background-completed results on visibility change');
           try {
             const parsedResult = JSON.parse(storedResult);
+            
+            // Always clear loading state and update results, regardless of current state
+            // (React state updates may be stale)
+            setIsOptimizing(false);
+            runningRef.current = false;
             
             if (payload.mode === 'speed') {
               setSpeedResult(parsedResult);
@@ -347,10 +352,6 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
             
             appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
             localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
-            
-            // Clear loading state immediately
-            setIsOptimizing(false);
-            runningRef.current = false;
             
             toast({
               title: 'Optimization Complete',
@@ -365,7 +366,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isOptimizing, payload, result, speedResult, appendToHistory, toast]);
+  }, [isOptimizing, payload, appendToHistory, toast]);
 
   const value: OptimizerSessionContextValue = {
     isOptimizing,
