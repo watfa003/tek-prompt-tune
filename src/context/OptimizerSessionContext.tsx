@@ -273,14 +273,8 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         setResult(data);
       }
 
-      // CRITICAL: Await ALL async operations before clearing isOptimizing
-      // This prevents the loading state from stopping prematurely
-      try {
-        await appendToHistory(data, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
-      } catch (historyError) {
-        console.error('Failed to append to history:', historyError);
-        // Don't throw - we still want to show results even if history fails
-      }
+      // Append to history first, then store in localStorage
+      await appendToHistory(data, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
       
       // Now that all processing is done, store result for background completion detection
       localStorage.setItem(`promptOptimizer_result_${p.mode}`, JSON.stringify(data));
@@ -293,16 +287,11 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         // Only toast when user initiated, not on resume
         toast({ title: 'Success', description: `Prompt optimized successfully using ${p.mode} mode!` });
       }
-      
-      // CRITICAL: Only clear isOptimizing AFTER all async work is complete
-      setIsOptimizing(false);
-      runningRef.current = false;
     } catch (err: any) {
       console.error('Error optimizing prompt:', err);
       setError(err?.message || 'Unknown error');
       toast({ title: 'Error', description: 'Failed to optimize prompt. Please try again.', variant: 'destructive' });
-      
-      // Clear loading state on error
+    } finally {
       setIsOptimizing(false);
       runningRef.current = false;
     }

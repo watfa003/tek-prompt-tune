@@ -714,66 +714,48 @@ function evaluateOutput(prompt: string, strategyWeight: number): number {
 
 // Full detailed evaluation for shorter outputs
 function fullDetailedEvaluation(prompt: string, words: number, sentences: number, strategyWeight: number): number {
-  // Quality indicators
+  // Base score starts at 0.35 for more realistic distribution
   const hasSpecificTerms = /\b(specific|detail|example|step|instruction|format|constraint|criteria|acceptance)\b/i.test(prompt);
   const hasStructure = /(?:\n\s*[-*]\s|\d+\.|:|#\s)/.test(prompt);
   const hasContext = /\b(context|background|purpose|goal|objective|audience|constraints)\b/i.test(prompt);
   const hasTransitions = /\b(then|next|after|before|finally|additionally|furthermore|therefore|however)\b/i.test(prompt);
   const avgWordsPerSentence = words / Math.max(sentences, 1);
-  
-  // Check for philosophical/thoughtful content
-  const isPhilosophical = /\b(meaning|essence|philosophy|profound|intricate|journey|complexity|perspective|existence)\b/i.test(prompt);
-  const hasRichVocabulary = /\b(tapestry|perpetual|intricate|profound|nuanced|multifaceted|paradox|dichotomy)\b/i.test(prompt);
-  
-  // Bad quality flags
+
+  const accuracy = Math.min(1,
+    0.3 + (hasSpecificTerms ? 0.3 : 0) + (hasContext ? 0.2 : 0) + (hasStructure ? 0.2 : 0)
+  );
+
+  const sectionsCount = prompt.split(/\n\n|\n(?=[A-Z])|\d+\.|#{1,6}\s/).length;
+  const completeness = Math.min(1,
+    0.3 + (words >= 50 ? 0.25 : 0) + (words >= 100 ? 0.25 : 0) + (hasStructure ? 0.2 : 0)
+  );
+
+  const clarity = Math.min(1,
+    0.3 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 22) ? 0.3 : 0) + (hasTransitions ? 0.2 : 0) + (sentences >= 3 ? 0.2 : 0)
+  );
+
+  // Base score starts lower for realistic distribution
+  let score = 0.35 + 0.5 * (0.4 * accuracy + 0.35 * completeness + 0.25 * clarity);
+
+  // Penalties for bad quality
   const hasCutoffText = prompt.trim().endsWith('...') || /\b(tbc|to be continued)\b/i.test(prompt);
+  const isVeryShort = words < 10;
   const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(prompt.trim());
   const isBlank = prompt.trim().length < 5;
-  const hasRepetition = checkForRepetition(prompt);
   
-  // Start with higher base for quality content
-  let baseScore = 0.50;
+  if (isBlank || isGibberish) score = 0.15; // Poor quality
+  else if (isVeryShort) score -= 0.25; 
+  else if (words < 20) score -= 0.15; 
+  else if (words < 40) score -= 0.10;
   
-  // Immediate fail conditions
-  if (isBlank || isGibberish) return 0.15;
-  
-  // Quality adjustments based on content type
-  if (words >= 15 && words <= 50) {
-    // Short-form quality content (e.g., single powerful sentences)
-    if (isPhilosophical || hasRichVocabulary) {
-      baseScore = 0.65; // Higher base for quality short content
-    }
-    if (avgWordsPerSentence >= 15 && avgWordsPerSentence <= 35) {
-      baseScore += 0.10; // Bonus for well-crafted sentences
-    }
-  } else if (words > 50) {
-    // Medium to long-form content
-    const accuracy = Math.min(1,
-      0.4 + (hasSpecificTerms ? 0.25 : 0) + (hasContext ? 0.20 : 0) + (hasStructure ? 0.15 : 0)
-    );
-    
-    const completeness = Math.min(1,
-      0.4 + (words >= 100 ? 0.25 : 0) + (words >= 200 ? 0.20 : 0) + (hasStructure ? 0.15 : 0)
-    );
-    
-    const clarity = Math.min(1,
-      0.4 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 24) ? 0.25 : 0) + 
-      (hasTransitions ? 0.20 : 0) + (sentences >= 3 ? 0.15 : 0)
-    );
-    
-    baseScore = 0.4 + 0.5 * (0.35 * accuracy + 0.35 * completeness + 0.30 * clarity);
-  }
-  
-  // Apply light penalties only when truly problematic
-  if (words < 10 && !isPhilosophical) baseScore -= 0.20;
-  if (words > 500) baseScore -= 0.05;
-  if (hasCutoffText) baseScore -= 0.12;
-  if (hasRepetition) baseScore -= 0.10;
-  
-  // Strategy influence
-  baseScore += strategyWeight * 0.08;
-  
-  return Math.min(0.95, Math.max(0.20, baseScore));
+  if (words > 400) score -= 0.05;
+  if (hasCutoffText) score -= 0.15;
+  if (checkForRepetition(prompt)) score -= 0.12;
+
+  // Strategy bonus (reduced for balanced scoring)
+  score += strategyWeight * 0.05;
+
+  return Math.min(0.95, Math.max(0.15, score));
 }
 
 // Compressed analysis for longer outputs
