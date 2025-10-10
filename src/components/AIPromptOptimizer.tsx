@@ -614,7 +614,7 @@ export const AIPromptOptimizer: React.FC = () => {
       // Clear the URL params synchronously
       navigate('/app/ai-agent', { replace: true });
     }
-  }, [searchParams, navigate, toast]);
+  }, [searchParams, navigate]);
 
   // Load default values from settings
   React.useEffect(() => {
