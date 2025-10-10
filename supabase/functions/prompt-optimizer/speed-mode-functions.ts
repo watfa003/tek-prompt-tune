@@ -182,17 +182,28 @@ export async function handleSpeedMode(
 async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number, influence: string = '', influenceWeight: number = 0): Promise<any[]> {
   const variants = [];
   
-  // Use the same strategy selection logic as deep mode - ensure we get exactly the number requested
-  const allStrategies = ['clarity', 'specificity', 'structure', 'efficiency', 'constraints'];
-  const numVariants = Math.min(Math.max(requestedVariants || 1, 1), allStrategies.length);
+  // Use the same strategy selection logic as deep mode - include all 8 strategies
+  const allStrategies = ['clarity', 'specificity', 'structure', 'efficiency', 'constraints', 'elaboration', 'intent', 'adaptability'];
+  
+  // Filter strategies based on conditional logic
+  const availableStrategies = allStrategies.filter(strategy => {
+    // Check elaboration condition: short prompts
+    if (strategy === 'elaboration' && originalPrompt.length >= 200) return false;
+    // Check intent alignment condition: vague verbs
+    if (strategy === 'intent' && !/\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(originalPrompt)) return false;
+    // Always include other strategies
+    return true;
+  });
+  
+  const numVariants = Math.min(Math.max(requestedVariants || 1, 1), availableStrategies.length);
   
   // Duplicate strategies if we need more variants than available strategies
   let selectedStrategies = [];
-  if (numVariants <= allStrategies.length) {
-    selectedStrategies = selectBestStrategiesFromInsights(allStrategies, numVariants, insights);
+  if (numVariants <= availableStrategies.length) {
+    selectedStrategies = selectBestStrategiesFromInsights(availableStrategies, numVariants, insights);
   } else {
     // If user wants more variants than strategies, repeat best strategies with variation
-    const baseStrategies = selectBestStrategiesFromInsights(allStrategies, allStrategies.length, insights);
+    const baseStrategies = selectBestStrategiesFromInsights(availableStrategies, availableStrategies.length, insights);
     selectedStrategies = [...baseStrategies];
     // Add variations of the best strategies
     while (selectedStrategies.length < numVariants) {
@@ -255,6 +266,23 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
           break;
         case 'constraints':
           optimizedPrompt = applyDeepModeConstraintsOptimization(originalPrompt, taskDescription, outputType);
+          break;
+        case 'elaboration':
+          // Add context and reasoning guidance
+          optimizedPrompt = `${originalPrompt}\n\nPlease provide relevant context, reasoning guidance, and any implicit assumptions needed to make your response complete and comprehensive.`;
+          break;
+        case 'intent':
+          // Align with user's likely goal
+          optimizedPrompt = originalPrompt.replace(/\b(improve|better|fix|enhance|optimize|analyze|make)\b/gi, (match) => {
+            return `provide a detailed and actionable ${match}ment for`;
+          });
+          if (optimizedPrompt === originalPrompt) {
+            optimizedPrompt = `${originalPrompt}\n\nBe specific and actionable in your response.`;
+          }
+          break;
+        case 'adaptability':
+          // Make prompt work across models
+          optimizedPrompt = `${originalPrompt}\n\nProvide a clear, well-structured response that would be consistent across different AI models.`;
           break;
         default:
           optimizedPrompt = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
@@ -483,7 +511,10 @@ function getStrategyWeight(strategy: string): number {
     'specificity': 0.25,
     'structure': 0.15,
     'efficiency': 0.2,
-    'constraints': 0.1
+    'constraints': 0.1,
+    'elaboration': 0.12,
+    'intent': 0.12,
+    'adaptability': 0.10
   };
   return weights[strategy as keyof typeof weights] || 0.2;
 }
@@ -535,6 +566,15 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
       break;
     case 'constraints':
       instruction = `You are optimizing a prompt using the CONSTRAINTS AND FORMAT strategy. Add constraints, acceptance criteria, and a precise output format:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
+      break;
+    case 'elaboration':
+      instruction = `You are optimizing a prompt using the ELABORATION & CONTEXT EXPANSION strategy. Expand this prompt to include relevant context, reasoning guidance, and implicit assumptions to make the AI's answer more complete:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
+      break;
+    case 'intent':
+      instruction = `You are optimizing a prompt using the USER INTENT ALIGNMENT strategy. Rewrite this prompt so that it better aligns with the user's likely goal or outcome. Translate vague requests into actionable, specific instructions:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
+      break;
+    case 'adaptability':
+      instruction = `You are optimizing a prompt using the ADAPTABILITY OPTIMIZATION strategy. Adapt this prompt for consistent results across multiple AI models and contexts. Focus on universal clarity and model-agnostic instructions:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
       break;
   }
   if (outputType && outputType !== 'text') {

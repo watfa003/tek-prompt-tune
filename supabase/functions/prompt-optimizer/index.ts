@@ -206,9 +206,19 @@ serve(async (req) => {
     const cachedInsights = await loadOptimizationInsights(supabase, userId, aiProvider, modelName);
     
     // Generate optimized variants in parallel for maximum speed
-    const allStrategies = Object.keys(OPTIMIZATION_STRATEGIES);
-    const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allStrategies.length);
-    const strategyKeys = selectBestStrategies(allStrategies, variantCount, cachedInsights);
+    // Filter strategies based on their conditional logic
+    const allAvailableStrategies = Object.keys(OPTIMIZATION_STRATEGIES).filter(key => {
+      const strategy = OPTIMIZATION_STRATEGIES[key as keyof typeof OPTIMIZATION_STRATEGIES];
+      // Check if strategy has a condition function, and if so, test it
+      if (strategy.condition && typeof strategy.condition === 'function') {
+        return strategy.condition(originalPrompt);
+      }
+      // Always include strategies without conditions
+      return true;
+    });
+    
+    const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allAvailableStrategies.length);
+    const strategyKeys = selectBestStrategies(allAvailableStrategies, variantCount, cachedInsights);
     
     const variantPromises = strategyKeys.map(async (strategyKey) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
