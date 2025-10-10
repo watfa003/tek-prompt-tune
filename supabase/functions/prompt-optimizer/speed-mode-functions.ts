@@ -195,12 +195,25 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     return true;
   });
   
-  // Get ALL strategies sorted by performance, then take only the requested count
-  const allStrategiesSorted = selectBestStrategiesFromInsights(availableStrategies, availableStrategies.length, insights);
+  // Get ALL strategies sorted by performance for this specific LLM
+  const allStrategiesSorted = selectBestStrategiesFromInsights(availableStrategies, availableStrategies.length, insights, aiProvider, modelName);
   const numVariants = Math.min(Math.max(requestedVariants || 1, 1), allStrategiesSorted.length);
-  const selectedStrategies = allStrategiesSorted.slice(0, numVariants);
   
-  console.log(`📊 Speed mode testing ${numVariants} strategies (prioritized by performance): ${selectedStrategies.join(', ')}`);
+  // Always include top 2 best performers for this LLM, then rotate through others
+  const top2BestForLLM = allStrategiesSorted.slice(0, 2);
+  const remainingStrategies = allStrategiesSorted.slice(2);
+  
+  // Rotate through remaining strategies using timestamp-based offset
+  const rotationOffset = Math.floor(Date.now() / 3600000) % Math.max(1, remainingStrategies.length); // Rotate hourly
+  const rotatedRemaining = [...remainingStrategies.slice(rotationOffset), ...remainingStrategies.slice(0, rotationOffset)];
+  
+  // Combine: top 2 + rotated remaining, up to variant count
+  const selectedStrategies = [
+    ...top2BestForLLM,
+    ...rotatedRemaining
+  ].slice(0, numVariants);
+  
+  console.log(`📊 Speed mode testing ${numVariants} strategies (top 2 for LLM + rotated): ${selectedStrategies.join(', ')}`);
   
   // Track uniqueness
   const seen = new Set<string>();
@@ -751,20 +764,35 @@ async function callGoogle(model: string, prompt: string, maxTokens: number): Pro
 }
 
 // Strategy selection logic matching deep mode
-function selectBestStrategiesFromInsights(allStrategies: string[], count: number, insights: any): string[] {
+function selectBestStrategiesFromInsights(
+  allStrategies: string[], 
+  count: number, 
+  insights: any,
+  aiProvider?: string,
+  modelName?: string
+): string[] {
   if (!insights?.successful_strategies) {
     console.log('No cached insights found, using default strategy order');
-    return allStrategies.slice(0, count);
+    return allStrategies;
   }
 
   console.log(`📊 Available strategies from insights: ${Object.keys(insights.successful_strategies).length}, patterns available`);
 
+  const llmKey = aiProvider && modelName ? `${aiProvider}_${modelName}` : null;
+  
   // Sort strategies by their success scores from insights (same logic as deep mode)
   const strategyScores = new Map();
   
   for (const [strategyKey, strategyData] of Object.entries(insights.successful_strategies)) {
     if (typeof strategyData === 'object' && strategyData && 'avg_score' in strategyData) {
-      strategyScores.set(strategyKey, (strategyData as any).avg_score || 0);
+      let score = (strategyData as any).avg_score || 0;
+      
+      // Prioritize LLM-specific performance if available
+      if (llmKey && (strategyData as any).by_llm && (strategyData as any).by_llm[llmKey]) {
+        score = (strategyData as any).by_llm[llmKey].avg_score || score;
+      }
+      
+      strategyScores.set(strategyKey, score);
     }
   }
 
@@ -775,10 +803,9 @@ function selectBestStrategiesFromInsights(allStrategies: string[], count: number
     return scoreB - scoreA; // Higher scores first
   });
 
-  const selectedStrategies = sortedStrategies.slice(0, count);
-  console.log(`Selected strategies based on cached insights: ${selectedStrategies.join(', ')}`);
+  console.log(`Sorted strategies for ${llmKey || 'general'}: ${sortedStrategies.join(', ')}`);
   
-  return selectedStrategies;
+  return sortedStrategies;
 }
 
 // Helpers for uniqueness

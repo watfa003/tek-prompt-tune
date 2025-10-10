@@ -217,10 +217,23 @@ serve(async (req) => {
       return true;
     });
     
-    // Get ALL strategies sorted by performance, then take only the requested count
-    const allStrategiesSorted = selectBestStrategies(allAvailableStrategies, 0, cachedInsights);
+    // Get ALL strategies sorted by performance for this specific LLM
+    const allStrategiesSorted = selectBestStrategies(allAvailableStrategies, 0, cachedInsights, aiProvider, modelName);
     const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allStrategiesSorted.length);
-    const selectedStrategies = allStrategiesSorted.slice(0, variantCount);
+    
+    // Always include top 2 best performers for this LLM, then rotate through others
+    const top2BestForLLM = allStrategiesSorted.slice(0, 2);
+    const remainingStrategies = allStrategiesSorted.slice(2);
+    
+    // Rotate through remaining strategies using timestamp-based offset
+    const rotationOffset = Math.floor(Date.now() / 3600000) % Math.max(1, remainingStrategies.length); // Rotate hourly
+    const rotatedRemaining = [...remainingStrategies.slice(rotationOffset), ...remainingStrategies.slice(0, rotationOffset)];
+    
+    // Combine: top 2 + rotated remaining, up to variant count
+    const selectedStrategies = [
+      ...top2BestForLLM,
+      ...rotatedRemaining
+    ].slice(0, variantCount);
     
     // Test only the requested number of strategies, prioritized by performance
     const variantPromises = selectedStrategies.map(async (strategyKey, index) => {
@@ -1034,19 +1047,40 @@ async function saveBatchInsights(supabase: any, userId: string, aiProvider: stri
 
 // Select and prioritize strategies based on cached insights
 // Returns ALL strategies but sorted by performance (best first)
-function selectBestStrategies(allStrategies: string[], variantCount: number, cachedInsights: any): string[] {
+function selectBestStrategies(
+  allStrategies: string[], 
+  variantCount: number, 
+  cachedInsights: any, 
+  aiProvider?: string, 
+  modelName?: string
+): string[] {
   if (!cachedInsights.hasCachedData || cachedInsights.totalOptimizations < 3) {
     // Not enough cached data, return all strategies in default order
     console.log('Using all strategies in default order - insufficient cached data');
     return allStrategies;
   }
 
+  const llmKey = aiProvider && modelName ? `${aiProvider}_${modelName}` : null;
+
   // Sort ALL strategies by cached performance (best first)
-  const strategyScores = allStrategies.map(strategy => ({
-    strategy,
-    score: cachedInsights.strategies[strategy]?.avgScore || 0.5,
-    count: cachedInsights.strategies[strategy]?.count || 0
-  }));
+  const strategyScores = allStrategies.map(strategy => {
+    let score = 0.5;
+    let count = 0;
+    
+    const strategyData = cachedInsights.strategies[strategy];
+    if (strategyData) {
+      // Check for LLM-specific performance data first
+      if (llmKey && strategyData.byLLM && strategyData.byLLM[llmKey]) {
+        score = strategyData.byLLM[llmKey].avgScore || 0.5;
+        count = strategyData.byLLM[llmKey].count || 0;
+      } else {
+        score = strategyData.avgScore || 0.5;
+        count = strategyData.count || 0;
+      }
+    }
+    
+    return { strategy, score, count };
+  });
 
   strategyScores.sort((a, b) => {
     // Prioritize strategies with both high scores and sufficient data
@@ -1057,7 +1091,7 @@ function selectBestStrategies(allStrategies: string[], variantCount: number, cac
   
   // Return ALL strategies, sorted by performance
   const sorted = strategyScores.map(s => s.strategy);
-  console.log(`Testing all ${sorted.length} strategies, prioritized by performance: ${sorted.join(', ')}`);
+  console.log(`Testing all ${sorted.length} strategies, prioritized by performance for ${llmKey || 'general'}: ${sorted.join(', ')}`);
   return sorted;
 }
 
