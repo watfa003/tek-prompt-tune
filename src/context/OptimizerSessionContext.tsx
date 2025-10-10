@@ -164,23 +164,25 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       setResult(null);
       setSpeedResult(null);
       setError(null);
+      // Clear any stored results from previous optimization
+      localStorage.removeItem('promptOptimizer_result_speed');
+      localStorage.removeItem('promptOptimizer_result_deep');
     }
     
-    // If resuming, first check if we already have results stored that came in while away
+    // If resuming, check BOTH localStorage AND database for results
     if (opts?.resume) {
+      // First check localStorage
       const storedResult = localStorage.getItem(`promptOptimizer_result_${p.mode}`);
       if (storedResult) {
         try {
           const parsedResult = JSON.parse(storedResult);
-          console.log('Found completed results from background optimization');
+          console.log('Found completed results from localStorage');
           if (p.mode === 'speed') {
             setSpeedResult(parsedResult);
           } else {
             setResult(parsedResult);
           }
-          // Also append to history when resuming
           await appendToHistory(parsedResult, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
-          // Clear stored result to avoid duplicate history on next load
           localStorage.removeItem(`promptOptimizer_result_${p.mode}`);
           setIsOptimizing(false);
           runningRef.current = false;
@@ -188,6 +190,50 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         } catch (e) {
           console.error('Error parsing stored result:', e);
         }
+      }
+
+      // If not in localStorage, check database for completed prompt
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          console.log('Checking database for completed optimization...');
+          const { data: completedPrompts } = await supabase
+            .from('prompts')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('original_prompt', p.originalPrompt)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (completedPrompts && completedPrompts.length > 0) {
+            const dbPrompt = completedPrompts[0];
+            console.log('✅ Found completed optimization in database!');
+            
+            // Reconstruct result object from database
+            const dbResult = {
+              promptId: dbPrompt.id,
+              originalPrompt: dbPrompt.original_prompt,
+              bestOptimizedPrompt: dbPrompt.optimized_prompt,
+              bestScore: dbPrompt.score || 0,
+              variants: [], // We don't store full variants in prompts table
+              summary: dbPrompt.performance_metrics
+            };
+
+            if (p.mode === 'speed') {
+              setSpeedResult(dbResult);
+            } else {
+              setResult(dbResult);
+            }
+            
+            await appendToHistory(dbResult, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+            setIsOptimizing(false);
+            runningRef.current = false;
+            return;
+          }
+        }
+      } catch (dbError) {
+        console.error('Error checking database for results:', dbError);
       }
     }
     
@@ -336,19 +382,17 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
 
   // Phase 3: Add visibility change detection for background optimization safety
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (!document.hidden && isOptimizing && payload) {
         console.log('🔄 User returned to page - checking for background completion...');
         
         // Check if optimization completed while away
         const storedResult = localStorage.getItem(`promptOptimizer_result_${payload.mode}`);
         if (storedResult) {
-          console.log('✅ Found background-completed results on visibility change');
+          console.log('✅ Found background-completed results in localStorage');
           try {
             const parsedResult = JSON.parse(storedResult);
             
-            // Always clear loading state and update results, regardless of current state
-            // (React state updates may be stale)
             setIsOptimizing(false);
             runningRef.current = false;
             
@@ -360,9 +404,53 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
             
             appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
             localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
+            return;
           } catch (e) {
             console.error('❌ Error parsing background result:', e);
           }
+        }
+
+        // Also check database for completed prompts
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            console.log('Checking database for completed optimization...');
+            const { data: completedPrompts } = await supabase
+              .from('prompts')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('original_prompt', payload.originalPrompt)
+              .eq('status', 'completed')
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+            if (completedPrompts && completedPrompts.length > 0) {
+              const dbPrompt = completedPrompts[0];
+              console.log('✅ Found completed optimization in database from background!');
+              
+              const dbResult = {
+                promptId: dbPrompt.id,
+                originalPrompt: dbPrompt.original_prompt,
+                bestOptimizedPrompt: dbPrompt.optimized_prompt,
+                bestScore: dbPrompt.score || 0,
+                variants: [],
+                summary: dbPrompt.performance_metrics
+              };
+
+              setIsOptimizing(false);
+              runningRef.current = false;
+              
+              if (payload.mode === 'speed') {
+                setSpeedResult(dbResult);
+              } else {
+                setResult(dbResult);
+              }
+              
+              appendToHistory(dbResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+            }
+          }
+        } catch (dbError) {
+          console.error('❌ Error checking database for background results:', dbError);
         }
       }
     };
