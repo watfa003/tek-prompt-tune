@@ -82,44 +82,44 @@ const OPTIMIZATION_MODELS = {
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
     name: "Clarity Enhancement",
-    systemPrompt: "You are a prompt optimization expert. Your job is to take the given prompt and make it clearer and more specific. Do NOT answer the prompt - only improve how it asks the question:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to make the given prompt clearer and more specific while PRESERVING THE EXACT INTENT AND ACTION. If the user asks to 'say hello', the optimized prompt should still result in the AI saying 'hello' - just with better structure. Do NOT change what the user is asking for - only improve HOW they're asking for it:",
     weight: 0.3
   },
   specificity: {
     name: "Specificity Improvement", 
-    systemPrompt: "You are a prompt optimization expert. Your job is to add specific details and examples to make this prompt more precise. Do NOT answer the prompt - only improve how it asks the question:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to add specific details to make this prompt more precise while KEEPING THE CORE REQUEST UNCHANGED. If the user asks to 'write code', don't ask for 'analyze code' instead. Preserve their exact intent and action. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.25
   },
   efficiency: {
     name: "Efficiency Optimization",
-    systemPrompt: "You are a prompt optimization expert. Your job is to optimize this prompt for better AI performance and efficiency. Do NOT answer the prompt - only improve how it asks the question:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to optimize this prompt for better AI performance while MAINTAINING THE EXACT SAME GOAL. Do not change what the user wants to accomplish. If they ask to generate something, keep it as generate. If they ask to explain, keep it as explain. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.2
   },
   structure: {
     name: "Structure and Steps",
-    systemPrompt: "You are a prompt optimization expert. Your job is to improve the logical structure with step-by-step instructions and clear sections. Do NOT answer the prompt - only improve how it asks the question:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to improve the logical structure with step-by-step instructions while PRESERVING THE ORIGINAL REQUEST. The end goal must be identical to the original prompt. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.15
   },
   constraints: {
     name: "Constraints and Format",
-    systemPrompt: "You are a prompt optimization expert. Your job is to add constraints, acceptance criteria, and a precise output format. Do NOT answer the prompt - only improve how it asks the question:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to add constraints and output format specifications while KEEPING THE CORE ACTION THE SAME. If the user asks to 'say bye', the optimized version should still tell the AI to say bye, just with better formatting. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.1
   },
   elaboration: {
     name: "Elaboration & Context Expansion",
-    systemPrompt: "You are a prompt optimization expert. Your job is to expand this prompt to include relevant context, reasoning guidance, and implicit assumptions to make the AI's answer more complete. Add depth without becoming verbose. Do NOT answer the prompt - only improve how it asks the question:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to expand this prompt to include relevant context while ABSOLUTELY PRESERVING THE CORE INTENT. The fundamental action/goal must remain unchanged. If they want the AI to output 'hello', don't change it to 'create a greeting' - keep the exact action but add helpful context. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.12,
     condition: (prompt: string) => prompt.length < 200 // Trigger for short/under-contextualized prompts
   },
   intent: {
     name: "User Intent Alignment",
-    systemPrompt: "You are a prompt optimization expert. Your job is to rewrite this prompt so that it better aligns with the user's likely goal or outcome. Translate vague requests into actionable, specific instructions. Do NOT answer the prompt - only improve how it asks the question:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to clarify the user's intent and make it more actionable WITHOUT CHANGING THEIR GOAL. If they ask to 'fix code', keep it as fixing code - don't change to 'analyze' or 'review'. Preserve the exact verb and outcome. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.12,
     condition: (prompt: string) => /\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(prompt) // Trigger for vague verbs
   },
   adaptability: {
     name: "Adaptability Optimization",
-    systemPrompt: "You are a prompt optimization expert. Your job is to adapt this prompt for consistent results across multiple AI models and contexts. Focus on universal clarity and model-agnostic instructions. Do NOT answer the prompt - only improve how it asks the question:",
+    systemPrompt: "You are a prompt optimization expert. Your job is to adapt this prompt for consistent results across multiple AI models while KEEPING THE EXACT SAME REQUEST. Do not alter what the user is asking the AI to do - just make the instructions clearer for different models. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.10
   }
 };
