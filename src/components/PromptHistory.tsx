@@ -69,11 +69,7 @@ export const PromptHistory = () => {
         item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesProvider = filterProvider === "all" || 
-        item.provider.toLowerCase().includes(filterProvider.toLowerCase()) ||
-        (filterProvider === "OpenAI" && item.provider.toLowerCase().includes("openai")) ||
-        (filterProvider === "Claude" && item.provider.toLowerCase().includes("claude")) ||
-        (filterProvider === "Gemini" && item.provider.toLowerCase().includes("gemini")) ||
-        (filterProvider === "Groq" && item.provider.toLowerCase().includes("groq"));
+        item.provider.toLowerCase().includes(filterProvider.toLowerCase());
       
       const matchesOutputType = filterOutputType === "all" || 
         item.outputType.toLowerCase() === filterOutputType.toLowerCase();
@@ -333,8 +329,8 @@ export const PromptHistory = () => {
     );
   };
 
-  const providers = ["all", "openai", "claude", "gemini", "groq", "anthropic", "mistral"];
-  const outputTypes = ["all", "Code", "Essay", "JSON", "Structured Data", "Variant", "text", "list"];
+  const providers = ["all", "openai", "anthropic", "google", "groq", "mistral"];
+  const outputTypes = ["all", "text", "code", "json", "list", "essay"];
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
@@ -465,9 +461,8 @@ export const PromptHistory = () => {
                   <SelectItem key={provider} value={provider}>
                     {provider === "all" ? "All Providers" : 
                      provider === "openai" ? "OpenAI" :
-                     provider === "claude" ? "Claude" :
-                     provider === "anthropic" ? "Anthropic" :
-                     provider === "gemini" ? "Gemini" :
+                     provider === "anthropic" ? "Anthropic (Claude)" :
+                     provider === "google" ? "Google (Gemini)" :
                      provider === "groq" ? "Groq" :
                      provider === "mistral" ? "Mistral" :
                      provider.charAt(0).toUpperCase() + provider.slice(1)}
@@ -483,7 +478,13 @@ export const PromptHistory = () => {
               <SelectContent>
                 {outputTypes.map(type => (
                   <SelectItem key={type} value={type}>
-                    {type === "all" ? "All Types" : type}
+                    {type === "all" ? "All Types" : 
+                     type === "text" ? "Text" :
+                     type === "code" ? "Code" :
+                     type === "json" ? "JSON" :
+                     type === "list" ? "List" :
+                     type === "essay" ? "Essay" :
+                     type.charAt(0).toUpperCase() + type.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
