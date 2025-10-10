@@ -623,9 +623,11 @@ export const AIPromptOptimizer: React.FC = () => {
     }
   }, [searchParams, navigate, toast]);
 
-  // Load default values from settings
+  // Load default values from settings - ONLY on initial mount to avoid unwanted re-optimizations
+  const hasLoadedSettings = React.useRef(false);
   React.useEffect(() => {
-    if (settings) {
+    if (settings && !hasLoadedSettings.current) {
+      hasLoadedSettings.current = true;
       setAiProvider(settings.defaultProvider.toLowerCase().includes('openai') ? 'openai' : 
                     settings.defaultProvider.toLowerCase().includes('anthropic') ? 'anthropic' :
                     settings.defaultProvider.toLowerCase().includes('google') ? 'google' : 'openai');
@@ -643,6 +645,12 @@ export const AIPromptOptimizer: React.FC = () => {
         description: "Please enter a prompt to optimize",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Prevent multiple simultaneous optimizations
+    if (isOptimizing) {
+      console.log('Optimization already in progress, ignoring duplicate request');
       return;
     }
 
