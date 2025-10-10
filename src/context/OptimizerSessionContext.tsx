@@ -632,6 +632,58 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     };
   }, [isOptimizing, payload, optimizationStartTime, appendToHistory]);
 
+  // Hydrate variants after resume when only best prompt is present
+  const hydratedIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const hydrate = async () => {
+      try {
+        if (!result?.promptId) return;
+        const hasVariants = Array.isArray(result.variants) && result.variants.length > 0;
+        if (hasVariants) return;
+        if (hydratedIdsRef.current.has(result.promptId)) return;
+        hydratedIdsRef.current.add(result.promptId);
+
+        const { data: historyVariants, error: histErr } = await supabase
+          .from('optimization_history')
+          .select('*')
+          .eq('prompt_id', result.promptId)
+          .order('score', { ascending: false });
+        if (histErr) {
+          console.error('hydrateVariants error:', histErr);
+          return;
+        }
+        if (!historyVariants || historyVariants.length === 0) return;
+
+        const variants = historyVariants.map((v: any) => ({
+          prompt: v.variant_prompt,
+          strategy: 'optimization',
+          score: v.score || 0,
+          response: v.ai_response || '',
+          metrics: v.metrics || {
+            tokens_used: v.tokens_used || 0,
+            response_length: (v.ai_response?.length) || 0,
+            prompt_length: (v.variant_prompt?.length) || 0,
+            strategy_weight: 0,
+          },
+        }));
+
+        setResult(prev => {
+          if (!prev || prev.promptId !== result.promptId) return prev;
+          const summary = prev.summary || {
+            improvementScore: prev.bestScore || 0,
+            bestStrategy: 'database',
+            totalVariants: variants.length,
+            processingTimeMs: historyVariants?.[0]?.generation_time_ms || 0,
+          };
+          return { ...prev, variants, summary } as OptimizationResult;
+        });
+      } catch (e) {
+        console.error('hydrateVariants exception:', e);
+      }
+    };
+    hydrate();
+  }, [result?.promptId, result?.variants?.length, setResult]);
+
   const value: OptimizerSessionContextValue = {
     isOptimizing,
     optimizationStartTime,
