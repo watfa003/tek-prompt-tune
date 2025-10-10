@@ -302,6 +302,8 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   // Safety: timeout long-running sessions (2 minutes max)
   useEffect(() => {
     const checkStale = () => {
+      // Do not enforce timeout while the tab is hidden to avoid false cancellations
+      if (document.hidden) return;
       if (isOptimizing && optimizationStartTime) {
         const elapsed = Date.now() - optimizationStartTime;
         // Reduced to 2 minutes timeout for better UX
