@@ -214,16 +214,16 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       if (p.mode === 'speed') {
         console.log('Speed optimization completed:', data);
         setSpeedResult(data);
-        // Store result for background completion detection
-        localStorage.setItem(`promptOptimizer_result_${p.mode}`, JSON.stringify(data));
       } else {
         console.log('Deep optimization completed:', data);
         setResult(data);
-        // Store result for background completion detection
-        localStorage.setItem(`promptOptimizer_result_${p.mode}`, JSON.stringify(data));
       }
 
+      // Append to history first, then store in localStorage
       await appendToHistory(data, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+      
+      // Now that all processing is done, store result for background completion detection
+      localStorage.setItem(`promptOptimizer_result_${p.mode}`, JSON.stringify(data));
 
       // Clear draft prompt fields after success, but keep results for viewing
       localStorage.removeItem('promptOptimizer_originalPrompt');
