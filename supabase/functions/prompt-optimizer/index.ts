@@ -584,31 +584,30 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
 async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
   console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}`);
   
-    const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
-    const payload: any = {
-      model: model,
-      messages: [{ role: 'user', content: prompt }],
-    };
-    
-    if (isNewerModel) {
-      payload.max_completion_tokens = maxTokens;
-      // Newer models don't support temperature parameter - defaults to 1.0
-    } else {
-      payload.max_tokens = maxTokens;
-      // Ignore temperature; style is enforced via prompt wording
-      console.log('ℹ️ Ignoring temperature param; using prompt-level creativity guidance');
-    }
+  const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
+  const payload: any = {
+    model: model,
+    messages: [{ role: 'user', content: prompt }],
+  };
+  
+  if (isNewerModel) {
+    payload.max_completion_tokens = maxTokens;
+    // Newer models don't support temperature parameter - defaults to 1.0
+  } else {
+    payload.max_tokens = maxTokens;
+    // Ignore temperature; style is enforced via prompt wording
+  }
 
-    console.log('📦 Payload:', { model, isNewerModel, max: isNewerModel ? payload.max_completion_tokens : payload.max_tokens, temp: payload.temperature });
+  console.log('📦 OpenAI Payload:', { model, isNewerModel, maxTokens, temp: payload.temperature });
 
-    const response = await fetch(providerConfig.baseUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${providerConfig.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+  const response = await fetch(providerConfig.baseUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${providerConfig.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 
   console.log(`📡 Response status: ${response.status} for model: ${model}`);
   
@@ -626,6 +625,8 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
 async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
   console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}`);
   
+  console.log('📦 Anthropic Payload:', { model, maxTokens });
+  
   const response = await fetch(providerConfig.baseUrl, {
     method: 'POST',
     headers: {
@@ -640,10 +641,12 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
     }),
   });
 
+  console.log(`📡 Response status: ${response.status} for model: ${model}`);
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`❌ Anthropic API error (${response.status}):`, errorText);
-    throw new Error(`Anthropic API call failed: ${response.statusText}`);
+    throw new Error(`Anthropic API call failed: ${response.statusText} - ${errorText}`);
   }
 
   const data = await response.json();
@@ -653,6 +656,8 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
 
 async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
   console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}`);
+  
+  console.log('📦 Google Payload:', { model, maxOutputTokens: maxTokens });
   
   const response = await fetch(`${providerConfig.baseUrl}/${model}:generateContent?key=${providerConfig.apiKey}`, {
     method: 'POST',
@@ -665,10 +670,11 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
       }],
       generationConfig: {
         maxOutputTokens: maxTokens,
-        temperature: 0.7,
       }
     }),
   });
+
+  console.log(`📡 Response status: ${response.status} for model: ${model}`);
 
   if (!response.ok) {
     const errorText = await response.text();
