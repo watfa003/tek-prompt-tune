@@ -216,14 +216,45 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
             const dbPrompt = completedPrompts[0];
             console.log('✅ Found completed optimization in database!');
             
-            // Reconstruct result object from database
+            // Fetch all variants from optimization_history
+            const { data: historyVariants } = await supabase
+              .from('optimization_history')
+              .select('*')
+              .eq('prompt_id', dbPrompt.id)
+              .order('score', { ascending: false });
+            
+            console.log(`Fetched ${historyVariants?.length || 0} variants from history`);
+            
+            // Reconstruct variants array
+            const variants = (historyVariants || []).map((v: any) => ({
+              prompt: v.variant_prompt,
+              strategy: 'optimization',
+              score: v.score || 0,
+              response: v.ai_response || '',
+              metrics: v.metrics || {
+                tokens_used: v.tokens_used || 0,
+                response_length: v.ai_response?.length || 0,
+                prompt_length: v.variant_prompt?.length || 0,
+                strategy_weight: 0
+              }
+            }));
+            
+            // Get processing time from variants or use 0
+            const processingTimeMs = historyVariants?.[0]?.generation_time_ms || 0;
+            
+            // Reconstruct result object from database with full variants
             const dbResult = {
               promptId: dbPrompt.id,
               originalPrompt: dbPrompt.original_prompt,
               bestOptimizedPrompt: dbPrompt.optimized_prompt,
               bestScore: dbPrompt.score || 0,
-              variants: [], // We don't store full variants in prompts table
-              summary: dbPrompt.performance_metrics
+              variants: variants,
+              summary: dbPrompt.performance_metrics || {
+                improvementScore: dbPrompt.score || 0,
+                bestStrategy: 'database',
+                totalVariants: variants.length,
+                processingTimeMs: processingTimeMs
+              }
             };
 
             if (p.mode === 'speed') {
