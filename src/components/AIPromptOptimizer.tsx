@@ -33,7 +33,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+
 import { useSettings } from '@/hooks/use-settings';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { usePromptData } from '@/context/PromptDataContext';
@@ -516,7 +516,6 @@ const PromptOptimizerForm = ({
 
 export const AIPromptOptimizer: React.FC = () => {
   const { settings } = useSettings();
-  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { addPromptToHistory } = usePromptData();
@@ -612,12 +611,6 @@ export const AIPromptOptimizer: React.FC = () => {
       setSelectedInfluence(selectedTemplate);
       setInfluenceType(selectedType);
       
-      // Show success message
-      toast({
-        title: "Influence Added",
-        description: "Your selected prompt will now influence the optimization while preserving your current work.",
-      });
-      
       // Clear the URL params synchronously
       navigate('/app/ai-agent', { replace: true });
     }
@@ -638,11 +631,6 @@ export const AIPromptOptimizer: React.FC = () => {
 
   const optimizePrompt = async () => {
     if (!originalPrompt.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a prompt to optimize",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -691,18 +679,10 @@ export const AIPromptOptimizer: React.FC = () => {
     localStorage.removeItem('promptOptimizer_isOptimizing');
     localStorage.removeItem('promptOptimizer_startTime');
     
-    toast({
-      title: "New Session Started",
-      description: "Previous session cleared. You can now start a new optimization.",
-    });
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: "Text copied to clipboard",
-    });
   };
 
   const getScoreColor = (score: number) => {
@@ -772,11 +752,11 @@ export const AIPromptOptimizer: React.FC = () => {
         optimizationMode={optimizationMode}
         setOptimizationMode={setOptimizationMode}
         onSubmit={optimizePrompt}
-        isLoading={isOptimizing}
+        isLoading={isOptimizing && !result && !speedResult}
       />
 
       {/* Optimization Recovery Banner */}
-      {isOptimizing && optimizationStartTime && (
+      {isOptimizing && !result && !speedResult && optimizationStartTime && (
         <Card className="p-4 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
           <div className="flex items-center space-x-2">
             <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
