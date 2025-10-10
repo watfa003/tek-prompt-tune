@@ -217,10 +217,11 @@ serve(async (req) => {
       return true;
     });
     
-    const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allAvailableStrategies.length);
-    const strategyKeys = selectBestStrategies(allAvailableStrategies, variantCount, cachedInsights);
+    // Get ALL strategies sorted by performance (best first)
+    const allStrategiesSorted = selectBestStrategies(allAvailableStrategies, 0, cachedInsights);
     
-    const variantPromises = strategyKeys.map(async (strategyKey) => {
+    // Test all available strategies, each with weight based on historical performance
+    const variantPromises = allStrategiesSorted.map(async (strategyKey, index) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
@@ -1029,15 +1030,16 @@ async function saveBatchInsights(supabase: any, userId: string, aiProvider: stri
   }
 }
 
-// Select best strategies based on cached insights
+// Select and prioritize strategies based on cached insights
+// Returns ALL strategies but sorted by performance (best first)
 function selectBestStrategies(allStrategies: string[], variantCount: number, cachedInsights: any): string[] {
   if (!cachedInsights.hasCachedData || cachedInsights.totalOptimizations < 3) {
-    // Not enough cached data, use default order
-    console.log('Using default strategy order - insufficient cached data');
-    return allStrategies.slice(0, variantCount);
+    // Not enough cached data, return all strategies in default order
+    console.log('Using all strategies in default order - insufficient cached data');
+    return allStrategies;
   }
 
-  // Sort strategies by cached performance
+  // Sort ALL strategies by cached performance (best first)
   const strategyScores = allStrategies.map(strategy => ({
     strategy,
     score: cachedInsights.strategies[strategy]?.avgScore || 0.5,
@@ -1051,17 +1053,10 @@ function selectBestStrategies(allStrategies: string[], variantCount: number, cac
     return scoreB - scoreA;
   });
   
-  // Take top performers but ensure some variety
-  const selected = strategyScores.slice(0, Math.ceil(variantCount * 0.8)).map(s => s.strategy);
-  
-  // Add exploration strategies if needed
-  if (selected.length < variantCount) {
-    const remaining = allStrategies.filter(s => !selected.includes(s));
-    selected.push(...remaining.slice(0, variantCount - selected.length));
-  }
-  
-  console.log(`Selected strategies based on cached insights: ${selected.join(', ')}`);
-  return selected.slice(0, variantCount);
+  // Return ALL strategies, sorted by performance
+  const sorted = strategyScores.map(s => s.strategy);
+  console.log(`Testing all ${sorted.length} strategies, prioritized by performance: ${sorted.join(', ')}`);
+  return sorted;
 }
 
 // Extract successful patterns from optimized prompts

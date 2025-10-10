@@ -195,35 +195,22 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     return true;
   });
   
-  const numVariants = Math.min(Math.max(requestedVariants || 1, 1), availableStrategies.length);
+  // Test ALL available strategies, sorted by performance (best first)
+  const allStrategiesSorted = selectBestStrategiesFromInsights(availableStrategies, availableStrategies.length, insights);
   
-  // Duplicate strategies if we need more variants than available strategies
-  let selectedStrategies = [];
-  if (numVariants <= availableStrategies.length) {
-    selectedStrategies = selectBestStrategiesFromInsights(availableStrategies, numVariants, insights);
-  } else {
-    // If user wants more variants than strategies, repeat best strategies with variation
-    const baseStrategies = selectBestStrategiesFromInsights(availableStrategies, availableStrategies.length, insights);
-    selectedStrategies = [...baseStrategies];
-    // Add variations of the best strategies
-    while (selectedStrategies.length < numVariants) {
-      selectedStrategies.push(baseStrategies[selectedStrategies.length % baseStrategies.length]);
-    }
-  }
-  
-  console.log(`📊 Speed mode generating ${numVariants} variants using strategies: ${selectedStrategies.join(', ')}`);
+  console.log(`📊 Speed mode testing ALL ${allStrategiesSorted.length} strategies (prioritized by performance): ${allStrategiesSorted.join(', ')}`);
   
   // Track uniqueness
   const seen = new Set<string>();
   
-  // Generate variants using selected strategies (run in parallel for speed)
+  // Generate variants using ALL strategies (run in parallel for speed)
   const optimizationModel = OPTIMIZATION_MODELS[aiProvider] || modelName;
-  const tasks = selectedStrategies.slice(0, numVariants).map((strategy, i) => (async () => {
+  const tasks = allStrategiesSorted.map((strategy, i) => (async () => {
     const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights, influence, influenceWeight, maxTokens);
 
     let optimizedPrompt = '';
     try {
-      console.log(`🔄 Generating variant ${i + 1}/${numVariants} using strategy: ${strategy}`);
+      console.log(`🔄 Generating variant ${i + 1}/${allStrategiesSorted.length} using strategy: ${strategy}`);
       const tempForVariant = Math.min(1, Math.max(0.1, (temperature ?? 0.7) + i * 0.1));
       optimizedPrompt = await callAIProvider(
         aiProvider,
