@@ -229,14 +229,9 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       localStorage.removeItem('promptOptimizer_originalPrompt');
       localStorage.removeItem('promptOptimizer_taskDescription');
 
-      if (!opts?.resume) {
-        // Only toast when user initiated, not on resume
-        toast({ title: 'Success', description: `Prompt optimized successfully using ${p.mode} mode!` });
-      }
     } catch (err: any) {
       console.error('Error optimizing prompt:', err);
       setError(err?.message || 'Unknown error');
-      toast({ title: 'Error', description: 'Failed to optimize prompt. Please try again.', variant: 'destructive' });
     } finally {
       setIsOptimizing(false);
       runningRef.current = false;
@@ -313,11 +308,6 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           runningRef.current = false;
           localStorage.removeItem('promptOptimizer_isOptimizing');
           localStorage.removeItem('promptOptimizer_startTime');
-          toast({ 
-            title: 'Optimization Timeout', 
-            description: 'The optimization took too long and was cancelled. Please try again.', 
-            variant: 'destructive' 
-          });
         }
       }
     };
@@ -326,42 +316,62 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     return () => clearInterval(id);
   }, [isOptimizing, optimizationStartTime, toast]);
 
-  // Phase 3: Add visibility change detection for background optimization safety
+  // Handle background optimization completion on visibility change
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && isOptimizing && payload) {
-        console.log('🔄 User returned to page - checking for background completion...');
-        
-        // Check if optimization completed while away
-        const storedResult = localStorage.getItem(`promptOptimizer_result_${payload.mode}`);
-        if (storedResult) {
-          console.log('✅ Found background-completed results on visibility change');
-          try {
-            const parsedResult = JSON.parse(storedResult);
-            
-            // Always clear loading state and update results, regardless of current state
-            // (React state updates may be stale)
-            setIsOptimizing(false);
-            runningRef.current = false;
-            
-            if (payload.mode === 'speed') {
-              setSpeedResult(parsedResult);
-            } else {
-              setResult(parsedResult);
-            }
-            
-            appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
-            localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
-          } catch (e) {
-            console.error('❌ Error parsing background result:', e);
+    const handleVisibilityChange = async () => {
+      // Only check when tab becomes visible
+      if (document.hidden) return;
+      
+      // Check both speed and deep results regardless of current state
+      const storedSpeedResult = localStorage.getItem('promptOptimizer_result_speed');
+      const storedDeepResult = localStorage.getItem('promptOptimizer_result_deep');
+      
+      if (storedSpeedResult) {
+        console.log('✅ Found completed speed optimization from background');
+        try {
+          const parsedResult = JSON.parse(storedSpeedResult);
+          setSpeedResult(parsedResult);
+          setIsOptimizing(false);
+          runningRef.current = false;
+          
+          // Get payload from localStorage
+          const storedPayload = localStorage.getItem('promptOptimizer_payload');
+          if (storedPayload) {
+            const payload = JSON.parse(storedPayload);
+            await appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
           }
+          
+          localStorage.removeItem('promptOptimizer_result_speed');
+        } catch (e) {
+          console.error('❌ Error parsing background speed result:', e);
+        }
+      }
+      
+      if (storedDeepResult) {
+        console.log('✅ Found completed deep optimization from background');
+        try {
+          const parsedResult = JSON.parse(storedDeepResult);
+          setResult(parsedResult);
+          setIsOptimizing(false);
+          runningRef.current = false;
+          
+          // Get payload from localStorage
+          const storedPayload = localStorage.getItem('promptOptimizer_payload');
+          if (storedPayload) {
+            const payload = JSON.parse(storedPayload);
+            await appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+          }
+          
+          localStorage.removeItem('promptOptimizer_result_deep');
+        } catch (e) {
+          console.error('❌ Error parsing background deep result:', e);
         }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isOptimizing, payload, appendToHistory]);
+  }, [appendToHistory]);
 
   const value: OptimizerSessionContextValue = {
     isOptimizing,
