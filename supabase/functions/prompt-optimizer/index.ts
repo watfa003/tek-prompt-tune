@@ -217,11 +217,13 @@ serve(async (req) => {
       return true;
     });
     
-    // Get ALL strategies sorted by performance (best first)
+    // Get ALL strategies sorted by performance, then take only the requested count
     const allStrategiesSorted = selectBestStrategies(allAvailableStrategies, 0, cachedInsights);
+    const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allStrategiesSorted.length);
+    const selectedStrategies = allStrategiesSorted.slice(0, variantCount);
     
-    // Test all available strategies, each with weight based on historical performance
-    const variantPromises = allStrategiesSorted.map(async (strategyKey, index) => {
+    // Test only the requested number of strategies, prioritized by performance
+    const variantPromises = selectedStrategies.map(async (strategyKey, index) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {

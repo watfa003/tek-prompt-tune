@@ -440,6 +440,7 @@ const PromptOptimizerForm = ({
               <SelectItem value="3">3 Variants</SelectItem>
               <SelectItem value="4">4 Variants</SelectItem>
               <SelectItem value="5">5 Variants</SelectItem>
+              <SelectItem value="7">7 Variants</SelectItem>
             </SelectContent>
           </Select>
         </div>

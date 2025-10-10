@@ -225,6 +225,7 @@ export const UserSettings = () => {
                 <SelectItem value="1">1 Variant</SelectItem>
                 <SelectItem value="3">3 Variants</SelectItem>
                 <SelectItem value="5">5 Variants</SelectItem>
+                <SelectItem value="7">7 Variants</SelectItem>
                 <SelectItem value="10">10 Variants</SelectItem>
               </SelectContent>
             </Select>
