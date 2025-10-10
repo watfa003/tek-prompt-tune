@@ -303,8 +303,8 @@ serve(async (req) => {
         }
         optimizationPrompt += `\n\n=== CREATIVITY STYLE (Textual guidance only) ===\nTarget: ${creativityLabel}\nGuidance:\n${creativityGuidance}\n- Embed wording in the improved prompt to achieve this style without referencing model parameters.`;
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
-        // Ensure minimum 256 tokens for optimization, but use at least 512 for testing
-        const optimizationTokens = Math.max(256, Math.min(maxTokens, 4096));
+        // Ensure minimum 1024 tokens for optimization to avoid MAX_TOKENS errors
+        const optimizationTokens = Math.max(1024, Math.min(maxTokens, 4096));
         const optimizedPromptRaw = await callAIProvider(
           aiProvider, 
           optimizationModel, 
