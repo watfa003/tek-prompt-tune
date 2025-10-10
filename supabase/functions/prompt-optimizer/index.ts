@@ -104,6 +104,23 @@ const OPTIMIZATION_STRATEGIES = {
     name: "Constraints and Format",
     systemPrompt: "You are a prompt optimization expert. Your job is to add constraints, acceptance criteria, and a precise output format. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.1
+  },
+  elaboration: {
+    name: "Elaboration & Context Expansion",
+    systemPrompt: "You are a prompt optimization expert. Your job is to expand this prompt to include relevant context, reasoning guidance, and implicit assumptions to make the AI's answer more complete. Add depth without becoming verbose. Do NOT answer the prompt - only improve how it asks the question:",
+    weight: 0.12,
+    condition: (prompt: string) => prompt.length < 200 // Trigger for short/under-contextualized prompts
+  },
+  intent: {
+    name: "User Intent Alignment",
+    systemPrompt: "You are a prompt optimization expert. Your job is to rewrite this prompt so that it better aligns with the user's likely goal or outcome. Translate vague requests into actionable, specific instructions. Do NOT answer the prompt - only improve how it asks the question:",
+    weight: 0.12,
+    condition: (prompt: string) => /\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(prompt) // Trigger for vague verbs
+  },
+  adaptability: {
+    name: "Adaptability Optimization",
+    systemPrompt: "You are a prompt optimization expert. Your job is to adapt this prompt for consistent results across multiple AI models and contexts. Focus on universal clarity and model-agnostic instructions. Do NOT answer the prompt - only improve how it asks the question:",
+    weight: 0.10
   }
 };
 
