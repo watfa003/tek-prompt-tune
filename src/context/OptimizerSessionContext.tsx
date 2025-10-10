@@ -297,9 +297,38 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     }
   }, [appendToHistory, toast]);
 
-  // Resume on load if we were optimizing and have payload but no results
+  // Re-sync state on mount to check if results already exist
   useEffect(() => {
-    if (isOptimizing && payload && !result && !speedResult && !runningRef.current) {
+    const cachedSpeedResult = localStorage.getItem('promptOptimizer_result_speed');
+    const cachedDeepResult = localStorage.getItem('promptOptimizer_result_deep');
+    const isRunning = localStorage.getItem('promptOptimizer_isOptimizing');
+    
+    // If we already have results, force-finish the loading state
+    if (cachedSpeedResult || cachedDeepResult) {
+      try {
+        if (cachedSpeedResult) {
+          const parsed = JSON.parse(cachedSpeedResult);
+          if (parsed?.bestOptimizedPrompt) {
+            console.log('✅ Found completed speed result on mount - ending loading state');
+            setIsOptimizing(false);
+            setSpeedResult(parsed);
+            localStorage.removeItem('promptOptimizer_result_speed');
+          }
+        }
+        if (cachedDeepResult) {
+          const parsed = JSON.parse(cachedDeepResult);
+          if (parsed?.bestOptimizedPrompt) {
+            console.log('✅ Found completed deep result on mount - ending loading state');
+            setIsOptimizing(false);
+            setResult(parsed);
+            localStorage.removeItem('promptOptimizer_result_deep');
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing cached results on mount:', e);
+      }
+    } else if (isRunning === 'true' && isOptimizing && payload && !result && !speedResult && !runningRef.current) {
+      // Only show optimizing if nothing has completed yet
       console.log('Resume check: isOptimizing=true, checking for cached results...');
       
       // CRITICAL: Check localStorage for completed results FIRST before resuming
@@ -349,6 +378,9 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       }, 100);
       
       return () => clearTimeout(timeoutId);
+    } else if (!isRunning || isRunning !== 'true') {
+      // Ensure we're not stuck in loading state
+      setIsOptimizing(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
