@@ -634,10 +634,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      auto_cleanup_old_data: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       decrement_template_favorites: {
         Args: { template_id: string }
         Returns: undefined
