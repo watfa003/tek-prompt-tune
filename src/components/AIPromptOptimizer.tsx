@@ -869,22 +869,22 @@ export const AIPromptOptimizer: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center p-4 rounded-lg bg-muted/50">
                 <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <div className="text-lg font-bold">+{Math.round(result.summary.improvementScore * 100)}%</div>
+                <div className="text-lg font-bold">+{Math.round(((result.summary?.improvementScore ?? 0) * 100))}%</div>
                 <div className="text-xs text-muted-foreground">Improvement</div>
               </div>
               <div className="text-center p-4 rounded-lg bg-muted/50">
                 <Target className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <div className="text-lg font-bold">{result.summary.totalVariants}</div>
+                <div className="text-lg font-bold">{result.summary?.totalVariants ?? (result.variants?.length ?? 0)}</div>
                 <div className="text-xs text-muted-foreground">Variants</div>
               </div>
               <div className="text-center p-4 rounded-lg bg-muted/50">
                 <BarChart3 className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <div className="text-lg font-bold">{result.summary.bestStrategy}</div>
+                <div className="text-lg font-bold">{result.summary?.bestStrategy ?? 'N/A'}</div>
                 <div className="text-xs text-muted-foreground">Best Strategy</div>
               </div>
               <div className="text-center p-4 rounded-lg bg-muted/50">
                 <Zap className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <div className="text-lg font-bold">{Math.round(result.summary.processingTimeMs / 1000)}s</div>
+                <div className="text-lg font-bold">{Math.round(((result.summary?.processingTimeMs ?? 0) / 1000))}s</div>
                 <div className="text-xs text-muted-foreground">Processing Time</div>
               </div>
             </div>
@@ -931,7 +931,7 @@ export const AIPromptOptimizer: React.FC = () => {
               </TabsContent>
 
               <TabsContent value="variants" className="space-y-4">
-                {result.variants.map((variant, index) => (
+                {(result.variants || []).map((variant, index) => (
                   <Card key={index} className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
@@ -953,13 +953,25 @@ export const AIPromptOptimizer: React.FC = () => {
                       <p className="text-sm whitespace-pre-wrap">{variant.prompt}</p>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
-                      <div>Tokens: {variant.metrics.tokens_used}</div>
-                      <div>Response Length: {variant.metrics.response_length}</div>
-                      <div>Prompt Length: {variant.metrics.prompt_length}</div>
-                      <div>Strategy Weight: {variant.metrics.strategy_weight}%</div>
+                      <div>Tokens: {variant.metrics?.tokens_used ?? '—'}</div>
+                      <div>Response Length: {variant.metrics?.response_length ?? '—'}</div>
+                      <div>Prompt Length: {variant.metrics?.prompt_length ?? '—'}</div>
+                      <div>Strategy Weight: {variant.metrics?.strategy_weight ?? '—'}{typeof variant.metrics?.strategy_weight === 'number' ? '%' : ''}</div>
                     </div>
                   </Card>
                 ))}
+                {(!result.variants || result.variants.length === 0) && (
+                  <Card className="p-4">
+                    <div className="font-medium mb-2">No variants available</div>
+                    <div className="text-sm text-muted-foreground mb-3">
+                      This session result doesn't include variant details. Generate again to view all variants.
+                    </div>
+                    <Button variant="outline" onClick={optimizePrompt}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Generate Variants
+                    </Button>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="comparison" className="space-y-4">
