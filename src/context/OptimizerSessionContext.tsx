@@ -156,7 +156,15 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   }, [addPromptToHistory]);
 
   const startOptimization = useCallback(async (p: OptimizerPayload, opts?: { resume?: boolean }) => {
-    if (runningRef.current) return; // prevent duplicate calls
+    // Cancel any ongoing optimization and start fresh
+    if (runningRef.current && !opts?.resume) {
+      console.log('Canceling ongoing optimization to start new one');
+      runningRef.current = false;
+      setIsOptimizing(false);
+      setResult(null);
+      setSpeedResult(null);
+      setError(null);
+    }
     
     // If resuming, first check if we already have results stored that came in while away
     if (opts?.resume) {
