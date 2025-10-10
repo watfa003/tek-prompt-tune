@@ -491,6 +491,99 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isOptimizing, payload, appendToHistory]);
 
+  // Cross-tab/background sync: react to localStorage updates from other tabs/windows
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      try {
+        if (!e.key) return;
+        if (payload && e.key === `promptOptimizer_result_${payload.mode}` && e.newValue) {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed?.bestOptimizedPrompt) {
+            console.log('📥 Storage event: loaded background result');
+            setIsOptimizing(false);
+            runningRef.current = false;
+            if (payload.mode === 'speed') setSpeedResult(parsed); else setResult(parsed);
+            appendToHistory(parsed, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+            localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
+          }
+        }
+        if (e.key === 'promptOptimizer_isOptimizing' && e.newValue === 'false') {
+          setIsOptimizing(false);
+          runningRef.current = false;
+        }
+      } catch (err) {
+        console.error('Error handling storage event:', err);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [payload, appendToHistory]);
+
+  // Robust polling while optimizing: periodically check cache and DB so state never gets stuck
+  useEffect(() => {
+    if (!isOptimizing || !payload) return;
+
+    let active = true;
+    const check = async () => {
+      if (!active) return;
+      try {
+        const key = `promptOptimizer_result_${payload.mode}`;
+        const cached = localStorage.getItem(key);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.bestOptimizedPrompt) {
+            console.log('⏱️ Poll: found cached result, finalizing');
+            setIsOptimizing(false);
+            runningRef.current = false;
+            if (payload.mode === 'speed') setSpeedResult(parsed); else setResult(parsed);
+            appendToHistory(parsed, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+            localStorage.removeItem(key);
+            return;
+          }
+        }
+        // DB fallback
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: completedPrompts } = await supabase
+            .from('prompts')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('original_prompt', payload.originalPrompt)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (completedPrompts && completedPrompts.length > 0) {
+            const dbPrompt = completedPrompts[0];
+            const dbResult = {
+              promptId: dbPrompt.id,
+              originalPrompt: dbPrompt.original_prompt,
+              bestOptimizedPrompt: dbPrompt.optimized_prompt,
+              bestScore: dbPrompt.score || 0,
+              variants: [],
+              summary: dbPrompt.performance_metrics
+            };
+            console.log('⏱️ Poll: found DB-completed result, finalizing');
+            setIsOptimizing(false);
+            runningRef.current = false;
+            if (payload.mode === 'speed') setSpeedResult(dbResult); else setResult(dbResult);
+            appendToHistory(dbResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    };
+
+    // initial check + interval
+    check();
+    const id = setInterval(check, 15000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, [isOptimizing, payload, appendToHistory]);
+
   const value: OptimizerSessionContextValue = {
     isOptimizing,
     optimizationStartTime,
