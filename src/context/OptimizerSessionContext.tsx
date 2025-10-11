@@ -188,7 +188,10 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           } else {
             setResult(parsedResult);
           }
-          await appendToHistory(parsedResult, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+          // Only append deep mode to history, skip speed mode
+          if (p.mode === 'deep') {
+            await appendToHistory(parsedResult, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+          }
           localStorage.removeItem(`promptOptimizer_result_${p.mode}`);
           setIsOptimizing(false);
           runningRef.current = false;
@@ -263,7 +266,10 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
               setResult(dbResult);
             }
             
-            await appendToHistory(dbResult, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+            // Only append deep mode to history, skip speed mode
+            if (p.mode === 'deep') {
+              await appendToHistory(dbResult, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+            }
             setIsOptimizing(false);
             runningRef.current = false;
             return;
@@ -310,10 +316,12 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         setResult(data);
       }
 
-      // Append to history first, then store in localStorage
-      await appendToHistory(data, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+      // Only append deep mode to history, skip speed mode
+      if (p.mode === 'deep') {
+        await appendToHistory(data, p.aiProvider, p.modelName, p.outputType, p.originalPrompt);
+      }
       
-      // Now that all processing is done, store result for background completion detection
+      // Store result for background completion detection
       localStorage.setItem(`promptOptimizer_result_${p.mode}`, JSON.stringify(data));
 
       // Clear draft prompt fields after success, but keep results for viewing
@@ -388,8 +396,10 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
             setResult(parsedResult);
           }
           
-          // Add to history
-          appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+          // Only append deep mode to history, skip speed mode
+          if (payload.mode === 'deep') {
+            appendToHistory(parsedResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+          }
           
           // Clean up localStorage
           localStorage.removeItem(`promptOptimizer_result_${payload.mode}`);
@@ -611,7 +621,10 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
               setIsOptimizing(false);
               runningRef.current = false;
               if (payload.mode === 'speed') setSpeedResult(dbResult); else setResult(dbResult);
-              appendToHistory(dbResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+              // Only append deep mode to history, skip speed mode
+              if (payload.mode === 'deep') {
+                appendToHistory(dbResult, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt);
+              }
               return;
             } else {
               console.log('⏱️ Poll: ignoring stale DB result from previous run');
