@@ -228,35 +228,51 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
             
             console.log(`Fetched ${historyVariants?.length || 0} variants from history`);
             
-            // Reconstruct variants array
-            const variants = (historyVariants || []).map((v: any) => ({
-              prompt: v.variant_prompt,
-              strategy: 'optimization',
-              score: v.score || 0,
-              response: v.ai_response || '',
-              metrics: v.metrics || {
-                tokens_used: v.tokens_used || 0,
-                response_length: v.ai_response?.length || 0,
-                prompt_length: v.variant_prompt?.length || 0,
-                strategy_weight: 0
-              }
-            }));
-            
-            // Get processing time from variants or use 0
-            const processingTimeMs = historyVariants?.[0]?.generation_time_ms || 0;
+            // Reconstruct variants array with proper strategy/metrics
+            const variants = (historyVariants || []).map((v: any) => {
+              const metrics = v.metrics || {};
+              const prompt = v.variant_prompt ?? metrics.prompt ?? '';
+              const response = v.ai_response ?? metrics.response ?? '';
+              const strategy = metrics.strategy || metrics.bestStrategy || metrics.optimization_strategy || v.strategy || 'unknown';
+              const tokens_used = v.tokens_used ?? metrics.tokens_used ?? 0;
+              const processing_time_ms = metrics.processing_time_ms ?? v.generation_time_ms ?? metrics.generation_time_ms ?? 0;
+              const response_length = response?.length ?? metrics.response_length ?? 0;
+              const prompt_length = prompt?.length ?? metrics.prompt_length ?? 0;
+              const score = v.score ?? metrics.score ?? 0;
+
+              return {
+                prompt,
+                strategy,
+                score,
+                response,
+                metrics: {
+                  ...metrics,
+                  tokens_used,
+                  response_length,
+                  prompt_length,
+                  processing_time_ms,
+                },
+              };
+            });
+
+            // Compute best variant and processing time totals
+            const bestVariant = variants.reduce((acc: any, cur: any) =>
+              cur.score > (acc?.score ?? -Infinity) ? cur : acc, null as any);
+            const processingTimeMs = variants.reduce((sum: number, vv: any) =>
+              sum + (vv.metrics?.processing_time_ms ?? 0), 0);
             
             // Reconstruct result object from database with full variants
             const dbResult = {
               promptId: dbPrompt.id,
               originalPrompt: dbPrompt.original_prompt,
               bestOptimizedPrompt: dbPrompt.optimized_prompt,
-              bestScore: dbPrompt.score || 0,
+              bestScore: dbPrompt.score || bestVariant?.score || 0,
               variants: variants,
               summary: dbPrompt.performance_metrics || {
-                improvementScore: dbPrompt.score || 0,
-                bestStrategy: 'database',
+                improvementScore: dbPrompt.score || bestVariant?.score || 0,
+                bestStrategy: bestVariant?.strategy || 'unknown',
                 totalVariants: variants.length,
-                processingTimeMs: processingTimeMs
+                processingTimeMs,
               }
             };
 
