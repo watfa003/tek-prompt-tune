@@ -450,7 +450,7 @@ serve(async (req) => {
             variant_prompt: variant.prompt,
             ai_response: variant.response,
             score: variant.score,
-            metrics: variant.metrics,
+            metrics: { ...variant.metrics, strategy: variant.strategy, optimization_strategy: variant.strategy },
             generation_time_ms: processingTime,
             tokens_used: variant.metrics.tokens_used
           })
@@ -466,8 +466,10 @@ serve(async (req) => {
             score: bestVariant.score,
             performance_metrics: {
               best_strategy: bestVariant.strategy,
+              bestStrategy: bestVariant.strategy,
               total_variants: optimizedVariants.length,
               processing_time_ms: processingTime,
+              processingTimeMs: processingTime,
               average_score: optimizedVariants.reduce((sum, v) => sum + v.score, 0) / optimizedVariants.length
             },
             variants_generated: optimizedVariants.length,
