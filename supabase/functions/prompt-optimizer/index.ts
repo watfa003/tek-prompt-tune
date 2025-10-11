@@ -398,6 +398,7 @@ serve(async (req) => {
         return {
           prompt: optimizedPrompt,
           strategy: strategy.name,
+          strategyKey: strategyKey,
           score: actualScore,
           response: actualResponse,
             metrics: {
@@ -925,7 +926,7 @@ async function saveBatchInsights(supabase: any, userId: string, aiProvider: stri
     optimizedVariants.forEach(variant => {
       if (variant.score > 0.7) {
         const patterns = extractSuccessfulPatterns(variant.prompt);
-        const strategyKey = identifyStrategy(variant.strategy);
+        const strategyKey = (variant.strategyKey ?? identifyStrategy(variant.strategy));
         
         if (!successfulStrategies[strategyKey]) {
           successfulStrategies[strategyKey] = { 
@@ -1126,13 +1127,15 @@ function selectBestStrategies(
     
     const strategyData = cachedInsights.strategies[strategy];
     if (strategyData) {
-      // Check for LLM-specific performance data first
-      if (llmKey && strategyData.byLLM && strategyData.byLLM[llmKey]) {
-        score = strategyData.byLLM[llmKey].avgScore || 0.5;
-        count = strategyData.byLLM[llmKey].count || 0;
+      // Check for LLM-specific performance data first with legacy fallbacks
+      const byLLM = strategyData.byLLM ?? strategyData.by_llm;
+      if (llmKey && byLLM && byLLM[llmKey]) {
+        const llmData = byLLM[llmKey];
+        score = (llmData.avgScore ?? llmData.avg_score ?? 0.5);
+        count = llmData.count ?? 0;
       } else {
-        score = strategyData.avgScore || 0.5;
-        count = strategyData.count || 0;
+        score = (strategyData.avgScore ?? strategyData.avg_score ?? 0.5);
+        count = strategyData.count ?? 0;
       }
     }
     

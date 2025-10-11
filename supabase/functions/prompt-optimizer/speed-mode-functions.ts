@@ -320,13 +320,14 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     return {
       prompt: optimizedPrompt,
       strategy: getStrategyDisplayName(strategy),
+      strategyKey: strategy,
       response: `Optimization completed using ${getStrategyDisplayName(strategy)} strategy`,
       metrics: {
         tokens_used: optimizedPrompt.length,
         prompt_length: originalPrompt.length,
         strategy_weight: getStrategyWeight(strategy) * 100
       }
-    };
+    ;
   })());
 
   const settled = await Promise.allSettled(tasks);
