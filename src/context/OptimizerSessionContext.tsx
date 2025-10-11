@@ -632,16 +632,26 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     };
   }, [isOptimizing, payload, optimizationStartTime, appendToHistory]);
 
-  // Hydrate variants after resume when only best prompt is present
+  // Hydrate and enrich variants/summary on resume so strategies and timings always show
   const hydratedIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     const hydrate = async () => {
       try {
         if (!result?.promptId) return;
+
         const hasVariants = Array.isArray(result.variants) && result.variants.length > 0;
-        if (hasVariants) return;
+        const missingVariantStrategy = hasVariants
+          ? (result.variants as any[]).some((v: any) => !v?.strategy || v.strategy === 'optimization' || v.strategy === 'unknown')
+          : true;
+        const missingSummary = !result.summary ||
+          result.summary.bestStrategy == null ||
+          result.summary.processingTimeMs == null ||
+          result.summary.improvementScore == null;
+
+        if (!missingVariantStrategy && !missingSummary) return;
+
+        // Prevent duplicate hydration after successful enrichment
         if (hydratedIdsRef.current.has(result.promptId)) return;
-        hydratedIdsRef.current.add(result.promptId);
 
         const { data: historyVariants, error: histErr } = await supabase
           .from('optimization_history')
@@ -652,31 +662,57 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           console.error('hydrateVariants error:', histErr);
           return;
         }
-        if (!historyVariants || historyVariants.length === 0) return;
 
-        const variants = historyVariants.map((v: any) => ({
-          prompt: v.variant_prompt,
-          strategy: 'optimization',
-          score: v.score || 0,
-          response: v.ai_response || '',
-          metrics: v.metrics || {
-            tokens_used: v.tokens_used || 0,
-            response_length: (v.ai_response?.length) || 0,
-            prompt_length: (v.variant_prompt?.length) || 0,
-            strategy_weight: 0,
-          },
-        }));
+        const sourceVariants = (historyVariants && historyVariants.length > 0)
+          ? historyVariants
+          : (result.variants || []);
+
+        if (!sourceVariants || sourceVariants.length === 0) return;
+
+        const variants = sourceVariants.map((v: any) => {
+          const metrics = v.metrics || {};
+          const prompt = v.variant_prompt ?? v.prompt ?? '';
+          const response = v.ai_response ?? v.response ?? '';
+          const strategy = metrics.strategy || metrics.bestStrategy || metrics.optimization_strategy || v.strategy || 'unknown';
+          const tokens_used = v.tokens_used ?? metrics.tokens_used ?? 0;
+          const processing_time_ms = metrics.processing_time_ms ?? v.generation_time_ms ?? metrics.generation_time_ms ?? 0;
+          const response_length = response?.length ?? metrics.response_length ?? 0;
+          const prompt_length = prompt?.length ?? metrics.prompt_length ?? 0;
+          const score = v.score ?? metrics.score ?? 0;
+
+          return {
+            prompt,
+            strategy,
+            score,
+            response,
+            metrics: {
+              ...metrics,
+              tokens_used,
+              response_length,
+              prompt_length,
+              processing_time_ms,
+            },
+          };
+        });
+
+        const bestVariant = variants.reduce((acc: any, cur: any) =>
+          cur.score > (acc?.score ?? -Infinity) ? cur : acc, null as any);
+        const processingTimeMs = variants.reduce((sum: number, vv: any) =>
+          sum + (vv.metrics?.processing_time_ms ?? 0), 0);
 
         setResult(prev => {
           if (!prev || prev.promptId !== result.promptId) return prev;
-          const summary = prev.summary || {
-            improvementScore: prev.bestScore || 0,
-            bestStrategy: 'database',
+          const summary = {
+            ...prev.summary,
+            improvementScore: prev.summary?.improvementScore ?? bestVariant?.score ?? prev.bestScore ?? 0,
+            bestStrategy: prev.summary?.bestStrategy ?? bestVariant?.strategy ?? 'unknown',
             totalVariants: variants.length,
-            processingTimeMs: historyVariants?.[0]?.generation_time_ms || 0,
+            processingTimeMs: prev.summary?.processingTimeMs ?? processingTimeMs,
           };
           return { ...prev, variants, summary } as OptimizationResult;
         });
+
+        hydratedIdsRef.current.add(result.promptId);
       } catch (e) {
         console.error('hydrateVariants exception:', e);
       }
