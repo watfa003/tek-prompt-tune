@@ -542,46 +542,64 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
   };
 }
 
-// Build deep-mode style instruction for the LLM
+// Build instruction identical to deep mode - CRITICAL: keep exact same logic across modes
 function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any, influence: string = '', influenceWeight: number = 0, maxTokens: number = 1024): string {
-  let instruction = '';
-  
-  // CRITICAL: Add task description as meta-instructions FIRST
-  const metaInstructions = taskDescription ? `\n\n=== HOW TO OPTIMIZE (Meta-instructions) ===\nThe following are guidance on HOW you should optimize this prompt. These are NOT part of the prompt itself:\n${taskDescription}\n\n` : '';
-  
-  // CRITICAL: Explicitly state which strategy to use
-  switch (strategy) {
-    case 'clarity':
-      instruction = `You are optimizing a prompt using the CLARITY ENHANCEMENT strategy. Make this prompt clearer and more specific:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
-      break;
-    case 'specificity':
-      instruction = `You are optimizing a prompt using the SPECIFICITY IMPROVEMENT strategy. Add specific details and examples to this prompt:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
-      if (insights?.successful_strategies?.specificity?.patterns?.length > 0) {
-        instruction += `\n\nSuccessful patterns for this strategy: ${insights.successful_strategies.specificity.patterns.slice(0, 3).join(', ')}`;
-      }
-      break;
-    case 'structure':
-      instruction = `You are optimizing a prompt using the STRUCTURE AND STEPS strategy. Improve the logical structure with step-by-step instructions and sections:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
-      break;
-    case 'efficiency':
-      instruction = `You are optimizing a prompt using the EFFICIENCY OPTIMIZATION strategy. Optimize this prompt for better AI performance:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
-      break;
-    case 'constraints':
-      instruction = `You are optimizing a prompt using the CONSTRAINTS AND FORMAT strategy. Add constraints, acceptance criteria, and a precise output format:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
-      break;
-    case 'elaboration':
-      instruction = `You are optimizing a prompt using the ELABORATION & CONTEXT EXPANSION strategy. Expand this prompt to include relevant context, reasoning guidance, and implicit assumptions to make the AI's answer more complete:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
-      break;
-    case 'intent':
-      instruction = `You are optimizing a prompt using the USER INTENT ALIGNMENT strategy. Rewrite this prompt so that it better aligns with the user's likely goal or outcome. Translate vague requests into actionable, specific instructions:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
-      break;
-    case 'adaptability':
-      instruction = `You are optimizing a prompt using the ADAPTABILITY OPTIMIZATION strategy. Adapt this prompt for consistent results across multiple AI models and contexts. Focus on universal clarity and model-agnostic instructions:${metaInstructions}\nOriginal prompt to optimize:\n${originalPrompt}`;
-      break;
+  const STRATEGY_CONFIGS = {
+    clarity: {
+      name: 'CLARITY ENHANCEMENT',
+      systemPrompt: 'You are a prompt optimization expert. Your job is to make the given prompt clearer and more specific while PRESERVING THE EXACT INTENT AND ACTION. If the user asks to \'say hello\', the optimized prompt should still result in the AI saying \'hello\' - just with better structure. Do NOT change what the user is asking for - only improve HOW they\'re asking for it:'
+    },
+    specificity: {
+      name: 'SPECIFICITY IMPROVEMENT',
+      systemPrompt: 'You are a prompt optimization expert. Your job is to add specific details to make this prompt more precise while KEEPING THE CORE REQUEST UNCHANGED. If the user asks to \'write code\', don\'t ask for \'analyze code\' instead. Preserve their exact intent and action. Do NOT answer the prompt - only improve how it asks the question:'
+    },
+    efficiency: {
+      name: 'EFFICIENCY OPTIMIZATION',
+      systemPrompt: 'You are a prompt optimization expert. Your job is to optimize this prompt for better AI performance while MAINTAINING THE EXACT SAME GOAL. Do not change what the user wants to accomplish. If they ask to generate something, keep it as generate. If they ask to explain, keep it as explain. Do NOT answer the prompt - only improve how it asks the question:'
+    },
+    structure: {
+      name: 'STRUCTURE AND STEPS',
+      systemPrompt: 'You are a prompt optimization expert. Your job is to improve the logical structure with step-by-step instructions while PRESERVING THE ORIGINAL REQUEST. The end goal must be identical to the original prompt. Do NOT answer the prompt - only improve how it asks the question:'
+    },
+    constraints: {
+      name: 'CONSTRAINTS AND FORMAT',
+      systemPrompt: 'You are a prompt optimization expert. Your job is to add constraints and output format specifications while KEEPING THE CORE ACTION THE SAME. If the user asks to \'say bye\', the optimized version should still tell the AI to say bye, just with better formatting. Do NOT answer the prompt - only improve how it asks the question:'
+    },
+    elaboration: {
+      name: 'ELABORATION & CONTEXT EXPANSION',
+      systemPrompt: 'You are a prompt optimization expert. Your job is to expand this prompt to include relevant context while ABSOLUTELY PRESERVING THE CORE INTENT. The fundamental action/goal must remain unchanged. If they want the AI to output \'hello\', don\'t change it to \'create a greeting\' - keep the exact action but add helpful context. Do NOT answer the prompt - only improve how it asks the question:'
+    },
+    intent: {
+      name: 'USER INTENT ALIGNMENT',
+      systemPrompt: 'You are a prompt optimization expert. Your job is to clarify the user\'s intent and make it more actionable WITHOUT CHANGING THEIR GOAL. If they ask to \'fix code\', keep it as fixing code - don\'t change to \'analyze\' or \'review\'. Preserve the exact verb and outcome. Do NOT answer the prompt - only improve how it asks the question:'
+    },
+    adaptability: {
+      name: 'ADAPTABILITY OPTIMIZATION',
+      systemPrompt: 'You are a prompt optimization expert. Your job is to adapt this prompt for consistent results across multiple AI models while KEEPING THE EXACT SAME REQUEST. Do not alter what the user is asking the AI to do - just make the instructions clearer for different models. Do NOT answer the prompt - only improve how it asks the question:'
+    }
+  };
+
+  const strategyConfig = STRATEGY_CONFIGS[strategy as keyof typeof STRATEGY_CONFIGS];
+  if (!strategyConfig) {
+    throw new Error(`Unknown strategy: ${strategy}`);
   }
-  if (outputType && outputType !== 'text') {
-    instruction += `\n\nEnsure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
+
+  // Build instruction IDENTICAL to deep mode
+  let instruction = `You are optimizing a prompt using the ${strategyConfig.name} strategy.\n\n${strategyConfig.systemPrompt}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
+  
+  // CRITICAL: Add task description as meta-instructions FIRST, before anything else
+  if (taskDescription) {
+    instruction += `\n\n=== HOW TO OPTIMIZE (Meta-instructions) ===\nThe following are guidance on HOW you should optimize this prompt. These are NOT part of the prompt itself:\n${taskDescription}`;
   }
+  
+  // Add cached insights if available
+  const strategyInsights = insights?.strategies?.[strategy];
+  if (strategyInsights?.patterns?.length > 0) {
+    instruction += `\n\nSuccessful patterns for this strategy: ${strategyInsights.patterns.slice(0, 3).join(', ')}`;
+  }
+  
+  // Critical rules: keep user's intent and only improve the prompt
+  instruction += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategyConfig.name} strategy throughout your optimization.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
   
   // UNIFORM influence instructions - exactly the same for ALL variants
   if (influence && influence.trim().length > 0 && influenceWeight > 0) {
@@ -603,12 +621,15 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
     instruction += `\n\n=== INFLUENCE: DISABLED (0%) ===\nA template was provided but set to 0% - COMPLETELY IGNORE IT. Focus only on the original prompt.`;
   }
   
-  // CRITICAL: Only integrate max_tokens if it's set
-  if (maxTokens) {
-    instruction += `\n\nIMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
+  if (outputType && outputType !== 'text') {
+    instruction += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
   }
   
-  instruction += `\n\nRules:\n- Preserve the user's original task and intent.\n- Do NOT generate meta-prompts (e.g., 'create a prompt', 'write code that generates a prompt').\n- Apply the ${strategy.toUpperCase()} strategy throughout your optimization.\n- Return ONLY the improved prompt text with no extra commentary or markdown fences.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+  // CRITICAL: Only integrate max_tokens if it's set
+  if (maxTokens) {
+    instruction += `\n- IMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
+  }
+
   return instruction;
 }
 
