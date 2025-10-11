@@ -34,11 +34,13 @@ export async function handleSpeedMode(
   });
   
   try {
-    // Load cached insights for speed optimization
+    // Load cached insights for speed optimization (LLM-specific)
     const { data: insights } = await supabase
       .from('optimization_insights')
       .select('*')
       .eq('user_id', userId)
+      .eq('ai_provider', aiProvider)
+      .eq('model_name', modelName)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -805,14 +807,18 @@ function selectBestStrategiesFromInsights(
   const strategyScores = new Map();
   
   for (const [strategyKey, strategyData] of Object.entries(insights.successful_strategies)) {
-    if (typeof strategyData === 'object' && strategyData && 'avg_score' in strategyData) {
-      let score = (strategyData as any).avg_score || 0;
-      
+    if (typeof strategyData === 'object' && strategyData) {
+      const sd: any = strategyData;
+      // Support both camelCase (current) and snake_case (legacy)
+      let score = (sd.avgScore ?? sd.avg_score ?? 0.5);
+
       // Prioritize LLM-specific performance if available
-      if (llmKey && (strategyData as any).by_llm && (strategyData as any).by_llm[llmKey]) {
-        score = (strategyData as any).by_llm[llmKey].avg_score || score;
+      const byLLM = sd.byLLM ?? sd.by_llm;
+      if (llmKey && byLLM && byLLM[llmKey]) {
+        const llmData = byLLM[llmKey];
+        score = (llmData.avgScore ?? llmData.avg_score ?? score);
       }
-      
+
       strategyScores.set(strategyKey, score);
     }
   }
