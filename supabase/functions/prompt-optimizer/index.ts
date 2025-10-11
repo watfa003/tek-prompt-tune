@@ -225,9 +225,13 @@ serve(async (req) => {
     const top2BestForLLM = allStrategiesSorted.slice(0, 2);
     const remainingStrategies = allStrategiesSorted.slice(2);
     
-    // Rotate through remaining strategies using timestamp-based offset for continuous testing
-    // This ensures we keep testing different strategies while maintaining consistency with the best 2
-    const rotationOffset = Math.floor(Date.now() / 3600000) % Math.max(1, remainingStrategies.length); // Rotate every hour
+    // Rotate through remaining strategies using a per-request deterministic offset
+    const rotationOffset = (() => {
+      const key = `${userId}:${aiProvider}:${modelName}:${Date.now()}`;
+      let h = 0;
+      for (let i = 0; i < key.length; i++) h = ((h << 5) - h) + key.charCodeAt(i);
+      return Math.abs(h) % Math.max(1, remainingStrategies.length);
+    })();
     const rotatedRemaining = [...remainingStrategies.slice(rotationOffset), ...remainingStrategies.slice(0, rotationOffset)];
     
     // Combine: always top 2 + rotated remaining, up to variant count

@@ -62,7 +62,8 @@ export async function handleSpeedMode(
       maxTokens,
       temperature,
       influence,
-      influenceWeight
+      influenceWeight,
+      userId
     );
     
     const variants = await Promise.race([speedPromise, timeoutPromise]) as any[];
@@ -181,7 +182,7 @@ export async function handleSpeedMode(
 }
 
 // Generate multiple variants using speed heuristics (same strategies as deep mode)
-async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number, influence: string = '', influenceWeight: number = 0): Promise<any[]> {
+async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number, influence: string = '', influenceWeight: number = 0, userId?: string): Promise<any[]> {
   const variants = [];
   
   // Use the same strategy selection logic as deep mode - include all 8 strategies
@@ -205,8 +206,13 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   const top2BestForLLM = allStrategiesSorted.slice(0, 2);
   const remainingStrategies = allStrategiesSorted.slice(2);
   
-  // Rotate through remaining strategies using timestamp-based offset
-  const rotationOffset = Math.floor(Date.now() / 3600000) % Math.max(1, remainingStrategies.length); // Rotate hourly
+  // Rotate through remaining strategies using a per-request deterministic offset
+  const rotationOffset = (() => {
+    const key = `${userId ?? 'anon'}:${aiProvider}:${modelName}:${Date.now()}`;
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = ((h << 5) - h) + key.charCodeAt(i);
+    return Math.abs(h) % Math.max(1, remainingStrategies.length);
+  })();
   const rotatedRemaining = [...remainingStrategies.slice(rotationOffset), ...remainingStrategies.slice(0, rotationOffset)];
   
   // Combine: top 2 + rotated remaining, up to variant count
