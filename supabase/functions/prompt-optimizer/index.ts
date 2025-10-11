@@ -221,19 +221,25 @@ serve(async (req) => {
     const allStrategiesSorted = selectBestStrategies(allAvailableStrategies, 0, cachedInsights, aiProvider, modelName);
     const variantCount = Math.min(Math.max(Number(variants) || 1, 1), allStrategiesSorted.length);
     
-    // Always include top 2 best performers for this LLM, then rotate through others
+    // CRITICAL: Always include top 2 best performers for this specific LLM, then rotate through others for testing
     const top2BestForLLM = allStrategiesSorted.slice(0, 2);
     const remainingStrategies = allStrategiesSorted.slice(2);
     
-    // Rotate through remaining strategies using timestamp-based offset
-    const rotationOffset = Math.floor(Date.now() / 3600000) % Math.max(1, remainingStrategies.length); // Rotate hourly
+    // Rotate through remaining strategies using timestamp-based offset for continuous testing
+    // This ensures we keep testing different strategies while maintaining consistency with the best 2
+    const rotationOffset = Math.floor(Date.now() / 3600000) % Math.max(1, remainingStrategies.length); // Rotate every hour
     const rotatedRemaining = [...remainingStrategies.slice(rotationOffset), ...remainingStrategies.slice(0, rotationOffset)];
     
-    // Combine: top 2 + rotated remaining, up to variant count
+    // Combine: always top 2 + rotated remaining, up to variant count
     const selectedStrategies = [
       ...top2BestForLLM,
       ...rotatedRemaining
     ].slice(0, variantCount);
+    
+    console.log(`🎯 Strategy selection for ${aiProvider}/${modelName}:`);
+    console.log(`   ✅ Top 2 best: [${top2BestForLLM.join(', ')}]`);
+    console.log(`   🔄 Testing rotation: [${rotatedRemaining.slice(0, Math.max(0, variantCount - 2)).join(', ')}]`);
+    console.log(`   📊 Final selection (${selectedStrategies.length}): [${selectedStrategies.join(', ')}]`);
     
     // Test only the requested number of strategies, prioritized by performance
     const variantPromises = selectedStrategies.map(async (strategyKey, index) => {
@@ -906,32 +912,54 @@ async function saveBatchInsights(supabase: any, userId: string, aiProvider: stri
       timestamp: new Date().toISOString()
     };
 
-    // Extract successful strategies from this batch
+    // Extract successful strategies from this batch WITH PER-LLM TRACKING
+    const llmKey = `${aiProvider}_${modelName}`;
     const successfulStrategies: any = {};
+    
     optimizedVariants.forEach(variant => {
       if (variant.score > 0.7) {
         const patterns = extractSuccessfulPatterns(variant.prompt);
         const strategyKey = identifyStrategy(variant.strategy);
         
         if (!successfulStrategies[strategyKey]) {
-          successfulStrategies[strategyKey] = { patterns: [], scores: [], count: 0 };
+          successfulStrategies[strategyKey] = { 
+            patterns: [], 
+            scores: [], 
+            count: 0,
+            byLLM: {} // Track performance per LLM
+          };
         }
         
         successfulStrategies[strategyKey].patterns.push(...patterns);
         successfulStrategies[strategyKey].scores.push(variant.score);
         successfulStrategies[strategyKey].count++;
+        
+        // Track LLM-specific performance
+        if (!successfulStrategies[strategyKey].byLLM[llmKey]) {
+          successfulStrategies[strategyKey].byLLM[llmKey] = { scores: [], count: 0 };
+        }
+        successfulStrategies[strategyKey].byLLM[llmKey].scores.push(variant.score);
+        successfulStrategies[strategyKey].byLLM[llmKey].count++;
       }
     });
 
-    // Calculate averages for successful strategies
+    // Calculate averages for successful strategies (overall and per-LLM)
     Object.keys(successfulStrategies).forEach(key => {
       const strategy = successfulStrategies[key];
       strategy.avgScore = strategy.scores.reduce((sum: number, s: number) => sum + s, 0) / strategy.scores.length;
       strategy.patterns = [...new Set(strategy.patterns)]; // Remove duplicates
-      delete strategy.scores; // Clean up
+      
+      // Calculate per-LLM averages
+      Object.keys(strategy.byLLM).forEach(llm => {
+        const llmData = strategy.byLLM[llm];
+        llmData.avgScore = llmData.scores.reduce((sum: number, s: number) => sum + s, 0) / llmData.scores.length;
+        delete llmData.scores; // Clean up
+      });
+      
+      delete strategy.scores; // Clean up overall scores
     });
 
-    // Merge with previous insights
+    // Merge with previous insights, preserving per-LLM data
     const mergedStrategies = { ...previousInsights.strategies };
     Object.keys(successfulStrategies).forEach(key => {
       if (mergedStrategies[key]) {
@@ -939,6 +967,23 @@ async function saveBatchInsights(supabase: any, userId: string, aiProvider: stri
         mergedStrategies[key].patterns = [...new Set([...mergedStrategies[key].patterns, ...successfulStrategies[key].patterns])];
         mergedStrategies[key].avgScore = (mergedStrategies[key].avgScore + successfulStrategies[key].avgScore) / 2;
         mergedStrategies[key].count += successfulStrategies[key].count;
+        
+        // Merge per-LLM data
+        if (!mergedStrategies[key].byLLM) {
+          mergedStrategies[key].byLLM = {};
+        }
+        Object.keys(successfulStrategies[key].byLLM).forEach(llm => {
+          if (mergedStrategies[key].byLLM[llm]) {
+            // Average with existing LLM data
+            const existing = mergedStrategies[key].byLLM[llm];
+            const newData = successfulStrategies[key].byLLM[llm];
+            existing.avgScore = (existing.avgScore + newData.avgScore) / 2;
+            existing.count += newData.count;
+          } else {
+            // Add new LLM data
+            mergedStrategies[key].byLLM[llm] = successfulStrategies[key].byLLM[llm];
+          }
+        });
       } else {
         // Add new strategy data
         mergedStrategies[key] = successfulStrategies[key];
