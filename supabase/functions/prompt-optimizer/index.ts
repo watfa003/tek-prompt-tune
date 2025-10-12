@@ -774,8 +774,8 @@ function evaluateCreativeOutput(output: string, strategyWeight: number, original
   // Relevance - stays on topic
   const relevance = output.trim().length > 5 && !checkForRepetition(output) ? 0.9 : 0.4;
   
-  // Weighted scoring for creative outputs
-  let score = 0.4 + 0.6 * (
+  // Weighted scoring for creative outputs (boosted to 0.7-0.95 range)
+  let score = 0.55 + 0.5 * (
     0.35 * intentAlignment +
     0.25 * originality +
     0.20 * conciseness +
@@ -788,10 +788,10 @@ function evaluateCreativeOutput(output: string, strategyWeight: number, original
   const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(output.trim());
   
   if (isBlank || isGibberish) score = 0.15;
-  else if (words < 3) score -= 0.3;
-  else if (words > 200) score -= 0.2; // Too long for creative
+  else if (words < 3) score -= 0.2;
+  else if (words > 200) score -= 0.1; // Too long for creative
   
-  if (checkForRepetition(output)) score -= 0.15;
+  if (checkForRepetition(output)) score -= 0.1;
   
   // Strategy bonus
   score += strategyWeight * 0.05;
@@ -866,8 +866,8 @@ function fullDetailedEvaluation(prompt: string, words: number, sentences: number
     0.3 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 22) ? 0.3 : 0) + (hasTransitions ? 0.2 : 0) + (sentences >= 3 ? 0.2 : 0)
   );
 
-  // Include intent alignment in scoring
-  let score = 0.35 + 0.5 * (0.3 * accuracy + 0.25 * completeness + 0.20 * clarity + 0.25 * intentAlignment);
+  // Include intent alignment in scoring (boosted to 0.7-0.95 range)
+  let score = 0.50 + 0.55 * (0.3 * accuracy + 0.25 * completeness + 0.20 * clarity + 0.25 * intentAlignment);
 
   // Penalties for bad quality
   const hasCutoffText = prompt.trim().endsWith('...') || /\b(tbc|to be continued)\b/i.test(prompt);
@@ -876,13 +876,13 @@ function fullDetailedEvaluation(prompt: string, words: number, sentences: number
   const isBlank = prompt.trim().length < 5;
   
   if (isBlank || isGibberish) score = 0.15; // Poor quality
-  else if (isVeryShort) score -= 0.25; 
-  else if (words < 20) score -= 0.15; 
-  else if (words < 40) score -= 0.10;
+  else if (isVeryShort) score -= 0.20; 
+  else if (words < 20) score -= 0.12; 
+  else if (words < 40) score -= 0.08;
   
-  if (words > 400) score -= 0.05;
-  if (hasCutoffText) score -= 0.15;
-  if (checkForRepetition(prompt)) score -= 0.12;
+  if (words > 400) score -= 0.03;
+  if (hasCutoffText) score -= 0.10;
+  if (checkForRepetition(prompt)) score -= 0.08;
 
   // Strategy bonus (reduced for balanced scoring)
   score += strategyWeight * 0.05;

@@ -120,8 +120,6 @@ export const PromptHistory = () => {
           return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
         case "score":
           return (b.score || 0) - (a.score || 0);
-        case "title":
-          return a.title.localeCompare(b.title);
         default:
           return 0;
       }
@@ -333,8 +331,8 @@ export const PromptHistory = () => {
     );
   };
 
-  const providers = ["all", "openai", "claude", "gemini", "groq", "anthropic", "mistral"];
-  const outputTypes = ["all", "Code", "Essay", "JSON", "Structured Data", "Variant", "text", "list"];
+  const providers = ["all", "openai", "gemini", "groq", "anthropic", "mistral"];
+  const outputTypes = ["all", "Code", "Essay", "JSON", "Structured Data", "List"];
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
@@ -514,7 +512,6 @@ export const PromptHistory = () => {
                 <SelectItem value="newest">Newest</SelectItem>
                 <SelectItem value="oldest">Oldest</SelectItem>
                 <SelectItem value="score">Score</SelectItem>
-                <SelectItem value="title">Title</SelectItem>
               </SelectContent>
             </Select>
           </div>

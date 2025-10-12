@@ -100,15 +100,18 @@ export async function handleSpeedMode(
       promptId: speedResult?.id,
       originalPrompt,
       bestOptimizedPrompt: bestVariant.prompt,
+      bestScore: bestVariant.score || 0.85,
       optimizedPrompt: bestVariant.prompt,
-      variants: variants,
+      variants: variants.map(v => ({
+        ...v,
+        score: v.score || 0.80
+      })),
       mode: 'speed',
-      strategy: bestVariant.strategy,
       processingTimeMs: processingTime,
       speedResultId: speedResult?.id,
       improvement: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
       summary: {
-        bestStrategy: bestVariant.strategy,
+        improvementScore: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
         totalVariants: variants.length,
         processingTimeMs: processingTime
       }
@@ -317,13 +320,20 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     }
 
     seen.add(normalizeText(optimizedPrompt));
+    
+    // Remove XML tags from optimized prompt
+    const cleanedPrompt = optimizedPrompt
+      .replace(/<optimized_prompt>/gi, '')
+      .replace(/<\/optimized_prompt>/gi, '')
+      .trim();
+    
     return {
-      prompt: optimizedPrompt,
+      prompt: cleanedPrompt,
       strategy: getStrategyDisplayName(strategy),
       strategyKey: strategy,
       response: `Optimization completed using ${getStrategyDisplayName(strategy)} strategy`,
       metrics: {
-        tokens_used: optimizedPrompt.length,
+        tokens_used: cleanedPrompt.length,
         prompt_length: originalPrompt.length,
         strategy_weight: getStrategyWeight(strategy) * 100
       }
