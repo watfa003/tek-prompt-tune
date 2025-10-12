@@ -327,7 +327,7 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
         prompt_length: originalPrompt.length,
         strategy_weight: getStrategyWeight(strategy) * 100
       }
-    ;
+    };
   })());
 
   const settled = await Promise.allSettled(tasks);
