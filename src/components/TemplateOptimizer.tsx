@@ -53,6 +53,7 @@ export const TemplateOptimizer = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [optimizedPrompt, setOptimizedPrompt] = useState("");
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const { settings } = useSettings();
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templateTitle, setTemplateTitle] = useState("");
@@ -489,9 +490,11 @@ export const TemplateOptimizer = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Optimization Results</h2>
             <div className="flex items-center space-x-2">
-              <Badge className="bg-success text-success-foreground">
-                Score: {(optimizationResult.bestScore * 100).toFixed(1)}%
-              </Badge>
+              {settings.showScores && (
+                <Badge className="bg-success text-success-foreground">
+                  Score: {(optimizationResult.bestScore * 100).toFixed(1)}%
+                </Badge>
+              )}
               <Button size="sm" variant="outline" onClick={() => copyToClipboard(optimizedPrompt)}>
                 <Copy className="h-4 w-4 mr-1" />
                 Copy

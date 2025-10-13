@@ -23,7 +23,7 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
 
 export async function handleSpeedMode(
   supabase: any,
-  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7, influence = '', influenceWeight = 0 }: any
+  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7, influence = '', influenceWeight = 0, autoSave = true }: any
 ) {
   console.log('🚀 Running Speed Mode optimization...');
   console.log(`📋 Config: provider=${aiProvider}, model=${modelName}, variants=${requestedVariants}, maxTokens=${maxTokens}`);
@@ -74,21 +74,21 @@ export async function handleSpeedMode(
     console.log(`🎯 Best prompt preview: ${bestVariant.prompt.substring(0, 100)}...`);
 
     // Store speed optimization result (simplified to avoid schema issues)
-    const { data: speedResult, error } = await supabase
-      .from('speed_optimizations')
-      .insert({
-        user_id: userId,
-        original_prompt: originalPrompt,
-        optimized_prompt: bestVariant.prompt,
-        optimization_strategy: bestVariant.strategy,
-        processing_time_ms: processingTime
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Error saving speed optimization:', error);
-      // Don't fail the entire request if DB save fails
+    if (autoSave) {
+      const { data: speedResult, error } = await supabase
+        .from('speed_optimizations')
+        .insert({
+          user_id: userId,
+          original_prompt: originalPrompt,
+          optimized_prompt: bestVariant.prompt,
+          optimization_strategy: bestVariant.strategy,
+          processing_time_ms: processingTime
+        })
+        .select()
+        .single();
+      if (error) {
+        console.error('❌ Error saving speed optimization:', error);
+      }
     }
 
     const corsHeaders = {

@@ -143,6 +143,7 @@ serve(async (req) => {
       influence = '',
       influenceWeight = 0,
       mode = 'deep',
+      autoSave = true,
       // New template functionality
       isTemplate = false,
       templateId = null,
@@ -178,11 +179,13 @@ serve(async (req) => {
         maxTokens,
         temperature,
         influence,
-        influenceWeight
+        influenceWeight,
+        autoSave,
       });
     }
 
     // Create initial prompt record in background
+    let promptRecord: any = { id: null };
     const createPromptRecord = async () => {
       return await supabase
         .from('prompts')
@@ -198,6 +201,11 @@ serve(async (req) => {
         .select()
         .single();
     };
+    
+    if (autoSave) {
+      const { data: created } = await createPromptRecord();
+      promptRecord = created || { id: null };
+    }
 
     // Start prompt record creation
     const promptRecordPromise = createPromptRecord();

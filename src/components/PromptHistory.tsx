@@ -196,7 +196,9 @@ export const PromptHistory = () => {
                 )}
                 {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
               </div>
-              <p className="text-muted-foreground text-sm mb-3">{item.description}</p>
+              <p className="text-muted-foreground text-sm mb-3">
+                {settings.showScores ? item.description : item.description.replace(/\(Score:[^)]+\)/g, '').replace(/Score:\s*\d+(\.\d+)?%?/i, '').trim()}
+              </p>
               
               {/* Meta info */}
               <div className="flex flex-wrap items-center gap-2">

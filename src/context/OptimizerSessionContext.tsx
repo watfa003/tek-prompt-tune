@@ -357,6 +357,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           influence: p.influence,
           influenceWeight: p.influenceWeight,
           mode: p.mode,
+          autoSave: settings.autoSave,
         }
       });
 
