@@ -51,7 +51,7 @@ const OptimizerSessionContext = createContext<OptimizerSessionContextValue | und
 export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { toast } = useToast();
   const { addPromptToHistory } = usePromptData();
-  const { settings } = useSettings();
+  const { settings, loading: settingsLoading } = useSettings();
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(() => localStorage.getItem('promptOptimizer_isOptimizing') === 'true');
@@ -128,8 +128,12 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   }, [speedResult]);
 
   const appendToHistory = useCallback(async (data: any, provider: string, modelName: string, outputType: string, originalPrompt: string, skipAutoSaveCheck = false) => {
-    // Skip auto-save if it's disabled in settings (unless explicitly overridden)
-    if (!skipAutoSaveCheck && !settings.autoSave) {
+    // Determine effective auto-save (prefer loaded settings, fallback to cached localStorage)
+    const cached = (() => { try { return JSON.parse(localStorage.getItem('user_settings') || '{}'); } catch { return {}; } })();
+    const effectiveAutoSave = settingsLoading ? (cached.autoSave ?? true) : settings.autoSave;
+
+    // Skip auto-save if it's disabled (unless explicitly overridden)
+    if (!skipAutoSaveCheck && !effectiveAutoSave) {
       console.log('Auto-save disabled, skipping history append');
       return;
     }

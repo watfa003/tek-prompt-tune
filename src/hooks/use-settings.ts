@@ -71,7 +71,14 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export const useSettings = () => {
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<UserSettings>(() => {
+    try {
+      const cached = localStorage.getItem('user_settings');
+      return cached ? { ...DEFAULT_SETTINGS, ...JSON.parse(cached) } : DEFAULT_SETTINGS;
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -128,6 +135,7 @@ export const useSettings = () => {
           showOnlyBestInHistory: data.show_only_best_in_history ?? DEFAULT_SETTINGS.showOnlyBestInHistory,
         };
         setSettings(loadedSettings);
+        try { localStorage.setItem('user_settings', JSON.stringify(loadedSettings)); } catch {}
       } else {
         // No settings exist yet, create with user's real info
         const newSettings: UserSettings = {
@@ -136,6 +144,7 @@ export const useSettings = () => {
           email: userEmail,
         };
         setSettings(newSettings);
+        try { localStorage.setItem('user_settings', JSON.stringify(newSettings)); } catch {}
         
         // Auto-save the initial settings with user info
         setTimeout(async () => {
@@ -266,6 +275,13 @@ export const useSettings = () => {
       description: "Your settings have been downloaded as a JSON file.",
     });
   };
+
+  // Persist to localStorage after loading completes to avoid flicker
+  useEffect(() => {
+    if (!loading) {
+      try { localStorage.setItem('user_settings', JSON.stringify(settings)); } catch {}
+    }
+  }, [settings, loading]);
 
   useEffect(() => {
     loadSettings();
