@@ -17,6 +17,7 @@ import {
   Loader2
 } from "lucide-react";
 import { usePromptData } from "@/context/PromptDataContext";
+import { useSettings } from "@/hooks/use-settings";
 
 interface AnalyticsData {
   overview: {
@@ -74,6 +75,7 @@ interface AnalyticsData {
 
 export const EnhancedDashboard = () => {
   const { analytics, loading } = usePromptData();
+  const { settings } = useSettings();
 
   // Add a smooth fade-in animation for the dashboard
   if (loading) {
@@ -256,7 +258,7 @@ export const EnhancedDashboard = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                {getScoreBadge(activity.score)}
+                {settings.showScores && getScoreBadge(activity.score)}
                 <Button variant="ghost" size="sm">
                   <Play className="h-3 w-3" />
                 </Button>

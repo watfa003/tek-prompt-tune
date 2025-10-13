@@ -867,13 +867,17 @@ export const AIPromptOptimizer: React.FC = () => {
                     Save to History
                   </Button>
                 )}
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground">Best Score</div>
-                  <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
-                    {Math.round(result.bestScore * 100)}%
-                  </div>
-                </div>
-                {getScoreBadge(result.bestScore)}
+                {settings.showScores && (
+                  <>
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Best Score</div>
+                      <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
+                        {Math.round(result.bestScore * 100)}%
+                      </div>
+                    </div>
+                    {getScoreBadge(result.bestScore)}
+                  </>
+                )}
               </div>
             </div>
 
@@ -930,15 +934,17 @@ export const AIPromptOptimizer: React.FC = () => {
                   <div className="bg-background/50 p-3 rounded-md">
                     <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
                   </div>
-                  <div className="mt-3 flex items-center space-x-4">
-                    <div className="flex items-center space-x-1">
-                      <span className="text-xs text-muted-foreground">Score:</span>
-                      <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
-                        {Math.round(result.bestScore * 100)}%
-                      </span>
+                  {settings.showScores && (
+                    <div className="mt-3 flex items-center space-x-4">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-xs text-muted-foreground">Score:</span>
+                        <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
+                          {Math.round(result.bestScore * 100)}%
+                        </span>
+                      </div>
+                      {getScoreBadge(result.bestScore)}
                     </div>
-                    {getScoreBadge(result.bestScore)}
-                  </div>
+                  )}
                 </Card>
               </TabsContent>
 

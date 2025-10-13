@@ -202,7 +202,7 @@ export const PromptHistory = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">{item.provider}</Badge>
                 <Badge variant="outline">{item.outputType}</Badge>
-                {getScoreBadge(item.score)}
+                {settings.showScores && getScoreBadge(item.score)}
                 <span className="text-sm text-muted-foreground flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
                   {item.timestamp}

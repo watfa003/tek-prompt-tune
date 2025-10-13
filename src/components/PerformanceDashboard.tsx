@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Target, Zap, BarChart3, Calendar, Loader2 } from "lucide-react";
 import { usePromptData } from "@/context/PromptDataContext";
+import { useSettings } from "@/hooks/use-settings";
 
 interface AnalyticsData {
   overview: {
@@ -61,6 +62,7 @@ interface AnalyticsData {
 
 export const PerformanceDashboard = () => {
   const { analytics, loading } = usePromptData();
+  const { settings } = useSettings();
 
   const getScoreColor = (score: number) => {
     if (score >= 0.8) return "text-green-500";
@@ -198,7 +200,7 @@ export const PerformanceDashboard = () => {
             <div key={type} className="p-3 rounded-lg bg-muted/50">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium capitalize">{type}</span>
-                {getScoreBadge(stats.avgScore)}
+                {settings.showScores && getScoreBadge(stats.avgScore)}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{stats.count} prompts</span>
@@ -236,7 +238,7 @@ export const PerformanceDashboard = () => {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                {getScoreBadge(activity.score)}
+                {settings.showScores && getScoreBadge(activity.score)}
               </div>
             </div>
           ))}

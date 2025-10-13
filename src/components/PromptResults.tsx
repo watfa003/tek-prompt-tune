@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { useSettings } from "@/hooks/use-settings";
 
 interface PromptResultsProps {
   taskDescription: string;
@@ -60,6 +61,7 @@ export const PromptResults = ({
   optimizationMode = 'deep'
 }: PromptResultsProps) => {
   const { toast } = useToast();
+  const { settings } = useSettings();
   const [isLoading, setIsLoading] = useState(true);
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -201,13 +203,17 @@ export const PromptResults = ({
             <span>Generated Prompts</span>
           </h3>
           <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Best Score</div>
-              <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
-                {Math.round(result.bestScore * 100)}%
-              </div>
-            </div>
-            {getScoreBadge(result.bestScore)}
+            {settings.showScores && (
+              <>
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground">Best Score</div>
+                  <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
+                    {Math.round(result.bestScore * 100)}%
+                  </div>
+                </div>
+                {getScoreBadge(result.bestScore)}
+              </>
+            )}
           </div>
         </div>
 
@@ -284,15 +290,17 @@ export const PromptResults = ({
               <div className="bg-background/50 p-3 rounded-md mb-4">
                 <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
               </div>
-              <div className="mt-3 flex items-center space-x-4 mb-4">
-                <div className="flex items-center space-x-1">
-                  <span className="text-xs text-muted-foreground">Score:</span>
-                  <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
-                    {Math.round(result.bestScore * 100)}%
-                  </span>
+              {settings.showScores && (
+                <div className="mt-3 flex items-center space-x-4 mb-4">
+                  <div className="flex items-center space-x-1">
+                    <span className="text-xs text-muted-foreground">Score:</span>
+                    <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
+                      {Math.round(result.bestScore * 100)}%
+                    </span>
+                  </div>
+                  {getScoreBadge(result.bestScore)}
                 </div>
-                {getScoreBadge(result.bestScore)}
-              </div>
+              )}
             </Card>
             
             {/* Sample Output from Best Prompt */}
