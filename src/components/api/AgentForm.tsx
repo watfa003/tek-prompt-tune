@@ -25,7 +25,7 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
     systemPrompt: '',
     outputType: '',
     variants: 3,
-    maxTokens: 2048,
+    maxTokens: null as number | null,
     temperature: 0.7
   });
 
@@ -121,7 +121,7 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
         systemPrompt: '',
         outputType: '',
         variants: 3,
-        maxTokens: 2048,
+        maxTokens: null,
         temperature: 0.7
       });
       onSuccess?.();
@@ -281,19 +281,21 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
         {/* Number of Variants */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Number of Variants</Label>
-          <div className="grid grid-cols-5 gap-2">
-            {[1, 2, 3, 4, 5].map((num) => (
-              <Button
-                key={num}
-                type="button"
-                variant={formData.variants === num ? 'default' : 'outline'}
-                onClick={() => setFormData({ ...formData, variants: num })}
-                className="w-full"
-              >
-                {num}
-              </Button>
-            ))}
-          </div>
+          <Select 
+            value={formData.variants.toString()} 
+            onValueChange={(value) => setFormData({ ...formData, variants: parseInt(value) })}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Select variants" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                <SelectItem key={num} value={num.toString()}>
+                  {num} {num === 1 ? 'Variant' : 'Variants'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Advanced Settings */}
@@ -316,16 +318,31 @@ export function AgentForm({ onSuccess }: AgentFormProps) {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Max Tokens</Label>
-                  <span className="text-sm text-muted-foreground">{formData.maxTokens}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {formData.maxTokens === null ? 'No limit' : formData.maxTokens}
+                  </span>
                 </div>
                 <Slider
-                  value={[formData.maxTokens]}
+                  value={[formData.maxTokens ?? 4096]}
                   onValueChange={([value]) => setFormData({ ...formData, maxTokens: value })}
                   min={256}
-                  max={4028}
-                  step={1}
+                  max={4096}
+                  step={256}
                   className="w-full"
                 />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>256</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, maxTokens: null })}
+                    className="h-auto py-0 px-2 text-xs"
+                  >
+                    Reset to no limit
+                  </Button>
+                  <span>4096</span>
+                </div>
               </div>
 
               <div className="space-y-2">
