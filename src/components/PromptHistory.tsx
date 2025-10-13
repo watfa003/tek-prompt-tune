@@ -332,7 +332,7 @@ export const PromptHistory = () => {
   };
 
   const providers = ["all", "openai", "gemini", "groq", "anthropic", "mistral"];
-  const outputTypes = ["all", "Code", "Essay", "JSON", "Structured Data", "List"];
+  const outputTypes = ["all", "Code", "Essay", "JSON", "Text", "List"];
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
