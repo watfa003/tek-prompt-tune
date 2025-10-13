@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePromptData } from '@/context/PromptDataContext';
+import { useSettings } from '@/hooks/use-settings';
 
 export type OptimizationMode = 'speed' | 'deep';
 
@@ -42,6 +43,7 @@ interface OptimizerSessionContextValue extends OptimizerSessionState {
   setIsOptimizing: React.Dispatch<React.SetStateAction<boolean>>;
   setResult: React.Dispatch<React.SetStateAction<OptimizationResult | null>>;
   setSpeedResult: React.Dispatch<React.SetStateAction<any | null>>;
+  manualSaveToHistory: () => Promise<void>;
 }
 
 const OptimizerSessionContext = createContext<OptimizerSessionContextValue | undefined>(undefined);
@@ -49,6 +51,7 @@ const OptimizerSessionContext = createContext<OptimizerSessionContextValue | und
 export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { toast } = useToast();
   const { addPromptToHistory } = usePromptData();
+  const { settings } = useSettings();
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(() => localStorage.getItem('promptOptimizer_isOptimizing') === 'true');
@@ -124,7 +127,13 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     else localStorage.removeItem('promptOptimizer_speedResult');
   }, [speedResult]);
 
-  const appendToHistory = useCallback(async (data: any, provider: string, modelName: string, outputType: string, originalPrompt: string) => {
+  const appendToHistory = useCallback(async (data: any, provider: string, modelName: string, outputType: string, originalPrompt: string, skipAutoSaveCheck = false) => {
+    // Skip auto-save if it's disabled in settings (unless explicitly overridden)
+    if (!skipAutoSaveCheck && !settings.autoSave) {
+      console.log('Auto-save disabled, skipping history append');
+      return;
+    }
+
     try {
       const bestVariant = data?.variants?.reduce((best: any, current: any) => {
         return (!best || (current.score > best.score)) ? current : best;
@@ -150,10 +159,39 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       } as const;
       
       await addPromptToHistory(historyItem as any);
+      
+      if (skipAutoSaveCheck) {
+        toast({
+          title: "Saved!",
+          description: "Prompt optimization saved to history.",
+        });
+      }
     } catch (e) {
       console.error('Failed to append to local history', e);
+      if (skipAutoSaveCheck) {
+        toast({
+          title: "Error",
+          description: "Failed to save to history.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [addPromptToHistory]);
+  }, [addPromptToHistory, settings.autoSave, toast]);
+
+  // Manual save function for when auto-save is disabled
+  const manualSaveToHistory = useCallback(async () => {
+    if (!payload || (!result && !speedResult)) {
+      toast({
+        title: "Nothing to save",
+        description: "No optimization results available to save.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const dataToSave = result || speedResult;
+    await appendToHistory(dataToSave, payload.aiProvider, payload.modelName, payload.outputType, payload.originalPrompt, true);
+  }, [payload, result, speedResult, appendToHistory, toast]);
 
   const startOptimization = useCallback(async (p: OptimizerPayload, opts?: { resume?: boolean }) => {
     // Always clear any cached results before starting a brand-new optimization to avoid stale polling
@@ -760,6 +798,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     setIsOptimizing,
     setResult,
     setSpeedResult,
+    manualSaveToHistory,
   };
 
   return (

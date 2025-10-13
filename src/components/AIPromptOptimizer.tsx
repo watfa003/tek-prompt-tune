@@ -30,7 +30,8 @@ import {
   Brain,
   Clock,
   Crown,
-  Trophy
+  Trophy,
+  Save
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -532,6 +533,7 @@ export const AIPromptOptimizer: React.FC = () => {
     setResult,
     setSpeedResult,
     setIsOptimizing,
+    manualSaveToHistory,
   } = useOptimizerSession();
 
   // Local form state - Load from localStorage to preserve drafts
@@ -855,6 +857,16 @@ export const AIPromptOptimizer: React.FC = () => {
                 <span>Optimization Results</span>
               </h3>
               <div className="flex items-center space-x-4">
+                {!settings.autoSave && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={manualSaveToHistory}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save to History
+                  </Button>
+                )}
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground">Best Score</div>
                   <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
