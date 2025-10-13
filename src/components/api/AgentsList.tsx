@@ -3,13 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Search, Edit, Loader2 } from 'lucide-react';
+import { Trash2, Search, Edit, Loader2, Settings, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -43,6 +44,7 @@ export function AgentsList() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editAgent, setEditAgent] = useState<Agent | null>(null);
   const [saving, setSaving] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const modelOptions: Record<string, { value: string; label: string }[]> = {
     openai: [
@@ -254,104 +256,123 @@ export function AgentsList() {
           </DialogHeader>
           
           {editAgent && (
-            <div className="space-y-4 py-4">
+            <div className="space-y-6 py-4">
+              {/* Agent Name */}
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Agent Name</Label>
-                <Input
+                <Label htmlFor="edit-name" className="text-sm font-medium">Agent Name</Label>
+                <Textarea
                   id="edit-name"
                   value={editAgent.name}
                   onChange={(e) => setEditAgent({ ...editAgent, name: e.target.value })}
+                  className="min-h-[60px] resize-none"
                 />
               </div>
 
+              {/* System Prompt */}
               <div className="space-y-2">
-                <Label htmlFor="edit-prompt">System Prompt</Label>
+                <Label htmlFor="edit-prompt" className="text-sm font-medium">System Prompt</Label>
                 <Textarea
                   id="edit-prompt"
                   value={editAgent.user_prompt || ''}
                   onChange={(e) => setEditAgent({ ...editAgent, user_prompt: e.target.value })}
-                  className="min-h-[120px]"
+                  className="min-h-[120px] resize-none"
                   placeholder="You are a helpful AI assistant..."
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Mode</Label>
-                <div className="grid grid-cols-2 gap-4">
+              {/* Mode Selection */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Optimization Mode</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Button
                     type="button"
                     variant={editAgent.mode === 'speed' ? 'default' : 'outline'}
                     onClick={() => setEditAgent({ ...editAgent, mode: 'speed' })}
-                    className="h-auto p-4"
+                    className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                      editAgent.mode === 'speed' 
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105' 
+                        : 'hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950'
+                    }`}
                   >
-                    <div className="text-left">
-                      <div className="font-semibold">⚡ Speed Mode</div>
-                      <div className="text-xs opacity-80">Ultra-fast processing</div>
+                    <div className="flex items-start gap-3 w-full">
+                      <Loader2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-lg">⚡ Speed Mode</div>
+                        <div className="text-sm opacity-90 mt-1">Ultra-fast processing</div>
+                      </div>
                     </div>
                   </Button>
+                  
                   <Button
                     type="button"
                     variant={editAgent.mode === 'deep' ? 'default' : 'outline'}
                     onClick={() => setEditAgent({ ...editAgent, mode: 'deep' })}
-                    className="h-auto p-4"
+                    className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                      editAgent.mode === 'deep' 
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' 
+                        : 'hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950'
+                    }`}
                   >
-                    <div className="text-left">
-                      <div className="font-semibold">🔍 Deep Mode</div>
-                      <div className="text-xs opacity-80">Advanced optimization</div>
+                    <div className="flex items-start gap-3 w-full">
+                      <Settings className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-lg">🔍 Deep Mode</div>
+                        <div className="text-sm opacity-90 mt-1">Advanced AI optimization</div>
+                      </div>
                     </div>
                   </Button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Provider</Label>
-                  <Select
-                    value={editAgent.provider}
-                    onValueChange={(value) => {
-                      // Update provider and set first model as default
-                      const defaultModel = modelOptions[value]?.[0]?.value || editAgent.model;
-                      setEditAgent({ ...editAgent, provider: value, model: defaultModel });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="anthropic">Anthropic</SelectItem>
-                      <SelectItem value="google">Google</SelectItem>
-                      <SelectItem value="groq">Groq</SelectItem>
-                      <SelectItem value="mistral">Mistral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Target Model</Label>
-                  <Select
-                    value={editAgent.model}
-                    onValueChange={(value) => setEditAgent({ ...editAgent, model: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modelOptions[editAgent.provider]?.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Used for testing in deep mode
-                  </p>
-                </div>
+              {/* Provider Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">AI Provider</Label>
+                <Select
+                  value={editAgent.provider}
+                  onValueChange={(value) => {
+                    const defaultModel = modelOptions[value]?.[0]?.value || editAgent.model;
+                    setEditAgent({ ...editAgent, provider: value, model: defaultModel });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                    <SelectItem value="google">Google (Gemini)</SelectItem>
+                    <SelectItem value="groq">Groq</SelectItem>
+                    <SelectItem value="mistral">Mistral</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
+              {/* Model Selection */}
               <div className="space-y-2">
-                <Label>Output Type</Label>
+                <Label className="text-sm font-medium">Target Model</Label>
+                <Select
+                  value={editAgent.model}
+                  onValueChange={(value) => setEditAgent({ ...editAgent, model: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {modelOptions[editAgent.provider]?.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  This model will be used to test optimized prompts in deep mode
+                </p>
+              </div>
+
+              {/* Output Type */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Output Type</Label>
                 <Select
                   value={editAgent.output_type}
                   onValueChange={(value) => setEditAgent({ ...editAgent, output_type: value })}
@@ -359,7 +380,7 @@ export function AgentsList() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background z-50">
                     <SelectItem value="text">Text</SelectItem>
                     <SelectItem value="code">Code</SelectItem>
                     <SelectItem value="json">JSON</SelectItem>
@@ -369,47 +390,90 @@ export function AgentsList() {
                 </Select>
               </div>
 
+              {/* Number of Variants */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Number of Variants</Label>
-                  <span className="text-sm text-muted-foreground">{editAgent.variants}</span>
-                </div>
-               <Slider
-                  value={[editAgent.variants]}
-                  onValueChange={([value]) => setEditAgent({ ...editAgent, variants: value })}
-                  min={1}
-                  max={5}
-                  step={1}
-                />
+                <Label className="text-sm font-medium">Number of Variants</Label>
+                <Select 
+                  value={editAgent.variants.toString()} 
+                  onValueChange={(value) => setEditAgent({ ...editAgent, variants: parseInt(value) })}
+                >
+                  <SelectTrigger className="bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        {num} {num === 1 ? 'Variant' : 'Variants'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Max Tokens</Label>
-                  <span className="text-sm text-muted-foreground">{editAgent.max_tokens}</span>
-                </div>
-                <Slider
-                  value={[editAgent.max_tokens]}
-                  onValueChange={([value]) => setEditAgent({ ...editAgent, max_tokens: value })}
-                  min={100}
-                  max={32000}
-                  step={100}
-                />
-              </div>
+              {/* Advanced Settings */}
+              <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    className="w-full flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-4 w-4" />
+                      <span>Advanced Settings</span>
+                    </div>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Max Tokens</Label>
+                        <span className="text-sm text-muted-foreground">
+                          {editAgent.max_tokens === null ? 'No limit' : editAgent.max_tokens}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[editAgent.max_tokens ?? 4096]}
+                        onValueChange={([value]) => setEditAgent({ ...editAgent, max_tokens: value })}
+                        min={256}
+                        max={4096}
+                        step={256}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>256</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditAgent({ ...editAgent, max_tokens: null })}
+                          className="h-auto py-0 px-2 text-xs"
+                        >
+                          Reset to no limit
+                        </Button>
+                        <span>4096</span>
+                      </div>
+                    </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Temperature</Label>
-                  <span className="text-sm text-muted-foreground">{editAgent.temperature.toFixed(1)}</span>
-                </div>
-                <Slider
-                  value={[editAgent.temperature]}
-                  onValueChange={([value]) => setEditAgent({ ...editAgent, temperature: value })}
-                  min={0}
-                  max={1}
-                  step={0.1}
-                />
-              </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Temperature</Label>
+                        <span className="text-sm text-muted-foreground">{editAgent.temperature.toFixed(1)}</span>
+                      </div>
+                      <Slider
+                        value={[editAgent.temperature]}
+                        onValueChange={([value]) => setEditAgent({ ...editAgent, temperature: value })}
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               <div className="flex gap-2 pt-4">
                 <Button variant="outline" onClick={() => setEditAgent(null)} className="flex-1">
