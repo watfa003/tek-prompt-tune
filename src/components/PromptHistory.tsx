@@ -417,17 +417,19 @@ export const PromptHistory = () => {
           </div>
         </Card>
         
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4 text-warning" />
-            <div>
-              <p className="text-sm text-muted-foreground">Avg Score</p>
-              <p className="text-2xl font-bold">
-                {analytics?.overview?.averageScore?.toFixed(1) || (historyItems.length > 0 ? (historyItems.reduce((sum, item) => sum + item.score, 0) / historyItems.length).toFixed(1) : '0.0')}
-              </p>
+        {settings.showScores && (
+          <Card className="p-4">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-warning" />
+              <div>
+                <p className="text-sm text-muted-foreground">Avg Score</p>
+                <p className="text-2xl font-bold">
+                  {analytics?.overview?.averageScore?.toFixed(1) || (historyItems.length > 0 ? (historyItems.reduce((sum, item) => sum + item.score, 0) / historyItems.length).toFixed(1) : '0.0')}
+                </p>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        )}
         
         <Card className="p-4">
           <div className="flex items-center space-x-2">

@@ -187,6 +187,7 @@ serve(async (req) => {
     // Create initial prompt record in background
     let promptRecord: any = { id: null };
     const createPromptRecord = async () => {
+      if (!autoSave) return { id: null };
       return await supabase
         .from('prompts')
         .insert({
@@ -201,11 +202,6 @@ serve(async (req) => {
         .select()
         .single();
     };
-    
-    if (autoSave) {
-      const { data: created } = await createPromptRecord();
-      promptRecord = created || { id: null };
-    }
 
     // Start prompt record creation
     const promptRecordPromise = createPromptRecord();

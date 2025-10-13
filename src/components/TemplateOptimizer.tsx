@@ -23,6 +23,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { usePromptData } from "@/context/PromptDataContext";
+import { useSettings } from "@/hooks/use-settings";
 
 interface Template {
   id: string;
