@@ -427,7 +427,7 @@ serve(async (req) => {
     ]);
 
     // Get prompt record
-    const promptRecord = promptRecordResult.status === 'fulfilled' ? promptRecordResult.value.data : null;
+    promptRecord = promptRecordResult.status === 'fulfilled' ? promptRecordResult.value?.data : null;
     if (!promptRecord) {
       throw new Error('Failed to create prompt record');
     }
