@@ -290,11 +290,11 @@ serve(async (req) => {
     if (agent.mode === 'speed' || agent.mode === 'deep') {
       console.log('Calling prompt-optimizer for optimization mode');
       
-      // Call the prompt-optimizer function
+      // Call the prompt-optimizer function with exact same parameters as normal optimizer
       const { data: optimizerData, error: optimizerError } = await supabase.functions.invoke('prompt-optimizer', {
         body: {
           originalPrompt: input,
-          taskDescription: agent.user_prompt || '',
+          taskDescription: '', // API mode doesn't use task description
           userId: keyData.user_id,
           aiProvider: agent.provider,
           modelName: agent.model,
@@ -302,7 +302,9 @@ serve(async (req) => {
           variants: agent.variants || 3,
           maxTokens: agent.max_tokens || 2048,
           temperature: agent.temperature || 0.7,
-          mode: agent.mode
+          mode: agent.mode,
+          influence: '', // API mode doesn't use influence
+          influenceWeight: 0 // API mode doesn't use influence
         }
       });
 
