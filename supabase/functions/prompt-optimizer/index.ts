@@ -426,10 +426,15 @@ serve(async (req) => {
       ...variantPromises
     ]);
 
-    // Get prompt record
-    promptRecord = promptRecordResult.status === 'fulfilled' ? promptRecordResult.value?.data : null;
-    if (!promptRecord) {
-      throw new Error('Failed to create prompt record');
+    // Get prompt record (respect autoSave)
+    if (autoSave) {
+      promptRecord = promptRecordResult.status === 'fulfilled' ? promptRecordResult.value?.data : null;
+      if (!promptRecord) {
+        throw new Error('Failed to create prompt record');
+      }
+    } else {
+      // When autoSave is off, we intentionally skip creating a DB record
+      promptRecord = { id: null };
     }
 
     // Filter successful variants
@@ -451,40 +456,44 @@ serve(async (req) => {
     // Background task for database updates and optimization insights (don't block response)
     const backgroundUpdates = async () => {
       try {
-        // Store optimization history
-        const historyPromises = optimizedVariants.map(variant => 
-          supabase.from('optimization_history').insert({
-            user_id: userId,
-            prompt_id: promptRecord.id,
-            variant_prompt: variant.prompt,
-            ai_response: variant.response,
-            score: variant.score,
-            metrics: { ...variant.metrics, strategy: variant.strategy, optimization_strategy: variant.strategy },
-            generation_time_ms: processingTime,
-            tokens_used: variant.metrics.tokens_used
-          })
-        );
+        // Store optimization history (only when autoSave is enabled and we have a prompt id)
+        let historyPromises: Promise<any>[] = [];
+        if (autoSave && promptRecord?.id) {
+          historyPromises = optimizedVariants.map(variant => 
+            supabase.from('optimization_history').insert({
+              user_id: userId,
+              prompt_id: promptRecord.id,
+              variant_prompt: variant.prompt,
+              ai_response: variant.response,
+              score: variant.score,
+              metrics: { ...variant.metrics, strategy: variant.strategy, optimization_strategy: variant.strategy },
+              generation_time_ms: processingTime,
+              tokens_used: variant.metrics.tokens_used
+            })
+          );
 
-        await Promise.allSettled(historyPromises);
+          await Promise.allSettled(historyPromises);
 
-        // Update prompt record
-        await supabase
-          .from('prompts')
-          .update({
-            optimized_prompt: bestVariant.prompt,
-            score: bestVariant.score,
-            performance_metrics: {
-              best_strategy: bestVariant.strategy,
-              bestStrategy: bestVariant.strategy,
-              total_variants: optimizedVariants.length,
-              processing_time_ms: processingTime,
-              processingTimeMs: processingTime,
-              average_score: optimizedVariants.reduce((sum, v) => sum + v.score, 0) / optimizedVariants.length
-            },
-            variants_generated: optimizedVariants.length,
-            status: 'completed'
-          })
-          .eq('id', promptRecord.id);
+          // Update prompt record
+          await supabase
+            .from('prompts')
+            .update({
+              optimized_prompt: bestVariant.prompt,
+              score: bestVariant.score,
+              performance_metrics: {
+                best_strategy: bestVariant.strategy,
+                bestStrategy: bestVariant.strategy,
+                total_variants: optimizedVariants.length,
+                processing_time_ms: processingTime,
+                processingTimeMs: processingTime,
+                average_score: optimizedVariants.reduce((sum, v) => sum + v.score, 0) / optimizedVariants.length
+              },
+              variants_generated: optimizedVariants.length,
+              status: 'completed'
+            })
+            .eq('id', promptRecord.id);
+        }
+
 
         // Save batch findings to optimization insights - CRITICAL for speed optimization
         console.log('Starting to save batch insights to optimization_insights table...');
@@ -532,7 +541,7 @@ serve(async (req) => {
 
     // Return immediate response
     const response = {
-      promptId: promptRecord.id,
+      promptId: autoSave && promptRecord?.id ? promptRecord.id : null,
       originalPrompt,
       bestOptimizedPrompt: bestVariant.prompt,
       bestScore: bestVariant.score,
