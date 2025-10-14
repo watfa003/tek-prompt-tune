@@ -219,14 +219,14 @@ const Landing = () => {
 
       {/* Bottom CTA with Spiral Animation */}
       <section className="relative container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto relative">
-          {/* Spiral Animation Background */}
-          <div className="absolute -inset-16 opacity-60">
+        <div className="max-w-4xl mx-auto relative min-h-[600px] flex items-center justify-center">
+          {/* Spiral Animation Background - Made Much More Visible */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-90 scale-150">
             <SpiralAnimation />
           </div>
           
           <div className="absolute -inset-8 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-3xl blur-3xl" />
-          <Card className="relative p-12 md:p-16 text-center border-primary/40 bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm">
+          <Card className="relative p-12 md:p-16 text-center border-primary/40 bg-card/80 backdrop-blur-md z-10">
             <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
               Start optimizing your prompts today
             </h2>
@@ -234,12 +234,12 @@ const Landing = () => {
               Join thousands of users getting better AI results with Promptek
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105 shadow-lg relative z-10" asChild>
+              <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105 shadow-lg" asChild>
                 <Link to="/auth">
                   Get Started <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="hover:bg-primary/5 transition-all hover:scale-105 relative z-10">
+              <Button variant="outline" size="lg" className="hover:bg-primary/5 transition-all hover:scale-105">
                 View Documentation
               </Button>
             </div>
