@@ -230,10 +230,10 @@ const Landing = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <div className="relative inline-flex rounded-md overflow-hidden">
-                <div className="absolute inset-0 opacity-60 pointer-events-none">
+                <div className="absolute inset-0 pointer-events-none z-0 scale-150 opacity-70 mix-blend-screen">
                   <SpiralAnimation />
                 </div>
-                <Button size="lg" className="relative bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105 shadow-lg" asChild>
+                <Button size="lg" className="relative z-10 bg-transparent border border-primary/40 text-primary hover:bg-primary/10 transition-all hover:scale-105 shadow-lg" asChild>
                   <Link to="/auth">
                     Get Started <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
