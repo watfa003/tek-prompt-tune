@@ -221,9 +221,7 @@ const Landing = () => {
       <section className="relative container mx-auto px-4 py-20">
         <div className="max-w-4xl mx-auto relative">
           
-          <div className="relative z-10">
-            <div className="absolute -inset-8 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-3xl blur-3xl" />
-          <Card className="relative p-12 md:p-16 text-center border-primary/40 bg-card/90 backdrop-blur-md">
+          <div className="relative z-10 text-center">
             <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
               Start optimizing your prompts today
             </h2>
@@ -245,7 +243,6 @@ const Landing = () => {
                 View Documentation
               </Button>
             </div>
-          </Card>
           </div>
         </div>
       </section>
