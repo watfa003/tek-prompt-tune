@@ -3,10 +3,14 @@ import { Card } from "@/components/ui/card";
 import { ArrowRight, Sparkles, Brain, BarChart3, Repeat, Zap, Star, Lightbulb, Target } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BackgroundPaths } from "@/components/ui/background-paths";
+import { Particles } from "@/components/ui/particles";
 
 const Landing = () => {
   return (
     <div className="min-h-screen">
+      {/* Floating Particles */}
+      <Particles />
+      
       {/* Header */}
       <header className="relative border-b border-border/40 backdrop-blur-sm bg-background/80 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
