@@ -20,7 +20,7 @@ function FloatingPaths({ position }: { position: number }) {
     return (
         <div className="absolute inset-0 pointer-events-none">
             <svg
-                className="w-full h-full text-primary/30"
+                className="w-full h-full text-primary"
                 viewBox="0 0 696 316"
                 fill="none"
             >
@@ -30,19 +30,18 @@ function FloatingPaths({ position }: { position: number }) {
                         key={path.id}
                         d={path.d}
                         stroke="currentColor"
-                        strokeWidth={path.width}
-                        strokeOpacity={0.15 + path.id * 0.02}
+                        strokeWidth={path.width * 2}
+                        strokeOpacity={0.3 + path.id * 0.015}
                         initial={{ pathLength: 0, opacity: 0 }}
                         animate={{
                             pathLength: [0, 1, 0],
-                            opacity: [0.2, 0.6, 0.2],
-                            pathOffset: [0, 0.5, 1],
+                            opacity: [0.3, 0.8, 0.3],
                         }}
                         transition={{
-                            duration: 15 + path.id * 0.5,
+                            duration: 12 + path.id * 0.3,
                             repeat: Number.POSITIVE_INFINITY,
                             ease: "easeInOut",
-                            delay: path.id * 0.1,
+                            delay: path.id * 0.05,
                         }}
                     />
                 ))}
@@ -59,8 +58,9 @@ export function BackgroundPaths({
     return (
         <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
             {/* Animated gradient orbs */}
-            <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute top-20 left-10 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
             
             <div className="absolute inset-0">
                 <FloatingPaths position={1} />
