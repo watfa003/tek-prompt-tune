@@ -248,7 +248,7 @@ export const PromptResults = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 rounded-lg bg-muted/50">
             <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <div className="text-lg font-bold">+{Math.round(result.summary.improvementScore)}%</div>
+            <div className="text-lg font-bold">+{result.summary.improvementScore}%</div>
             <div className="text-xs text-muted-foreground">Improvement</div>
           </div>
           <div className="text-center p-4 rounded-lg bg-muted/50">

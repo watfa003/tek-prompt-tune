@@ -482,11 +482,15 @@ const PromptOptimizerForm = ({
                 <Slider
                   value={temperature}
                   onValueChange={setTemperature}
-                  max={2}
+                  max={1}
                   min={0}
                   step={0.1}
                   className="w-full"
                 />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>Precise</span>
+                  <span>Creative</span>
+                </div>
               </div>
             </div>
           </CollapsibleContent>
