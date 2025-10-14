@@ -204,7 +204,7 @@ class AnimationController {
         this.drawTrail(t1)
         
         // 绘制星星
-        ctx.fillStyle = 'rgba(58, 134, 255, 0.9)' // Bright blue
+        ctx.fillStyle = 'rgba(58, 134, 255, 0.5)'
         for (const star of this.stars) {
             star.render(t1, this)
         }
@@ -221,7 +221,7 @@ class AnimationController {
             const f = this.map(i, 0, this.trailLength, 1.1, 0.1)
             const sw = (1.3 * (1 - t1) + 3.0 * Math.sin(Math.PI * t1)) * f
             
-            this.ctx.fillStyle = 'rgba(168, 85, 247, 0.9)' // Bright purple
+            this.ctx.fillStyle = 'rgba(168, 85, 247, 0.5)'
             this.ctx.lineWidth = sw
             
             const pathTime = t1 - 0.00015 * i
@@ -418,7 +418,7 @@ export function SpiralAnimation() {
     }, [dimensions])
     
     return (
-        <div className="relative w-full h-full bg-black/5 rounded-xl border border-primary/20">
+        <div className="relative w-full h-full pointer-events-none">
             <canvas
                 ref={canvasRef}
                 className="absolute inset-0 w-full h-full"
