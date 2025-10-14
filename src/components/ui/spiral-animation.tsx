@@ -79,7 +79,7 @@ class AnimationController {
         this.timeline
             .to(this, {
                 time: 1,
-                duration: 5,
+                duration: 12,
                 repeat: -1,
                 ease: "none",
                 repeatDelay: 0,
