@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -65,10 +65,15 @@ export const PromptResults = ({
   const [isLoading, setIsLoading] = useState(true);
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    generateOptimizedPrompts();
-  }, [taskDescription, aiProvider, llmModel, outputType]);
+    // Only run once on mount
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      generateOptimizedPrompts();
+    }
+  }, []);
 
   const generateOptimizedPrompts = async () => {
     setIsLoading(true);
@@ -109,7 +114,10 @@ export const PromptResults = ({
         throw new Error('No data returned from optimization');
       }
 
+      // Set result in a single state update to prevent intermediate renders
       setResult(data);
+      setIsLoading(false);
+      
       toast({
         title: "Success!",
         description: `Generated ${data.variants?.length || 0} optimized prompt variants`,
@@ -119,13 +127,12 @@ export const PromptResults = ({
       console.error('Error generating prompts:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       setError(errorMessage);
+      setIsLoading(false);
       toast({
         title: "Generation Failed",
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
