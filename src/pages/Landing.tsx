@@ -29,22 +29,22 @@ const Landing = () => {
 
       {/* Hero Section with Animated Background */}
       <BackgroundPaths>
-        <section className="container mx-auto px-4 py-24 md:py-32">
+        <section className="container mx-auto px-4 py-32 md:py-40 lg:py-48">
           <div className="max-w-5xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 mb-6 animate-fade-in backdrop-blur-sm">
               <Zap className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">AI-Powered Prompt Optimization</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent leading-tight">
+            <h1 className="text-6xl md:text-8xl font-bold mb-8 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent leading-tight">
               Optimize Your AI Prompts.<br />Instantly.
             </h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
               Automatically grade, test, and improve your prompts across multiple AI models.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
               <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105 shadow-lg shadow-primary/25" asChild>
                 <Link to="/auth">
                   Try It Now <ArrowRight className="ml-2 h-5 w-5" />
@@ -55,9 +55,8 @@ const Landing = () => {
               </Button>
             </div>
 
-            {/* Demo Visual Placeholder */}
             <div className="relative mx-auto max-w-4xl">
-              <div className="aspect-video rounded-xl border border-border/40 bg-gradient-to-br from-card/50 to-primary/5 backdrop-blur-sm shadow-2xl overflow-hidden">
+              <div className="aspect-video rounded-xl border border-border/40 bg-card backdrop-blur-sm shadow-2xl overflow-hidden">
                 <div className="p-8 h-full flex items-center justify-center">
                   <div className="text-center space-y-4">
                     <div className="flex items-center justify-center gap-3 text-primary">
