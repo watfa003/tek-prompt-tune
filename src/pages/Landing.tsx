@@ -219,14 +219,17 @@ const Landing = () => {
 
       {/* Bottom CTA with Spiral Animation */}
       <section className="relative container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto relative min-h-[600px] flex items-center justify-center">
-          {/* Spiral Animation Background - Made Much More Visible */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-90 scale-150">
-            <SpiralAnimation />
+        <div className="max-w-4xl mx-auto relative">
+          {/* Spiral Animation Background - Full visibility */}
+          <div className="absolute -inset-32 z-0 flex items-center justify-center">
+            <div className="w-[800px] h-[600px]">
+              <SpiralAnimation />
+            </div>
           </div>
           
-          <div className="absolute -inset-8 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-3xl blur-3xl" />
-          <Card className="relative p-12 md:p-16 text-center border-primary/40 bg-card/80 backdrop-blur-md z-10">
+          <div className="relative z-10">
+            <div className="absolute -inset-8 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-3xl blur-3xl" />
+          <Card className="relative p-12 md:p-16 text-center border-primary/40 bg-card/90 backdrop-blur-md">
             <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
               Start optimizing your prompts today
             </h2>
@@ -244,6 +247,7 @@ const Landing = () => {
               </Button>
             </div>
           </Card>
+          </div>
         </div>
       </section>
 
