@@ -17,7 +17,7 @@ const Landing = () => {
       <header className="relative border-b border-border/40 backdrop-blur-sm bg-background/80 z-50">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={promptekLogo} alt="Promptek" className="h-12 md:h-14" />
+            <img src={promptekLogo} alt="Promptek" className="h-16 md:h-20" />
           </div>
           <div className="flex gap-3">
             <Button variant="ghost" asChild>
@@ -253,7 +253,7 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center">
-              <img src={promptekLogo} alt="Promptek" className="h-8 md:h-10" />
+              <img src={promptekLogo} alt="Promptek" className="h-10 md:h-12" />
             </div>
             <p className="text-muted-foreground text-center">
               &copy; 2024 Promptek. Built for the future of AI optimization.
