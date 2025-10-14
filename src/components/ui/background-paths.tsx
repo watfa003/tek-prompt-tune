@@ -31,17 +31,18 @@ function FloatingPaths({ position }: { position: number }) {
                         d={path.d}
                         stroke="currentColor"
                         strokeWidth={path.width}
-                        strokeOpacity={0.1 + path.id * 0.03}
-                        initial={{ pathLength: 0.3, opacity: 0.6 }}
+                        strokeOpacity={0.15 + path.id * 0.02}
+                        initial={{ pathLength: 0, opacity: 0 }}
                         animate={{
-                            pathLength: 1,
-                            opacity: [0.3, 0.6, 0.3],
-                            pathOffset: [0, 1, 0],
+                            pathLength: [0, 1, 0],
+                            opacity: [0.2, 0.6, 0.2],
+                            pathOffset: [0, 0.5, 1],
                         }}
                         transition={{
-                            duration: 20 + Math.random() * 10,
+                            duration: 15 + path.id * 0.5,
                             repeat: Number.POSITIVE_INFINITY,
-                            ease: "linear",
+                            ease: "easeInOut",
+                            delay: path.id * 0.1,
                         }}
                     />
                 ))}
@@ -51,80 +52,23 @@ function FloatingPaths({ position }: { position: number }) {
 }
 
 export function BackgroundPaths({
-    title = "Background Paths",
+    children,
 }: {
-    title?: string;
+    children?: React.ReactNode;
 }) {
-    const words = title.split(" ");
-
     return (
-        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background">
+        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
+            {/* Animated gradient orbs */}
+            <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            
             <div className="absolute inset-0">
                 <FloatingPaths position={1} />
                 <FloatingPaths position={-1} />
             </div>
 
-            <div className="relative z-10 container mx-auto px-4 md:px-6 text-center">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 2 }}
-                    className="max-w-4xl mx-auto"
-                >
-                    <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold mb-8 tracking-tighter">
-                        {words.map((word, wordIndex) => (
-                            <span
-                                key={wordIndex}
-                                className="inline-block mr-4 last:mr-0"
-                            >
-                                {word.split("").map((letter, letterIndex) => (
-                                    <motion.span
-                                        key={`${wordIndex}-${letterIndex}`}
-                                        initial={{ y: 100, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{
-                                            delay:
-                                                wordIndex * 0.1 +
-                                                letterIndex * 0.03,
-                                            type: "spring",
-                                            stiffness: 150,
-                                            damping: 25,
-                                        }}
-                                        className="inline-block text-transparent bg-clip-text 
-                                        bg-gradient-to-r from-foreground via-primary to-accent"
-                                    >
-                                        {letter}
-                                    </motion.span>
-                                ))}
-                            </span>
-                        ))}
-                    </h1>
-
-                    <div
-                        className="inline-block group relative bg-gradient-to-b from-primary/20 to-accent/20 
-                        p-px rounded-2xl backdrop-blur-lg 
-                        overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
-                    >
-                        <Button
-                            variant="ghost"
-                            className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md 
-                            bg-card/95 hover:bg-card border-border
-                            transition-all duration-300 
-                            group-hover:-translate-y-0.5
-                            hover:shadow-md hover:shadow-primary/20"
-                        >
-                            <span className="opacity-90 group-hover:opacity-100 transition-opacity">
-                                Discover Excellence
-                            </span>
-                            <span
-                                className="ml-3 opacity-70 group-hover:opacity-100 group-hover:translate-x-1.5 
-                                transition-all duration-300"
-                            >
-                                →
-                            </span>
-                        </Button>
-                    </div>
-                </motion.div>
+            <div className="relative z-10 w-full">
+                {children}
             </div>
         </div>
     );
