@@ -219,7 +219,7 @@ const Landing = () => {
 
       {/* Bottom CTA with Spiral Animation */}
       <section className="relative container mx-auto px-4 py-20">
-        <div className="absolute inset-0 pointer-events-none opacity-60 -z-10">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-80 scale-150 -z-10">
           <SpiralAnimation />
         </div>
         <div className="max-w-4xl mx-auto relative">
