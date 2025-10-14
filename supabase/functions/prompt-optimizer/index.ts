@@ -548,7 +548,7 @@ serve(async (req) => {
       variants: optimizedVariants,
       templateSaved: saveAsTemplate && templateTitle,
       summary: {
-        improvementScore: Math.max(0, (bestVariant.score - 0.5) * 100), // Baseline is 50%, show improvement as percentage points
+        improvementScore: Math.max(0, (bestVariant.score - Math.min(...optimizedVariants.map(v => v.score))) * 100), // Difference between best and worst variant
         bestStrategy: bestVariant.strategy,
         totalVariants: optimizedVariants.length,
         processingTimeMs: processingTime
