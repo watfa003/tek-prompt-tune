@@ -56,9 +56,9 @@ export function Particles() {
             scale: [1, 1.5, 1],
           }}
           transition={{
-            duration: particle.duration,
+            duration: particle.duration * 0.5,
             repeat: Infinity,
-            delay: particle.delay,
+            delay: particle.delay * 0.5,
             ease: "easeInOut",
           }}
         />

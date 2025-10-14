@@ -15,9 +15,9 @@ const Landing = () => {
       
       {/* Header */}
       <header className="relative border-b border-border/40 backdrop-blur-sm bg-background/80 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <img src={promptekLogo} alt="Promptek" className="h-16" />
+        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
+          <div className="flex items-center">
+            <img src={promptekLogo} alt="Promptek" className="h-12 md:h-14" />
           </div>
           <div className="flex gap-3">
             <Button variant="ghost" asChild>
@@ -252,8 +252,8 @@ const Landing = () => {
       <footer className="relative border-t border-border/40 py-12 bg-background/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-2">
-              <img src={promptekLogo} alt="Promptek" className="h-10" />
+            <div className="flex items-center">
+              <img src={promptekLogo} alt="Promptek" className="h-8 md:h-10" />
             </div>
             <p className="text-muted-foreground text-center">
               &copy; 2024 Promptek. Built for the future of AI optimization.

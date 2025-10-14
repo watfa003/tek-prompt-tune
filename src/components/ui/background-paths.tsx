@@ -38,10 +38,10 @@ function FloatingPaths({ position }: { position: number }) {
                             opacity: [0.3, 0.8, 0.3],
                         }}
                         transition={{
-                            duration: 12 + path.id * 0.3,
+                            duration: 6 + path.id * 0.2,
                             repeat: Number.POSITIVE_INFINITY,
                             ease: "easeInOut",
-                            delay: path.id * 0.05,
+                            delay: path.id * 0.03,
                         }}
                     />
                 ))}
