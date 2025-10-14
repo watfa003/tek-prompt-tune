@@ -32,7 +32,7 @@ const Landing = () => {
 
       {/* Hero Section with Animated Background */}
       <BackgroundPaths>
-        <section className="container mx-auto px-4 py-32 md:py-40 lg:py-48">
+        <section className="container mx-auto px-4 py-24 md:py-32 lg:py-36">
           <div className="max-w-5xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 mb-6 animate-fade-in backdrop-blur-sm">
               <Zap className="h-4 w-4 text-primary" />
@@ -40,7 +40,7 @@ const Landing = () => {
             </div>
             
             <h1 className="text-6xl md:text-8xl font-bold mb-8 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent leading-tight">
-              Optimize Your AI Prompts.<br />Instantly.
+              Optimize Your AI Prompts. Instantly.
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
