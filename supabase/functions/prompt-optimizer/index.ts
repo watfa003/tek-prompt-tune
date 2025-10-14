@@ -548,7 +548,7 @@ serve(async (req) => {
       variants: optimizedVariants,
       templateSaved: saveAsTemplate && templateTitle,
       summary: {
-        improvementScore: Math.round(bestVariant.score * 100), // Show best score as improvement percentage
+        improvementScore: Math.round(bestVariant.score * 100), // Convert 0.93 to 93
         bestStrategy: bestVariant.strategy,
         totalVariants: optimizedVariants.length,
         processingTimeMs: processingTime
