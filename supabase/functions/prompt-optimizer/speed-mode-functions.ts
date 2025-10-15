@@ -72,8 +72,10 @@ export async function handleSpeedMode(
 
     console.log(`✨ Speed optimization completed in ${processingTime}ms with ${variants.length} variants. Best variant score: ${bestVariant.score}`);
     console.log(`🎯 Best prompt preview: ${bestVariant.prompt.substring(0, 100)}...`);
+    console.log(`🏆 Selected first variant with strategy: ${bestVariant.strategy}`);
 
     // Store speed optimization result (simplified to avoid schema issues)
+    let speedResultId = null;
     if (autoSave) {
       const { data: speedResult, error } = await supabase
         .from('speed_optimizations')
@@ -81,13 +83,20 @@ export async function handleSpeedMode(
           user_id: userId,
           original_prompt: originalPrompt,
           optimized_prompt: bestVariant.prompt,
+          strategy: bestVariant.strategyKey || 'clarity',
           optimization_strategy: bestVariant.strategy,
-          processing_time_ms: processingTime
+          ai_provider: aiProvider,
+          model_name: modelName,
+          output_type: outputType,
+          processing_time_ms: processingTime,
+          variants_count: variants.length
         })
         .select()
         .single();
       if (error) {
         console.error('❌ Error saving speed optimization:', error);
+      } else {
+        speedResultId = speedResult?.id;
       }
     }
 
@@ -97,7 +106,7 @@ export async function handleSpeedMode(
     };
 
     return new Response(JSON.stringify({
-      promptId: speedResult?.id,
+      promptId: speedResultId,
       originalPrompt,
       bestOptimizedPrompt: bestVariant.prompt,
       bestScore: bestVariant.score || 0.85,
@@ -108,7 +117,7 @@ export async function handleSpeedMode(
       })),
       mode: 'speed',
       processingTimeMs: processingTime,
-      speedResultId: speedResult?.id,
+      speedResultId: speedResultId,
       improvement: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
       summary: {
         improvementScore: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
