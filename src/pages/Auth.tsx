@@ -278,11 +278,12 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           // Redirect MUST match the configured Redirect URL exactly to avoid 403s
           redirectTo: 'https://promptekai.com/',
+          skipBrowserRedirect: true, // we'll navigate manually for reliability
         },
       });
 
@@ -292,6 +293,13 @@ const Auth = () => {
           description: error.message,
           variant: "destructive",
         });
+        return;
+      }
+
+      if (data?.url) {
+        window.location.assign(data.url); // Go directly to Supabase /authorize URL
+      } else {
+        toast({ title: "Error", description: "Unable to start Google sign-in.", variant: "destructive" });
       }
     } catch (error) {
       toast({
