@@ -307,10 +307,7 @@ const Auth = () => {
         {/* Header */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center space-x-2 mb-8">
-            <Sparkles className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              PrompTek
-            </span>
+            <img src="/src/assets/promptek-logo.png" alt="PrompTek" className="h-8" />
           </Link>
           <h1 className="text-3xl font-bold">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
