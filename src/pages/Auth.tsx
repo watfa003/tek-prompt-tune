@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import promptekLogo from '@/assets/promptek-logo.png';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(true);
@@ -307,7 +308,7 @@ const Auth = () => {
         {/* Header */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center space-x-2 mb-8">
-            <img src="/src/assets/promptek-logo.png" alt="PrompTek" className="h-12" />
+            <img src={promptekLogo} alt="PrompTek" className="h-12" />
           </Link>
           <h1 className="text-3xl font-bold">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
