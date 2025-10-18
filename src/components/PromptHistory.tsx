@@ -72,7 +72,7 @@ export const PromptHistory = () => {
         item.provider.toLowerCase().includes(filterProvider.toLowerCase()) ||
         (filterProvider === "OpenAI" && item.provider.toLowerCase().includes("openai")) ||
         (filterProvider === "Claude" && item.provider.toLowerCase().includes("claude")) ||
-        (filterProvider === "Gemini" && item.provider.toLowerCase().includes("gemini")) ||
+        (filterProvider === "Gemini" && (item.provider.toLowerCase().includes("gemini") || item.provider.toLowerCase().includes("google"))) ||
         (filterProvider === "Groq" && item.provider.toLowerCase().includes("groq"));
       
       const matchesOutputType = filterOutputType === "all" || 
