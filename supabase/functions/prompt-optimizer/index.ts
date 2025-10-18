@@ -1132,11 +1132,19 @@ async function saveBatchInsights(supabase: any, userId: string, aiProvider: stri
     // Performance patterns from this batch
     const performancePatterns = {
       topPerformingPromptLength: optimizedVariants
-        .sort((a, b) => b.score - a.score)[0]?.prompt.length || 0,
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          // Tiebreaker: prefer fewer tokens
+          return (a.metrics?.tokens_used || 0) - (b.metrics?.tokens_used || 0);
+        })[0]?.prompt.length || 0,
       averageResponseTime: optimizedVariants
         .reduce((sum, v) => sum + (v.metrics.response_time || 0), 0) / optimizedVariants.length,
       mostSuccessfulStrategy: optimizedVariants
-        .sort((a, b) => b.score - a.score)[0]?.strategy || 'unknown'
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          // Tiebreaker: prefer fewer tokens
+          return (a.metrics?.tokens_used || 0) - (b.metrics?.tokens_used || 0);
+        })[0]?.strategy || 'unknown'
     };
 
     // Optimization rules learned from this batch

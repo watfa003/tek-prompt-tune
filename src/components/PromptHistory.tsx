@@ -114,9 +114,16 @@ export const PromptHistory = () => {
       
       // From each session group, only keep the highest scoring variant
       base = Array.from(sessionGroups.values()).map(group => {
-        return group.reduce((best, current) => 
-          current.score > best.score ? current : best
-        );
+        return group.reduce((best, current) => {
+          if (current.score > best.score) return current;
+          if (current.score === best.score) {
+            // Tiebreaker: prefer fewer tokens
+            const currentTokens = current.sampleOutput?.split(/\s+/).length || 0;
+            const bestTokens = best.sampleOutput?.split(/\s+/).length || 0;
+            return currentTokens < bestTokens ? current : best;
+          }
+          return best;
+        });
       });
     }
 
@@ -182,9 +189,16 @@ export const PromptHistory = () => {
       });
       
       // Check if this item has the highest score in its session
-      const bestInSession = sessionItems.reduce((best, current) => 
-        current.score > best.score ? current : best
-      );
+      const bestInSession = sessionItems.reduce((best, current) => {
+        if (current.score > best.score) return current;
+        if (current.score === best.score) {
+          // Tiebreaker: prefer fewer tokens
+          const currentTokens = current.sampleOutput?.split(/\s+/).length || 0;
+          const bestTokens = best.sampleOutput?.split(/\s+/).length || 0;
+          return currentTokens < bestTokens ? current : best;
+        }
+        return best;
+      });
       isBestInSession = item.id === bestInSession.id && sessionItems.length > 1;
     }
 

@@ -140,7 +140,15 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
 
     try {
       const bestVariant = data?.variants?.reduce((best: any, current: any) => {
-        return (!best || (current.score > best.score)) ? current : best;
+        if (!best) return current;
+        if (current.score > best.score) return current;
+        if (current.score === best.score) {
+          // Tiebreaker: prefer fewer tokens
+          const currentTokens = current.metrics?.tokens_used || 0;
+          const bestTokens = best.metrics?.tokens_used || 0;
+          return currentTokens < bestTokens ? current : best;
+        }
+        return best;
       }, null);
 
       // Generate unique ID for each optimization run
@@ -298,8 +306,17 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
             });
 
             // Compute best variant and processing time totals
-            const bestVariant = variants.reduce((acc: any, cur: any) =>
-              cur.score > (acc?.score ?? -Infinity) ? cur : acc, null as any);
+            const bestVariant = variants.reduce((acc: any, cur: any) => {
+              if (!acc) return cur;
+              if (cur.score > (acc?.score ?? -Infinity)) return cur;
+              if (cur.score === acc.score) {
+                // Tiebreaker: prefer fewer tokens
+                const currentTokens = cur.metrics?.tokens_used || 0;
+                const bestTokens = acc.metrics?.tokens_used || 0;
+                return currentTokens < bestTokens ? cur : acc;
+              }
+              return acc;
+            }, null as any);
             const processingTimeMs = variants.reduce((sum: number, vv: any) =>
               sum + (vv.metrics?.processing_time_ms ?? 0), 0);
             
@@ -767,8 +784,17 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           };
         });
 
-        const bestVariant = variants.reduce((acc: any, cur: any) =>
-          cur.score > (acc?.score ?? -Infinity) ? cur : acc, null as any);
+        const bestVariant = variants.reduce((acc: any, cur: any) => {
+          if (!acc) return cur;
+          if (cur.score > (acc?.score ?? -Infinity)) return cur;
+          if (cur.score === acc.score) {
+            // Tiebreaker: prefer fewer tokens
+            const currentTokens = cur.metrics?.tokens_used || 0;
+            const bestTokens = acc.metrics?.tokens_used || 0;
+            return currentTokens < bestTokens ? cur : acc;
+          }
+          return acc;
+        }, null as any);
         const processingTimeMs = variants.reduce((sum: number, vv: any) =>
           sum + (vv.metrics?.processing_time_ms ?? 0), 0);
 
