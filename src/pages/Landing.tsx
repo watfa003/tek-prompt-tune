@@ -80,9 +80,9 @@ const Landing = () => {
       {/* Why Promptek Features */}
       <section className="relative container mx-auto px-4 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">Why Promptek</h2>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">Why Promptek?</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Advanced prompt engineering powered by intelligent automation
+            We built this because prompt engineering shouldn't feel like guesswork
           </p>
         </div>
 
@@ -91,9 +91,9 @@ const Landing = () => {
             <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-primary to-primary-glow rounded-xl mb-4 group-hover:scale-110 transition-transform">
               <Brain className="h-7 w-7 text-primary-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-3">AI-Powered Grading</h3>
+            <h3 className="text-xl font-semibold mb-3">Scores That Make Sense</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Evaluate prompts intelligently with advanced scoring algorithms, not just by length or tokens.
+              Forget token counts. We measure clarity, structure, and actual output quality.
             </p>
           </Card>
 
@@ -101,9 +101,9 @@ const Landing = () => {
             <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-accent to-primary rounded-xl mb-4 group-hover:scale-110 transition-transform">
               <BarChart3 className="h-7 w-7 text-accent-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-3">Model-Specific Insights</h3>
+            <h3 className="text-xl font-semibold mb-3">Test Across Models</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              See how GPT-4, Claude, Gemini, and Mistral respond differently to your prompts.
+              GPT-4 loves details. Claude prefers structure. See what works where.
             </p>
           </Card>
 
@@ -111,9 +111,9 @@ const Landing = () => {
             <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-xl mb-4 group-hover:scale-110 transition-transform">
               <Repeat className="h-7 w-7 text-primary-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-3">Self-Optimizing Engine</h3>
+            <h3 className="text-xl font-semibold mb-3">Learns What Works</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Promptek learns which strategies work best and continuously improves suggestions.
+              Track what prompts perform best over time and replicate success.
             </p>
           </Card>
 
@@ -121,9 +121,9 @@ const Landing = () => {
             <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-accent to-primary-glow rounded-xl mb-4 group-hover:scale-110 transition-transform">
               <Zap className="h-7 w-7 text-accent-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-3">Instant Feedback</h3>
+            <h3 className="text-xl font-semibold mb-3">No More Waiting</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Grade, compare, and iterate in seconds. No waiting for manual reviews.
+              Test multiple versions in parallel. Know which prompt wins in seconds.
             </p>
           </Card>
         </div>
@@ -134,7 +134,7 @@ const Landing = () => {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">How It Works</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Three simple steps to better AI prompts
+            Stop guessing. Start testing.
           </p>
         </div>
 
@@ -143,9 +143,9 @@ const Landing = () => {
             <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary-glow rounded-2xl mx-auto mb-6 shadow-lg shadow-primary/25">
               <span className="text-2xl font-bold text-primary-foreground">1</span>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">Input Your Prompt</h3>
+            <h3 className="text-2xl font-semibold mb-3">Paste Your Prompt</h3>
             <p className="text-muted-foreground leading-relaxed">
-              Type your prompt or import from history. Describe your task and let Promptek handle the rest.
+              Drop in whatever you're using. Whether it's 10 words or 500, we'll work with it.
             </p>
             {/* Arrow */}
             <div className="hidden md:block absolute top-8 -right-4 text-primary/30">
@@ -157,9 +157,9 @@ const Landing = () => {
             <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-accent to-primary rounded-2xl mx-auto mb-6 shadow-lg shadow-accent/25">
               <span className="text-2xl font-bold text-accent-foreground">2</span>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">AI Tests & Grades</h3>
+            <h3 className="text-2xl font-semibold mb-3">We Run the Tests</h3>
             <p className="text-muted-foreground leading-relaxed">
-              Promptek runs your prompt through multiple AI models and analyzes the results.
+              Your prompt hits multiple models simultaneously. Real responses, real scores.
             </p>
             {/* Arrow */}
             <div className="hidden md:block absolute top-8 -right-4 text-accent/30">
@@ -171,9 +171,9 @@ const Landing = () => {
             <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-glow to-accent rounded-2xl mx-auto mb-6 shadow-lg shadow-primary-glow/25">
               <span className="text-2xl font-bold text-primary-foreground">3</span>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">Get Scores & Suggestions</h3>
+            <h3 className="text-2xl font-semibold mb-3">See What Actually Works</h3>
             <p className="text-muted-foreground leading-relaxed">
-              Refine instantly with actionable feedback and optimized prompt variants.
+              Side-by-side comparisons, concrete scores, and suggestions based on real output.
             </p>
           </div>
         </div>
