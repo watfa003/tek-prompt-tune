@@ -68,12 +68,20 @@ export const PromptHistory = () => {
         item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
       
-      const matchesProvider = filterProvider === "all" || 
-        item.provider.toLowerCase().includes(filterProvider.toLowerCase()) ||
-        (filterProvider === "OpenAI" && item.provider.toLowerCase().includes("openai")) ||
-        (filterProvider === "Claude" && item.provider.toLowerCase().includes("claude")) ||
-        (filterProvider === "Gemini" && (item.provider.toLowerCase().includes("gemini") || item.provider.toLowerCase().includes("google"))) ||
-        (filterProvider === "Groq" && item.provider.toLowerCase().includes("groq"));
+      const providerFilter = filterProvider.toLowerCase();
+      const providerValue = (item.provider || "").toLowerCase();
+      const aliases: Record<string, string[]> = {
+        all: [],
+        openai: ["openai"],
+        gemini: ["gemini", "google"], // DB stores Gemini as "google"
+        groq: ["groq"],
+        anthropic: ["anthropic", "claude"],
+        mistral: ["mistral"],
+      };
+      const matchesProvider =
+        providerFilter === "all" ||
+        aliases[providerFilter]?.some(alias => providerValue.includes(alias)) ||
+        providerValue.includes(providerFilter);
       
       const matchesOutputType = filterOutputType === "all" || 
         item.outputType.toLowerCase() === filterOutputType.toLowerCase();
