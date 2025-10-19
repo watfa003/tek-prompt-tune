@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Brain, BarChart3, Repeat, Zap, Star, Lightbulb, Target, Sparkles } from "lucide-react";
+import { ArrowRight, Brain, BarChart3, Repeat, Zap, Star, Lightbulb, Target, Sparkles, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { Particles } from "@/components/ui/particles";
 import { SpiralAnimation } from "@/components/ui/spiral-animation";
 import promptekLogo from "@/assets/promptek-logo.png";
+import { motion } from "framer-motion";
 
 const Landing = () => {
   return (
@@ -34,148 +35,264 @@ const Landing = () => {
       <BackgroundPaths>
         <section className="container mx-auto px-4 py-24 md:py-32 lg:py-36">
           <div className="max-w-5xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 mb-6 animate-fade-in backdrop-blur-sm">
-              <Zap className="h-4 w-4 text-primary" />
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 mb-6 backdrop-blur-sm"
+            >
+              <Zap className="h-4 w-4 text-primary animate-pulse" />
               <span className="text-sm font-medium">AI-Powered Prompt Optimization</span>
-            </div>
+            </motion.div>
             
-            <h1 className="text-6xl md:text-8xl font-bold mb-8 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent leading-tight">
+            <motion.h1 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-6xl md:text-8xl font-bold mb-8 bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent leading-tight"
+            >
               Optimize Your AI Prompts. Instantly.
-            </h1>
+            </motion.h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
+            >
               Automatically grade, test, and improve your prompts across multiple AI models.
-            </p>
+            </motion.p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105 shadow-lg shadow-primary/25" asChild>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
+            >
+              <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105 shadow-lg shadow-primary/25 group" asChild>
                 <Link to="/auth">
-                  Try It Now <ArrowRight className="ml-2 h-5 w-5" />
+                  Try It Now <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="hover:bg-primary/5 transition-all hover:scale-105 backdrop-blur-sm" asChild>
+              <Button variant="outline" size="lg" className="hover:bg-primary/5 transition-all hover:scale-105 backdrop-blur-sm border-border/60" asChild>
                 <a href="#how-it-works">Learn How It Works</a>
               </Button>
-            </div>
+            </motion.div>
 
-            <div className="relative mx-auto max-w-4xl">
-              <div className="aspect-video rounded-xl border border-border/40 bg-card backdrop-blur-sm shadow-2xl overflow-hidden">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="relative mx-auto max-w-4xl"
+            >
+              <div className="aspect-video rounded-xl border border-border/40 bg-gradient-to-br from-card/80 to-primary/5 backdrop-blur-sm shadow-2xl overflow-hidden">
                 <div className="p-8 h-full flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center gap-3 text-primary">
-                      <Brain className="h-12 w-12 animate-pulse" />
-                      <BarChart3 className="h-12 w-12 animate-pulse" style={{ animationDelay: '0.3s' }} />
-                      <Target className="h-12 w-12 animate-pulse" style={{ animationDelay: '0.6s' }} />
+                  <div className="text-center space-y-6">
+                    <div className="flex items-center justify-center gap-6 text-primary">
+                      <motion.div
+                        animate={{ 
+                          rotate: [0, 360],
+                          scale: [1, 1.1, 1]
+                        }}
+                        transition={{ 
+                          duration: 4,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <Brain className="h-14 w-14" />
+                      </motion.div>
+                      <motion.div
+                        animate={{ 
+                          y: [0, -10, 0],
+                        }}
+                        transition={{ 
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <BarChart3 className="h-14 w-14" />
+                      </motion.div>
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.2, 1],
+                        }}
+                        transition={{ 
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <Target className="h-14 w-14" />
+                      </motion.div>
                     </div>
-                    <p className="text-muted-foreground">Interactive Demo Coming Soon</p>
+                    <p className="text-muted-foreground font-medium">Interactive Demo Coming Soon</p>
                   </div>
                 </div>
               </div>
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl blur-2xl -z-10" />
-            </div>
+              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl blur-3xl -z-10 animate-pulse" style={{ animationDuration: '4s' }} />
+            </motion.div>
           </div>
         </section>
       </BackgroundPaths>
 
       {/* Why Promptek Features */}
-      <section className="relative container mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">Why Promptek?</h2>
+      <section className="relative container mx-auto px-4 py-20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16 relative z-10"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-primary/80 bg-clip-text text-transparent">
+            Why Promptek?
+          </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             We built this because prompt engineering shouldn't feel like guesswork
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          <Card className="p-6 border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/40 transition-all hover:scale-105 hover:shadow-lg hover:shadow-primary/10 group">
-            <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-primary to-primary-glow rounded-xl mb-4 group-hover:scale-110 transition-transform">
-              <Brain className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Scores That Make Sense</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Forget token counts. We measure clarity, structure, and actual output quality.
-            </p>
-          </Card>
-
-          <Card className="p-6 border-border/40 bg-card/50 backdrop-blur-sm hover:border-accent/40 transition-all hover:scale-105 hover:shadow-lg hover:shadow-accent/10 group">
-            <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-accent to-primary rounded-xl mb-4 group-hover:scale-110 transition-transform">
-              <BarChart3 className="h-7 w-7 text-accent-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Test Across Models</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              GPT-4 loves details. Claude prefers structure. See what works where.
-            </p>
-          </Card>
-
-          <Card className="p-6 border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/40 transition-all hover:scale-105 hover:shadow-lg hover:shadow-primary/10 group">
-            <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-xl mb-4 group-hover:scale-110 transition-transform">
-              <Repeat className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Learns What Works</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Track what prompts perform best over time and replicate success.
-            </p>
-          </Card>
-
-          <Card className="p-6 border-border/40 bg-card/50 backdrop-blur-sm hover:border-accent/40 transition-all hover:scale-105 hover:shadow-lg hover:shadow-accent/10 group">
-            <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-accent to-primary-glow rounded-xl mb-4 group-hover:scale-110 transition-transform">
-              <Zap className="h-7 w-7 text-accent-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">No More Waiting</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Test multiple versions in parallel. Know which prompt wins in seconds.
-            </p>
-          </Card>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto relative z-10">
+          {[
+            {
+              icon: Brain,
+              title: "Scores That Make Sense",
+              description: "Forget token counts. We measure clarity, structure, and actual output quality.",
+              gradient: "from-primary to-primary-glow",
+              delay: 0.1
+            },
+            {
+              icon: BarChart3,
+              title: "Test Across Models",
+              description: "GPT-4 loves details. Claude prefers structure. See what works where.",
+              gradient: "from-accent to-primary",
+              delay: 0.2
+            },
+            {
+              icon: Repeat,
+              title: "Learns What Works",
+              description: "Track what prompts perform best over time and replicate success.",
+              gradient: "from-primary to-accent",
+              delay: 0.3
+            },
+            {
+              icon: Zap,
+              title: "No More Waiting",
+              description: "Test multiple versions in parallel. Know which prompt wins in seconds.",
+              gradient: "from-accent to-primary-glow",
+              delay: 0.4
+            }
+          ].map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: feature.delay }}
+            >
+              <Card className="p-6 border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/40 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/20 group h-full relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative z-10">
+                  <div className={`flex items-center justify-center w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-xl mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg`}>
+                    <feature.icon className="h-7 w-7 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3 group-hover:text-primary transition-colors">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
         </div>
       </section>
 
       {/* How It Works */}
       <section id="how-it-works" className="relative container mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">How It Works</h2>
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }} />
+        </div>
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16 relative z-10"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-accent/80 bg-clip-text text-transparent">
+            How It Works
+          </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Stop guessing. Start testing.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8">
-          <div className="relative text-center">
-            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary-glow rounded-2xl mx-auto mb-6 shadow-lg shadow-primary/25">
-              <span className="text-2xl font-bold text-primary-foreground">1</span>
-            </div>
-            <h3 className="text-2xl font-semibold mb-3">Paste Your Prompt</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              Drop in whatever you're using. Whether it's 10 words or 500, we'll work with it.
-            </p>
-            {/* Arrow */}
-            <div className="hidden md:block absolute top-8 -right-4 text-primary/30">
-              <ArrowRight className="h-8 w-8" />
-            </div>
-          </div>
-
-          <div className="relative text-center">
-            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-accent to-primary rounded-2xl mx-auto mb-6 shadow-lg shadow-accent/25">
-              <span className="text-2xl font-bold text-accent-foreground">2</span>
-            </div>
-            <h3 className="text-2xl font-semibold mb-3">We Run the Tests</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              Your prompt hits multiple models simultaneously. Real responses, real scores.
-            </p>
-            {/* Arrow */}
-            <div className="hidden md:block absolute top-8 -right-4 text-accent/30">
-              <ArrowRight className="h-8 w-8" />
-            </div>
-          </div>
-
-          <div className="text-center">
-            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-glow to-accent rounded-2xl mx-auto mb-6 shadow-lg shadow-primary-glow/25">
-              <span className="text-2xl font-bold text-primary-foreground">3</span>
-            </div>
-            <h3 className="text-2xl font-semibold mb-3">See What Actually Works</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              Side-by-side comparisons, concrete scores, and suggestions based on real output.
-            </p>
-          </div>
+        <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 relative z-10">
+          {[
+            {
+              number: 1,
+              title: "Paste Your Prompt",
+              description: "Drop in whatever you're using. Whether it's 10 words or 500, we'll work with it.",
+              gradient: "from-primary to-primary-glow",
+              delay: 0.2
+            },
+            {
+              number: 2,
+              title: "We Run the Tests",
+              description: "Your prompt hits multiple models simultaneously. Real responses, real scores.",
+              gradient: "from-accent to-primary",
+              delay: 0.4
+            },
+            {
+              number: 3,
+              title: "See What Actually Works",
+              description: "Side-by-side comparisons, concrete scores, and suggestions based on real output.",
+              gradient: "from-primary-glow to-accent",
+              delay: 0.6
+            }
+          ].map((step, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: step.delay }}
+              className="relative text-center group"
+            >
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className={`flex items-center justify-center w-16 h-16 bg-gradient-to-br ${step.gradient} rounded-2xl mx-auto mb-6 shadow-lg shadow-primary/25 group-hover:shadow-xl group-hover:shadow-primary/40 transition-shadow`}
+              >
+                <span className="text-2xl font-bold text-primary-foreground">{step.number}</span>
+              </motion.div>
+              <h3 className="text-2xl font-semibold mb-3 group-hover:text-primary transition-colors">
+                {step.title}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {step.description}
+              </p>
+              
+              {/* Arrow - only show between steps on desktop */}
+              {index < 2 && (
+                <motion.div 
+                  animate={{ x: [0, 10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="hidden md:block absolute top-8 -right-4 text-primary/30"
+                >
+                  <ArrowRight className="h-8 w-8" />
+                </motion.div>
+              )}
+            </motion.div>
+          ))}
         </div>
       </section>
 
