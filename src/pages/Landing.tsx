@@ -251,7 +251,7 @@ const Landing = () => {
               <img src={promptekLogo} alt="Promptek" className="h-14 md:h-16" />
             </div>
             <p className="text-muted-foreground text-center">
-              &copy; 2024 Promptek. Built for the future of AI optimization.
+              © 2025 PrompTek. AI Prompt Optimizer & Prompt Engineering Tool.
             </p>
           </div>
         </div>
