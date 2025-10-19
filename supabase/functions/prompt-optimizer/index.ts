@@ -82,43 +82,51 @@ const OPTIMIZATION_MODELS = {
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
     name: "Clarity Enhancement",
+    definition: "The CLARITY ENHANCEMENT strategy improves readability and removes ambiguity while preserving the original meaning and user intent.",
     systemPrompt: "You are a prompt optimization expert. Your job is to make the given prompt clearer and more specific while PRESERVING THE EXACT INTENT AND ACTION. If the user asks to 'say hello', the optimized prompt should still result in the AI saying 'hello' - just with better structure. Do NOT change what the user is asking for - only improve HOW they're asking for it:",
     weight: 0.3
   },
   specificity: {
-    name: "Specificity Improvement", 
+    name: "Specificity Improvement",
+    definition: "The SPECIFICITY IMPROVEMENT strategy increases clarity and detail while preserving the original meaning and user intent.",
     systemPrompt: "You are a prompt optimization expert. Your job is to add specific details to make this prompt more precise while KEEPING THE CORE REQUEST UNCHANGED. If the user asks to 'write code', don't ask for 'analyze code' instead. Preserve their exact intent and action. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.25
   },
   efficiency: {
     name: "Efficiency Optimization",
+    definition: "The EFFICIENCY OPTIMIZATION strategy streamlines prompts for better AI performance while maintaining the exact same goal.",
     systemPrompt: "You are a prompt optimization expert. Your job is to optimize this prompt for better AI performance while MAINTAINING THE EXACT SAME GOAL. Do not change what the user wants to accomplish. If they ask to generate something, keep it as generate. If they ask to explain, keep it as explain. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.2
   },
   structure: {
     name: "Structure and Steps",
+    definition: "The STRUCTURE AND STEPS strategy organizes prompts with logical flow and step-by-step instructions while preserving the original request.",
     systemPrompt: "You are a prompt optimization expert. Your job is to improve the logical structure with step-by-step instructions while PRESERVING THE ORIGINAL REQUEST. The end goal must be identical to the original prompt. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.15
   },
   constraints: {
     name: "Constraints and Format",
+    definition: "The CONSTRAINTS AND FORMAT strategy adds output specifications and formatting requirements while keeping the core action unchanged.",
     systemPrompt: "You are a prompt optimization expert. Your job is to add constraints and output format specifications while KEEPING THE CORE ACTION THE SAME. If the user asks to 'say bye', the optimized version should still tell the AI to say bye, just with better formatting. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.1
   },
   elaboration: {
     name: "Elaboration & Context Expansion",
+    definition: "The ELABORATION & CONTEXT EXPANSION strategy enriches prompts with relevant context while absolutely preserving the core intent.",
     systemPrompt: "You are a prompt optimization expert. Your job is to expand this prompt to include relevant context while ABSOLUTELY PRESERVING THE CORE INTENT. The fundamental action/goal must remain unchanged. If they want the AI to output 'hello', don't change it to 'create a greeting' - keep the exact action but add helpful context. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.12,
     condition: (prompt: string) => prompt.length < 200 // Trigger for short/under-contextualized prompts
   },
   intent: {
     name: "User Intent Alignment",
+    definition: "The USER INTENT ALIGNMENT strategy clarifies the user's intent and makes it more actionable without changing their goal.",
     systemPrompt: "You are a prompt optimization expert. Your job is to clarify the user's intent and make it more actionable WITHOUT CHANGING THEIR GOAL. If they ask to 'fix code', keep it as fixing code - don't change to 'analyze' or 'review'. Preserve the exact verb and outcome. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.12,
     condition: (prompt: string) => /\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(prompt) // Trigger for vague verbs
   },
   adaptability: {
     name: "Adaptability Optimization",
+    definition: "The ADAPTABILITY OPTIMIZATION strategy adapts prompts for consistent results across multiple AI models while keeping the exact same request.",
     systemPrompt: "You are a prompt optimization expert. Your job is to adapt this prompt for consistent results across multiple AI models while KEEPING THE EXACT SAME REQUEST. Do not alter what the user is asking the AI to do - just make the instructions clearer for different models. Do NOT answer the prompt - only improve how it asks the question:",
     weight: 0.10
   }
@@ -254,9 +262,21 @@ serve(async (req) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
+        // Get model-friendly name for the target model
+        const targetModelName = getModelFriendlyName(aiProvider, modelName);
+        
         // For optimization: enhance the prompt while preserving intent
-        // CRITICAL: Explicitly state the strategy being used
-        let optimizationPrompt = `You are optimizing a prompt using the ${strategy.name.toUpperCase()} strategy.\n\n${strategy.systemPrompt}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
+        // CRITICAL: Explicitly state the strategy being used with model awareness
+        let optimizationPrompt = `You are a prompt optimization expert specializing in the ${targetModelName} language model. Tailor the improved prompt for ${targetModelName}'s preferred structure, clarity, and style.
+
+You are optimizing a prompt using the ${strategy.name.toUpperCase()} strategy.
+
+${strategy.definition}
+
+${strategy.systemPrompt}
+
+Original prompt to optimize:
+${originalPrompt}`;
         
         // CRITICAL: Add task description as meta-instructions FIRST, before anything else
         if (taskDescription) {
@@ -270,7 +290,7 @@ serve(async (req) => {
         }
         
         // Critical rules: keep user's intent and only improve the prompt
-        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategy.name.toUpperCase()} strategy throughout your optimization.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategy.name.toUpperCase()} strategy throughout your optimization.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.\n- Ensure the optimized prompt still requests the same task and does not alter the intended output type.`;
         
         // UNIFORM influence instructions - exactly the same for ALL variants
         if (influence && influence.trim().length > 0 && influenceWeight > 0) {
@@ -568,6 +588,42 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper function to get model-friendly name
+function getModelFriendlyName(provider: string, model: string): string {
+  const modelMap: Record<string, Record<string, string>> = {
+    openai: {
+      'gpt-5-2025-08-07': 'GPT-5',
+      'gpt-5-mini-2025-08-07': 'GPT-5 Mini',
+      'gpt-5-nano-2025-08-07': 'GPT-5 Nano',
+      'gpt-4.1-2025-04-14': 'GPT-4.1',
+      'gpt-4o': 'GPT-4o',
+      'gpt-4o-mini': 'GPT-4o Mini'
+    },
+    anthropic: {
+      'claude-opus-4-1-20250805': 'Claude Opus 4.1',
+      'claude-sonnet-4-20250514': 'Claude Sonnet 4',
+      'claude-3-5-haiku-20241022': 'Claude 3.5 Haiku'
+    },
+    mistral: {
+      'mistral-large': 'Mistral Large',
+      'mistral-medium': 'Mistral Medium'
+    },
+    groq: {
+      'llama-3.1-8b': 'Llama 3.1 8B'
+    },
+    google: {
+      'gemini-2.0-flash-lite': 'Gemini 2.0 Flash Lite',
+      'gemini-2.0-flash': 'Gemini 2.0 Flash',
+      'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
+      'gemini-2.5-flash': 'Gemini 2.5 Flash',
+      'gemini-2.5-pro': 'Gemini 2.5 Pro'
+    }
+  };
+
+  return modelMap[provider]?.[model] || model;
+}
+
 
 // Optimized AI provider calls
 async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
