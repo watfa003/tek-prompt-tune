@@ -196,9 +196,16 @@ const Landing = () => {
             >
               <Card className="p-6 border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/40 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/20 group h-full relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-primary/10 to-accent/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
-                  <div className={`flex items-center justify-center w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-xl mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg`}>
-                    <feature.icon className="h-7 w-7 text-primary-foreground" />
+                  <div className={`relative flex items-center justify-center w-16 h-16 mb-4 group-hover:scale-110 transition-all duration-300`}>
+                    {/* Animated background blur */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-md opacity-60 group-hover:opacity-80 transition-opacity`} />
+                    {/* Icon container with gradient border effect */}
+                    <div className={`relative flex items-center justify-center w-full h-full bg-gradient-to-br ${feature.gradient} rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300`}>
+                      <div className="absolute inset-[2px] bg-card/95 rounded-xl" />
+                      <feature.icon className={`relative h-8 w-8 bg-gradient-to-br ${feature.gradient} bg-clip-text text-transparent [filter:drop-shadow(0_2px_4px_rgb(0_0_0_/_0.1))] group-hover:scale-110 transition-transform duration-300`} strokeWidth={1.5} />
+                    </div>
                   </div>
                   <h3 className="text-xl font-semibold mb-3 group-hover:text-primary transition-colors">
                     {feature.title}
