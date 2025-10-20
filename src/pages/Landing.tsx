@@ -159,28 +159,83 @@ const Landing = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto relative z-10">
           {[
             {
-              icon: Brain,
+              svg: (
+                <svg viewBox="0 0 48 48" className="w-8 h-8">
+                  <defs>
+                    <linearGradient id="brain-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" className="[stop-color:hsl(var(--primary))]" />
+                      <stop offset="100%" className="[stop-color:hsl(var(--primary-glow))]" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M24 8C18 8 14 12 14 16c0 2 1 4 2 5-3 1-5 4-5 7 0 4 3 8 7 9 1 2 3 3 6 3s5-1 6-3c4-1 7-5 7-9 0-3-2-6-5-7 1-1 2-3 2-5 0-4-4-8-10-8z" fill="url(#brain-grad)" opacity="0.9"/>
+                  <circle cx="20" cy="20" r="2" fill="url(#brain-grad)"/>
+                  <circle cx="28" cy="20" r="2" fill="url(#brain-grad)"/>
+                  <path d="M18 28c2 2 4 3 6 3s4-1 6-3" stroke="url(#brain-grad)" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                </svg>
+              ),
               title: "Scores That Make Sense",
               description: "Forget token counts. We measure clarity, structure, and actual output quality.",
               gradient: "from-primary to-primary-glow",
               delay: 0.1
             },
             {
-              icon: BarChart3,
+              svg: (
+                <svg viewBox="0 0 48 48" className="w-8 h-8">
+                  <defs>
+                    <linearGradient id="chart-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" className="[stop-color:hsl(var(--accent))]" />
+                      <stop offset="100%" className="[stop-color:hsl(var(--primary))]" />
+                    </linearGradient>
+                  </defs>
+                  <rect x="10" y="28" width="6" height="12" fill="url(#chart-grad)" rx="2"/>
+                  <rect x="21" y="20" width="6" height="20" fill="url(#chart-grad)" rx="2" opacity="0.8"/>
+                  <rect x="32" y="12" width="6" height="28" fill="url(#chart-grad)" rx="2" opacity="0.9"/>
+                  <path d="M8 40h32" stroke="url(#chart-grad)" strokeWidth="2" strokeLinecap="round"/>
+                  <circle cx="13" cy="26" r="2" fill="url(#chart-grad)"/>
+                  <circle cx="24" cy="18" r="2" fill="url(#chart-grad)"/>
+                  <circle cx="35" cy="10" r="2" fill="url(#chart-grad)"/>
+                </svg>
+              ),
               title: "Test Across Models",
               description: "GPT-4 loves details. Claude prefers structure. See what works where.",
               gradient: "from-accent to-primary",
               delay: 0.2
             },
             {
-              icon: Repeat,
+              svg: (
+                <svg viewBox="0 0 48 48" className="w-8 h-8">
+                  <defs>
+                    <linearGradient id="repeat-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" className="[stop-color:hsl(var(--primary))]" />
+                      <stop offset="100%" className="[stop-color:hsl(var(--accent))]" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M38 18c0-6-4-10-10-10H16" stroke="url(#repeat-grad)" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                  <path d="M10 32c0 6 4 10 10 10h12" stroke="url(#repeat-grad)" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                  <path d="M12 14l4 4-4 4" stroke="url(#repeat-grad)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M36 26l-4 4 4 4" stroke="url(#repeat-grad)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="24" cy="24" r="3" fill="url(#repeat-grad)" opacity="0.6"/>
+                </svg>
+              ),
               title: "Learns What Works",
               description: "Track what prompts perform best over time and replicate success.",
               gradient: "from-primary to-accent",
               delay: 0.3
             },
             {
-              icon: Zap,
+              svg: (
+                <svg viewBox="0 0 48 48" className="w-8 h-8">
+                  <defs>
+                    <linearGradient id="zap-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" className="[stop-color:hsl(var(--accent))]" />
+                      <stop offset="100%" className="[stop-color:hsl(var(--primary-glow))]" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M26 4L12 24h12l-2 20 14-20H24l2-20z" fill="url(#zap-grad)" stroke="url(#zap-grad)" strokeWidth="1.5" strokeLinejoin="round"/>
+                  <circle cx="18" cy="22" r="1.5" fill="url(#zap-grad)" opacity="0.8"/>
+                  <circle cx="30" cy="26" r="1.5" fill="url(#zap-grad)" opacity="0.8"/>
+                </svg>
+              ),
               title: "No More Waiting",
               description: "Test multiple versions in parallel. Know which prompt wins in seconds.",
               gradient: "from-accent to-primary-glow",
@@ -204,7 +259,7 @@ const Landing = () => {
                     {/* Icon container with gradient border effect */}
                     <div className={`relative flex items-center justify-center w-full h-full bg-gradient-to-br ${feature.gradient} rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300`}>
                       <div className="absolute inset-[2px] bg-card/95 rounded-xl" />
-                      <feature.icon className={`relative h-8 w-8 bg-gradient-to-br ${feature.gradient} bg-clip-text text-transparent [filter:drop-shadow(0_2px_4px_rgb(0_0_0_/_0.1))] group-hover:scale-110 transition-transform duration-300`} strokeWidth={1.5} />
+                      <div className="relative">{feature.svg}</div>
                     </div>
                   </div>
                   <h3 className="text-xl font-semibold mb-3 group-hover:text-primary transition-colors">
