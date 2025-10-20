@@ -171,181 +171,6 @@ const PromptOptimizerForm = ({
           />
         </div>
 
-        {/* Optimization Mode */}
-        {setOptimizationMode && optimizationMode && (
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">Optimization Mode</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                type="button"
-                variant={optimizationMode === 'speed' ? 'default' : 'outline'}
-                onClick={() => setOptimizationMode('speed')}
-                className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
-                  optimizationMode === 'speed' 
-                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105' 
-                    : 'hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <Zap className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="font-semibold text-lg">⚡ Speed Mode</div>
-                    <div className="text-sm opacity-90 mt-1">Ultra-fast optimization</div>
-                    <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Under 12 seconds • Cached patterns • Quick results
-                    </div>
-                  </div>
-                </div>
-              </Button>
-              
-              <Button
-                type="button"
-                variant={optimizationMode === 'deep' ? 'default' : 'outline'}
-                onClick={() => setOptimizationMode('deep')}
-                className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
-                  optimizationMode === 'deep' 
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' 
-                    : 'hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <Brain className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="font-semibold text-lg">🔍 Deep Mode</div>
-                    <div className="text-sm opacity-90 mt-1">Advanced AI optimization</div>
-                    <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      Slower • Full AI processing • Highest quality
-                    </div>
-                  </div>
-                </div>
-              </Button>
-            </div>
-            
-            <div className={`p-4 rounded-lg border-l-4 transition-all duration-300 ${
-              optimizationMode === 'speed' 
-                ? 'bg-yellow-50 border-yellow-400 dark:bg-yellow-950/20' 
-                : 'bg-blue-50 border-blue-400 dark:bg-blue-950/20'
-            }`}>
-              <div className="flex items-center gap-2 mb-2">
-                {optimizationMode === 'speed' ? <Zap className="h-4 w-4" /> : <Brain className="h-4 w-4" />}
-                <span className="font-medium">
-                  {optimizationMode === 'speed' ? 'Speed Mode Selected' : 'Deep Mode Selected'}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {optimizationMode === 'speed' 
-                  ? 'Uses cached optimization patterns and heuristics for instant results. Perfect for quick iterations and testing.'
-                  : 'Leverages multiple AI models to create the highest quality optimizations. Best for final prompts and complex requirements.'
-                }
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Influence Section */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Lightbulb className="h-4 w-4 text-primary" />
-            <Label className="text-sm font-medium">Influence Optimization (Optional)</Label>
-          </div>
-          
-          {selectedInfluence ? (
-            <Card className="p-4 bg-primary/5 border-primary/20">
-              <div className="flex items-start justify-between space-x-3">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Badge variant="outline" className="text-xs">
-                      {influenceType === "template" ? "Template" : influenceType === "favorite" ? "Favorite Prompt" : "Saved Prompt"}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {influenceWeight[0]}% influence
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedInfluence}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearInfluence}
-                  className="h-auto p-1"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-              
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium text-muted-foreground">Influence Weight</Label>
-                  <span className="text-xs font-medium">{influenceWeight[0]}%</span>
-                </div>
-                <Slider
-                  value={influenceWeight}
-                  onValueChange={handleInfluenceWeightChange}
-                  max={100}
-                  min={0}
-                  step={5}
-                  className="w-full"
-                  aria-label="Influence weight slider"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground px-1">
-                  <span>Low</span>
-                  <span>Medium</span>
-                  <span>High</span>
-                </div>
-              </div>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Template Style</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <Link to="/app/templates?selectForInfluence=true">
-                    <Button variant="outline" className="w-full h-auto p-3 text-left">
-                      <div className="flex flex-col items-start space-y-1">
-                        <span className="font-medium">Browse Templates</span>
-                        <span className="text-xs text-muted-foreground">View all available templates</span>
-                      </div>
-                    </Button>
-                  </Link>
-                  <Link to="/app/history?selectForInfluence=true">
-                    <Button variant="outline" className="w-full h-auto p-3 text-left">
-                      <div className="flex flex-col items-start space-y-1">
-                        <span className="font-medium">My Favorited Prompts</span>
-                        <span className="text-xs text-muted-foreground">Choose from saved favorites</span>
-                      </div>
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Influence Weight</Label>
-                  <span className="text-sm font-medium">{influenceWeight[0]}%</span>
-                </div>
-                <Slider
-                  value={influenceWeight}
-                  onValueChange={handleInfluenceWeightChange}
-                  max={100}
-                  min={0}
-                  step={5}
-                  className="w-full"
-                  aria-label="Influence weight slider"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground px-1">
-                  <span>Low (0%)</span>
-                  <span>Medium (50%)</span>
-                  <span>High (100%)</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Provider and Model Selection */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
@@ -458,6 +283,183 @@ const PromptOptimizerForm = ({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 mt-4">
+            {/* Optimization Mode */}
+            {setOptimizationMode && optimizationMode && (
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Optimization Mode</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button
+                    type="button"
+                    variant={optimizationMode === 'speed' ? 'default' : 'outline'}
+                    onClick={() => setOptimizationMode('speed')}
+                    className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                      optimizationMode === 'speed' 
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg transform scale-105' 
+                        : 'hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Zap className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-lg">⚡ Speed Mode</div>
+                        <div className="text-sm opacity-90 mt-1">Ultra-fast optimization</div>
+                        <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Under 12 seconds • Cached patterns • Quick results
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant={optimizationMode === 'deep' ? 'default' : 'outline'}
+                    onClick={() => setOptimizationMode('deep')}
+                    className={`h-auto p-6 justify-start text-left transition-all duration-300 ${
+                      optimizationMode === 'deep' 
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' 
+                        : 'hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Brain className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-lg">🔍 Deep Mode</div>
+                        <div className="text-sm opacity-90 mt-1">Advanced AI optimization</div>
+                        <div className="text-xs opacity-75 mt-2 flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          Slower • Full AI processing • Highest quality
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+                
+                <div className={`p-4 rounded-lg border-l-4 transition-all duration-300 ${
+                  optimizationMode === 'speed' 
+                    ? 'bg-yellow-50 border-yellow-400 dark:bg-yellow-950/20' 
+                    : 'bg-blue-50 border-blue-400 dark:bg-blue-950/20'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {optimizationMode === 'speed' ? <Zap className="h-4 w-4" /> : <Brain className="h-4 w-4" />}
+                    <span className="font-medium">
+                      {optimizationMode === 'speed' ? 'Speed Mode Selected' : 'Deep Mode Selected'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {optimizationMode === 'speed' 
+                      ? 'Uses cached optimization patterns and heuristics for instant results. Perfect for quick iterations and testing.'
+                      : 'Leverages multiple AI models to create the highest quality optimizations. Best for final prompts and complex requirements.'
+                    }
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Influence Section */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-medium">Influence Optimization (Optional)</Label>
+              </div>
+              
+              {selectedInfluence ? (
+                <Card className="p-4 bg-primary/5 border-primary/20">
+                  <div className="flex items-start justify-between space-x-3">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          {influenceType === "template" ? "Template" : influenceType === "favorite" ? "Favorite Prompt" : "Saved Prompt"}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {influenceWeight[0]}% influence
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedInfluence}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearInfluence}
+                      className="h-auto p-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium text-muted-foreground">Influence Weight</Label>
+                      <span className="text-xs font-medium">{influenceWeight[0]}%</span>
+                    </div>
+                    <Slider
+                      value={influenceWeight}
+                      onValueChange={handleInfluenceWeightChange}
+                      max={100}
+                      min={0}
+                      step={5}
+                      className="w-full"
+                      aria-label="Influence weight slider"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground px-1">
+                      <span>Low</span>
+                      <span>Medium</span>
+                      <span>High</span>
+                    </div>
+                  </div>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Template Style</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <Link to="/app/templates?selectForInfluence=true">
+                        <Button variant="outline" className="w-full h-auto p-3 text-left">
+                          <div className="flex flex-col items-start space-y-1">
+                            <span className="font-medium">Browse Templates</span>
+                            <span className="text-xs text-muted-foreground">View all available templates</span>
+                          </div>
+                        </Button>
+                      </Link>
+                      <Link to="/app/history?selectForInfluence=true">
+                        <Button variant="outline" className="w-full h-auto p-3 text-left">
+                          <div className="flex flex-col items-start space-y-1">
+                            <span className="font-medium">My Favorited Prompts</span>
+                            <span className="text-xs text-muted-foreground">Choose from saved favorites</span>
+                          </div>
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Influence Weight</Label>
+                      <span className="text-sm font-medium">{influenceWeight[0]}%</span>
+                    </div>
+                    <Slider
+                      value={influenceWeight}
+                      onValueChange={handleInfluenceWeightChange}
+                      max={100}
+                      min={0}
+                      step={5}
+                      className="w-full"
+                      aria-label="Influence weight slider"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground px-1">
+                      <span>Low (0%)</span>
+                      <span>Medium (50%)</span>
+                      <span>High (100%)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
