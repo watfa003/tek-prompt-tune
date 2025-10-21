@@ -170,13 +170,56 @@ serve(async (req) => {
       );
     }
 
+    // Analyze prompt to determine if it's procedural/instructional
+    const analyzePromptType = (prompt: string): boolean => {
+      // Keywords that indicate procedural/instructional content
+      const proceduralKeywords = [
+        'how to', 'step', 'steps', 'tutorial', 'guide', 'process', 'procedure', 
+        'instructions', 'explain', 'teach', 'demonstrate', 'walkthrough',
+        'first', 'then', 'next', 'finally', 'follow', 'method', 'approach',
+        'setup', 'configure', 'install', 'implement', 'create a', 'build a',
+        'sequence', 'order', 'stage', 'phase', 'workflow'
+      ];
+      
+      const promptLower = prompt.toLowerCase();
+      
+      // Check if prompt contains procedural keywords
+      const hasProceduralKeywords = proceduralKeywords.some(keyword => 
+        promptLower.includes(keyword)
+      );
+      
+      // Check for numbered lists or bullet point patterns
+      const hasNumberedList = /\d+\.|step \d+|\d+\)/i.test(prompt);
+      
+      // Check for imperative verbs that suggest instructions
+      const imperativePattern = /\b(create|build|make|develop|design|setup|configure|install|write|explain|describe|outline|list)\b/i;
+      const hasImperativeVerbs = imperativePattern.test(prompt);
+      
+      // Not procedural if it's clearly creative/conversational
+      const creativeKeywords = ['story', 'poem', 'creative', 'imagine', 'pretend', 'greeting', 'hello', 'opinion', 'feel', 'think about'];
+      const isCreative = creativeKeywords.some(keyword => promptLower.includes(keyword));
+      
+      return (hasProceduralKeywords || hasNumberedList || hasImperativeVerbs) && !isCreative;
+    };
+
+    // Enhance prompt if it's procedural/instructional
+    let enhancedPrompt = originalPrompt;
+    const isProcedural = analyzePromptType(originalPrompt);
+    
+    if (isProcedural) {
+      enhancedPrompt = `${originalPrompt}\n\nEnsure the optimized prompt includes clear step-by-step or bullet-point guidance, and instructs the model to verify completeness and clarity for each step.`;
+      console.log('📋 Detected procedural prompt - adding structural guidance');
+    } else {
+      console.log('💭 Detected creative/conversational prompt - no structural guidance needed');
+    }
+
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
     const startTime = Date.now();
 
     // Handle Speed Mode
     if (mode === 'speed') {
       return await handleSpeedMode(supabase, { 
-        originalPrompt, 
+        originalPrompt: enhancedPrompt, 
         taskDescription, 
         outputType, 
         userId, 
@@ -200,7 +243,7 @@ serve(async (req) => {
         .from('prompts')
         .insert({
           user_id: userId,
-          original_prompt: originalPrompt,
+          original_prompt: enhancedPrompt,
           task_description: taskDescription,
           ai_provider: aiProvider,
           model_name: modelName,
@@ -276,7 +319,7 @@ ${strategy.definition}
 ${strategy.systemPrompt}
 
 Original prompt to optimize:
-${originalPrompt}`;
+${enhancedPrompt}`;
         
         // CRITICAL: Add task description as meta-instructions FIRST, before anything else
         if (taskDescription) {
