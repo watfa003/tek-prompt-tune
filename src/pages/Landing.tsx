@@ -152,7 +152,7 @@ const Landing = () => {
             Why Promptek?
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            We built this because prompt engineering shouldn't feel like guesswork
+            The only tool built to test, score, and improve prompts before you use them
           </p>
         </motion.div>
 
@@ -167,14 +167,26 @@ const Landing = () => {
                       <stop offset="100%" className="[stop-color:hsl(var(--primary-glow))]" />
                     </linearGradient>
                   </defs>
-                  <path d="M24 8C18 8 14 12 14 16c0 2 1 4 2 5-3 1-5 4-5 7 0 4 3 8 7 9 1 2 3 3 6 3s5-1 6-3c4-1 7-5 7-9 0-3-2-6-5-7 1-1 2-3 2-5 0-4-4-8-10-8z" fill="url(#brain-grad)" opacity="0.9"/>
-                  <circle cx="20" cy="20" r="2" fill="url(#brain-grad)"/>
-                  <circle cx="28" cy="20" r="2" fill="url(#brain-grad)"/>
-                  <path d="M18 28c2 2 4 3 6 3s4-1 6-3" stroke="url(#brain-grad)" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                  {/* Brain stem */}
+                  <path d="M24 42v-8" stroke="url(#brain-grad)" strokeWidth="2.5" strokeLinecap="round"/>
+                  {/* Left hemisphere */}
+                  <path d="M16 18c-4 0-6 3-6 6 0 4 2 7 6 8 1 0 2-1 2-2v-10c0-1-1-2-2-2z" fill="url(#brain-grad)" opacity="0.85"/>
+                  {/* Right hemisphere */}
+                  <path d="M32 18c4 0 6 3 6 6 0 4-2 7-6 8-1 0-2-1-2-2v-10c0-1 1-2 2-2z" fill="url(#brain-grad)" opacity="0.85"/>
+                  {/* Neural connections */}
+                  <circle cx="20" cy="22" r="1.5" fill="url(#brain-grad)" opacity="0.9"/>
+                  <circle cx="28" cy="22" r="1.5" fill="url(#brain-grad)" opacity="0.9"/>
+                  <circle cx="20" cy="28" r="1.5" fill="url(#brain-grad)" opacity="0.9"/>
+                  <circle cx="28" cy="28" r="1.5" fill="url(#brain-grad)" opacity="0.9"/>
+                  {/* Connection lines */}
+                  <path d="M20 22 L24 24 L28 22" stroke="url(#brain-grad)" strokeWidth="1.5" fill="none" opacity="0.6"/>
+                  <path d="M20 28 L24 26 L28 28" stroke="url(#brain-grad)" strokeWidth="1.5" fill="none" opacity="0.6"/>
+                  {/* Top curve */}
+                  <path d="M18 18 Q24 12 30 18" stroke="url(#brain-grad)" strokeWidth="2" fill="none" strokeLinecap="round"/>
                 </svg>
               ),
-              title: "Scores That Make Sense",
-              description: "Forget token counts. We measure clarity, structure, and actual output quality.",
+              title: "Accurate Scoring",
+              description: "Get objective metrics on prompt quality, clarity, and performance across different models.",
               gradient: "from-primary to-primary-glow",
               delay: 0.1
             },
@@ -187,17 +199,28 @@ const Landing = () => {
                       <stop offset="100%" className="[stop-color:hsl(var(--primary))]" />
                     </linearGradient>
                   </defs>
-                  <rect x="10" y="28" width="6" height="12" fill="url(#chart-grad)" rx="2"/>
-                  <rect x="21" y="20" width="6" height="20" fill="url(#chart-grad)" rx="2" opacity="0.8"/>
-                  <rect x="32" y="12" width="6" height="28" fill="url(#chart-grad)" rx="2" opacity="0.9"/>
-                  <path d="M8 40h32" stroke="url(#chart-grad)" strokeWidth="2" strokeLinecap="round"/>
-                  <circle cx="13" cy="26" r="2" fill="url(#chart-grad)"/>
-                  <circle cx="24" cy="18" r="2" fill="url(#chart-grad)"/>
-                  <circle cx="35" cy="10" r="2" fill="url(#chart-grad)"/>
+                  {/* Bars with rounded tops */}
+                  <rect x="8" y="28" width="7" height="14" fill="url(#chart-grad)" rx="3.5" opacity="0.75"/>
+                  <rect x="19" y="18" width="7" height="24" fill="url(#chart-grad)" rx="3.5" opacity="0.85"/>
+                  <rect x="30" y="10" width="7" height="32" fill="url(#chart-grad)" rx="3.5" opacity="0.95"/>
+                  {/* Trend line connecting tops */}
+                  <path d="M11.5 28 Q22.5 15 33.5 10" stroke="url(#chart-grad)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray="0.5 3"/>
+                  {/* Data points */}
+                  <circle cx="11.5" cy="28" r="2.5" fill="url(#chart-grad)">
+                    <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="22.5" cy="18" r="2.5" fill="url(#chart-grad)">
+                    <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" begin="0.3s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="33.5" cy="10" r="2.5" fill="url(#chart-grad)">
+                    <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" begin="0.6s" repeatCount="indefinite"/>
+                  </circle>
+                  {/* Axis */}
+                  <path d="M6 42h36" stroke="url(#chart-grad)" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
                 </svg>
               ),
-              title: "Test Across Models",
-              description: "GPT-4 loves details. Claude prefers structure. See what works where.",
+              title: "Cross-Model Testing",
+              description: "Test your prompts across multiple AI models simultaneously to find the best fit.",
               gradient: "from-accent to-primary",
               delay: 0.2
             },
@@ -210,15 +233,27 @@ const Landing = () => {
                       <stop offset="100%" className="[stop-color:hsl(var(--accent))]" />
                     </linearGradient>
                   </defs>
-                  <path d="M38 18c0-6-4-10-10-10H16" stroke="url(#repeat-grad)" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                  <path d="M10 32c0 6 4 10 10 10h12" stroke="url(#repeat-grad)" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                  <path d="M12 14l4 4-4 4" stroke="url(#repeat-grad)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M36 26l-4 4 4 4" stroke="url(#repeat-grad)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="24" cy="24" r="3" fill="url(#repeat-grad)" opacity="0.6"/>
+                  {/* Circular arrow path */}
+                  <path d="M24 8 A16 16 0 1 1 8 24" stroke="url(#repeat-grad)" strokeWidth="3" fill="none" strokeLinecap="round">
+                    <animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="4s" repeatCount="indefinite"/>
+                  </path>
+                  {/* Arrow head */}
+                  <path d="M8 20 L8 28 L14 24 Z" fill="url(#repeat-grad)">
+                    <animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="4s" repeatCount="indefinite"/>
+                  </path>
+                  {/* Center icon representing data/learning */}
+                  <circle cx="24" cy="24" r="6" fill="none" stroke="url(#repeat-grad)" strokeWidth="2" opacity="0.6"/>
+                  <circle cx="24" cy="24" r="2" fill="url(#repeat-grad)">
+                    <animate attributeName="r" values="2;3;2" dur="2s" repeatCount="indefinite"/>
+                  </circle>
+                  {/* Data points around circle */}
+                  <circle cx="24" cy="16" r="1.5" fill="url(#repeat-grad)" opacity="0.8"/>
+                  <circle cx="32" cy="24" r="1.5" fill="url(#repeat-grad)" opacity="0.8"/>
+                  <circle cx="24" cy="32" r="1.5" fill="url(#repeat-grad)" opacity="0.8"/>
                 </svg>
               ),
-              title: "Learns What Works",
-              description: "Track what prompts perform best over time and replicate success.",
+              title: "Learning Over Time",
+              description: "Our AI learns from your testing patterns to provide better optimization suggestions.",
               gradient: "from-primary to-accent",
               delay: 0.3
             },
@@ -231,13 +266,27 @@ const Landing = () => {
                       <stop offset="100%" className="[stop-color:hsl(var(--primary-glow))]" />
                     </linearGradient>
                   </defs>
-                  <path d="M26 4L12 24h12l-2 20 14-20H24l2-20z" fill="url(#zap-grad)" stroke="url(#zap-grad)" strokeWidth="1.5" strokeLinejoin="round"/>
-                  <circle cx="18" cy="22" r="1.5" fill="url(#zap-grad)" opacity="0.8"/>
-                  <circle cx="30" cy="26" r="1.5" fill="url(#zap-grad)" opacity="0.8"/>
+                  {/* Lightning bolt with dynamic effect */}
+                  <path d="M27 6 L15 24 h10 l-3 18 L34 22 h-10 Z" fill="url(#zap-grad)" opacity="0.9">
+                    <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite"/>
+                  </path>
+                  {/* Energy particles */}
+                  <circle cx="20" cy="20" r="1.5" fill="url(#zap-grad)">
+                    <animate attributeName="cy" values="20;18;20" dur="1s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="28" cy="28" r="1.5" fill="url(#zap-grad)">
+                    <animate attributeName="cy" values="28;26;28" dur="1s" begin="0.3s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="24" cy="14" r="1" fill="url(#zap-grad)" opacity="0.7">
+                    <animate attributeName="r" values="1;1.5;1" dur="1.2s" repeatCount="indefinite"/>
+                  </circle>
+                  {/* Spark lines */}
+                  <path d="M27 6 L29 4 M27 6 L25 4" stroke="url(#zap-grad)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
+                  <path d="M22 42 L20 44 M22 42 L24 44" stroke="url(#zap-grad)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
                 </svg>
               ),
-              title: "No More Waiting",
-              description: "Test multiple versions in parallel. Know which prompt wins in seconds.",
+              title: "Speed Mode",
+              description: "Get results in seconds with our optimized testing pipeline.",
               gradient: "from-accent to-primary-glow",
               delay: 0.4
             }
@@ -293,7 +342,7 @@ const Landing = () => {
             How It Works
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Stop guessing. Start testing.
+            Three simple steps to better prompts
           </p>
         </motion.div>
 
@@ -302,21 +351,21 @@ const Landing = () => {
             {
               number: 1,
               title: "Paste Your Prompt",
-              description: "Drop in whatever you're using. Whether it's 10 words or 500, we'll work with it.",
+              description: "Simply paste your prompt into our interface. No special formatting required.",
               gradient: "from-primary to-primary-glow",
               delay: 0.2
             },
             {
               number: 2,
-              title: "We Run the Tests",
-              description: "Your prompt hits multiple models simultaneously. Real responses, real scores.",
+              title: "Run Tests",
+              description: "Our AI tests your prompt across different models and scoring metrics.",
               gradient: "from-accent to-primary",
               delay: 0.4
             },
             {
               number: 3,
-              title: "See What Actually Works",
-              description: "Side-by-side comparisons, concrete scores, and suggestions based on real output.",
+              title: "View Results",
+              description: "Get detailed scores, comparisons, and actionable suggestions to improve your prompts.",
               gradient: "from-primary-glow to-accent",
               delay: 0.6
             }
