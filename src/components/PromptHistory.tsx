@@ -217,7 +217,7 @@ export const PromptHistory = () => {
           {/* Header Section */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <h3 className="text-lg font-semibold truncate">{item.title}</h3>
                 {isBestInSession && (
                   <Badge variant="outline" className="text-success border-success bg-success/10 text-xs">
@@ -226,6 +226,10 @@ export const PromptHistory = () => {
                   </Badge>
                 )}
                 {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary flex-shrink-0" />}
+                <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {item.timestamp}
+                </span>
               </div>
               
               {/* Compact Meta Row */}
@@ -234,30 +238,15 @@ export const PromptHistory = () => {
                 <Badge variant="outline" className="text-xs">{item.outputType}</Badge>
                 {settings.showScores && (
                   <Badge className={`text-xs ${
-                    item.score >= 0.8 ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" :
-                    item.score >= 0.6 ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20" :
-                    item.score >= 0.4 ? "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20" :
-                    "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20"
+                    item.score >= 0.8 ? "bg-success/10 text-success border-success/20" :
+                    item.score >= 0.6 ? "bg-warning/10 text-warning border-warning/20" :
+                    item.score >= 0.4 ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20" :
+                    "bg-destructive/10 text-destructive border-destructive/20"
                   }`} variant="outline">
                     {scoreLabel}
                   </Badge>
                 )}
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {item.timestamp}
-                </span>
               </div>
-
-              {/* Tags */}
-              {item.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {item.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs px-1.5 py-0">
-                      #{tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
             </div>
             
             <DropdownMenu>
@@ -412,23 +401,23 @@ export const PromptHistory = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 p-1 bg-muted rounded-lg w-fit">
+      <div className="flex space-x-1 p-1 bg-muted/50 rounded-lg w-fit border border-border">
         <button
           onClick={() => setActiveTab("all")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
             activeTab === "all" 
-              ? "bg-background text-foreground shadow-sm" 
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-primary text-primary-foreground shadow-sm" 
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           }`}
         >
           All History ({historyItems.length})
         </button>
         <button
           onClick={() => setActiveTab("favorites")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
             activeTab === "favorites" 
-              ? "bg-background text-foreground shadow-sm" 
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-primary text-primary-foreground shadow-sm" 
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           }`}
         >
           <Star className="h-4 w-4 mr-1 inline" />
