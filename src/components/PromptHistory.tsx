@@ -63,14 +63,20 @@ export const PromptHistory = () => {
       // Filter by tab (all or favorites)
       if (activeTab === "favorites" && !item.isFavorite) return false;
       
+      const q = (searchQuery || '').toLowerCase();
+      const title = (item.title || '').toLowerCase();
+      const description = (item.description || '').toLowerCase();
+      const prompt = (item.prompt || '').toLowerCase();
+      const tags = Array.isArray(item.tags) ? item.tags : [];
+
       const matchesSearch = 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        title.includes(q) ||
+        description.includes(q) ||
+        prompt.includes(q) ||
+        tags.some(tag => (tag || '').toLowerCase().includes(q));
       
-      const providerFilter = filterProvider.toLowerCase();
-      const providerValue = (item.provider || "").toLowerCase();
+      const providerFilter = (filterProvider || 'all').toLowerCase();
+      const providerValue = (item.provider || '').toLowerCase();
       const aliases: Record<string, string[]> = {
         all: [],
         openai: ["openai"],
@@ -81,17 +87,18 @@ export const PromptHistory = () => {
       };
       const matchesProvider =
         providerFilter === "all" ||
-        aliases[providerFilter]?.some(alias => providerValue.includes(alias)) ||
+        (aliases[providerFilter] || []).some(alias => providerValue.includes(alias)) ||
         providerValue.includes(providerFilter);
       
-      const matchesOutputType = filterOutputType === "all" || 
-        item.outputType.toLowerCase() === filterOutputType.toLowerCase();
+      const matchesOutputType = (filterOutputType === "all") || 
+        ((item.outputType || '').toLowerCase() === (filterOutputType || '').toLowerCase());
       
-      const matchesScore = filterScore === "all" || 
-        (filterScore === "excellent" && item.score >= 0.8) ||
-        (filterScore === "good" && item.score >= 0.6 && item.score < 0.8) ||
-        (filterScore === "fair" && item.score >= 0.4 && item.score < 0.6) ||
-        (filterScore === "needs-work" && item.score < 0.4);
+      const s = typeof item.score === 'number' ? item.score : 0;
+      const matchesScore = (filterScore === "all") || 
+        (filterScore === "excellent" && s >= 0.8) ||
+        (filterScore === "good" && s >= 0.6 && s < 0.8) ||
+        (filterScore === "fair" && s >= 0.4 && s < 0.6) ||
+        (filterScore === "needs-work" && s < 0.4);
       
       return matchesSearch && matchesProvider && matchesOutputType && matchesScore;
     });
@@ -103,9 +110,10 @@ export const PromptHistory = () => {
       
       base.forEach(item => {
         // Create a session key using original prompt + rounded timestamp (within 10 minutes)
-        const timestamp = new Date(item.timestamp).getTime();
-        const roundedTime = Math.floor(timestamp / (10 * 60 * 1000)); // 10-minute windows
-        const sessionKey = `${item.prompt.substring(0, 100)}_${roundedTime}`;
+        const tsRaw = item.timestamp ? new Date(item.timestamp).getTime() : NaN;
+        const ts = Number.isFinite(tsRaw) ? tsRaw : 0;
+        const roundedTime = Math.floor(ts / (10 * 60 * 1000)); // 10-minute windows
+        const sessionKey = `${(item.prompt || '').substring(0, 100)}_${roundedTime}`;
         
         if (!sessionGroups.has(sessionKey)) {
           sessionGroups.set(sessionKey, []);
@@ -116,11 +124,13 @@ export const PromptHistory = () => {
       // From each session group, only keep the highest scoring variant
       base = Array.from(sessionGroups.values()).map(group => {
         return group.reduce((best, current) => {
-          if (current.score > best.score) return current;
-          if (current.score === best.score) {
+          const bestScore = typeof best.score === 'number' ? best.score : 0;
+          const currScore = typeof current.score === 'number' ? current.score : 0;
+          if (currScore > bestScore) return current;
+          if (currScore === bestScore) {
             // Tiebreaker: prefer fewer tokens
-            const currentTokens = current.sampleOutput?.split(/\s+/).length || 0;
-            const bestTokens = best.sampleOutput?.split(/\s+/).length || 0;
+            const currentTokens = (current.sampleOutput || '').split(/\s+/).length || 0;
+            const bestTokens = (best.sampleOutput || '').split(/\s+/).length || 0;
             return currentTokens < bestTokens ? current : best;
           }
           return best;
@@ -130,12 +140,18 @@ export const PromptHistory = () => {
 
     return base.sort((a, b) => {
       switch (sortBy) {
-        case "newest":
-          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-        case "oldest":
-          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        case "newest": {
+          const at = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const bt = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return (Number.isFinite(bt) ? bt : 0) - (Number.isFinite(at) ? at : 0);
+        }
+        case "oldest": {
+          const at = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const bt = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return (Number.isFinite(at) ? at : 0) - (Number.isFinite(bt) ? bt : 0);
+        }
         case "score":
-          return (b.score || 0) - (a.score || 0);
+          return ((typeof b.score === 'number' ? b.score : 0)) - ((typeof a.score === 'number' ? a.score : 0));
         default:
           return 0;
       }
@@ -207,6 +223,11 @@ export const PromptHistory = () => {
     };
 
     const scoreLabel = item.score >= 0.8 ? "Excellent" : item.score >= 0.6 ? "Good" : item.score >= 0.4 ? "Average" : "Poor";
+    const dateLabel = (() => {
+      const d = item.timestamp ? new Date(item.timestamp) : null;
+      const t = d ? d.getTime() : NaN;
+      return Number.isFinite(t) ? d!.toISOString().slice(0, 10) : '';
+    })();
 
     return (
       <Card 
@@ -226,10 +247,14 @@ export const PromptHistory = () => {
                   </Badge>
                 )}
                 {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary flex-shrink-0" />}
-                <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {item.timestamp}
-                </span>
+                <Badge className={`ml-auto text-xs ${
+                  item.score >= 0.8 ? "bg-success/10 text-success border-success/20" :
+                  item.score >= 0.6 ? "bg-warning/10 text-warning border-warning/20" :
+                  item.score >= 0.4 ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20" :
+                  "bg-destructive/10 text-destructive border-destructive/20"
+                }`} variant="outline">
+                  {scoreLabel}
+                </Badge>
               </div>
               
               {/* Compact Meta Row */}
@@ -245,11 +270,12 @@ export const PromptHistory = () => {
                   }`} variant="outline">
                     {scoreLabel}
                   </Badge>
+                {dateLabel && (
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {dateLabel}
+                  </span>
                 )}
-              </div>
-            </div>
-            
-            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="flex-shrink-0">
                   <MoreHorizontal className="h-4 w-4" />
