@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Virtuoso } from "react-virtuoso";
 import {
   Search,
@@ -171,14 +172,12 @@ export const PromptHistory = () => {
 
   const renderHistoryItem = (item: PromptHistoryItem, index: number) => {
     const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
+    const [isExpanded, setIsExpanded] = React.useState(false);
     
-    // Determine if this is the best variant in its session when showing all variants
-    // ONLY show badge when settings are loaded and NOT filtering (showOnlyBestInHistory is false)
     let isBestInSession = false;
     if (!settingsLoading && settings.showOnlyBestInHistory === false) {
-      // Group all history items by session to find the best variant
       const timestamp = new Date(item.timestamp).getTime();
-      const roundedTime = Math.floor(timestamp / (10 * 60 * 1000)); // 10-minute windows
+      const roundedTime = Math.floor(timestamp / (10 * 60 * 1000));
       const sessionKey = `${item.prompt.substring(0, 100)}_${roundedTime}`;
       
       const sessionItems = historyItems.filter(historyItem => {
@@ -188,11 +187,9 @@ export const PromptHistory = () => {
         return historySessionKey === sessionKey;
       });
       
-      // Check if this item has the highest score in its session
       const bestInSession = sessionItems.reduce((best, current) => {
         if (current.score > best.score) return current;
         if (current.score === best.score) {
-          // Tiebreaker: prefer fewer tokens
           const currentTokens = current.sampleOutput?.split(/\s+/).length || 0;
           const bestTokens = best.sampleOutput?.split(/\s+/).length || 0;
           return currentTokens < bestTokens ? current : best;
@@ -202,41 +199,70 @@ export const PromptHistory = () => {
       isBestInSession = item.id === bestInSession.id && sessionItems.length > 1;
     }
 
+    const getScoreColor = (score: number) => {
+      if (score >= 0.8) return "border-l-green-500";
+      if (score >= 0.6) return "border-l-yellow-500";
+      if (score >= 0.4) return "border-l-orange-500";
+      return "border-l-red-500";
+    };
+
+    const scoreLabel = item.score >= 0.8 ? "Excellent" : item.score >= 0.6 ? "Good" : item.score >= 0.4 ? "Average" : "Poor";
+
     return (
-      <Card key={item.id} className={`p-6 hover:shadow-card transition-shadow ${isHighestRated ? 'ring-2 ring-primary shadow-lg' : ''}`}>
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <h3 className="text-lg font-semibold">{item.title}</h3>
+      <Card 
+        key={item.id} 
+        className={`border-l-4 ${getScoreColor(item.score)} hover:shadow-lg transition-all duration-200 ${isHighestRated ? 'ring-2 ring-primary' : ''}`}
+      >
+        <div className="p-5 space-y-4">
+          {/* Header Section */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h3 className="text-lg font-semibold truncate">{item.title}</h3>
                 {isBestInSession && (
-                  <Badge variant="outline" className="text-success border-success bg-success/10">
+                  <Badge variant="outline" className="text-success border-success bg-success/10 text-xs">
                     <Trophy className="h-3 w-3 mr-1" />
-                    Best Variant
+                    Best
                   </Badge>
                 )}
-                {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
+                {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary flex-shrink-0" />}
               </div>
-              <p className="text-muted-foreground text-sm mb-3">
-                {settings.showScores ? item.description : item.description.replace(/\(Score:[^)]+\)/g, '').replace(/Score:\s*\d+(\.\d+)?%?/i, '').trim()}
-              </p>
               
-              {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{item.provider}</Badge>
-                <Badge variant="outline">{item.outputType}</Badge>
-                {settings.showScores && getScoreBadge(item.score)}
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
+              {/* Compact Meta Row */}
+              <div className="flex items-center gap-2 flex-wrap text-xs">
+                <Badge variant="outline" className="text-xs">{item.provider}</Badge>
+                <Badge variant="outline" className="text-xs">{item.outputType}</Badge>
+                {settings.showScores && (
+                  <Badge className={`text-xs ${
+                    item.score >= 0.8 ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" :
+                    item.score >= 0.6 ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20" :
+                    item.score >= 0.4 ? "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20" :
+                    "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20"
+                  }`} variant="outline">
+                    {scoreLabel}
+                  </Badge>
+                )}
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
                   {item.timestamp}
                 </span>
               </div>
+
+              {/* Tags */}
+              {item.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {item.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs px-1.5 py-0">
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="flex-shrink-0">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -247,21 +273,17 @@ export const PromptHistory = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => copyToClipboard(item.output, "Output")}>
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy Output
+                  Copy Optimized
                 </DropdownMenuItem>
                 {item.sampleOutput && (
-                  <DropdownMenuItem onClick={() => copyToClipboard(item.sampleOutput, "Sample Output")}>
+                  <DropdownMenuItem onClick={() => copyToClipboard(item.sampleOutput, "AI Output")}>
                     <Copy className="h-4 w-4 mr-2" />
-                    Copy Sample Output
+                    Copy AI Output
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem>
-                  <Play className="h-4 w-4 mr-2" />
-                  Re-run
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => toggleFavorite(item.id)}>
                   <Star className="h-4 w-4 mr-2" />
-                  {item.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                  {item.isFavorite ? "Unfavorite" : "Favorite"}
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -271,84 +293,92 @@ export const PromptHistory = () => {
             </DropdownMenu>
           </div>
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1">
-            {item.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
-
-          {/* Preview */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-2">Original Prompt:</p>
-              <div className="p-3 bg-muted/50 rounded-md border text-sm max-h-32 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.prompt}</pre>
-              </div>
-            </div>
+          {/* Collapsible Content Section */}
+          <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-between text-sm text-muted-foreground hover:text-foreground"
+              >
+                <span>{isExpanded ? "Hide Details" : "Show Details"}</span>
+                <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
+              </Button>
+            </CollapsibleTrigger>
             
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-2">
-                {isSelectingForInfluence ? "Optimized Prompt (Will be used for influence):" : "Optimization Result:"}
-              </p>
-              <div className="p-3 bg-secondary/20 rounded-md border text-sm max-h-32 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.output}</pre>
-              </div>
-            </div>
-
-            {item.sampleOutput && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Sample Output:</p>
-                <div className="p-3 bg-success/10 rounded-md border text-sm max-h-32 overflow-y-auto">
-                  <pre className="whitespace-pre-wrap text-xs leading-relaxed">{item.sampleOutput}</pre>
+            <CollapsibleContent className="space-y-3 pt-3">
+              {/* Two-Column Layout for Prompts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* User Input */}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">User Input</p>
+                  <div className="p-3 bg-muted/30 rounded-md border border-border/50 max-h-40 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.prompt}</pre>
+                  </div>
+                </div>
+                
+                {/* AI Optimization */}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-primary uppercase tracking-wide">AI Optimization</p>
+                  <div className="p-3 bg-primary/5 rounded-md border border-primary/20 max-h-40 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.output}</pre>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-2 pt-2">
-            <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.prompt, "Prompt")}>
+              {/* AI Response Output */}
+              {item.sampleOutput && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-success uppercase tracking-wide">AI Response</p>
+                  <div className="p-3 bg-success/5 rounded-md border border-success/20 max-h-32 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.sampleOutput}</pre>
+                  </div>
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 pt-2 border-t">
+            <Button size="sm" variant="ghost" onClick={() => copyToClipboard(item.prompt, "Prompt")} className="text-xs">
               <Copy className="h-3 w-3 mr-1" />
-              Copy Prompt
+              Prompt
             </Button>
-            <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.output, "Output")}>
+            <Button size="sm" variant="ghost" onClick={() => copyToClipboard(item.output, "Output")} className="text-xs">
               <Copy className="h-3 w-3 mr-1" />
-              Copy Output
+              Optimized
             </Button>
             {item.sampleOutput && (
-              <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.sampleOutput, "Sample Output")}>
+              <Button size="sm" variant="ghost" onClick={() => copyToClipboard(item.sampleOutput, "AI Output")} className="text-xs">
                 <Copy className="h-3 w-3 mr-1" />
-                Copy Sample
+                AI Output
               </Button>
             )}
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={async () => {
-                if (isSelectingForInfluence) {
+            {isSelectingForInfluence && (
+              <Button 
+                size="sm" 
+                variant="default"
+                onClick={async () => {
                   setIsNavigating(true);
                   await new Promise(resolve => setTimeout(resolve, 100));
                   navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(item.output)}&selectedType=favorite`);
-                }
-              }}
-              disabled={isNavigating}
-              style={{ display: isSelectingForInfluence ? 'flex' : 'none' }}
-            >
-              {isNavigating ? (
-                <>
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
-                  Selecting...
-                </>
-              ) : (
-                <>
-                  <Play className="h-3 w-3 mr-1" />
-                  Select for Influence
-                </>
-              )}
-            </Button>
+                }}
+                disabled={isNavigating}
+                className="text-xs ml-auto"
+              >
+                {isNavigating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                    Selecting...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-3 w-3 mr-1" />
+                    Select for Influence
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </Card>
