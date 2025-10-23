@@ -261,21 +261,16 @@ export const PromptHistory = () => {
               <div className="flex items-center gap-2 flex-wrap text-xs">
                 <Badge variant="outline" className="text-xs">{item.provider}</Badge>
                 <Badge variant="outline" className="text-xs">{item.outputType}</Badge>
-                {settings.showScores && (
-                  <Badge className={`text-xs ${
-                    item.score >= 0.8 ? "bg-success/10 text-success border-success/20" :
-                    item.score >= 0.6 ? "bg-warning/10 text-warning border-warning/20" :
-                    item.score >= 0.4 ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20" :
-                    "bg-destructive/10 text-destructive border-destructive/20"
-                  }`} variant="outline">
-                    {scoreLabel}
-                  </Badge>
                 {dateLabel && (
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {dateLabel}
                   </span>
                 )}
+              </div>
+            </div>
+            
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="flex-shrink-0">
                   <MoreHorizontal className="h-4 w-4" />
