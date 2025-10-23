@@ -6,6 +6,10 @@ import { BackgroundPaths } from "@/components/ui/background-paths";
 import { Particles } from "@/components/ui/particles";
 import { SpiralAnimation } from "@/components/ui/spiral-animation";
 import promptekLogo from "@/assets/promptek-logo.png";
+import precisionScoringIcon from "@/assets/precision-scoring.svg";
+import crossModelIcon from "@/assets/cross-model-intelligence.svg";
+import adaptiveLearningIcon from "@/assets/adaptive-learning.svg";
+import turboExecutionIcon from "@/assets/turbo-execution.svg";
 import { motion } from "framer-motion";
 
 const Landing = () => {
@@ -159,134 +163,30 @@ const Landing = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto relative z-10">
           {[
             {
-              svg: (
-                <svg viewBox="0 0 48 48" className="w-8 h-8">
-                  <defs>
-                    <linearGradient id="brain-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" className="[stop-color:hsl(var(--primary))]" />
-                      <stop offset="100%" className="[stop-color:hsl(var(--primary-glow))]" />
-                    </linearGradient>
-                  </defs>
-                  {/* Brain stem */}
-                  <path d="M24 42v-8" stroke="url(#brain-grad)" strokeWidth="2.5" strokeLinecap="round"/>
-                  {/* Left hemisphere */}
-                  <path d="M16 18c-4 0-6 3-6 6 0 4 2 7 6 8 1 0 2-1 2-2v-10c0-1-1-2-2-2z" fill="url(#brain-grad)" opacity="0.85"/>
-                  {/* Right hemisphere */}
-                  <path d="M32 18c4 0 6 3 6 6 0 4-2 7-6 8-1 0-2-1-2-2v-10c0-1 1-2 2-2z" fill="url(#brain-grad)" opacity="0.85"/>
-                  {/* Neural connections */}
-                  <circle cx="20" cy="22" r="1.5" fill="url(#brain-grad)" opacity="0.9"/>
-                  <circle cx="28" cy="22" r="1.5" fill="url(#brain-grad)" opacity="0.9"/>
-                  <circle cx="20" cy="28" r="1.5" fill="url(#brain-grad)" opacity="0.9"/>
-                  <circle cx="28" cy="28" r="1.5" fill="url(#brain-grad)" opacity="0.9"/>
-                  {/* Connection lines */}
-                  <path d="M20 22 L24 24 L28 22" stroke="url(#brain-grad)" strokeWidth="1.5" fill="none" opacity="0.6"/>
-                  <path d="M20 28 L24 26 L28 28" stroke="url(#brain-grad)" strokeWidth="1.5" fill="none" opacity="0.6"/>
-                  {/* Top curve */}
-                  <path d="M18 18 Q24 12 30 18" stroke="url(#brain-grad)" strokeWidth="2" fill="none" strokeLinecap="round"/>
-                </svg>
-              ),
-              title: "Accurate Scoring",
-              description: "Get objective metrics on prompt quality, clarity, and performance across different models.",
+              icon: precisionScoringIcon,
+              title: "Precision Scoring",
+              description: "Ultra-accurate evaluation metrics with digital precision for every prompt variant.",
               gradient: "from-primary to-primary-glow",
               delay: 0.1
             },
             {
-              svg: (
-                <svg viewBox="0 0 48 48" className="w-8 h-8">
-                  <defs>
-                    <linearGradient id="chart-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" className="[stop-color:hsl(var(--accent))]" />
-                      <stop offset="100%" className="[stop-color:hsl(var(--primary))]" />
-                    </linearGradient>
-                  </defs>
-                  {/* Bars with rounded tops */}
-                  <rect x="8" y="28" width="7" height="14" fill="url(#chart-grad)" rx="3.5" opacity="0.75"/>
-                  <rect x="19" y="18" width="7" height="24" fill="url(#chart-grad)" rx="3.5" opacity="0.85"/>
-                  <rect x="30" y="10" width="7" height="32" fill="url(#chart-grad)" rx="3.5" opacity="0.95"/>
-                  {/* Trend line connecting tops */}
-                  <path d="M11.5 28 Q22.5 15 33.5 10" stroke="url(#chart-grad)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray="0.5 3"/>
-                  {/* Data points */}
-                  <circle cx="11.5" cy="28" r="2.5" fill="url(#chart-grad)">
-                    <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="22.5" cy="18" r="2.5" fill="url(#chart-grad)">
-                    <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" begin="0.3s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="33.5" cy="10" r="2.5" fill="url(#chart-grad)">
-                    <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" begin="0.6s" repeatCount="indefinite"/>
-                  </circle>
-                  {/* Axis */}
-                  <path d="M6 42h36" stroke="url(#chart-grad)" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
-                </svg>
-              ),
-              title: "Cross-Model Testing",
-              description: "Test your prompts across multiple AI models simultaneously to find the best fit.",
+              icon: crossModelIcon,
+              title: "Cross-Model Intelligence",
+              description: "Test across multiple AI models simultaneously with intelligent collaboration.",
               gradient: "from-accent to-primary",
               delay: 0.2
             },
             {
-              svg: (
-                <svg viewBox="0 0 48 48" className="w-8 h-8">
-                  <defs>
-                    <linearGradient id="repeat-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" className="[stop-color:hsl(var(--primary))]" />
-                      <stop offset="100%" className="[stop-color:hsl(var(--accent))]" />
-                    </linearGradient>
-                  </defs>
-                  {/* Circular arrow path */}
-                  <path d="M24 8 A16 16 0 1 1 8 24" stroke="url(#repeat-grad)" strokeWidth="3" fill="none" strokeLinecap="round">
-                    <animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="4s" repeatCount="indefinite"/>
-                  </path>
-                  {/* Arrow head */}
-                  <path d="M8 20 L8 28 L14 24 Z" fill="url(#repeat-grad)">
-                    <animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="4s" repeatCount="indefinite"/>
-                  </path>
-                  {/* Center icon representing data/learning */}
-                  <circle cx="24" cy="24" r="6" fill="none" stroke="url(#repeat-grad)" strokeWidth="2" opacity="0.6"/>
-                  <circle cx="24" cy="24" r="2" fill="url(#repeat-grad)">
-                    <animate attributeName="r" values="2;3;2" dur="2s" repeatCount="indefinite"/>
-                  </circle>
-                  {/* Data points around circle */}
-                  <circle cx="24" cy="16" r="1.5" fill="url(#repeat-grad)" opacity="0.8"/>
-                  <circle cx="32" cy="24" r="1.5" fill="url(#repeat-grad)" opacity="0.8"/>
-                  <circle cx="24" cy="32" r="1.5" fill="url(#repeat-grad)" opacity="0.8"/>
-                </svg>
-              ),
-              title: "Learning Over Time",
-              description: "Our AI learns from your testing patterns to provide better optimization suggestions.",
+              icon: adaptiveLearningIcon,
+              title: "Adaptive Learning",
+              description: "Evolves and improves with every test, learning from your optimization patterns.",
               gradient: "from-primary to-accent",
               delay: 0.3
             },
             {
-              svg: (
-                <svg viewBox="0 0 48 48" className="w-8 h-8">
-                  <defs>
-                    <linearGradient id="zap-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" className="[stop-color:hsl(var(--accent))]" />
-                      <stop offset="100%" className="[stop-color:hsl(var(--primary-glow))]" />
-                    </linearGradient>
-                  </defs>
-                  {/* Lightning bolt with dynamic effect */}
-                  <path d="M27 6 L15 24 h10 l-3 18 L34 22 h-10 Z" fill="url(#zap-grad)" opacity="0.9">
-                    <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite"/>
-                  </path>
-                  {/* Energy particles */}
-                  <circle cx="20" cy="20" r="1.5" fill="url(#zap-grad)">
-                    <animate attributeName="cy" values="20;18;20" dur="1s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="28" cy="28" r="1.5" fill="url(#zap-grad)">
-                    <animate attributeName="cy" values="28;26;28" dur="1s" begin="0.3s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="24" cy="14" r="1" fill="url(#zap-grad)" opacity="0.7">
-                    <animate attributeName="r" values="1;1.5;1" dur="1.2s" repeatCount="indefinite"/>
-                  </circle>
-                  {/* Spark lines */}
-                  <path d="M27 6 L29 4 M27 6 L25 4" stroke="url(#zap-grad)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
-                  <path d="M22 42 L20 44 M22 42 L24 44" stroke="url(#zap-grad)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
-                </svg>
-              ),
-              title: "Speed Mode",
-              description: "Get results in seconds with our optimized testing pipeline.",
+              icon: turboExecutionIcon,
+              title: "Turbo Execution",
+              description: "Lightning-fast optimization pipeline delivers results in seconds, not minutes.",
               gradient: "from-accent to-primary-glow",
               delay: 0.4
             }
@@ -302,13 +202,16 @@ const Landing = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-primary/10 to-accent/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
-                  <div className={`relative flex items-center justify-center w-16 h-16 mb-4 group-hover:scale-110 transition-all duration-300`}>
-                    {/* Animated background blur */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-md opacity-60 group-hover:opacity-80 transition-opacity`} />
-                    {/* Icon container with gradient border effect */}
-                    <div className={`relative flex items-center justify-center w-full h-full bg-gradient-to-br ${feature.gradient} rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300`}>
-                      <div className="absolute inset-[2px] bg-card/95 rounded-xl" />
-                      <div className="relative">{feature.svg}</div>
+                  <div className="relative flex items-center justify-center w-20 h-20 mb-6 group-hover:scale-110 transition-all duration-300">
+                    {/* Animated background glow */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity`} />
+                    {/* Icon container */}
+                    <div className="relative flex items-center justify-center w-full h-full">
+                      <img 
+                        src={feature.icon} 
+                        alt={feature.title}
+                        className="w-16 h-16 drop-shadow-[0_0_8px_rgba(139,92,246,0.5)] group-hover:drop-shadow-[0_0_12px_rgba(139,92,246,0.7)] transition-all duration-300"
+                      />
                     </div>
                   </div>
                   <h3 className="text-xl font-semibold mb-3 group-hover:text-primary transition-colors">
