@@ -188,7 +188,7 @@ export const PromptHistory = () => {
 
   const renderHistoryItem = (item: PromptHistoryItem, index: number) => {
     const isHighestRated = index === 0 && sortBy === 'score' && filteredItems.length > 1;
-    const [isExpanded, setIsExpanded] = React.useState(false);
+    
     
     let isBestInSession = false;
     if (!settingsLoading && settings.showOnlyBestInHistory === false) {
@@ -261,12 +261,10 @@ export const PromptHistory = () => {
               <div className="flex items-center gap-2 flex-wrap text-xs">
                 <Badge variant="outline" className="text-xs">{item.provider}</Badge>
                 <Badge variant="outline" className="text-xs">{item.outputType}</Badge>
-                {dateLabel && (
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {dateLabel}
-                  </span>
-                )}
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  {typeof item.score === 'number' ? item.score.toFixed(2) : '—'}
+                </span>
               </div>
             </div>
             
@@ -304,49 +302,48 @@ export const PromptHistory = () => {
           </div>
 
           {/* Collapsible Content Section */}
-          <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <CollapsibleTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="w-full justify-between text-sm text-muted-foreground hover:text-foreground"
-              >
-                <span>{isExpanded ? "Hide Details" : "Show Details"}</span>
-                <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
-              </Button>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent className="space-y-3 pt-3">
-              {/* Two-Column Layout for Prompts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {/* User Input */}
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">User Input</p>
-                  <div className="p-3 bg-muted/30 rounded-md border border-border/50 max-h-40 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.prompt}</pre>
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-between text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <span>Show Details</span>
+                  <span className="transform transition-transform">▼</span>
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-3">
+                {/* Two-Column Layout for Prompts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {/* User Input */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">User Input</p>
+                    <div className="p-3 bg-muted/30 rounded-md border border-border/50 max-h-40 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.prompt}</pre>
+                    </div>
+                  </div>
+                  
+                  {/* AI Optimization */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wide">AI Optimization</p>
+                    <div className="p-3 bg-primary/5 rounded-md border border-primary/20 max-h-40 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.output}</pre>
+                    </div>
                   </div>
                 </div>
-                
-                {/* AI Optimization */}
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-primary uppercase tracking-wide">AI Optimization</p>
-                  <div className="p-3 bg-primary/5 rounded-md border border-primary/20 max-h-40 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.output}</pre>
-                  </div>
-                </div>
-              </div>
 
-              {/* AI Response Output */}
-              {item.sampleOutput && (
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-success uppercase tracking-wide">AI Response</p>
-                  <div className="p-3 bg-success/5 rounded-md border border-success/20 max-h-32 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.sampleOutput}</pre>
+                {/* AI Response Output */}
+                {item.sampleOutput && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-success uppercase tracking-wide">AI Response</p>
+                    <div className="p-3 bg-success/5 rounded-md border border-success/20 max-h-32 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">{item.sampleOutput}</pre>
+                    </div>
                   </div>
-                </div>
-              )}
-            </CollapsibleContent>
-          </Collapsible>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 pt-2 border-t">
