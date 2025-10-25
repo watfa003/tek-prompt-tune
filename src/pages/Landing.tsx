@@ -37,7 +37,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       {/* SEO Structured Data */}
       <script type="application/ld+json">
         {JSON.stringify({
@@ -114,7 +114,7 @@ const Landing = () => {
       {/* Hero Section with Parallax & SEO */}
       <BackgroundPaths>
         <section 
-          className="relative container mx-auto px-4 py-24 md:py-32 lg:py-40 overflow-hidden min-h-[100vh] flex items-center"
+          className="relative container mx-auto px-4 py-16 md:py-24 lg:py-32 overflow-hidden min-h-[90vh] flex items-center"
           onMouseMove={handleMouseMove}
         >
           {/* Parallax background layers */}
@@ -295,7 +295,7 @@ const Landing = () => {
       </BackgroundPaths>
 
       {/* Why Promptek Features - SEO Optimized */}
-      <section className="relative container mx-auto px-4 py-20 overflow-hidden">
+      <section className="relative container mx-auto px-4 py-12 md:py-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" aria-hidden="true" />
         
         <motion.div 
@@ -500,7 +500,7 @@ const Landing = () => {
       </section>
 
       {/* How It Works - Premium Redesign with SEO */}
-      <section id="how-it-works" className="relative container mx-auto px-4 py-32 overflow-hidden scroll-mt-24">
+      <section id="how-it-works" className="relative container mx-auto px-4 py-16 md:py-24 overflow-hidden scroll-mt-24">
         {/* SEO: HowTo Structured Data */}
         <script type="application/ld+json">
           {JSON.stringify({
@@ -543,7 +543,7 @@ const Landing = () => {
               opacity: [0.3, 0.5, 0.3]
             }}
             transition={{ duration: 8, repeat: Infinity }}
-            className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-3xl"
+            className="absolute top-0 left-1/4 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-primary/20 rounded-full blur-3xl"
           />
           <motion.div 
             animate={{ 
@@ -551,7 +551,7 @@ const Landing = () => {
               opacity: [0.4, 0.6, 0.4]
             }}
             transition={{ duration: 10, repeat: Infinity, delay: 1 }}
-            className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-accent/20 rounded-full blur-3xl"
+            className="absolute bottom-0 right-1/4 w-[350px] h-[350px] md:w-[600px] md:h-[600px] bg-accent/20 rounded-full blur-3xl"
           />
           
           {/* Floating particles - optimized for performance */}
@@ -622,8 +622,8 @@ const Landing = () => {
         </motion.div>
 
         {/* Steps Container - Semantic HTML for SEO */}
-        <div className="max-w-7xl mx-auto relative z-10">
-          <ol className="grid md:grid-cols-3 gap-8 md:gap-12 lg:gap-16 items-center list-none">
+        <div className="max-w-6xl mx-auto relative z-10">
+          <ol className="grid md:grid-cols-3 gap-8 md:gap-6 items-center list-none">
             {[
               {
                 number: 1,
