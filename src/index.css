@@ -201,3 +201,29 @@
     }
   }
 }
+
+/* Futuristic SaaS enhancements - glass, glow, motion */
+@layer components {
+  .glass-panel {
+    @apply bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/60 border shadow-[var(--shadow-card)];
+  }
+  .btn-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-sheen::after {
+    content: "";
+    position: absolute;
+    inset: -150%;
+    background: linear-gradient(60deg, transparent, hsl(var(--foreground)/0.12), transparent);
+    transform: translateX(-100%);
+    transition: transform .6s ease;
+  }
+  .btn-sheen:hover::after { transform: translateX(100%); }
+}
+
+@layer utilities {
+  .hover-3d { transition: var(--transition-smooth); transform-style: preserve-3d; }
+  .hover-3d:hover { transform: translateY(-2px) rotateX(.5deg) rotateY(-.5deg); }
+  .neon-glow { box-shadow: 0 0 0 1px hsl(var(--ring)/0.4), 0 8px 30px -6px hsl(var(--primary)/0.25); }
+}
