@@ -646,10 +646,10 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Reload analytics whenever history items change
   useEffect(() => {
-    if (historyItems.length > 0) {
+    if (historyItems.length > 0 && !loading) {
       loadAnalytics();
     }
-  }, [historyItems.length]); // Only depend on length to avoid infinite loop
+  }, [historyItems.length, loading]); // Only depend on length and loading to avoid infinite loop
 
   // Add prompt to history
   const addPromptToHistory = useCallback(async (item: PromptHistoryItem) => {
