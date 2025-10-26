@@ -11,238 +11,344 @@ import {
   Sparkles,
   Target,
   BarChart3,
-  Rocket
+  Rocket,
+  Plus,
+  Moon,
+  Sun,
+  Minimize2,
+  Maximize2
 } from "lucide-react";
 import { usePromptData } from "@/context/PromptDataContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { historyItems, analytics } = usePromptData();
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [compactMode, setCompactMode] = useState(false);
 
-  const quickActions = [
-    {
-      title: "Create New Prompt",
-      description: "Start optimizing with AI",
-      icon: Zap,
-      gradient: "from-primary to-accent",
-      action: () => navigate("/app/ai-agent"),
-    },
-    {
-      title: "Optimize Existing",
-      description: "Improve your prompts",
-      icon: Target,
-      gradient: "from-accent to-[hsl(330,100%,69%)]",
-      action: () => navigate("/app/ai-agent"),
-    },
-    {
-      title: "View Analytics",
-      description: "Track performance",
-      icon: BarChart3,
-      gradient: "from-[hsl(330,100%,69%)] to-primary",
-      action: () => navigate("/app/history"),
-    },
-    {
-      title: "Explore Templates",
-      description: "Browse community",
-      icon: FileText,
-      gradient: "from-primary via-accent to-primary",
-      action: () => navigate("/app/templates"),
-    },
-  ];
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" || "dark";
+    setTheme(savedTheme);
+    document.documentElement.classList.toggle("dark", savedTheme === "dark");
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
 
   const stats = [
     {
-      label: "Total Optimizations",
+      label: "Prompts Generated",
       value: historyItems.length || "0",
       change: "+12%",
+      trend: "up",
       icon: Rocket,
+      color: "from-violet-500 to-purple-600",
     },
     {
-      label: "Avg Success Rate",
+      label: "Avg Score",
       value: analytics.averageScore ? `${(analytics.averageScore * 100).toFixed(0)}%` : "—",
       change: "+8%",
+      trend: "up",
       icon: TrendingUp,
+      color: "from-cyan-500 to-blue-600",
     },
     {
-      label: "Templates Used",
-      value: historyItems.filter(item => item.outputType).length || "0",
-      change: "+5%",
-      icon: FileText,
-    },
-    {
-      label: "Recent Activity",
-      value: historyItems.slice(0, 7).length || "0",
-      change: "This week",
-      icon: History,
+      label: "Best Provider",
+      value: analytics.topProvider || "—",
+      change: "OpenAI",
+      trend: "neutral",
+      icon: BarChart3,
+      color: "from-pink-500 to-rose-600",
     },
   ];
 
-  return (
-    <div className="space-y-8 fade-slide-up">
-      {/* Hero Welcome Block */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative overflow-hidden rounded-[24px] glass-card p-6 md:p-8 neon-glow"
-      >
-        <div className="absolute inset-0 gradient-bg-animated opacity-30 pointer-events-none" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary animate-pulse" />
-            <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 text-xs md:text-sm">
-              Welcome Back
-            </Badge>
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 gradient-text leading-tight">
-            Command Center
-          </h1>
-          <p className="text-muted-foreground text-base md:text-lg max-w-2xl">
-            Your AI prompt optimization workspace. Create, test, and refine prompts with intelligent assistance.
-          </p>
-        </div>
-      </motion.div>
+  const recentItems = historyItems.slice(0, 5);
 
-      {/* Quick Actions Grid */}
-      <div>
-        <h2 className="text-xl md:text-2xl font-bold mb-4 flex items-center gap-2">
-          <Zap className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {quickActions.map((action, index) => (
-            <motion.div
-              key={action.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.4 }}
-            >
-              <Card 
-                className="glass-card interactive-card cursor-pointer group p-4 md:p-6 hover:neon-border"
-                onClick={action.action}
-              >
-                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
-                  <action.icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
-                </div>
-                <h3 className="font-semibold text-base md:text-lg mb-1 md:mb-2">{action.title}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{action.description}</p>
-                <div className="flex items-center text-primary text-xs md:text-sm font-medium group-hover:gap-2 transition-all">
-                  Get Started
-                  <ArrowRight className="h-3 w-3 md:h-4 md:w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+  const getScoreIcon = (score: number) => {
+    if (score >= 0.8) return { icon: "✨", label: "Excellent" };
+    if (score >= 0.6) return { icon: "⚙️", label: "Good" };
+    return { icon: "📝", label: "Average" };
+  };
+
+  return (
+    <div className={`min-h-screen safe-page ${compactMode ? 'compact-mode' : ''}`}>
+      {/* Animated Particle Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <motion.div
+          className="absolute top-20 left-20 w-[500px] h-[500px] bg-gradient-to-br from-violet-500/10 to-transparent rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.15, 0.25, 0.15],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute bottom-20 right-20 w-[600px] h-[600px] bg-gradient-to-br from-cyan-500/10 to-transparent rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.15, 0.3, 0.15],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-br from-pink-500/10 to-transparent rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.15, 1],
+            rotate: [0, 180, 360],
+            opacity: [0.1, 0.2, 0.1],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
       </div>
 
-      {/* Performance Overview */}
-      <div>
-        <h2 className="text-xl md:text-2xl font-bold mb-4 flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-          Performance Overview
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      {/* Controls: Theme & Compact Mode */}
+      <div className="fixed top-6 right-6 z-50 flex gap-3">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleTheme}
+          className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:border-primary/50 transition-all shadow-lg"
+        >
+          {theme === "dark" ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-primary" />}
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setCompactMode(!compactMode)}
+          className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:border-primary/50 transition-all shadow-lg"
+        >
+          {compactMode ? <Maximize2 className="h-5 w-5 text-primary" /> : <Minimize2 className="h-5 w-5 text-primary" />}
+        </motion.button>
+      </div>
+
+      <div className="relative z-10 max-w-[1200px] mx-auto px-4 md:px-8 py-8 md:py-12 space-y-8">
+        {/* Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="relative"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <motion.div
+              className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow"
+              whileHover={{ rotate: 5, scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              <Sparkles className="h-6 w-6 md:h-7 md:w-7 text-white" />
+            </motion.div>
+            <div>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold gradient-text leading-tight">
+                Command Center
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground mt-1">
+                Your AI prompt optimization workspace
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Hero Metrics Row - Glassboard Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 + index * 0.1, duration: 0.4 }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.15, duration: 0.6 }}
+              whileHover={{ y: -4 }}
+              className="group relative"
             >
-              <Card className="glass-card p-4 md:p-6 hover:neon-border transition-all">
-                <div className="flex items-start justify-between mb-3 md:mb-4">
-                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center`}>
-                    <stat.icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-                  </div>
-                  <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30 whitespace-nowrap">
+              <Card className="relative overflow-hidden backdrop-blur-xl bg-white/5 border border-white/10 rounded-[24px] p-6 md:p-8 hover:border-primary/30 transition-all duration-500">
+                {/* Sweep Highlight Effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                  initial={{ x: "-100%" }}
+                  whileHover={{ x: "100%" }}
+                  transition={{ duration: 0.6 }}
+                />
+                
+                {/* Icon with Gradient */}
+                <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <stat.icon className="h-7 w-7 md:h-8 md:w-8 text-white" />
+                </div>
+                
+                {/* Value */}
+                <div className="text-4xl md:text-5xl font-bold gradient-text mb-2 font-heading">
+                  {stat.value}
+                </div>
+                
+                {/* Label & Change */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm md:text-base text-muted-foreground">{stat.label}</p>
+                  <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
                     {stat.change}
                   </Badge>
                 </div>
-                <div className="text-2xl md:text-3xl font-bold mb-1 gradient-text">{stat.value}</div>
-                <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
+                
+                {/* Glow Effect */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-[24px]`} />
               </Card>
             </motion.div>
           ))}
         </div>
-      </div>
 
-      {/* Recent Activity Preview */}
-      <div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            <History className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-            Recent Activity
-          </h2>
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/app/history")}
-            className="group text-sm"
-          >
-            View All
-            <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-          </Button>
-        </div>
-        
-        {historyItems.length === 0 ? (
-          <Card className="glass-card p-12 text-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <Zap className="h-8 w-8 text-primary" />
+        {/* Recent Activity - Scrollable Glass Container */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.6 }}
+        >
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3 font-heading">
+              <History className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+              Recent Activity
+            </h2>
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/app/history")}
+              className="group hover:bg-white/5 text-sm md:text-base"
+            >
+              View All
+              <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+
+          {recentItems.length === 0 ? (
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <Zap className="h-10 w-10 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 font-heading">No optimizations yet</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md">
+                    Start your first prompt optimization to see results here
+                  </p>
+                  <Button
+                    onClick={() => navigate("/app/ai-agent")}
+                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-glow text-base"
+                  >
+                    <Zap className="h-5 w-5 mr-2" />
+                    Create First Prompt
+                  </Button>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">No optimizations yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Start your first prompt optimization to see results here
-                </p>
-                <Button 
-                  onClick={() => navigate("/app/ai-agent")}
-                  className="btn-sheen bg-gradient-to-r from-primary to-accent hover:opacity-90"
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Create First Prompt
-                </Button>
+            </Card>
+          ) : (
+            <div className="relative backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+              <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto content-scroll">
+                <AnimatePresence>
+                  {recentItems.map((item, index) => {
+                    const scoreData = getScoreIcon(item.score);
+                    return (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.03)" }}
+                        onClick={() => navigate("/app/history")}
+                        className="p-4 md:p-6 cursor-pointer group transition-all"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-start gap-3 md:gap-4 flex-1 min-w-0">
+                            {/* Score Icon */}
+                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/5 flex items-center justify-center text-xl md:text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
+                              {scoreData.icon}
+                            </div>
+                            
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <h3 className="font-semibold text-sm md:text-base truncate font-heading">
+                                  {item.title}
+                                </h3>
+                                <Badge variant="outline" className="text-xs border-white/20">
+                                  {item.provider}
+                                </Badge>
+                              </div>
+                              <p className="text-xs md:text-sm text-muted-foreground truncate">
+                                {item.description}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge className="bg-primary/10 text-primary border-primary/30 text-xs">
+                                  {scoreData.label}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Score Display */}
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <div className="text-right">
+                              <div className="text-2xl md:text-3xl font-bold gradient-text font-heading">
+                                {(item.score * 100).toFixed(0)}%
+                              </div>
+                              <div className="text-xs text-muted-foreground whitespace-nowrap">Score</div>
+                            </div>
+                            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all hidden sm:block" />
+                          </div>
+                        </div>
+                        
+                        {/* Divider Glow */}
+                        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               </div>
             </div>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {historyItems.slice(0, 5).map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + index * 0.05 }}
-              >
-                <Card 
-                  className="glass-card p-3 md:p-4 hover:neon-border transition-all cursor-pointer group"
-                  onClick={() => navigate("/app/history")}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 md:mb-2 flex-wrap">
-                        <h3 className="font-semibold text-sm md:text-base truncate">{item.title}</h3>
-                        <Badge variant="outline" className="text-xs whitespace-nowrap">{item.provider}</Badge>
-                      </div>
-                      <p className="text-xs md:text-sm text-muted-foreground truncate">{item.description}</p>
-                    </div>
-                    <div className="flex items-center gap-2 md:gap-4 ml-2 flex-shrink-0">
-                      <div className="text-right">
-                        <div className="text-xl md:text-2xl font-bold gradient-text">
-                          {(item.score * 100).toFixed(0)}%
-                        </div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Score</div>
-                      </div>
-                      <ArrowRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all hidden sm:block" />
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
+          )}
+        </motion.div>
       </div>
+
+      {/* Floating Action Button */}
+      <motion.button
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 1, type: "spring", stiffness: 300 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => navigate("/app/ai-agent")}
+        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-r from-cyan-500 via-violet-500 to-pink-500 flex items-center justify-center shadow-2xl hover:shadow-glow z-50 group"
+      >
+        <Plus className="h-7 w-7 md:h-8 md:w-8 text-white" />
+        
+        {/* Pulse Ring */}
+        <motion.div
+          className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500 via-violet-500 to-pink-500 opacity-75"
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.75, 0, 0.75],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      </motion.button>
     </div>
   );
 };
