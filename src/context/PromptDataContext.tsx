@@ -619,9 +619,51 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
             if (!promptData) return;
 
+            // Generate heuristic title first
+            const generateHeuristicTitle = (originalPrompt: string): string => {
+              let text = (originalPrompt || '').trim();
+              if (!text) return 'Untitled Session';
+              text = text
+                .replace(/^(please|kindly|could you|can you|would you|i need you to|i want you to|i need|i want|help me|you are a|act as a)\s+/i, '')
+                .replace(/\[.*?\]/g, '')
+                .replace(/["'`]/g, '')
+                .trim();
+              let subject = '';
+              const actionMatch = text.match(/^(write|create|generate|build|make|develop|design|implement|code|fix|debug|add|update|improve|enhance|optimize|refactor)\s+(?:me\s+)?(?:a|an|the)?\s*(.+?)(?:[.!?]|$)/i);
+              if (actionMatch) {
+                subject = actionMatch[2];
+                const verb = actionMatch[1].toLowerCase();
+                if (['fix', 'debug', 'optimize', 'improve', 'enhance', 'refactor'].includes(verb)) {
+                  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+                  subject = `${capitalize(verb)} ${subject}`;
+                }
+              } else {
+                subject = text.split(/[.!?]/)[0].trim();
+              }
+              subject = subject
+                .replace(/\s+(for|to|that|which|with|using|in|on|about).+$/i, '')
+                .replace(/^(for|to|from)\s+/i, '')
+                .trim();
+              const words = subject.split(/\s+/).slice(0, 6);
+              subject = words.join(' ');
+              const toTitleCase = (str: string): string => {
+                const minorWords = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of', 'with']);
+                return str.split(/\s+/).map((word, index) => {
+                  const lower = word.toLowerCase();
+                  if (index === 0 || !minorWords.has(lower)) {
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                  }
+                  return lower;
+                }).join(' ');
+              };
+              const title = toTitleCase(subject);
+              if (title.length > 50) return title.slice(0, 47).trim() + '...';
+              return title || 'Untitled Session';
+            };
+
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
-              title: `${promptData.ai_provider} ${promptData.model_name}`,
+              title: generateHeuristicTitle(promptData.original_prompt),
               description: `New optimization variant (Score: ${(no.score || 0).toFixed(3)})`,
               prompt: promptData.original_prompt,
               output: no.variant_prompt,
@@ -658,6 +700,27 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               saveToCache(user.user.id, 'history', finalUpdated);
               return finalUpdated;
             });
+
+            // Generate AI title in background (non-blocking)
+            setTimeout(async () => {
+              try {
+                const aiTitle = await aiGenerateTitle(promptData.original_prompt);
+                if (aiTitle && aiTitle.length > 0) {
+                  setHistoryItems(prev => {
+                    const updated = prev.map(h => {
+                      if (h.id === no.id) {
+                        return { ...h, title: h.isBestVariant ? aiTitle + ' (Top Performer)' : aiTitle };
+                      }
+                      return h;
+                    });
+                    saveToCache(user.user.id, 'history', updated);
+                    return updated;
+                  });
+                }
+              } catch (e) {
+                console.error('AI title generation failed for real-time optimization:', e);
+              }
+            }, 100);
           })
           .subscribe();
       } catch (err) {
