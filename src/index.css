@@ -311,11 +311,6 @@
     overscroll-behavior: contain;
   }
 
-  /* Page container and section spacing */
-  .page-container { @apply w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8; }
-  .section-y { @apply py-20 lg:py-28; }
-  .bg-layer { @apply relative overflow-hidden isolate; }
-  
   /* Ensure media never overflows */
   img, video, svg, canvas {
     max-width: 100%;
