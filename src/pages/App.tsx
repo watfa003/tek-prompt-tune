@@ -22,6 +22,8 @@ import APIManagement from "@/pages/APIManagement";
 import { PromptDataProvider } from "@/context/PromptDataContext";
 import { AppModeProvider, useAppMode } from "@/context/AppModeContext";
 import { TemplatesDataProvider } from "@/context/TemplatesDataContext";
+import { Footer } from "@/components/Footer";
+import { motion, AnimatePresence } from "framer-motion";
 
 const AppPage = () => {
   return (
@@ -149,19 +151,47 @@ const AppPageContent = () => {
         <div className="min-h-screen flex w-full bg-background relative overflow-hidden">
           {/* Ambient Background Effects */}
           <div className="fixed inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+            <motion.div
+              className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]"
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.5, 0.3],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            <motion.div
+              className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px]"
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.3, 0.5, 0.3],
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 1,
+              }}
+            />
           </div>
           
           <AppSidebar />
           
           <div className="flex-1 flex flex-col relative z-10">
-            <header className="border-b border-white/10 glass-panel sticky top-0 z-50">
+            <motion.header
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="border-b border-white/10 glass-panel sticky top-0 z-50"
+            >
               <div className="h-16 flex items-center justify-between px-6">
                 <div className="flex items-center space-x-4">
                   <SidebarTrigger />
-                  <Link to="/" className="flex items-center space-x-2 text-primary">
-                    <ArrowLeft className="h-4 w-4" />
+                  <Link to="/" className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group">
+                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                     <span className="font-semibold">Back to Home</span>
                   </Link>
                 </div>
@@ -193,12 +223,33 @@ const AppPageContent = () => {
                   </Badge>
                 </div>
               </div>
-            </header>
+              {/* Animated gradient line beneath header */}
+              <motion.div
+                className="h-[1px] bg-gradient-to-r from-transparent via-primary to-transparent"
+                animate={{
+                  opacity: [0.3, 0.7, 0.3],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </motion.header>
 
             <main className="flex-1 p-6 overflow-auto">
-              <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}>
-                {renderContent()}
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {renderContent()}
+                </motion.div>
+              </AnimatePresence>
+              <Footer />
             </main>
           </div>
         </div>
