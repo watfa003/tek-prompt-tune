@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
 import { AmbientParticles } from "@/components/ui/ambient-particles";
+import { format, parseISO, isValid as isValidDate } from "date-fns";
 
 export const PromptHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -182,11 +183,14 @@ export const PromptHistory = () => {
     // Format date safely
     const formatDate = (timestamp: any) => {
       try {
-        const date = new Date(timestamp);
-        if (isNaN(date.getTime())) return "No date";
-        return date.toLocaleDateString();
+        if (!timestamp) return "Unknown date";
+        // Prefer ISO parsing; fallback to Date constructor
+        const parsed = typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);
+        const dateObj = isValidDate(parsed) ? parsed : new Date(timestamp);
+        if (!isValidDate(dateObj) || isNaN(dateObj.getTime())) return "Unknown date";
+        return format(dateObj, "PP p");
       } catch {
-        return "No date";
+        return "Unknown date";
       }
     };
 

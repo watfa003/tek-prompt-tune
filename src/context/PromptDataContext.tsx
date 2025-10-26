@@ -271,12 +271,26 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
-        // Generate a meaningful title from the original prompt
+        // Generate a concise, subject-based title from the original prompt
         const generateTitle = (originalPrompt: string): string => {
-          // Take first 50 chars of the prompt as the title
-          const trimmed = originalPrompt.trim();
-          if (trimmed.length <= 50) return trimmed;
-          return trimmed.substring(0, 47) + '...';
+          const text = (originalPrompt || '').trim();
+          if (!text) return 'Untitled Prompt';
+          // Try to extract the subject after verbs like write/create/generate/build
+          const match = text.match(/^(write|create|generate|build|draft|produce|make|compose)(?:\s+me)?\s+(?:an?\s+|the\s+)?(.+?)(?:[\.!?]|$)/i);
+          let subject = (match?.[2] || text)
+            .replace(/\[.*?\]/g, '') // remove bracketed placeholders
+            .replace(/^["'`\-\s]+|["'`\-\s]+$/g, '') // trim quotes/dashes
+            .trim();
+
+          // Limit to ~12 words
+          subject = subject.split(/\s+/).slice(0, 12).join(' ');
+
+          // Title-case words
+          const toTitle = (s: string) => s.replace(/\b([a-z])(\w*)/g, (_, a, b) => a.toUpperCase() + b);
+          const titled = toTitle(subject);
+
+          const finalTitle = titled || text.slice(0, 60);
+          return finalTitle.length > 60 ? finalTitle.slice(0, 57) + '...' : finalTitle;
         };
         
         return {
