@@ -226,7 +226,8 @@ const AppPageContent = () => {
               </div>
               {/* Animated gradient line beneath header */}
               <motion.div
-                className="h-[1px] bg-gradient-to-r from-transparent via-primary to-transparent"
+                aria-hidden="true"
+                className="block w-full max-w-full h-px bg-gradient-to-r from-transparent via-primary to-transparent overflow-hidden pointer-events-none isolate"
                 animate={{
                   opacity: [0.3, 0.7, 0.3],
                 }}
