@@ -239,8 +239,8 @@ const AppPageContent = () => {
               />
             </motion.header>
 
-            <main className="flex-1 p-3 md:p-6 overflow-y-auto overflow-x-hidden w-full max-w-full relative">
-              <div className="w-full max-w-[1400px] mx-auto box-border">
+            <main className="flex-1 p-3 lg:p-4 xl:p-6 overflow-y-auto overflow-x-hidden w-full max-w-full relative">
+              <div className="w-full max-w-[1600px] mx-auto box-border">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={location.pathname}
