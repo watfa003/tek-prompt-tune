@@ -40,6 +40,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const initRef = useRef(false);
   const historyRef = useRef<PromptHistoryItem[]>([]);
   const lastPollAtRef = useRef<string>("");
+  const processingOptimizationsRef = useRef<Set<string>>(new Set());
 
   // Keep a live ref of history items for polling without stale closures
   useEffect(() => {
@@ -61,6 +62,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setHasLocalChanges(false);
         initRef.current = false;
         setLoading(true);
+        processingOptimizationsRef.current = new Set();
       }
       
       setCurrentUserId(newUserId);
@@ -602,6 +604,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const no: any = payload.new;
             if (no.user_id !== user.user.id) return; // Guard
 
+            // De-duplicate processing and skip if already present
+            if (processingOptimizationsRef.current.has(no.id) || historyRef.current.some(h => h.id === no.id)) {
+              console.log('Skipping already processed optimization:', no.id);
+              return;
+            }
+            processingOptimizationsRef.current.add(no.id);
+
             const { data: promptData } = await supabase
               .from('prompts')
               .select('*')
@@ -612,7 +621,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
             // Generate AI title before inserting; skip until ready
             const aiTitle = await aiGenerateTitle(promptData.original_prompt);
-            if (!aiTitle) return;
+            if (!aiTitle) { processingOptimizationsRef.current.delete(no.id); return; }
 
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
@@ -672,7 +681,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             if (latestErr || !latest) return;
 
             for (const no of latest as any[]) {
-              if (historyRef.current.some(h => h.id === no.id)) continue;
+              if (historyRef.current.some(h => h.id === no.id) || processingOptimizationsRef.current.has(no.id)) continue;
+              processingOptimizationsRef.current.add(no.id);
 
               const { data: promptData } = await supabase
                 .from('prompts')
@@ -683,7 +693,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               if (!promptData) continue;
 
               const aiTitle = await aiGenerateTitle((promptData as any).original_prompt);
-              if (!aiTitle) continue; // do not insert until we have the AI title
+              if (!aiTitle) { processingOptimizationsRef.current.delete(no.id); continue; } // do not insert until we have the AI title
 
               const newHistoryItem: PromptHistoryItem = {
                 id: no.id,
