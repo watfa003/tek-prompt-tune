@@ -620,8 +620,14 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             if (!promptData) return;
 
             // Generate AI title before inserting; skip until ready
+            console.log(`[Realtime] Generating title for optimization ${no.id}`);
             const aiTitle = await aiGenerateTitle(promptData.original_prompt);
-            if (!aiTitle) { processingOptimizationsRef.current.delete(no.id); return; }
+            if (!aiTitle) { 
+              console.error(`[Realtime] Failed to generate title for ${no.id}`);
+              processingOptimizationsRef.current.delete(no.id); 
+              return; 
+            }
+            console.log(`[Realtime] Generated title: "${aiTitle}" for ${no.id}`);
 
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
@@ -642,6 +648,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               isFavorite: false,
               isBestVariant: false,
             };
+
+            console.log(`[Realtime] Adding to history with title: "${newHistoryItem.title}"`);
             setHistoryItems((prev) => {
               const updated = [newHistoryItem, ...prev];
               const globalBest = updated.reduce((best, current) =>
@@ -658,6 +666,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                   : item.description.replace(/🏆 Best performing variant.*/, `Optimization variant (Score: ${(item.score || 0).toFixed(3)})`)
               }));
 
+              console.log(`[Realtime] Updated history, total items: ${finalUpdated.length}`);
               saveToCache(user.user.id, 'history', finalUpdated);
               return finalUpdated;
             });

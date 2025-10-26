@@ -60,6 +60,14 @@ export const PromptHistory = () => {
     }
   }, [searchParams, isSelectingForInfluence]);
 
+  // Log history items to verify titles are present
+  React.useEffect(() => {
+    console.log('[PromptHistory] History items updated:', {
+      count: historyItems.length,
+      firstFewTitles: historyItems.slice(0, 3).map(h => ({ id: h.id, title: h.title }))
+    });
+  }, [historyItems]);
+
   const filteredItems = useMemo(() => {
     let base = historyItems.filter(item => {
       if (activeTab === "favorites" && !item.isFavorite) return false;
