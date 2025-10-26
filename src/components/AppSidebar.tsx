@@ -153,14 +153,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${isCollapsed ? "w-14 md:w-16" : "w-60 md:w-72"} relative transition-all duration-300`}
+      className={`${isCollapsed ? "w-14 md:w-16" : "w-60 md:w-72"} glass-panel border-r border-white/10 transition-all duration-300`}
       collapsible="icon"
-      style={{
-        background: 'linear-gradient(180deg, rgba(5,4,6,0.95) 0%, rgba(5,4,6,0.98) 100%)',
-        backdropFilter: 'blur(24px)',
-        borderRight: '1px solid rgba(110, 231, 255, 0.1)',
-        boxShadow: 'inset 1px 0 0 0 rgba(110, 231, 255, 0.05), 4px 0 24px rgba(0, 0, 0, 0.3)',
-      }}
     >
       <SidebarContent className="p-2 md:p-3 overflow-x-hidden">
         {/* User Info */}
