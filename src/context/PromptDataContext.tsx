@@ -437,26 +437,32 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               promptGroups.get(baseTitle)!.push(item);
             });
             
-            // Get the best variant from each group, then sort by best variant's timestamp
+            // For each group: get the best variant and the latest timestamp
+            // Sort groups by their latest timestamp, then take top 6, then map to best variants
             return Array.from(promptGroups.values())
-              .map(group => group.reduce((best, current) => 
-                (current.score || 0) > (best.score || 0) ? current : best
-              ))
-              .sort((a, b) => {
-                const aTime = new Date(a.timestamp).getTime();
-                const bTime = new Date(b.timestamp).getTime();
-                return bTime - aTime;
+              .map(group => {
+                const bestVariant = group.reduce((best, current) => 
+                  (current.score || 0) > (best.score || 0) ? current : best
+                );
+                const latestTimestamp = Math.max(
+                  ...group.map(item => {
+                    const time = new Date(item.timestamp).getTime();
+                    return isNaN(time) ? 0 : time;
+                  })
+                );
+                return { bestVariant, latestTimestamp };
               })
+              .sort((a, b) => b.latestTimestamp - a.latestTimestamp)
               .slice(0, 6)
-              .map(item => ({
-                id: item.id,
-                title: item.title,
+              .map(({ bestVariant }) => ({
+                id: bestVariant.id,
+                title: bestVariant.title,
                 type: 'prompt_optimization',
-                outputType: item.outputType,
-                score: item.score,
-                provider: item.provider,
+                outputType: bestVariant.outputType,
+                score: bestVariant.score,
+                provider: bestVariant.provider,
                 model: 'N/A',
-                createdAt: item.timestamp,
+                createdAt: bestVariant.timestamp,
                 status: 'completed',
               }));
           })(),
