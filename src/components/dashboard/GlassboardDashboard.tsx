@@ -143,9 +143,9 @@ export const GlassboardDashboard = () => {
       </motion.div>
 
       {/* Main Content */}
-      <div className={`space-y-6 md:space-y-8 relative z-10 w-full max-w-full ${compactMode ? 'compact-mode' : ''}`}>
+      <div className={`space-y-8 md:space-y-12 relative z-10 w-full max-w-full ${compactMode ? 'compact-mode' : ''}`}>
         {/* Hero Metrics Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 w-full">
           {[
             {
               label: 'Prompts Generated',
@@ -171,10 +171,10 @@ export const GlassboardDashboard = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: metric.delay, duration: 0.5 }}
-              whileHover={{ y: -8 }}
+              whileHover={{ y: -12, scale: 1.02 }}
               className="w-full max-w-full"
             >
-              <Card className="glass-card p-4 sm:p-6 md:p-8 backdrop-blur-xl border-white/10 rounded-2xl relative overflow-hidden group w-full">
+              <Card className="glass-card p-6 sm:p-8 md:p-10 backdrop-blur-xl border-white/10 rounded-2xl relative overflow-hidden group w-full hover:border-primary/20">
                 {/* Hover reflection sweep */}
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none"
@@ -184,12 +184,28 @@ export const GlassboardDashboard = () => {
                 />
 
                 {/* Gradient background */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${metric.gradient} opacity-40`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${metric.gradient} opacity-40 group-hover:opacity-50 transition-opacity duration-300`} />
+
+                {/* Subtle glow on hover */}
+                <motion.div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
+                  style={{
+                    background: 'radial-gradient(circle at 50% 50%, rgba(110, 231, 255, 0.1), transparent 70%)',
+                  }}
+                  transition={{ duration: 0.3 }}
+                />
 
                 {/* Content */}
                 <div className="relative z-10">
-                  <div className="text-xs sm:text-sm text-muted-foreground mb-2 truncate">{metric.label}</div>
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text truncate">{metric.value}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground mb-3 truncate font-medium uppercase tracking-wider">{metric.label}</div>
+                  <motion.div 
+                    className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text truncate"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: metric.delay + 0.2, duration: 0.4 }}
+                  >
+                    {metric.value}
+                  </motion.div>
                 </div>
               </Card>
             </motion.div>
@@ -211,10 +227,10 @@ export const GlassboardDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
-          <Card className="glass-card p-6 md:p-8 backdrop-blur-xl border-white/10 rounded-2xl">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-primary">
+          <Card className="glass-card p-8 md:p-10 backdrop-blur-xl border-white/10 rounded-2xl hover:border-primary/15">
+            <h3 className="text-2xl font-bold mb-8 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-primary">
                   <path
                     d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"
                     stroke="currentColor"
@@ -226,35 +242,39 @@ export const GlassboardDashboard = () => {
               Score Distribution
             </h3>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
                   label: 'Excellent',
                   range: '0.8+',
                   count: analytics?.performance?.scoreDistribution?.excellent || 0,
                   gradient: 'from-green-500/20 to-green-400/20',
-                  textColor: 'text-green-500',
+                  textColor: 'text-green-400',
+                  borderColor: 'border-green-500/20',
                 },
                 {
                   label: 'Good',
                   range: '0.6-0.8',
                   count: analytics?.performance?.scoreDistribution?.good || 0,
                   gradient: 'from-yellow-500/20 to-yellow-400/20',
-                  textColor: 'text-yellow-500',
+                  textColor: 'text-yellow-400',
+                  borderColor: 'border-yellow-500/20',
                 },
                 {
                   label: 'Average',
                   range: '0.4-0.6',
                   count: analytics?.performance?.scoreDistribution?.average || 0,
                   gradient: 'from-orange-500/20 to-orange-400/20',
-                  textColor: 'text-orange-500',
+                  textColor: 'text-orange-400',
+                  borderColor: 'border-orange-500/20',
                 },
                 {
                   label: 'Poor',
                   range: '0-0.4',
                   count: analytics?.performance?.scoreDistribution?.poor || 0,
                   gradient: 'from-red-500/20 to-red-400/20',
-                  textColor: 'text-red-500',
+                  textColor: 'text-red-400',
+                  borderColor: 'border-red-500/20',
                 },
               ].map((item, index) => (
                 <motion.div
@@ -262,12 +282,35 @@ export const GlassboardDashboard = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.6 + index * 0.05 }}
+                  whileHover={{ scale: 1.05, y: -4 }}
                   className="relative"
                 >
-                  <div className={`p-4 rounded-xl bg-gradient-to-br ${item.gradient} border border-white/5`}>
-                    <div className={`text-3xl font-bold ${item.textColor} mb-1`}>{item.count}</div>
-                    <div className="text-sm font-medium text-foreground">{item.label}</div>
+                  <div className={`p-6 rounded-xl bg-gradient-to-br ${item.gradient} border ${item.borderColor} hover:border-opacity-40 transition-all duration-300`}>
+                    <motion.div 
+                      className={`text-4xl font-bold ${item.textColor} mb-2`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.7 + index * 0.05, duration: 0.4 }}
+                    >
+                      {item.count}
+                    </motion.div>
+                    <div className="text-sm font-medium text-foreground mb-1">{item.label}</div>
                     <div className="text-xs text-muted-foreground">{item.range}</div>
+                    
+                    {/* Progress bar */}
+                    <motion.div
+                      className="mt-3 h-1 bg-white/10 rounded-full overflow-hidden"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.8 + index * 0.05 }}
+                    >
+                      <motion.div
+                        className={`h-full bg-gradient-to-r ${item.gradient.replace('/20', '/60')}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min((item.count / Math.max(analytics?.overview?.totalPrompts || 1, 1)) * 100, 100)}%` }}
+                        transition={{ delay: 0.9 + index * 0.05, duration: 0.6, ease: "easeOut" }}
+                      />
+                    </motion.div>
                   </div>
                 </motion.div>
               ))}
@@ -281,19 +324,19 @@ export const GlassboardDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.5 }}
         >
-          <Card className="glass-card backdrop-blur-2xl border-white/10 rounded-2xl overflow-hidden">
-            <div className="p-6 border-b border-white/5">
+          <Card className="glass-card backdrop-blur-2xl border-white/10 rounded-2xl overflow-hidden hover:border-primary/15">
+            <div className="p-8 border-b border-white/5">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-primary">
+                <h3 className="text-2xl font-bold flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-primary">
                       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
                       <path d="M12 6V12L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                   </div>
                   Recent Activity
                 </h3>
-                <Badge className="bg-primary/10 text-primary border-primary/20">Last 5</Badge>
+                <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1">Last 5</Badge>
               </div>
             </div>
 
@@ -306,9 +349,11 @@ export const GlassboardDashboard = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.8 + index * 0.05 }}
-                      className="p-4 hover:bg-white/5 transition-all group cursor-pointer"
-                      whileHover={{ x: 4 }}
+                      className="p-6 hover:bg-white/5 transition-all group cursor-pointer relative"
+                      whileHover={{ x: 6, backgroundColor: 'rgba(110, 231, 255, 0.03)' }}
                     >
+                      {/* Timeline dot */}
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-gradient-to-b from-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           {getScoreBadgeIcon(activity.score || 0)}

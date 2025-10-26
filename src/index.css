@@ -219,17 +219,32 @@
 
 /* Flagship-Grade Futuristic SaaS Components */
 @layer components {
-  /* Glass Morphism */
+  /* Glass Morphism - Enhanced depth */
   .glass-panel {
-    @apply bg-card/40 backdrop-blur-xl supports-[backdrop-filter]:bg-card/40 border border-white/10 shadow-[var(--shadow-glass)];
+    @apply bg-card/40 backdrop-blur-xl supports-[backdrop-filter]:bg-card/40 border border-white/10;
+    box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.05);
     overflow: hidden;
     position: relative;
+    transition: all 0.3s cubic-bezier(0.22, 0.9, 0.3, 1);
+  }
+
+  .glass-panel:hover {
+    border-color: rgba(110, 231, 255, 0.2);
+    box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.15), 0 8px 32px rgba(110, 231, 255, 0.1);
   }
 
   .glass-card {
-    @apply bg-card/30 backdrop-blur-2xl border border-white/10 rounded-[18px] shadow-[var(--shadow-glass)];
+    @apply bg-card/30 backdrop-blur-2xl border border-white/10 rounded-[18px];
+    box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.05);
     overflow: hidden;
     position: relative;
+    transition: all 0.3s cubic-bezier(0.22, 0.9, 0.3, 1);
+  }
+
+  .glass-card:hover {
+    border-color: rgba(110, 231, 255, 0.15);
+    box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.12), 0 12px 40px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
   }
 
   /* Futuristic Button Shine Effect */
@@ -255,13 +270,19 @@
 
   /* Neon Border */
   .neon-border {
-    @apply border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)];
+    @apply border border-primary/40;
+    box-shadow: 0 0 20px rgba(110,231,255,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
   }
 
-  /* Interactive Card Hover */
+  /* Interactive Card Hover - Enhanced */
   .interactive-card {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_-10px_rgba(110,231,255,0.3)];
+    @apply transition-all duration-300;
     transform-gpu: auto;
+  }
+  
+  .interactive-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 20px 60px -10px rgba(110,231,255,0.3), 0 0 0 1px rgba(110,231,255,0.1);
   }
 
   /* Floating Animation Container */
@@ -287,7 +308,7 @@
     display: none;
   }
 
-  /* Thin Scrollbars for glass containers */
+  /* Thin Scrollbars for glass containers - Enhanced */
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: rgba(110, 231, 255, 0.2) transparent;
@@ -303,9 +324,26 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: rgba(110, 231, 255, 0.2);
     border-radius: 3px;
+    transition: background 0.2s ease;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: rgba(110, 231, 255, 0.4);
+  }
+
+  /* Number count-up animation */
+  @keyframes number-appear {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-number {
+    animation: number-appear 0.5s cubic-bezier(0.22, 0.9, 0.3, 1);
   }
 }
 
