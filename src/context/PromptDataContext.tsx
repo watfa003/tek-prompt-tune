@@ -437,30 +437,26 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               promptGroups.get(baseTitle)!.push(item);
             });
             
-            // Get the best variant from each group, but sort groups by their latest timestamp
-            const withGroupMeta = Array.from(promptGroups.values()).map(group => {
-              const best = group.reduce((b, c) => ((c.score || 0) > (b.score || 0) ? c : b));
-              const latestTs = Math.max(
-                ...group.map((g) => {
-                  const t = new Date(g.timestamp).getTime();
-                  return Number.isNaN(t) ? 0 : t;
-                })
-              );
-              return { best, latestTs };
-            });
-
-            return withGroupMeta
-              .sort((a, b) => b.latestTs - a.latestTs)
+            // Get the best variant from each group, then sort by best variant's timestamp
+            return Array.from(promptGroups.values())
+              .map(group => group.reduce((best, current) => 
+                (current.score || 0) > (best.score || 0) ? current : best
+              ))
+              .sort((a, b) => {
+                const aTime = new Date(a.timestamp).getTime();
+                const bTime = new Date(b.timestamp).getTime();
+                return bTime - aTime;
+              })
               .slice(0, 5)
-              .map(({ best }) => ({
-                id: best.id,
-                title: best.title,
+              .map(item => ({
+                id: item.id,
+                title: item.title,
                 type: 'prompt_optimization',
-                outputType: best.outputType,
-                score: best.score,
-                provider: best.provider,
+                outputType: item.outputType,
+                score: item.score,
+                provider: item.provider,
                 model: 'N/A',
-                createdAt: best.timestamp,
+                createdAt: item.timestamp,
                 status: 'completed',
               }));
           })(),
