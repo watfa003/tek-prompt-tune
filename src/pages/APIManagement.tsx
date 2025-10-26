@@ -51,7 +51,7 @@ export default function APIManagement() {
   const { title, description } = getSectionTitle();
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="page-container section-y">
       <div>
         {renderSection()}
       </div>

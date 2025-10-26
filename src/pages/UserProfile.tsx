@@ -74,7 +74,7 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="page-container section-y">
         <div className="text-center">Loading...</div>
       </div>
     );
@@ -82,7 +82,7 @@ export default function UserProfile() {
 
   if (!profile) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="page-container section-y">
         <Card>
           <CardHeader>
             <CardTitle>User Not Found</CardTitle>
@@ -94,7 +94,7 @@ export default function UserProfile() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="page-container section-y space-y-8">
       <div className="flex items-center">
         <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="gap-2">
           <ArrowLeft className="w-4 h-4" />

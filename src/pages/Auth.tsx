@@ -303,7 +303,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4 safe-page isolate overflow-x-hidden">
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center">

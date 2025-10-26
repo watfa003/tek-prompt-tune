@@ -23,7 +23,7 @@ export const Footer = () => {
       {/* Gradient Divider */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary to-transparent" />
       
-      <div className="container mx-auto px-6 py-8">
+      <div className="page-container section-y">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Brand */}
           <motion.div

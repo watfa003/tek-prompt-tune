@@ -37,7 +37,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden isolate safe-page">
       {/* SEO Structured Data */}
       <script type="application/ld+json">
         {JSON.stringify({
@@ -54,7 +54,9 @@ const Landing = () => {
       </script>
       
       {/* Floating Particles */}
-      <Particles />
+      <div className="relative inset-0 overflow-hidden isolate">
+        <Particles />
+      </div>
       
       {/* Sticky Glass Header with shrink animation */}
       <motion.header 
@@ -69,7 +71,7 @@ const Landing = () => {
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <nav 
-          className="container mx-auto px-4 transition-all duration-300"
+          className="page-container transition-all duration-300"
           aria-label="Main navigation"
         >
           <div className={`flex items-center justify-between transition-all duration-300 ${
@@ -114,7 +116,7 @@ const Landing = () => {
       {/* Hero Section with Parallax & SEO */}
       <BackgroundPaths>
         <section 
-          className="relative container mx-auto px-4 py-16 md:py-24 lg:py-32 overflow-hidden min-h-[90vh] flex items-center"
+          className="relative page-container section-y overflow-hidden min-h-[90vh] flex items-center isolate"
           onMouseMove={handleMouseMove}
         >
           {/* Parallax background layers */}
@@ -288,14 +290,14 @@ const Landing = () => {
                   </div>
                 </div>
               </div>
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl blur-3xl -z-10 animate-pulse" style={{ animationDuration: '4s' }} />
+              <div className="absolute inset-0 rounded-xl blur-3xl -z-10 animate-pulse gradient-bg-animated" style={{ animationDuration: '4s' }} />
             </motion.div>
           </div>
         </section>
       </BackgroundPaths>
 
       {/* Why Promptek Features - SEO Optimized */}
-      <section className="relative container mx-auto px-4 py-12 md:py-16 overflow-hidden">
+      <section className="relative page-container section-y overflow-hidden isolate">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" aria-hidden="true" />
         
         <motion.div 

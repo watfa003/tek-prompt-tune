@@ -179,7 +179,7 @@ export const EnhancedDashboard = () => {
         />
       </div>
 
-      <div className="relative z-10 max-w-[1200px] mx-auto space-y-8">
+      <div className="relative z-10 max-w-[1200px] mx-auto space-y-8 px-4 md:px-8 py-10 lg:py-20 isolate">
         {/* Hero Metrics Row - Glassboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {stats.map((stat, index) => (
