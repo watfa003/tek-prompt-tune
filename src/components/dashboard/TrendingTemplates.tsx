@@ -6,6 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { FavoriteIcon } from './HandCraftedIcons';
 import { useNavigate } from 'react-router-dom';
 import { useTemplatesData } from '@/context/TemplatesDataContext';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Heart, Copy, TrendingUp, User, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { 
   ProductivityIcon, 
   WritingIcon, 
@@ -35,8 +41,11 @@ const categoryIcons: Record<string, React.FC<any>> = {
 
 export const TrendingTemplates: React.FC = () => {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [previewTemplate, setPreviewTemplate] = useState<any | null>(null);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { templates, profileMap, loading } = useTemplatesData();
+  const { templates, profileMap, loading: dataLoading } = useTemplatesData();
 
   // Get top 5 most used templates
   const topTemplates = useMemo(() => {
@@ -50,23 +59,91 @@ export const TrendingTemplates: React.FC = () => {
     return sorted;
   }, [templates]);
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+  const checkIfFavorited = async (templateId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return false;
+
+    const { data } = await (supabase as any)
+      .from('user_favorites')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('item_id', templateId)
+      .eq('item_type', 'template')
+      .maybeSingle();
+
+    return !!data;
   };
 
-  const handleUseTemplate = (template: any) => {
+  const openPreview = async (template: any) => {
+    setPreviewTemplate(template);
+    const favorited = await checkIfFavorited(template.id);
+    setIsFavorited(favorited);
+  };
+
+  const toggleFavorite = async (e?: React.MouseEvent, templateId?: string) => {
+    e?.stopPropagation();
+    const targetId = templateId || previewTemplate?.id;
+    if (!targetId) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) {
+      toast.error("Please sign in to favorite templates");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (isFavorited) {
+        await Promise.all([
+          (supabase as any)
+            .from('user_favorites')
+            .delete()
+            .eq('user_id', userId)
+            .eq('item_id', targetId)
+            .eq('item_type', 'template'),
+          supabase.rpc('decrement_template_favorites', { template_id: targetId })
+        ]);
+        toast.success("Removed from favorites");
+        setIsFavorited(false);
+      } else {
+        await Promise.all([
+          (supabase as any)
+            .from('user_favorites')
+            .insert({
+              user_id: userId,
+              item_id: targetId,
+              item_type: 'template'
+            }),
+          supabase.rpc('increment_template_favorites', { template_id: targetId })
+        ]);
+        toast.success("Added to favorites");
+        setIsFavorited(true);
+      }
+    } catch (error: any) {
+      console.error('Error toggling favorite:', error);
+      toast.error(error.message || "Failed to update favorite");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUseTemplate = async (template: any) => {
+    try {
+      await supabase.rpc('increment_template_uses', { template_id: template.id });
+    } catch (error) {
+      console.error('Error incrementing template uses:', error);
+    }
     navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(template.template)}&selectedType=template`);
   };
 
-  if (loading) {
+  const copyTemplate = (template: string) => {
+    navigator.clipboard.writeText(template);
+    toast.success("Template copied to clipboard!");
+  };
+
+  if (dataLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -116,7 +193,6 @@ export const TrendingTemplates: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {topTemplates.map((template, index) => {
             const CategoryIcon = categoryIcons[template.category || 'Writing'] || WritingIcon;
-            const isFavorite = favorites.has(template.id);
             const username = profileMap[template.user_id] || (template.is_official ? 'PrompTek' : 'Unknown');
 
             return (
@@ -128,7 +204,10 @@ export const TrendingTemplates: React.FC = () => {
                 whileHover={{ y: -4, rotateY: 2, rotateX: -2 }}
                 style={{ perspective: '1000px' }}
               >
-                <Card className="glass-card p-4 h-full relative overflow-hidden group cursor-pointer">
+                <Card 
+                  className="glass-card p-4 h-full relative overflow-hidden group cursor-pointer"
+                  onClick={() => openPreview(template)}
+                >
                   {/* Hover reflection sweep */}
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none"
@@ -146,19 +225,6 @@ export const TrendingTemplates: React.FC = () => {
                   <div className="space-y-2 relative z-10">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-semibold text-sm leading-tight line-clamp-2">{template.title}</h3>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(template.id);
-                        }}
-                        className="flex-shrink-0 hover:scale-110 transition-transform"
-                      >
-                        <FavoriteIcon
-                          className={isFavorite ? 'text-primary' : 'text-muted-foreground'}
-                          size={16}
-                          filled={isFavorite}
-                        />
-                      </button>
                     </div>
 
                     {template.description && (
@@ -182,13 +248,6 @@ export const TrendingTemplates: React.FC = () => {
                       <span className="text-xs text-muted-foreground">
                         {template.uses_count || 0} uses
                       </span>
-                      <Button
-                        size="sm"
-                        onClick={() => handleUseTemplate(template)}
-                        className="h-7 text-xs bg-gradient-to-r from-primary to-accent hover:opacity-90"
-                      >
-                        Use
-                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -196,6 +255,87 @@ export const TrendingTemplates: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Preview Dialog */}
+      {previewTemplate && (
+        <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <DialogTitle className="text-2xl">{previewTemplate.title}</DialogTitle>
+                  <DialogDescription>
+                    {previewTemplate.description}
+                  </DialogDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => toggleFavorite(e)}
+                  disabled={loading}
+                  className="shrink-0 transition-all duration-200 hover:scale-110"
+                >
+                  <Heart 
+                    className={`w-5 h-5 transition-all duration-300 ${
+                      isFavorited 
+                        ? 'fill-red-500 text-red-500 scale-110' 
+                        : 'text-muted-foreground hover:text-red-500 hover:scale-105'
+                    }`} 
+                  />
+                </Button>
+              </div>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="flex gap-2 items-center flex-wrap">
+                {previewTemplate.is_official && (
+                  <Badge variant="default" className="gap-1 bg-gradient-to-r from-primary to-primary/80">
+                    <ShieldCheck className="w-3 h-3" />
+                    Official PromptEK
+                  </Badge>
+                )}
+                {previewTemplate.category && (
+                  <Badge variant="secondary">{previewTemplate.category}</Badge>
+                )}
+                <Link 
+                  to={`/user/${profileMap[previewTemplate.user_id] || 'Unknown'}`} 
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>@{profileMap[previewTemplate.user_id] || (previewTemplate.is_official ? 'PrompTek' : 'Unknown')}</span>
+                </Link>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Heart className="w-3 h-3" />
+                  {previewTemplate.favorites_count} favorites
+                </div>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <TrendingUp className="w-3 h-3" />
+                  {previewTemplate.uses_count} uses
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-semibold">Template Content</h3>
+                <Textarea
+                  value={previewTemplate.template}
+                  readOnly
+                  className="min-h-[300px] font-mono text-sm"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => copyTemplate(previewTemplate.template)}>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy
+                </Button>
+                <Button onClick={() => { handleUseTemplate(previewTemplate); setPreviewTemplate(null); }}>
+                  Use This Template
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
