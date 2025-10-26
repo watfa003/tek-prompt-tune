@@ -6,19 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { FavoriteIcon } from './HandCraftedIcons';
 import { useNavigate } from 'react-router-dom';
 import { useTemplatesData } from '@/context/TemplatesDataContext';
+import { 
+  ProductivityIcon, 
+  WritingIcon, 
+  CodeIcon, 
+  MarketingIcon, 
+  AnalyticsIcon, 
+  CreativeIcon, 
+  BusinessIcon, 
+  EducationIcon, 
+  CustomIcon, 
+  SupportIcon 
+} from './CategoryIcons';
 
-import ProductivityIcon from '@/assets/category-productivity.svg';
-import WritingIcon from '@/assets/category-writing.svg';
-import CodeIcon from '@/assets/category-code.svg';
-import MarketingIcon from '@/assets/category-marketing.svg';
-import AnalyticsIcon from '@/assets/category-analytics.svg';
-import CreativeIcon from '@/assets/category-creative.svg';
-import BusinessIcon from '@/assets/category-business.svg';
-import EducationIcon from '@/assets/category-education.svg';
-import CustomIcon from '@/assets/category-custom.svg';
-import SupportIcon from '@/assets/category-support.svg';
-
-const categoryIcons: Record<string, string> = {
+const categoryIcons: Record<string, React.FC<any>> = {
   Writing: WritingIcon,
   Coding: CodeIcon,
   Code: CodeIcon,
@@ -114,7 +115,7 @@ export const TrendingTemplates: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {topTemplates.map((template, index) => {
-            const categoryIconSrc = categoryIcons[template.category || 'Writing'] || WritingIcon;
+            const CategoryIcon = categoryIcons[template.category || 'Writing'] || WritingIcon;
             const isFavorite = favorites.has(template.id);
             const username = profileMap[template.user_id] || (template.is_official ? 'PrompTek' : 'Unknown');
 
@@ -138,7 +139,7 @@ export const TrendingTemplates: React.FC = () => {
 
                   {/* SVG Thumbnail */}
                   <div className="mb-3 p-3 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center h-20">
-                    <img src={categoryIconSrc} alt={template.category || 'Category'} className="w-10 h-10 text-primary" />
+                    <CategoryIcon className="text-primary" size={40} />
                   </div>
 
                   {/* Content */}
