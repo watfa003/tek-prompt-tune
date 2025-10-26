@@ -442,9 +442,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         })));
       }
       
-      // AI title refinement in background (non-blocking)
-      refineTitlesFor(historyItems);
-      
       // Load analytics after loading history will be triggered by separate effect
     } catch (error) {
       console.error('Error loading initial data:', error);
