@@ -205,7 +205,7 @@ export const TrendingTemplates: React.FC = () => {
                 style={{ perspective: '1000px' }}
               >
                 <Card 
-                  className="glass-card p-6 h-full relative overflow-hidden group cursor-pointer border-white/10 hover:border-primary/20 transition-all duration-250"
+                  className="glass-card p-6 h-[320px] flex flex-col relative overflow-hidden group cursor-pointer border-white/10 hover:border-primary/20 transition-all duration-250"
                   onClick={() => openPreview(template)}
                 >
                   {/* Hover gradient glow */}
@@ -228,14 +228,16 @@ export const TrendingTemplates: React.FC = () => {
                   </div>
 
                   {/* Content */}
-                  <div className="space-y-3 relative z-10">
+                  <div className="space-y-3 relative z-10 flex-1 flex flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-bold font-heading tracking-tight text-base leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-250">{template.title}</h3>
                     </div>
 
-                    {template.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 font-medium">{template.description}</p>
-                    )}
+                    <div className="flex-1 min-h-[40px]">
+                      {template.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 font-medium">{template.description}</p>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
                       {template.category && (
@@ -244,7 +246,7 @@ export const TrendingTemplates: React.FC = () => {
                         </Badge>
                       )}
                       {template.is_official && (
-                        <Badge className="text-xs px-2 py-1 bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-primary/30 font-semibold shadow-glow">
+                        <Badge className="text-xs px-2 py-1 bg-primary/10 text-primary border border-primary/20 font-semibold">
                           <ShieldCheck className="w-3 h-3 mr-1" />
                           Official
                         </Badge>
