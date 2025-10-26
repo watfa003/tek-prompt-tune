@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 
 export const AmbientParticles = () => {
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden max-w-full">
       {/* Large Gradient Orbs */}
       <motion.div
         className="absolute top-20 right-20 w-96 h-96 bg-primary/10 rounded-full blur-[120px]"
