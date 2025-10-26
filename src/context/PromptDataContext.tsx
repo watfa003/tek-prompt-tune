@@ -43,10 +43,63 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const lastPollAtRef = useRef<string>("");
   const processingOptimizationsRef = useRef<Set<string>>(new Set());
   const titlesInFlightRef = useRef<Set<string>>(new Set());
+  const titleStatusRef = useRef<Record<string, "pending" | "done">>({});
   // Keep a live ref of history items for polling without stale closures
   useEffect(() => {
     historyRef.current = historyItems;
   }, [historyItems]);
+
+  // Load title status map from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('prompt_title_status_map');
+      if (stored) {
+        titleStatusRef.current = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to load title status map:', e);
+    }
+  }, []);
+
+  // Title status helpers
+  const getTitleStatus = useCallback((id: string): "pending" | "done" | undefined => {
+    return titleStatusRef.current[id];
+  }, []);
+
+  const setTitleStatus = useCallback((id: string, status: "pending" | "done") => {
+    titleStatusRef.current[id] = status;
+    try {
+      localStorage.setItem('prompt_title_status_map', JSON.stringify(titleStatusRef.current));
+    } catch (e) {
+      console.error('Failed to save title status:', e);
+    }
+  }, []);
+
+  const acquireTitleLock = useCallback((id: string): boolean => {
+    const lockKey = `prompt-title-lock-${id}`;
+    try {
+      const existing = localStorage.getItem(lockKey);
+      if (existing) {
+        const { at, ttl } = JSON.parse(existing);
+        if (Date.now() - at < ttl) {
+          console.log(`[Lock] ${id} already locked`);
+          return false;
+        }
+      }
+      localStorage.setItem(lockKey, JSON.stringify({ at: Date.now(), ttl: 120000 }));
+      console.log(`[Lock] ${id} acquired`);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const releaseTitleLock = useCallback((id: string) => {
+    try {
+      localStorage.removeItem(`prompt-title-lock-${id}`);
+      console.log(`[Lock] ${id} released`);
+    } catch {}
+  }, []);
 
   // Reset all state when user changes
   useEffect(() => {
@@ -126,18 +179,17 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
-  // Centralized title generator that updates state and persists
+  // Centralized title generator with bulletproof idempotency
   const generateTitleAndApply = useCallback(async (promptId: string, promptText: string) => {
     if (!promptId || !promptText) return;
-    if (titlesInFlightRef.current.has(promptId)) {
-      console.log('[generateTitleAndApply] Skipping, already in-flight:', promptId);
-      return;
-    }
     
-    // Check localStorage first - if we have a cached title, use it without AI call
+    console.log(`[generateTitleAndApply] Start: ${promptId}`);
+    
+    // Check localStorage cache first
     const cached = typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${promptId}`) : null;
     if (cached && cached.trim() && cached !== 'Untitled') {
-      console.log('[generateTitleAndApply] Using cached title:', cached);
+      console.log(`[generateTitleAndApply] Using cache: ${promptId} => ${cached}`);
+      setTitleStatus(promptId, "done");
       setHistoryItems(prev => {
         const updated = prev.map(p => p.id === promptId ? { ...p, title: cached } : p);
         supabase.auth.getUser().then(({ data }) => {
@@ -148,19 +200,47 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
     
+    // Check status map
+    const status = getTitleStatus(promptId);
+    if (status === "done") {
+      console.log(`[generateTitleAndApply] Using status done: ${promptId}`);
+      return;
+    }
+    if (status === "pending") {
+      console.log(`[generateTitleAndApply] Already pending: ${promptId}`);
+      return;
+    }
+    
+    // Attempt to acquire lock
+    if (!acquireTitleLock(promptId)) {
+      console.log(`[generateTitleAndApply] Lock failed: ${promptId}`);
+      return;
+    }
+    
+    // Check in-flight ref (intra-render guard)
+    if (titlesInFlightRef.current.has(promptId)) {
+      console.log(`[generateTitleAndApply] In-flight: ${promptId}`);
+      releaseTitleLock(promptId);
+      return;
+    }
+    
     titlesInFlightRef.current.add(promptId);
+    setTitleStatus(promptId, "pending");
+    
     try {
-      console.log('[generateTitleAndApply] Generating title for:', promptId);
+      console.log(`[generateTitleAndApply] Generating: ${promptId}`);
       const newTitle = await aiGenerateTitle(promptText);
       const finalTitle = (newTitle?.trim() || 'Untitled');
 
-      // Update local state so UI re-renders immediately
+      // Persist to localStorage
+      try { localStorage.setItem(`prompt-title-${promptId}`, finalTitle); } catch {}
+      
+      // Update local state
       setHistoryItems(prev => {
         const updated = prev.map(p =>
           p.id === promptId ? { ...p, title: finalTitle } : p
         );
         
-        // Persist to localStorage and cache
         supabase.auth.getUser().then(({ data }) => {
           if (data?.user?.id) {
             saveToCache(data.user.id, 'history', updated);
@@ -170,16 +250,18 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return updated;
       });
       
-      // Persist to localStorage immediately
-      try { localStorage.setItem(`prompt-title-${promptId}`, finalTitle); } catch {}
-
-      console.log('[generateTitleAndApply] Title applied:', finalTitle);
+      setTitleStatus(promptId, "done");
+      console.log(`[generateTitleAndApply] Applied title: ${promptId} => ${finalTitle}`);
     } catch (err) {
-      console.error('[generateTitleAndApply] Failed to apply generated title:', err);
+      console.error(`[generateTitleAndApply] Failed: ${promptId}`, err);
+      // Mark as done even on failure to prevent retry loops
+      setTitleStatus(promptId, "done");
     } finally {
       titlesInFlightRef.current.delete(promptId);
+      releaseTitleLock(promptId);
+      console.log(`[generateTitleAndApply] Released lock: ${promptId}`);
     }
-  }, [aiGenerateTitle, saveToCache]);
+  }, [aiGenerateTitle, saveToCache, getTitleStatus, setTitleStatus, acquireTitleLock, releaseTitleLock]);
 
   const refineTitlesFor = useCallback(async (items: PromptHistoryItem[]) => {
     try {
@@ -336,6 +418,49 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [loadFromCache, saveToCache, historyItems]);
 
+  // Centralized backfill function - processes untitled items once
+  const backfillMissingTitles = useCallback(async (items: PromptHistoryItem[]) => {
+    const untitledItems = items.filter(item => 
+      (!item.title || item.title === 'Untitled' || /untitled session/i.test(item.title)) && 
+      item.prompt
+    );
+    
+    if (untitledItems.length === 0) {
+      console.log('[Backfill] No untitled items to process');
+      return;
+    }
+    
+    console.log(`[Backfill] Processing ${untitledItems.length} untitled items`);
+    
+    // Process with concurrency = 2 to avoid rate limits
+    for (let i = 0; i < untitledItems.length; i += 2) {
+      const batch = untitledItems.slice(i, i + 2);
+      await Promise.all(
+        batch.map(item => {
+          // Check cache first
+          const cached = typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${item.id}`) : null;
+          if (cached && cached !== 'Untitled') {
+            setTitleStatus(item.id, "done");
+            // Update state with cached title
+            setHistoryItems(prev => prev.map(p => p.id === item.id ? { ...p, title: cached } : p));
+            return Promise.resolve();
+          }
+          
+          // Check status
+          const status = getTitleStatus(item.id);
+          if (status === "done" || status === "pending") {
+            return Promise.resolve();
+          }
+          
+          // Generate title
+          return generateTitleAndApply(item.id, item.prompt);
+        })
+      );
+    }
+    
+    console.log('[Backfill] Completed');
+  }, [generateTitleAndApply, getTitleStatus, setTitleStatus]);
+
   // Load initial data from Supabase with full prompt data
   const loadInitialData = useCallback(async () => {
     try {
@@ -393,9 +518,15 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
+        // Load title from localStorage and mark status if present
+        const cachedTitle = (typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${variant.id}`) : null);
+        if (cachedTitle && cachedTitle !== 'Untitled') {
+          setTitleStatus(variant.id, "done");
+        }
+        
         return {
           id: variant.id,
-          title: (typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${variant.id}`) : null) || 'Untitled',
+          title: cachedTitle || 'Untitled',
           description: `${prompt.ai_provider} • ${prompt.model_name}${isGlobalTopPerformer ? ' • 🏆 Top Performer' : ''}`,
           prompt: prompt.original_prompt,
           output: variant.variant_prompt,
@@ -461,11 +592,16 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         })));
       }
       
+      // Backfill missing titles (once per init)
+      setTimeout(() => {
+        backfillMissingTitles(historyItems);
+      }, 1000);
+      
       // Load analytics after loading history will be triggered by separate effect
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
-  }, [loadFromCache, saveToCache]);
+  }, [loadFromCache, saveToCache, backfillMissingTitles]);
 
   // Reload analytics whenever history items change
   useEffect(() => {
@@ -639,8 +775,12 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             }
             console.log(`[Realtime] Generated title: "${aiTitle}" for ${no.id}`);
             
-            // Persist title to localStorage immediately
-            try { localStorage.setItem(`prompt-title-${no.id}`, aiTitle); } catch {}
+            // Persist title to localStorage immediately and mark as done
+            try { 
+              localStorage.setItem(`prompt-title-${no.id}`, aiTitle);
+              setTitleStatus(no.id, "done");
+              releaseTitleLock(no.id);
+            } catch {}
 
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
@@ -718,8 +858,12 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               const aiTitle = await aiGenerateTitle((promptData as any).original_prompt);
               if (!aiTitle) { processingOptimizationsRef.current.delete(no.id); continue; } // do not insert until we have the AI title
               
-              // Persist title to localStorage immediately
-              try { localStorage.setItem(`prompt-title-${no.id}`, aiTitle); } catch {}
+              // Persist title to localStorage immediately and mark as done
+              try { 
+                localStorage.setItem(`prompt-title-${no.id}`, aiTitle);
+                setTitleStatus(no.id, "done");
+                releaseTitleLock(no.id);
+              } catch {}
 
               const newHistoryItem: PromptHistoryItem = {
                 id: no.id,
