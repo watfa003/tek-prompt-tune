@@ -362,6 +362,11 @@ export const GlassboardDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-semibold tracking-tight">{activity.title || 'Untitled Prompt'}</span>
+                              {activity.type && (
+                                <Badge variant="outline" className="text-xs bg-muted/30 border-border/40">
+                                  {activity.type.replace(/_/g, ' ')}
+                                </Badge>
+                              )}
                               <Badge variant="outline" className="text-xs bg-primary/5 border-primary/30">
                                 {activity.provider || 'Unknown'}
                               </Badge>

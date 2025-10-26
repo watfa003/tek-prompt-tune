@@ -425,7 +425,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           },
           recentActivity: historyItems.slice(0, 10).map(item => ({
             id: item.id,
+            title: item.title,
             type: 'prompt_optimization',
+            outputType: item.outputType,
             score: item.score,
             provider: item.provider,
             model: 'N/A', // Could extract from title
