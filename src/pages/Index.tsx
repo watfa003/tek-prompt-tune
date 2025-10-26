@@ -21,13 +21,26 @@ const Index = () => {
   const navigate = useNavigate();
   const { historyItems, analytics } = usePromptData();
 
-  // Sort by timestamp descending to get the latest 5 prompts
-  const recentItems = useMemo(() => 
-    [...historyItems]
+  // Group by prompt and show only the best variant for each unique prompt
+  const recentItems = useMemo(() => {
+    const promptGroups = new Map<string, typeof historyItems>();
+    
+    historyItems.forEach(item => {
+      const key = item.groupId || item.id;
+      if (!promptGroups.has(key)) {
+        promptGroups.set(key, []);
+      }
+      promptGroups.get(key)!.push(item);
+    });
+    
+    // Get best variant from each group, sort by latest timestamp
+    return Array.from(promptGroups.values())
+      .map(group => group.reduce((best, curr) => 
+        (curr.score || 0) > (best.score || 0) ? curr : best
+      ))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 5),
-    [historyItems]
-  );
+      .slice(0, 5);
+  }, [historyItems]);
 
   const quickActions = [
     {
