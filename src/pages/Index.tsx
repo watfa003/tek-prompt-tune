@@ -85,20 +85,20 @@ const Index = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative overflow-hidden rounded-[24px] glass-card p-8 neon-glow"
+        className="relative overflow-hidden rounded-[24px] glass-card p-6 md:p-8 neon-glow"
       >
         <div className="absolute inset-0 gradient-bg-animated opacity-30 pointer-events-none" />
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-            <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary animate-pulse" />
+            <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 text-xs md:text-sm">
               Welcome Back
             </Badge>
           </div>
-          <h1 className="text-5xl font-bold mb-3 gradient-text">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 gradient-text leading-tight">
             Command Center
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">
+          <p className="text-muted-foreground text-base md:text-lg max-w-2xl">
             Your AI prompt optimization workspace. Create, test, and refine prompts with intelligent assistance.
           </p>
         </div>
@@ -106,11 +106,11 @@ const Index = () => {
 
       {/* Quick Actions Grid */}
       <div>
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <Zap className="h-6 w-6 text-primary" />
+        <h2 className="text-xl md:text-2xl font-bold mb-4 flex items-center gap-2">
+          <Zap className="h-5 w-5 md:h-6 md:w-6 text-primary" />
           Quick Actions
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {quickActions.map((action, index) => (
             <motion.div
               key={action.title}
@@ -119,17 +119,17 @@ const Index = () => {
               transition={{ delay: index * 0.1, duration: 0.4 }}
             >
               <Card 
-                className="glass-card interactive-card cursor-pointer group p-6 hover:neon-border"
+                className="glass-card interactive-card cursor-pointer group p-4 md:p-6 hover:neon-border"
                 onClick={action.action}
               >
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <action.icon className="h-6 w-6 text-white" />
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
+                  <action.icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">{action.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{action.description}</p>
-                <div className="flex items-center text-primary text-sm font-medium group-hover:gap-2 transition-all">
+                <h3 className="font-semibold text-base md:text-lg mb-1 md:mb-2">{action.title}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{action.description}</p>
+                <div className="flex items-center text-primary text-xs md:text-sm font-medium group-hover:gap-2 transition-all">
                   Get Started
-                  <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="h-3 w-3 md:h-4 md:w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Card>
             </motion.div>
@@ -139,11 +139,11 @@ const Index = () => {
 
       {/* Performance Overview */}
       <div>
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-primary" />
+        <h2 className="text-xl md:text-2xl font-bold mb-4 flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-primary" />
           Performance Overview
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -151,17 +151,17 @@ const Index = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 + index * 0.1, duration: 0.4 }}
             >
-              <Card className="glass-card p-6 hover:neon-border transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center`}>
-                    <stat.icon className="h-5 w-5 text-primary" />
+              <Card className="glass-card p-4 md:p-6 hover:neon-border transition-all">
+                <div className="flex items-start justify-between mb-3 md:mb-4">
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center`}>
+                    <stat.icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                   </div>
-                  <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
+                  <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30 whitespace-nowrap">
                     {stat.change}
                   </Badge>
                 </div>
-                <div className="text-3xl font-bold mb-1 gradient-text">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-2xl md:text-3xl font-bold mb-1 gradient-text">{stat.value}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
               </Card>
             </motion.div>
           ))}
@@ -170,15 +170,15 @@ const Index = () => {
 
       {/* Recent Activity Preview */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <History className="h-6 w-6 text-primary" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <History className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             Recent Activity
           </h2>
           <Button 
             variant="ghost" 
             onClick={() => navigate("/app/history")}
-            className="group"
+            className="group text-sm"
           >
             View All
             <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -216,25 +216,25 @@ const Index = () => {
                 transition={{ delay: 0.6 + index * 0.05 }}
               >
                 <Card 
-                  className="glass-card p-4 hover:neon-border transition-all cursor-pointer group"
+                  className="glass-card p-3 md:p-4 hover:neon-border transition-all cursor-pointer group"
                   onClick={() => navigate("/app/history")}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold truncate">{item.title}</h3>
-                        <Badge variant="outline" className="text-xs">{item.provider}</Badge>
+                      <div className="flex items-center gap-2 mb-1 md:mb-2 flex-wrap">
+                        <h3 className="font-semibold text-sm md:text-base truncate">{item.title}</h3>
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">{item.provider}</Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">{item.description}</p>
                     </div>
-                    <div className="flex items-center gap-4 ml-4">
+                    <div className="flex items-center gap-2 md:gap-4 ml-2 flex-shrink-0">
                       <div className="text-right">
-                        <div className="text-2xl font-bold gradient-text">
+                        <div className="text-xl md:text-2xl font-bold gradient-text">
                           {(item.score * 100).toFixed(0)}%
                         </div>
-                        <div className="text-xs text-muted-foreground">Score</div>
+                        <div className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Score</div>
                       </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                      <ArrowRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all hidden sm:block" />
                     </div>
                   </div>
                 </Card>

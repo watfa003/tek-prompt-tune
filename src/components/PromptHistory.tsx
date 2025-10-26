@@ -224,35 +224,35 @@ export const PromptHistory = () => {
           />
         </div>
 
-          <div className="p-6 relative z-10">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <h3 className="text-lg font-bold truncate gradient-text">{item.title}</h3>
-                  {item.isFavorite && <Star className="h-4 w-4 fill-primary text-primary animate-pulse" />}
-                  {isHighestRated && (
-                    <Badge className="bg-gradient-to-r from-primary to-accent text-white border-0 shadow-glow">
-                      <Trophy className="h-3 w-3 mr-1" />
-                      Top Rated
-                    </Badge>
-                  )}
+        <div className="p-4 md:p-6 relative z-10">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 md:gap-4 mb-3 md:mb-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 md:mb-2 flex-wrap">
+                <h3 className="text-base md:text-lg font-bold truncate gradient-text">{item.title}</h3>
+                {item.isFavorite && <Star className="h-3 w-3 md:h-4 md:w-4 fill-primary text-primary animate-pulse flex-shrink-0" />}
+                {isHighestRated && (
+                  <Badge className="bg-gradient-to-r from-primary to-accent text-white border-0 shadow-glow text-xs whitespace-nowrap">
+                    <Trophy className="h-2 w-2 md:h-3 md:w-3 mr-1" />
+                    Top Rated
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Meta Row */}
+              <div className="flex items-center gap-2 md:gap-3 flex-wrap text-xs md:text-sm">
+                <Badge variant="outline" className="glass-panel border-white/10 text-xs whitespace-nowrap">{item.provider}</Badge>
+                <Badge variant="outline" className="glass-panel border-white/10 text-xs whitespace-nowrap">{item.outputType}</Badge>
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Calendar className="h-2 w-2 md:h-3 md:w-3 flex-shrink-0" />
+                  <span className="text-[10px] md:text-xs">{dateLabel}</span>
                 </div>
-                
-                {/* Meta Row */}
-                <div className="flex items-center gap-3 flex-wrap text-sm">
-                  <Badge variant="outline" className="glass-panel border-white/20">{item.provider}</Badge>
-                  <Badge variant="outline" className="glass-panel border-white/20">{item.outputType}</Badge>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    {dateLabel}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3 text-primary" />
-                    <span className="font-bold gradient-text">{(item.score * 100).toFixed(0)}%</span>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-2 w-2 md:h-3 md:w-3 text-primary flex-shrink-0" />
+                  <span className="font-bold gradient-text text-xs md:text-sm">{(item.score * 100).toFixed(0)}%</span>
                 </div>
               </div>
+            </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -351,14 +351,14 @@ export const PromptHistory = () => {
         transition={{ duration: 0.5 }}
         className="relative z-10"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
+          <div className="flex items-start gap-3 md:gap-4">
             <motion.div
-              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary via-accent to-primary bg-size-200 animate-gradient flex items-center justify-center shadow-glow relative overflow-hidden"
+              className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-primary via-accent to-primary bg-size-200 animate-gradient flex items-center justify-center shadow-glow relative overflow-hidden flex-shrink-0"
               whileHover={{ scale: 1.05, rotate: 5 }}
               transition={{ type: "spring", stiffness: 400 }}
             >
-              <HistoryIcon className="h-7 w-7 text-white relative z-10" />
+              <HistoryIcon className="h-6 w-6 md:h-7 md:w-7 text-white relative z-10" />
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                 animate={{
@@ -372,13 +372,13 @@ export const PromptHistory = () => {
                 }}
               />
             </motion.div>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold gradient-text mb-2">
+            <div className="min-w-0">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold gradient-text mb-1 md:mb-2 leading-tight">
                 {isSelectingForInfluence ? "Select Favorite for Influence" : "Optimization Timeline"}
               </h1>
-              <p className="text-muted-foreground text-lg flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" />
-                Your AI prompt evolution journey
+              <p className="text-muted-foreground text-sm md:text-base lg:text-lg flex items-center gap-2">
+                <Zap className="h-3 w-3 md:h-4 md:w-4 text-primary flex-shrink-0" />
+                <span>Your AI prompt evolution journey</span>
               </p>
             </div>
           </div>
@@ -388,15 +388,15 @@ export const PromptHistory = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="flex gap-3"
+            className="flex gap-2 md:gap-3 flex-shrink-0"
           >
-            <div className="glass-panel border border-white/10 rounded-xl px-4 py-2">
-              <div className="text-xs text-muted-foreground">Total Prompts</div>
-              <div className="text-2xl font-bold gradient-text">{historyItems.length}</div>
+            <div className="glass-panel border border-white/10 rounded-xl px-3 md:px-4 py-2">
+              <div className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Total Prompts</div>
+              <div className="text-xl md:text-2xl font-bold gradient-text">{historyItems.length}</div>
             </div>
-            <div className="glass-panel border border-white/10 rounded-xl px-4 py-2">
-              <div className="text-xs text-muted-foreground">Favorites</div>
-              <div className="text-2xl font-bold gradient-text">{historyItems.filter(h => h.isFavorite).length}</div>
+            <div className="glass-panel border border-white/10 rounded-xl px-3 md:px-4 py-2">
+              <div className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Favorites</div>
+              <div className="text-xl md:text-2xl font-bold gradient-text">{historyItems.filter(h => h.isFavorite).length}</div>
             </div>
           </motion.div>
         </div>
@@ -407,28 +407,28 @@ export const PromptHistory = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="glass-panel border border-white/10 rounded-[20px] p-5 space-y-4 relative z-10 shadow-glow"
+        className="glass-panel border border-white/10 rounded-[20px] p-4 md:p-5 space-y-3 md:space-y-4 relative z-10 shadow-glow"
       >
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+          <Search className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 md:w-5 md:h-5" />
           <Input
             placeholder="Search by title, description, or content..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 glass-panel border-white/10 focus:border-primary/50 focus:neon-border"
+            className="pl-10 md:pl-12 glass-panel border-white/10 focus:border-primary/50 focus:neon-border text-sm md:text-base"
           />
         </div>
 
         {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-3">
-          <Filter className="h-4 w-4 text-muted-foreground" />
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <Filter className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
           
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[140px] glass-panel border-white/10">
+            <SelectTrigger className="w-[120px] md:w-[140px] glass-panel border-white/10 text-xs md:text-sm">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="glass-card border-white/10">
+            <SelectContent className="glass-card border-white/10 z-50 bg-background">
               <SelectItem value="newest">Newest First</SelectItem>
               <SelectItem value="oldest">Oldest First</SelectItem>
               <SelectItem value="score">Highest Score</SelectItem>
@@ -436,19 +436,19 @@ export const PromptHistory = () => {
           </Select>
 
           <Select value={filterProvider} onValueChange={setFilterProvider}>
-            <SelectTrigger className="w-[140px] glass-panel border-white/10">
+            <SelectTrigger className="w-[120px] md:w-[140px] glass-panel border-white/10 text-xs md:text-sm">
               <SelectValue placeholder="Provider" />
             </SelectTrigger>
-            <SelectContent className="glass-card border-white/10">
+            <SelectContent className="glass-card border-white/10 z-50 bg-background">
               {providers.map(p => <SelectItem key={p} value={p}>{p === "all" ? "All Providers" : p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}
             </SelectContent>
           </Select>
 
           <Select value={filterScore} onValueChange={setFilterScore}>
-            <SelectTrigger className="w-[140px] glass-panel border-white/10">
+            <SelectTrigger className="w-[110px] md:w-[140px] glass-panel border-white/10 text-xs md:text-sm">
               <SelectValue placeholder="Score" />
             </SelectTrigger>
-            <SelectContent className="glass-card border-white/10">
+            <SelectContent className="glass-card border-white/10 z-50 bg-background">
               {scores.map(s => <SelectItem key={s} value={s}>{s === "all" ? "All Scores" : s.charAt(0).toUpperCase() + s.slice(1).replace("-", " ")}</SelectItem>)}
             </SelectContent>
           </Select>
