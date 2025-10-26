@@ -437,22 +437,30 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               promptGroups.get(baseTitle)!.push(item);
             });
             
-            // Get the best variant from each group, then sort by timestamp
-            return Array.from(promptGroups.values())
-              .map(group => group.reduce((best, current) => 
-                (current.score || 0) > (best.score || 0) ? current : best
-              ))
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            // Get the best variant from each group, but sort groups by their latest timestamp
+            const withGroupMeta = Array.from(promptGroups.values()).map(group => {
+              const best = group.reduce((b, c) => ((c.score || 0) > (b.score || 0) ? c : b));
+              const latestTs = Math.max(
+                ...group.map((g) => {
+                  const t = new Date(g.timestamp).getTime();
+                  return Number.isNaN(t) ? 0 : t;
+                })
+              );
+              return { best, latestTs };
+            });
+
+            return withGroupMeta
+              .sort((a, b) => b.latestTs - a.latestTs)
               .slice(0, 5)
-              .map(item => ({
-                id: item.id,
-                title: item.title,
+              .map(({ best }) => ({
+                id: best.id,
+                title: best.title,
                 type: 'prompt_optimization',
-                outputType: item.outputType,
-                score: item.score,
-                provider: item.provider,
+                outputType: best.outputType,
+                score: best.score,
+                provider: best.provider,
                 model: 'N/A',
-                createdAt: item.timestamp,
+                createdAt: best.timestamp,
                 status: 'completed',
               }));
           })(),

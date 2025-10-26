@@ -10,7 +10,7 @@ import { FloatingActionButton } from './FloatingActionButton';
 import { usePromptData } from '@/context/PromptDataContext';
 import { useSettings } from '@/hooks/use-settings';
 import { useTheme } from 'next-themes';
-import { Sun, Moon, Minimize2, Maximize2 } from 'lucide-react';
+import { Sun, Moon, Minimize2, Maximize2, Activity } from 'lucide-react';
 
 export const GlassboardDashboard = () => {
   const { analytics, loading } = usePromptData();
@@ -357,7 +357,7 @@ export const GlassboardDashboard = () => {
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                           <div className="transition-transform duration-250 group-hover:scale-110">
-                            {getScoreBadgeIcon(activity.score || 0)}
+                            <Activity className="h-5 w-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">

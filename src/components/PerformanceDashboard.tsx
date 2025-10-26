@@ -229,7 +229,7 @@ export const PerformanceDashboard = () => {
             <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex-1">
                 <div className="flex items-center space-x-2">
-                  <span className="font-medium">Prompt Optimization</span>
+                  <span className="font-medium">{activity.title || 'Untitled Prompt'}</span>
                   <Badge variant="outline">{activity.provider}</Badge>
                   <Badge variant="outline">{activity.model}</Badge>
                 </div>
