@@ -557,9 +557,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setTitleStatus(variant.id, "done");
         }
         
+        // Sensible fallback title if no cached title exists
+        const fallbackTitle = (prompt.task_description && String(prompt.task_description).trim())
+          || String(prompt.original_prompt || "").split(/\s+/).slice(0, 6).join(" ").trim();
+        
         return {
           id: variant.id,
-          title: cachedTitle || 'Untitled',
+          title: cachedTitle || (fallbackTitle || 'Untitled'),
           description: `${prompt.ai_provider} • ${prompt.model_name}${isGlobalTopPerformer ? ' • 🏆 Top Performer' : ''}`,
           prompt: prompt.original_prompt,
           output: variant.variant_prompt,
