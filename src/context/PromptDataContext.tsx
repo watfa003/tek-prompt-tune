@@ -271,70 +271,105 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
-        // Generate smart, AI-style summary titles
-        const generateTitle = (originalPrompt: string): string => {
+        // Generate smart, context-aware titles
+        const generateTitle = (originalPrompt: string, createdAt: string): string => {
           let text = (originalPrompt || '').trim();
-          if (!text) return 'Untitled Prompt';
+          if (!text) {
+            // Fallback for empty prompts
+            const date = new Date(createdAt);
+            const formattedDate = date.toLocaleDateString('en-US', { 
+              day: 'numeric', 
+              month: 'short' 
+            });
+            const formattedTime = date.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit', 
+              hour12: true 
+            });
+            return `Session – ${formattedDate}, ${formattedTime}`;
+          }
           
-          // Remove common prompt prefixes
+          // Clean up the prompt
           text = text
-            .replace(/^(please|kindly|could you|can you|would you|i need you to|i want you to|i need|i want|help me|you are a|act as a)\s+/i, '')
-            .replace(/\[.*?\]/g, '[...]') // shorten placeholders
+            .replace(/^(please|kindly|could you|can you|would you|i need you to|i want you to|i need|i want|help me)\s+/i, '')
+            .replace(/\[.*?\]/g, '') // remove placeholders
             .trim();
           
-          // Detect question format
-          if (text.match(/^(how|what|why|when|where|who|which)\s/i)) {
-            const question = text.split(/[.?!]/)[0].trim();
-            if (question.length <= 55) return question + '?';
-            // Extract key part of question
-            const match = question.match(/^(how|what|why|when|where|who|which)\s+(?:do|does|can|should|would|to|is|are)\s+(.+)/i);
-            if (match) {
-              const subject = match[2].split(/\s+/).slice(0, 6).join(' ');
-              return `${match[1]} ${subject}?`.slice(0, 55);
-            }
+          // Context detection patterns
+          const contexts = {
+            prompt: /\b(optimize|improve|enhance|refine|better|fix|rephrase|rewrite)\s+(this|my|the)?\s*prompt/i,
+            workflow: /\b(n8n|workflow|automation|integrate|automate|bot|function node|trigger)/i,
+            design: /\b(ui|ux|design|layout|style|css|tailwind|component|interface|dashboard|overflow|responsive)/i,
+            code: /\b(code|function|api|endpoint|debug|implement|build|develop|script|algorithm)/i,
+            seo: /\b(seo|search engine|meta|keywords|ranking|optimize.*seo)/i,
+            query: /^(what|how|why|when|where|who|which|can|should|is|are|do|does)/i,
+          };
+          
+          let prefix = '';
+          
+          // Determine context
+          if (contexts.seo.test(text)) {
+            prefix = 'SEO:';
+          } else if (contexts.prompt.test(text)) {
+            prefix = 'Prompt:';
+          } else if (contexts.workflow.test(text)) {
+            prefix = 'Workflow:';
+          } else if (contexts.design.test(text)) {
+            prefix = 'Design:';
+          } else if (contexts.code.test(text)) {
+            prefix = 'Code:';
+          } else if (contexts.query.test(text)) {
+            prefix = 'Query:';
           }
           
-          // Detect imperative/command format
-          const imperativeMatch = text.match(/^(write|create|generate|build|make|develop|design|implement|code|explain|describe|analyze|summarize|optimize|refactor|fix|debug|add|update|modify|improve|enhance)\s+(.+?)(?:[.!]|$)/i);
-          if (imperativeMatch) {
-            const verb = imperativeMatch[1];
-            let object = imperativeMatch[2];
+          // Extract core subject/action
+          const extractSubject = (txt: string): string => {
+            // Remove common verbs at the start
+            let subject = txt
+              .replace(/^(write|create|generate|build|make|develop|design|implement|code|explain|describe|analyze|summarize|optimize|refactor|fix|debug|add|update|modify|improve|enhance)\s+(me\s+)?(a|an|the)?\s*/i, '')
+              .replace(/\s+(for|to|that|which|with|using|in|on).+$/i, ''); // trim trailing clauses
             
-            // Clean up the object
-            object = object
-              .replace(/^(me|a|an|the)\s+/i, '')
-              .replace(/\s+(for|to|that|which|with).+$/i, ''); // remove trailing clauses
+            // Get meaningful words
+            const words = subject
+              .split(/\s+/)
+              .filter(w => w.length > 2)
+              .slice(0, 6);
             
-            // Get first meaningful phrase
-            const words = object.split(/\s+/).slice(0, 7);
-            const phrase = words.join(' ');
-            
-            const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-            const title = `${capitalize(verb)} ${phrase}`;
-            return title.length > 55 ? title.slice(0, 52) + '...' : title;
+            return words.join(' ');
+          };
+          
+          const subject = extractSubject(text);
+          
+          // Title case conversion
+          const toTitleCase = (str: string): string => {
+            const minorWords = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of']);
+            return str.split(/\s+/).map((word, index) => {
+              const lower = word.toLowerCase();
+              if (index === 0 || !minorWords.has(lower)) {
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+              }
+              return lower;
+            }).join(' ');
+          };
+          
+          // Build final title
+          let finalSubject = toTitleCase(subject);
+          
+          // Limit to reasonable length (3-6 words preferred)
+          const subjectWords = finalSubject.split(/\s+/);
+          if (subjectWords.length > 6) {
+            finalSubject = subjectWords.slice(0, 6).join(' ') + '...';
           }
           
-          // For descriptive/complex prompts, extract core topic
-          const sentences = text.split(/[.!]/);
-          const firstSentence = sentences[0].trim();
+          const title = prefix ? `${prefix} ${finalSubject}` : finalSubject;
           
-          if (firstSentence.length <= 55) {
-            return firstSentence;
-          }
-          
-          // Extract noun phrases (simple heuristic)
-          const nounPhrase = firstSentence
-            .replace(/^(I want|I need|Can you|Could you|Please|Write|Create|Make|Build)\s+/i, '')
-            .split(/\s+/)
-            .slice(0, 7)
-            .join(' ');
-          
-          return nounPhrase.length > 50 ? nounPhrase.slice(0, 47) + '...' : nounPhrase;
+          // Final length check
+          return title.length > 55 ? title.slice(0, 52) + '...' : title;
         };
         
         return {
           id: variant.id,
-          title: generateTitle(prompt.original_prompt),
+          title: generateTitle(prompt.original_prompt, variant.created_at),
           description: `${prompt.ai_provider} • ${prompt.model_name}${isGlobalTopPerformer ? ' • 🏆 Top Performer' : ''}`,
           prompt: prompt.original_prompt,
           output: variant.variant_prompt,

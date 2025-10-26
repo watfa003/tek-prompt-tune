@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Search,
   Filter,
@@ -199,7 +200,21 @@ export const PromptHistory = () => {
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 w-full">
           <div className="flex-1 min-w-0 w-full">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-semibold whitespace-normal break-words">{item.title}</h3>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <h3 className="text-base sm:text-lg font-semibold truncate max-w-full cursor-help">
+                      {item.title}
+                    </h3>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-md">
+                    <p className="font-semibold">{item.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Created: {formatDate(item.timestamp)}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {item.isFavorite && <Star className="h-4 w-4 fill-accent text-accent flex-shrink-0 animate-pulse" />}
               {item.isBestVariant && <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />}
             </div>
