@@ -1,5 +1,6 @@
 // Supabase Edge Function: generate-title
-// Generates a short, human-friendly title from a prompt using Lovable AI Gateway
+// Generates a short, human-friendly title from a prompt using OpenAI
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -12,14 +13,21 @@ serve(async (req) => {
 
   try {
     const { prompt } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not configured");
+      return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const cleanText = (s: string | undefined): string => (s ?? "").trim();
     const input = cleanText(prompt);
 
     if (!input) {
-      return new Response(JSON.stringify({ title: "Untitled Session" }), {
+      return new Response(JSON.stringify({ error: "No prompt provided" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -35,50 +43,40 @@ serve(async (req) => {
       "- Capture the main topic clearly (e.g., 'Sushi Order Bot', 'Website SEO Optimization').",
     ].join("\n");
 
-    const body = {
-      // Default model per Lovable AI docs is google/gemini-2.5-flash
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: `Create a very short, clear title for this text: \n\n${input}` },
-      ],
-      temperature: 0.2,
-      stream: false,
-    } as const;
+    console.log("Generating title for prompt:", input.slice(0, 100));
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: `Create a very short, clear title for this text:\n\n${input}` },
+        ],
+        temperature: 0.2,
+        max_tokens: 50,
+      }),
     });
 
-    if (!resp.ok) {
-      if (resp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (resp.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required, please add funds to your Lovable AI workspace." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await resp.text();
-      console.error("AI gateway error:", resp.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("OpenAI API error:", response.status, errorText);
+      return new Response(JSON.stringify({ error: "OpenAI API error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const data = await resp.json();
+    const data = await response.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
 
-    // Sanitize and enforce constraints just in case
+    console.log("OpenAI response:", raw);
+
+    // Sanitize and enforce constraints
     const sanitized = String(raw)
       .replace(/[\n\r]/g, " ")
       .replace(/["'`]/g, "")
@@ -99,7 +97,15 @@ serve(async (req) => {
       })
       .join(" ");
 
-    if (!title) title = "Untitled Session";
+    if (!title) {
+      console.error("No title generated");
+      return new Response(JSON.stringify({ error: "Failed to generate title" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Generated title:", title);
 
     return new Response(JSON.stringify({ title }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
