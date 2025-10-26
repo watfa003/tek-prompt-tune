@@ -147,9 +147,9 @@ const AppPageContent = () => {
 
   return (
     <SidebarProvider>
-        <div className="min-h-screen flex w-full max-w-full bg-background relative overflow-hidden isolate box-border">
+        <div className="min-h-screen flex w-full max-w-full bg-background relative isolate" style={{ overflow: 'visible' }}>
           {/* Ambient Background Effects */}
-          <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="fixed inset-0 pointer-events-none -z-10" style={{ overflow: 'visible' }}>
             <motion.div
               className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]"
               animate={{
@@ -179,19 +179,20 @@ const AppPageContent = () => {
           
           <AppSidebar />
           
-          <div className="flex-1 flex flex-col relative z-base min-w-0 max-w-full overflow-hidden">
+          <div className="flex-1 flex flex-col relative z-base min-w-0 max-w-full"  style={{ overflow: 'visible' }}>
             <motion.header
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="border-b border-white/10 glass-panel sticky top-0 z-header overflow-hidden"
+              className="border-b border-white/10 glass-panel sticky top-0 z-header"
+              style={{ overflow: 'visible' }}
             >
               <div className="h-14 md:h-16 flex items-center justify-between px-3 md:px-6 gap-2 md:gap-4 w-full max-w-full">
-                <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-shrink overflow-hidden">
+                <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-shrink" style={{ overflow: 'visible' }}>
                   <SidebarTrigger className="flex-shrink-0" />
-                  <Link to="/" className="flex items-center space-x-1 md:space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group min-w-0 overflow-hidden">
+                  <Link to="/" className="flex items-center space-x-1 md:space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group min-w-0" style={{ overflow: 'visible' }}>
                     <ArrowLeft className="h-3 w-3 md:h-4 md:w-4 group-hover:-translate-x-1 transition-transform flex-shrink-0" />
-                    <span className="font-semibold text-xs md:text-sm hidden sm:inline truncate">Back to Home</span>
+                    <span className="font-semibold text-xs md:text-sm hidden sm:inline whitespace-nowrap">Back to Home</span>
                     <span className="font-semibold text-xs sm:hidden">Back</span>
                   </Link>
                 </div>
@@ -227,7 +228,7 @@ const AppPageContent = () => {
               {/* Animated gradient line beneath header */}
               <motion.div
                 aria-hidden="true"
-                className="block w-full max-w-full h-px bg-gradient-to-r from-transparent via-primary to-transparent overflow-hidden pointer-events-none isolate"
+                className="block w-full max-w-full h-px bg-gradient-to-r from-transparent via-primary to-transparent pointer-events-none isolate"
                 animate={{
                   opacity: [0.3, 0.7, 0.3],
                 }}
@@ -236,11 +237,12 @@ const AppPageContent = () => {
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
+                style={{ overflow: 'visible' }}
               />
             </motion.header>
 
-            <main className="flex-1 p-3 lg:p-4 xl:p-6 overflow-y-auto overflow-x-hidden w-full max-w-full relative">
-              <div className="w-full max-w-[1600px] mx-auto box-border">
+            <main className="flex-1 p-3 lg:p-4 xl:p-6 w-full max-w-full relative overflow-y-auto overflow-x-hidden">
+              <div className="w-full max-w-[1600px] mx-auto py-8 sm:py-10 lg:py-12 space-y-8" style={{ overflow: 'visible' }}>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={location.pathname}
@@ -248,7 +250,8 @@ const AppPageContent = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
-                    className="w-full max-w-full overflow-hidden"
+                    className="w-full max-w-full"
+                    style={{ overflow: 'visible' }}
                   >
                     {renderContent()}
                   </motion.div>

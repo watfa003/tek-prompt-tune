@@ -98,9 +98,9 @@ export const PromptTemplates = () => {
   }
 
   return (
-    <div className="w-full max-w-full space-y-6 pb-8 relative overflow-hidden box-border">
+    <div className="w-full max-w-full space-y-8 pb-12" style={{ overflow: 'visible' }}>
       {/* Floating Gradient Orbs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+      <div className="fixed inset-0 pointer-events-none -z-10" style={{ overflow: 'visible' }}>
         <motion.div
           className="absolute top-20 left-10 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"
           animate={{
@@ -128,20 +128,20 @@ export const PromptTemplates = () => {
       </div>
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 md:gap-4 relative z-10 w-full">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10 w-full" style={{ overflow: 'visible' }}>
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           className="w-full lg:w-auto min-w-0 max-w-full"
         >
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow flex-shrink-0">
               <Sparkles className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
             </div>
-            <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold gradient-text truncate">Template Library</h1>
+            <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold gradient-text whitespace-normal break-words">Template Library</h1>
           </div>
-          <p className="text-muted-foreground text-sm lg:text-base">
+          <p className="text-muted-foreground text-sm lg:text-base whitespace-normal">
             Discover and share professional prompt templates
           </p>
         </motion.div>
@@ -160,7 +160,8 @@ export const PromptTemplates = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="sticky top-0 z-40 glass-panel border border-white/10 rounded-xl lg:rounded-2xl p-3 lg:p-4 backdrop-blur-xl w-full max-w-full overflow-hidden box-border"
+        className="sticky top-0 z-40 glass-panel border border-white/10 rounded-xl lg:rounded-2xl p-4 lg:p-5 backdrop-blur-xl w-full max-w-full"
+        style={{ overflow: 'visible' }}
       >
         {/* Search Bar */}
         <div className="relative mb-3 w-full">

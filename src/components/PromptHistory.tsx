@@ -178,23 +178,23 @@ export const PromptHistory = () => {
     const scoreLabel = item.score >= 0.8 ? "Excellent" : item.score >= 0.6 ? "Good" : item.score >= 0.4 ? "Average" : "Poor";
 
     return (
-      <Card key={item.id} className="p-4 sm:p-6 hover:shadow-lg transition-all w-full max-w-full overflow-hidden box-border">
+      <Card key={item.id} className="p-4 sm:p-6 hover:shadow-lg transition-all w-full max-w-full h-auto" style={{ overflow: 'visible' }}>
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 w-full">
           <div className="flex-1 min-w-0 w-full">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-semibold truncate">{item.title}</h3>
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <h3 className="text-base sm:text-lg font-semibold whitespace-normal break-words">{item.title}</h3>
               {item.isFavorite && <Star className="h-4 w-4 fill-yellow-500 text-yellow-500 flex-shrink-0" />}
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs sm:text-sm text-muted-foreground">
-              <Badge variant="outline" className="text-xs">{item.provider}</Badge>
-              <Badge variant="outline" className="text-xs">{item.outputType}</Badge>
+              <Badge variant="outline" className="text-xs whitespace-nowrap">{item.provider}</Badge>
+              <Badge variant="outline" className="text-xs whitespace-nowrap">{item.outputType}</Badge>
               <div className="flex items-center gap-1">
                 <Calendar className="h-3 w-3 flex-shrink-0" />
-                <span className="text-xs">{new Date(item.timestamp).toLocaleDateString()}</span>
+                <span className="text-xs whitespace-nowrap">{new Date(item.timestamp).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center gap-1">
                 <TrendingUp className={`h-3 w-3 flex-shrink-0 ${scoreColor}`} />
-                <span className={`text-xs ${scoreColor}`}>{(item.score * 100).toFixed(0)}% ({scoreLabel})</span>
+                <span className={`text-xs whitespace-nowrap ${scoreColor}`}>{(item.score * 100).toFixed(0)}% ({scoreLabel})</span>
               </div>
             </div>
           </div>
@@ -228,23 +228,23 @@ export const PromptHistory = () => {
 
         <Collapsible className="w-full">
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between text-sm">
+            <Button variant="ghost" size="sm" className="w-full justify-between text-sm mb-3">
               <span>Show Details</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 pt-4 w-full overflow-hidden">
+          <CollapsibleContent className="space-y-4 pt-4 w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
-              <div className="space-y-2 min-w-0 overflow-hidden">
-                <p className="text-sm font-semibold text-muted-foreground">Original Prompt</p>
-                <div className="p-3 bg-muted rounded-lg overflow-x-auto">
+              <div className="space-y-3 min-w-0 h-auto">
+                <p className="text-sm font-semibold text-muted-foreground whitespace-normal">Original Prompt</p>
+                <div className="p-4 bg-muted rounded-lg min-h-[100px] h-auto overflow-y-auto max-h-[300px]">
                   <pre className="whitespace-pre-wrap text-sm break-words">{item.prompt}</pre>
                 </div>
               </div>
               
-              <div className="space-y-2 min-w-0 overflow-hidden">
-                <p className="text-sm font-semibold text-primary">AI Optimization</p>
-                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 overflow-x-auto">
+              <div className="space-y-3 min-w-0 h-auto">
+                <p className="text-sm font-semibold text-primary whitespace-normal">AI Optimization</p>
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 min-h-[100px] h-auto overflow-y-auto max-h-[300px]">
                   <pre className="whitespace-pre-wrap text-sm break-words">{item.output}</pre>
                 </div>
               </div>
@@ -271,30 +271,30 @@ export const PromptHistory = () => {
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
-    <div className="w-full max-w-full space-y-6 relative overflow-hidden box-border">
+    <div className="w-full max-w-full space-y-8 py-8 sm:py-10 lg:py-12" style={{ overflow: 'visible' }}>
       {/* Ambient Background Particles */}
       <AmbientParticles />
 
       {/* Header */}
-      <div className="relative z-10 w-full max-w-full overflow-hidden">
+      <div className="relative z-10 w-full max-w-full" style={{ overflow: 'visible' }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 w-full">
           <div className="min-w-0 flex-1">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2 truncate">
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3 whitespace-normal break-words">
               {isSelectingForInfluence ? "Select Favorite for Influence" : "Prompt History"}
             </h1>
-            <p className="text-muted-foreground text-sm sm:text-base">
+            <p className="text-muted-foreground text-sm sm:text-base whitespace-normal">
               Your AI prompt optimization timeline
             </p>
           </div>
           
-          <div className="flex gap-3 flex-shrink-0">
+          <div className="flex gap-4 flex-shrink-0">
             <div className="text-center">
               <div className="text-2xl font-bold">{historyItems.length}</div>
-              <div className="text-xs text-muted-foreground">Total</div>
+              <div className="text-xs text-muted-foreground whitespace-nowrap">Total</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">{historyItems.filter(h => h.isFavorite).length}</div>
-              <div className="text-xs text-muted-foreground">Favorites</div>
+              <div className="text-xs text-muted-foreground whitespace-nowrap">Favorites</div>
             </div>
           </div>
         </div>
