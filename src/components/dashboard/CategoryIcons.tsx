@@ -96,14 +96,14 @@ export const EducationIcon: React.FC<IconProps> = ({ className = "text-primary",
 
 export const CustomIcon: React.FC<IconProps> = ({ className = "text-primary", size = 48 }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <circle cx="24" cy="24" r="14" stroke="currentColor" strokeWidth="2.5" fill="none"/>
-    <path d="M24 10V14M24 34V38M38 24H34M14 24H10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-    <path d="M33.5 14.5L30.5 17.5M17.5 30.5L14.5 33.5M33.5 33.5L30.5 30.5M17.5 17.5L14.5 14.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.6"/>
-    <circle cx="24" cy="24" r="4" fill="currentColor" opacity="0.4"/>
-    <path d="M24 16L26 18L24 20L22 18L24 16Z" fill="currentColor"/>
-    <path d="M24 28L26 30L24 32L22 30L24 28Z" fill="currentColor"/>
-    <path d="M16 24L18 26L16 28L14 26L16 24Z" fill="currentColor"/>
-    <path d="M32 24L34 26L32 28L30 26L32 24Z" fill="currentColor"/>
+    <path d="M12 24L24 12L36 24L24 36L12 24Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" fill="none"/>
+    <path d="M24 18L30 24L24 30L18 24L24 18Z" fill="currentColor" opacity="0.3"/>
+    <circle cx="24" cy="12" r="2.5" fill="currentColor"/>
+    <circle cx="36" cy="24" r="2.5" fill="currentColor"/>
+    <circle cx="24" cy="36" r="2.5" fill="currentColor"/>
+    <circle cx="12" cy="24" r="2.5" fill="currentColor"/>
+    <path d="M24 24L24 12M24 24L36 24M24 24L24 36M24 24L12 24" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
+    <circle cx="24" cy="24" r="3" fill="currentColor"/>
   </svg>
 );
 
