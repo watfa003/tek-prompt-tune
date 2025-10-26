@@ -47,14 +47,14 @@ export const TrendingTemplates: React.FC = () => {
   const navigate = useNavigate();
   const { templates, profileMap, loading: dataLoading } = useTemplatesData();
 
-  // Get top 5 most used templates
+  // Get top 6 most used templates
   const topTemplates = useMemo(() => {
     if (!templates || templates.length === 0) return [];
     
-    // Sort by uses_count descending and take top 5
+    // Sort by uses_count descending and take top 6
     const sorted = [...templates]
       .sort((a, b) => (b.uses_count || 0) - (a.uses_count || 0))
-      .slice(0, 5);
+      .slice(0, 6);
     
     return sorted;
   }, [templates]);
