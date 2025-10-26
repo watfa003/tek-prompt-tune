@@ -203,7 +203,7 @@ export function AppSidebar() {
                             : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
                       }`}
                     >
-                      <item.icon className={`h-3 w-3 md:h-4 md:w-4 flex-shrink-0 transition-all duration-250 ${
+                      <item.icon className={`h-3 w-3 md:h-4 md:w-4 flex-shrink-0 transition-all duration-250 text-sidebar-foreground ${
                         (mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
                         ('url' in item && isActive(item.url)) 
                           ? 'text-primary drop-shadow-[0_0_8px_rgba(110,231,255,0.6)]' 

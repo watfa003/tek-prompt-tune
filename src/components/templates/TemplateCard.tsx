@@ -234,7 +234,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
   return (
     <>
       <Card 
-        className="group hover:shadow-lg transition-all duration-300 animate-fade-in cursor-pointer overflow-hidden"
+        className="group hover:shadow-lg transition-all duration-300 animate-fade-in cursor-pointer overflow-hidden h-[320px] flex flex-col"
         onClick={() => setPreviewOpen(true)}
       >
         <CardHeader className="pb-3">
@@ -268,15 +268,13 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
           </div>
         </CardHeader>
 
-        {template.description && (
-          <CardContent className="pt-0 pb-3">
-            <CardDescription className="text-sm line-clamp-2 leading-relaxed">
-              {template.description}
-            </CardDescription>
-          </CardContent>
-        )}
+        <CardContent className="pt-0 pb-3 min-h-[48px]">
+          <CardDescription className="text-sm line-clamp-2 leading-relaxed">
+            {template.description || '\u00A0'}
+          </CardDescription>
+        </CardContent>
 
-        <CardFooter className="pt-3">
+        <CardFooter className="pt-3 mt-auto">
           <Button 
             onClick={(e) => {
               e.stopPropagation();
@@ -321,7 +319,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
           <div className="space-y-4">
             <div className="flex gap-2 items-center flex-wrap">
               {template.is_official && (
-                <Badge variant="default" className="gap-1 bg-gradient-to-r from-primary to-primary/80">
+                <Badge variant="outline" className="gap-1 bg-primary/10 text-primary border border-primary/20">
                   <ShieldCheck className="w-3 h-3" />
                   Official PromptEK
                 </Badge>
