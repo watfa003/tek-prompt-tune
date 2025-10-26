@@ -299,42 +299,64 @@ export const GlassboardDashboard = () => {
 
             <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               <div className="divide-y divide-white/5">
-                {analytics?.recentActivity?.slice(0, 5).map((activity, index) => (
-                  <motion.div
-                    key={activity.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.8 + index * 0.05 }}
-                    className="p-4 hover:bg-white/5 transition-all group cursor-pointer"
-                    whileHover={{ x: 4 }}
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {getScoreBadgeIcon(activity.score)}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium">Prompt Optimization</span>
-                            <Badge variant="outline" className="text-xs">
-                              {activity.provider}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {activity.model}
-                            </Badge>
+                {analytics?.recentActivity && analytics.recentActivity.length > 0 ? (
+                  analytics.recentActivity.slice(0, 5).map((activity: any, index: number) => (
+                    <motion.div
+                      key={activity.id || index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.8 + index * 0.05 }}
+                      className="p-4 hover:bg-white/5 transition-all group cursor-pointer"
+                      whileHover={{ x: 4 }}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {getScoreBadgeIcon(activity.score || 0)}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium">Prompt Optimization</span>
+                              <Badge variant="outline" className="text-xs bg-primary/5 border-primary/30">
+                                {activity.provider || 'Unknown'}
+                              </Badge>
+                              {activity.model && activity.model !== 'N/A' && (
+                                <Badge variant="outline" className="text-xs bg-accent/5 border-accent/30">
+                                  {activity.model}
+                                </Badge>
+                              )}
+                              <Badge 
+                                variant="outline" 
+                                className={`text-xs ${
+                                  activity.status === 'completed' 
+                                    ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+                                    : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                                }`}
+                              >
+                                {activity.status || 'completed'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {activity.createdAt ? new Date(activity.createdAt).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) : 'Recent'}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {new Date(activity.createdAt).toLocaleString()}
-                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          {settings.showScores && (
+                            <div className="text-xl font-bold gradient-text">
+                              {((activity.score || 0) * 100).toFixed(0)}%
+                            </div>
+                          )}
                         </div>
                       </div>
-
-                      <div className="text-right">
-                        {settings.showScores && (
-                          <div className="text-xl font-bold gradient-text">{(activity.score * 100).toFixed(0)}%</div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                ) : null}
 
                 {(!analytics?.recentActivity || analytics.recentActivity.length === 0) && (
                   <div className="p-12 text-center">
