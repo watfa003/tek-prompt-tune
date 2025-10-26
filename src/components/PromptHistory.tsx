@@ -67,6 +67,12 @@ export const PromptHistory = () => {
   React.useEffect(() => {
     historyItems.forEach(item => {
       if ((!item.title || item.title === 'Untitled' || /untitled session/i.test(item.title)) && item.prompt) {
+        // Check localStorage first - if we have a cached title, don't call AI
+        const cached = typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${item.id}`) : null;
+        if (cached && cached.trim() && cached !== 'Untitled') {
+          return; // Skip, title is already cached
+        }
+        
         if (generatingRef.current.has(item.id)) return;
         generatingRef.current.add(item.id);
         console.log('[PromptHistory] Auto-generating title for item:', item.id);

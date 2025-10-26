@@ -133,6 +133,21 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.log('[generateTitleAndApply] Skipping, already in-flight:', promptId);
       return;
     }
+    
+    // Check localStorage first - if we have a cached title, use it without AI call
+    const cached = typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${promptId}`) : null;
+    if (cached && cached.trim() && cached !== 'Untitled') {
+      console.log('[generateTitleAndApply] Using cached title:', cached);
+      setHistoryItems(prev => {
+        const updated = prev.map(p => p.id === promptId ? { ...p, title: cached } : p);
+        supabase.auth.getUser().then(({ data }) => {
+          if (data?.user?.id) saveToCache(data.user.id, 'history', updated);
+        });
+        return updated;
+      });
+      return;
+    }
+    
     titlesInFlightRef.current.add(promptId);
     try {
       console.log('[generateTitleAndApply] Generating title for:', promptId);
@@ -149,12 +164,14 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         supabase.auth.getUser().then(({ data }) => {
           if (data?.user?.id) {
             saveToCache(data.user.id, 'history', updated);
-            try { localStorage.setItem(`prompt-title-${promptId}`, finalTitle); } catch {}
           }
         });
         
         return updated;
       });
+      
+      // Persist to localStorage immediately
+      try { localStorage.setItem(`prompt-title-${promptId}`, finalTitle); } catch {}
 
       console.log('[generateTitleAndApply] Title applied:', finalTitle);
     } catch (err) {
@@ -376,73 +393,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
-        // Generate simple, human-friendly titles
-        const generateTitle = (originalPrompt: string): string => {
-          let text = (originalPrompt || '').trim();
-          if (!text) return 'Untitled Session';
-          
-          // Clean up common prompt patterns
-          text = text
-            .replace(/^(please|kindly|could you|can you|would you|i need you to|i want you to|i need|i want|help me|you are a|act as a)\s+/i, '')
-            .replace(/\[.*?\]/g, '') // remove placeholders like [PRODUCT]
-            .replace(/["'`]/g, '') // remove quotes
-            .trim();
-          
-          // Extract the core action/subject
-          let subject = '';
-          
-          // Pattern 1: Action + Object (e.g., "write a blog post" → "Blog Post")
-          const actionMatch = text.match(/^(write|create|generate|build|make|develop|design|implement|code|fix|debug|add|update|improve|enhance|optimize|refactor)\s+(?:me\s+)?(?:a|an|the)?\s*(.+?)(?:[.!?]|$)/i);
-          
-          if (actionMatch) {
-            subject = actionMatch[2];
-            // If the action verb provides value, keep it (e.g., "fix button" vs just "button")
-            const verb = actionMatch[1].toLowerCase();
-            if (['fix', 'debug', 'optimize', 'improve', 'enhance', 'refactor'].includes(verb)) {
-              const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-              subject = `${capitalize(verb)} ${subject}`;
-            }
-          } else {
-            // Pattern 2: Direct description (take first meaningful part)
-            subject = text.split(/[.!?]/)[0].trim();
-          }
-          
-          // Clean up subject
-          subject = subject
-            .replace(/\s+(for|to|that|which|with|using|in|on|about).+$/i, '') // remove trailing clauses
-            .replace(/^(for|to|from)\s+/i, '') // remove leading prepositions
-            .trim();
-          
-          // Limit to 6 words max
-          const words = subject.split(/\s+/).slice(0, 6);
-          subject = words.join(' ');
-          
-          // Title Case conversion
-          const toTitleCase = (str: string): string => {
-            const minorWords = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of', 'with']);
-            return str.split(/\s+/).map((word, index) => {
-              const lower = word.toLowerCase();
-              // Always capitalize first word and non-minor words
-              if (index === 0 || !minorWords.has(lower)) {
-                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-              }
-              return lower;
-            }).join(' ');
-          };
-          
-          const title = toTitleCase(subject);
-          
-          // Final length check (max 50 characters)
-          if (title.length > 50) {
-            return title.slice(0, 47).trim() + '...';
-          }
-          
-          return title || 'Untitled Session';
-        };
-        
         return {
           id: variant.id,
-          title: (typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${variant.id}`) : null) || generateTitle(prompt.original_prompt),
+          title: (typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${variant.id}`) : null) || 'Untitled',
           description: `${prompt.ai_provider} • ${prompt.model_name}${isGlobalTopPerformer ? ' • 🏆 Top Performer' : ''}`,
           prompt: prompt.original_prompt,
           output: variant.variant_prompt,
@@ -463,11 +416,29 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       console.log('Loaded history items from Supabase:', historyItems.length);
       setHistoryItems((prev) => {
-        const existingIds = new Set(prev.map(i => i.id));
-        const merged = [
-          ...historyItems,
-          ...prev.filter(i => !existingIds.has(i.id))
-        ];
+        // Build a map from prev by id to preserve existing titles
+        const prevMap = new Map(prev.map(i => [i.id, i]));
+        
+        // Merge: prefer prev.title if it exists and isn't 'Untitled'/'Untitled Session'
+        const merged = historyItems.map(remote => {
+          const p = prevMap.get(remote.id);
+          if (!p) return remote;
+          
+          const keepTitle = p.title && !/^(untitled|untitled session)$/i.test(p.title) ? p.title : remote.title;
+          return { 
+            ...remote, 
+            title: keepTitle, 
+            isFavorite: p.isFavorite || remote.isFavorite 
+          };
+        });
+        
+        // Add prev-only items not in remote
+        for (const p of prev) {
+          if (!merged.find(m => m.id === p.id)) {
+            merged.push(p);
+          }
+        }
+        
         saveToCache(user.user.id, 'history', merged);
         return merged;
       });
@@ -667,6 +638,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               return; 
             }
             console.log(`[Realtime] Generated title: "${aiTitle}" for ${no.id}`);
+            
+            // Persist title to localStorage immediately
+            try { localStorage.setItem(`prompt-title-${no.id}`, aiTitle); } catch {}
 
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
@@ -743,6 +717,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
               const aiTitle = await aiGenerateTitle((promptData as any).original_prompt);
               if (!aiTitle) { processingOptimizationsRef.current.delete(no.id); continue; } // do not insert until we have the AI title
+              
+              // Persist title to localStorage immediately
+              try { localStorage.setItem(`prompt-title-${no.id}`, aiTitle); } catch {}
 
               const newHistoryItem: PromptHistoryItem = {
                 id: no.id,
