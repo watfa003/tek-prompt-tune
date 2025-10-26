@@ -38,6 +38,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [pendingQueue, setPendingQueue] = useState<PromptHistoryItem[]>([]);
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
   const initRef = useRef(false);
+  const historyRef = useRef<PromptHistoryItem[]>([]);
+  const lastPollAtRef = useRef<string>("");
+
+  // Keep a live ref of history items for polling without stale closures
+  useEffect(() => {
+    historyRef.current = historyItems;
+  }, [historyItems]);
 
   // Reset all state when user changes
   useEffect(() => {
@@ -477,24 +484,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Queue for background sync to Supabase - always add, no deduplication
       setPendingQueue(prev => [...prev, item]);
 
-      // Generate AI title for this new item (background, non-blocking)
-      setTimeout(async () => {
-        try {
-          const aiTitle = await aiGenerateTitle(item.prompt);
-          if (aiTitle && aiTitle.length > 0) {
-            const { data: user } = await supabase.auth.getUser();
-            const uid = user?.user?.id;
-            setHistoryItems(prev => {
-              const updated = prev.map(h => h.id === item.id ? { ...h, title: aiTitle } : h);
-              if (uid) saveToCache(uid, 'history', updated);
-              return updated;
-            });
-          }
-        } catch (e) {
-          console.error('AI title generation failed:', e);
-          // Keep the heuristic title if AI fails
-        }
-      }, 100);
+      // Title will be set by optimization completion flow; no placeholder or background AI generation here
     } catch (error) {
       console.error('Error adding prompt to history:', error);
     }
@@ -581,6 +571,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     let promptsChannel: any;
     let optimizationChannel: any;
+    let poller: any;
 
     const init = async () => {
       try {
@@ -619,63 +610,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
             if (!promptData) return;
 
-            // Generate AI title first (no placeholders)
-            const generateHeuristicTitle = (originalPrompt: string): string => {
-              let text = (originalPrompt || '').trim();
-              if (!text) return 'Untitled Session';
-              text = text
-                .replace(/^(please|kindly|could you|can you|would you|i need you to|i want you to|i need|i want|help me|you are a|act as a)\s+/i, '')
-                .replace(/\[.*?\]/g, '')
-                .replace(/["'`]/g, '')
-                .trim();
-              let subject = '';
-              const actionMatch = text.match(/^(write|create|generate|build|make|develop|design|implement|code|fix|debug|add|update|improve|enhance|optimize|refactor)\s+(?:me\s+)?(?:a|an|the)?\s*(.+?)(?:[.!?]|$)/i);
-              if (actionMatch) {
-                subject = actionMatch[2];
-                const verb = actionMatch[1].toLowerCase();
-                if (['fix', 'debug', 'optimize', 'improve', 'enhance', 'refactor'].includes(verb)) {
-                  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-                  subject = `${capitalize(verb)} ${subject}`;
-                }
-              } else {
-                subject = text.split(/[.!?]/)[0].trim();
-              }
-              subject = subject
-                .replace(/\s+(for|to|that|which|with|using|in|on|about).+$/i, '')
-                .replace(/^(for|to|from)\s+/i, '')
-                .trim();
-              const words = subject.split(/\s+/).slice(0, 6);
-              subject = words.join(' ');
-              const toTitleCase = (str: string): string => {
-                const minorWords = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of', 'with']);
-                return str.split(/\s+/).map((word, index) => {
-                  const lower = word.toLowerCase();
-                  if (index === 0 || !minorWords.has(lower)) {
-                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-                  }
-                  return lower;
-                }).join(' ');
-              };
-              const title = toTitleCase(subject);
-              if (title.length > 50) return title.slice(0, 47).trim() + '...';
-              return title || 'Untitled Session';
-            };
-
-            // Wait for AI title; if it fails, fall back to heuristic
-            let finalTitle = '';
-            try {
-              const aiTitle = await aiGenerateTitle(promptData.original_prompt);
-              if (aiTitle && aiTitle.length > 0) finalTitle = aiTitle;
-            } catch (e) {
-              console.error('AI title generation failed for real-time optimization:', e);
-            }
-            if (!finalTitle) {
-              finalTitle = generateHeuristicTitle(promptData.original_prompt);
-            }
+            // Generate AI title before inserting; skip until ready
+            const aiTitle = await aiGenerateTitle(promptData.original_prompt);
+            if (!aiTitle) return;
 
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
-              title: finalTitle,
+              title: aiTitle,
               description: `New optimization variant (Score: ${(no.score || 0).toFixed(3)})`,
               prompt: promptData.original_prompt,
               output: no.variant_prompt,
@@ -692,7 +633,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               isFavorite: false,
               isBestVariant: false,
             };
-
             setHistoryItems((prev) => {
               const updated = [newHistoryItem, ...prev];
               const globalBest = updated.reduce((best, current) =>
@@ -714,6 +654,81 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             });
           })
           .subscribe();
+
+        // Polling fallback for new optimizations if realtime misses
+        poller = setInterval(async () => {
+          try {
+            const { data: auth } = await supabase.auth.getUser();
+            const cur = auth?.user;
+            if (!cur) return;
+
+            const { data: latest, error: latestErr } = await supabase
+              .from('optimization_history')
+              .select('*')
+              .eq('user_id', cur.id)
+              .order('created_at', { ascending: false })
+              .limit(5);
+
+            if (latestErr || !latest) return;
+
+            for (const no of latest as any[]) {
+              if (historyRef.current.some(h => h.id === no.id)) continue;
+
+              const { data: promptData } = await supabase
+                .from('prompts')
+                .select('*')
+                .eq('id', no.prompt_id)
+                .single();
+
+              if (!promptData) continue;
+
+              const aiTitle = await aiGenerateTitle((promptData as any).original_prompt);
+              if (!aiTitle) continue; // do not insert until we have the AI title
+
+              const newHistoryItem: PromptHistoryItem = {
+                id: no.id,
+                title: aiTitle,
+                description: `New optimization variant (Score: ${(no.score || 0).toFixed(3)})`,
+                prompt: (promptData as any).original_prompt,
+                output: no.variant_prompt,
+                sampleOutput: no.ai_response || 'No sample output available',
+                provider: (promptData as any).ai_provider,
+                outputType: (promptData as any).output_type || 'Code',
+                score: no.score || 0,
+                timestamp: new Date(no.created_at).toLocaleString(),
+                tags: [
+                  (promptData as any).ai_provider?.toLowerCase?.() || 'provider',
+                  ((promptData as any).model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                  'variant'
+                ],
+                isFavorite: false,
+                isBestVariant: false,
+              };
+
+              setHistoryItems((prev) => {
+                const updated = [newHistoryItem, ...prev];
+                const globalBest = updated.reduce((best, current) =>
+                  (current.score || 0) > (best.score || 0) ? current : best
+                );
+                const finalUpdated = updated.map(item => ({
+                  ...item,
+                  isBestVariant: item.id === globalBest.id,
+                  title: item.id === globalBest.id
+                    ? item.title.replace(' (Top Performer)', '') + ' (Top Performer)'
+                    : item.title.replace(' (Top Performer)', ''),
+                  description: item.id === globalBest.id
+                    ? `🏆 Best performing variant across all optimizations (Score: ${(item.score || 0).toFixed(3)})`
+                    : item.description.replace(/🏆 Best performing variant.*/, `Optimization variant (Score: ${(item.score || 0).toFixed(3)})`)
+                }));
+
+                saveToCache(cur.id, 'history', finalUpdated);
+                return finalUpdated;
+              });
+            }
+          } catch (e) {
+            console.error('Polling error:', e);
+          }
+        }, 4000);
       } catch (err) {
         console.error('PromptDataProvider init error:', err);
       } finally {
@@ -726,6 +741,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return () => {
       if (promptsChannel) supabase.removeChannel(promptsChannel);
       if (optimizationChannel) supabase.removeChannel(optimizationChannel);
+      if (poller) clearInterval(poller);
     };
   }, [loadInitialData, saveToCache]);
 
