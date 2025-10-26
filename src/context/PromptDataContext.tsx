@@ -418,48 +418,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [loadFromCache, saveToCache, historyItems]);
 
-  // Centralized backfill function - processes untitled items once
-  const backfillMissingTitles = useCallback(async (items: PromptHistoryItem[]) => {
-    const untitledItems = items.filter(item => 
-      (!item.title || item.title === 'Untitled' || /untitled session/i.test(item.title)) && 
-      item.prompt
-    );
-    
-    if (untitledItems.length === 0) {
-      console.log('[Backfill] No untitled items to process');
-      return;
-    }
-    
-    console.log(`[Backfill] Processing ${untitledItems.length} untitled items`);
-    
-    // Process with concurrency = 2 to avoid rate limits
-    for (let i = 0; i < untitledItems.length; i += 2) {
-      const batch = untitledItems.slice(i, i + 2);
-      await Promise.all(
-        batch.map(item => {
-          // Check cache first
-          const cached = typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${item.id}`) : null;
-          if (cached && cached !== 'Untitled') {
-            setTitleStatus(item.id, "done");
-            // Update state with cached title
-            setHistoryItems(prev => prev.map(p => p.id === item.id ? { ...p, title: cached } : p));
-            return Promise.resolve();
-          }
-          
-          // Check status
-          const status = getTitleStatus(item.id);
-          if (status === "done" || status === "pending") {
-            return Promise.resolve();
-          }
-          
-          // Generate title
-          return generateTitleAndApply(item.id, item.prompt);
-        })
-      );
-    }
-    
-    console.log('[Backfill] Completed');
-  }, [generateTitleAndApply, getTitleStatus, setTitleStatus]);
+  // REMOVED: backfillMissingTitles function
+  // Only generate titles for NEW prompts at creation time via realtime/poller paths
 
   // Load initial data from Supabase with full prompt data
   const loadInitialData = useCallback(async () => {
@@ -521,6 +481,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         // Load title from localStorage and mark status if present
         const cachedTitle = (typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${variant.id}`) : null);
         if (cachedTitle && cachedTitle !== 'Untitled') {
+          setTitleStatus(variant.id, "done");
+        } else {
+          // Mark existing untitled items as "done" to prevent backfill attempts
           setTitleStatus(variant.id, "done");
         }
         
@@ -592,16 +555,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         })));
       }
       
-      // Backfill missing titles (once per init)
-      setTimeout(() => {
-        backfillMissingTitles(historyItems);
-      }, 1000);
+      // No backfill - only generate titles for NEW prompts at creation time
       
       // Load analytics after loading history will be triggered by separate effect
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
-  }, [loadFromCache, saveToCache, backfillMissingTitles]);
+  }, [loadFromCache, saveToCache, setTitleStatus]);
 
   // Reload analytics whenever history items change
   useEffect(() => {
