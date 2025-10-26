@@ -84,7 +84,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // AI Title generation helpers
   const aiGenerateTitle = useCallback(async (text: string): Promise<string | null> => {
     try {
-      if (!text) return 'Untitled Session';
+      if (!text) return null;
       const { data, error } = await supabase.functions.invoke('generate-title', {
         body: { prompt: text },
       });
@@ -94,6 +94,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       let title = (data as any)?.title ? String((data as any).title) : '';
       if (!title) return null;
+      // Ignore placeholder-like titles
+      if (/^untitled session$/i.test(title)) return null;
       // Enforce constraints client-side too
       const words = title.split(/\s+/).slice(0, 6);
       title = words.join(' ');

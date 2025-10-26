@@ -69,8 +69,8 @@ serve(async (req) => {
       }
       const t = await resp.text();
       console.error("AI gateway error:", resp.status, t);
-      return new Response(JSON.stringify({ title: "Untitled Session" }), {
-        status: 200,
+      return new Response(JSON.stringify({ error: "AI gateway error" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -106,7 +106,8 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("generate-title error:", e);
-    return new Response(JSON.stringify({ title: "Untitled Session" }), {
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), {
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
