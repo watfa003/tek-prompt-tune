@@ -16,6 +16,7 @@ export interface PromptHistoryItem {
   isFavorite: boolean;
   isBestVariant: boolean;
   isGeneratingTitle?: boolean; // Flag to prevent duplicate generation
+  groupId?: string; // The underlying prompts.id for grouping variants
 }
 
 interface PromptDataContextValue {
@@ -424,39 +425,37 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             activePrompts: historyItems.length,
           },
           recentActivity: (() => {
-            // Group by prompt (using tags to identify unique prompts, or fallback to id)
+            // Group by groupId (the underlying prompts.id)
             const promptGroups = new Map<string, PromptHistoryItem[]>();
             
             historyItems.forEach(item => {
-              // Use a unique key - could be based on original prompt text or a prompt_id if available
-              // For now, we'll group items that share the same base title (without Top Performer suffix)
-              const baseTitle = item.title.replace(/\s*\(Top Performer\)+/g, '').trim();
-              if (!promptGroups.has(baseTitle)) {
-                promptGroups.set(baseTitle, []);
+              const key = item.groupId || item.id; // Fallback to item.id if groupId not set
+              if (!promptGroups.has(key)) {
+                promptGroups.set(key, []);
               }
-              promptGroups.get(baseTitle)!.push(item);
+              promptGroups.get(key)!.push(item);
             });
             
-            // Get the best variant from each group, then sort by best variant's timestamp
+            // For each group: find best variant and latest timestamp
             return Array.from(promptGroups.values())
-              .map(group => group.reduce((best, current) => 
-                (current.score || 0) > (best.score || 0) ? current : best
-              ))
-              .sort((a, b) => {
-                const aTime = new Date(a.timestamp).getTime();
-                const bTime = new Date(b.timestamp).getTime();
-                return bTime - aTime;
+              .map(group => {
+                const best = group.reduce((b, curr) => 
+                  (curr.score || 0) > (b.score || 0) ? curr : b
+                );
+                const latestTs = Math.max(...group.map(item => new Date(item.timestamp).getTime()));
+                return { best, latestTs };
               })
-              .slice(0, 6)
-              .map(item => ({
-                id: item.id,
-                title: item.title,
+              .sort((a, b) => b.latestTs - a.latestTs) // Sort by latest timestamp desc
+              .slice(0, 5)
+              .map(({ best }) => ({
+                id: best.id,
+                title: best.title,
                 type: 'prompt_optimization',
-                outputType: item.outputType,
-                score: item.score,
-                provider: item.provider,
+                outputType: best.outputType,
+                score: best.score,
+                provider: best.provider,
                 model: 'N/A',
-                createdAt: item.timestamp,
+                createdAt: best.timestamp,
                 status: 'completed',
               }));
           })(),
@@ -579,6 +578,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           ],
           isFavorite: cachedFavSet.has(variant.id),
           isBestVariant: isGlobalTopPerformer,
+          groupId: prompt.id,
         };
       });
 
@@ -857,7 +857,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               provider: promptData.ai_provider,
               outputType: promptData.output_type || 'Code',
               score: no.score || 0,
-              timestamp: new Date(no.created_at).toLocaleString(),
+              timestamp: no.created_at,
               tags: [
                 promptData.ai_provider?.toLowerCase?.() || 'provider',
                 (promptData.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
@@ -865,7 +865,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               ],
               isFavorite: false,
               isBestVariant: false,
-              isGeneratingTitle: false, // Ensure flag is set to false
+              isGeneratingTitle: false,
+              groupId: promptData.id,
             };
 
             console.log(`[Realtime] Adding to history with title: "${newHistoryItem.title}"`);
@@ -983,7 +984,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 provider: (promptData as any).ai_provider,
                 outputType: (promptData as any).output_type || 'Code',
                 score: no.score || 0,
-                timestamp: new Date(no.created_at).toLocaleString(),
+                timestamp: no.created_at,
                 tags: [
                   (promptData as any).ai_provider?.toLowerCase?.() || 'provider',
                   ((promptData as any).model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
@@ -991,7 +992,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 ],
                 isFavorite: false,
                 isBestVariant: false,
-                isGeneratingTitle: false, // Ensure flag is set to false
+                isGeneratingTitle: false,
+                groupId: (promptData as any).id,
               };
 
               setHistoryItems((prev) => {

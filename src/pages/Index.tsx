@@ -15,10 +15,19 @@ import {
 } from "lucide-react";
 import { usePromptData } from "@/context/PromptDataContext";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { historyItems, analytics } = usePromptData();
+
+  // Sort by timestamp descending to get the latest 5 prompts
+  const recentItems = useMemo(() => 
+    [...historyItems]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5),
+    [historyItems]
+  );
 
   const quickActions = [
     {
@@ -208,7 +217,7 @@ const Index = () => {
           </Card>
         ) : (
           <div className="space-y-3">
-            {historyItems.slice(0, 5).map((item, index) => (
+            {recentItems.map((item, index) => (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, x: -20 }}
