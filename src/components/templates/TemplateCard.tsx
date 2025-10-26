@@ -211,14 +211,33 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
         onClick={() => setPreviewOpen(true)}
       >
         <CardHeader>
-          <CardTitle className="text-lg hover:text-primary transition-colors">
-            {template.title}
-          </CardTitle>
-          {template.description && (
-            <CardDescription className="line-clamp-2">
-              {template.description}
-            </CardDescription>
-          )}
+          <div className="flex justify-between items-start gap-2">
+            <div className="flex-1">
+              <CardTitle className="text-lg hover:text-primary transition-colors">
+                {template.title}
+              </CardTitle>
+              {template.description && (
+                <CardDescription className="line-clamp-2 mt-2">
+                  {template.description}
+                </CardDescription>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => toggleFavorite(e)}
+              disabled={loading}
+              className="shrink-0 transition-all duration-200 hover:scale-110"
+            >
+              <Heart 
+                className={`w-5 h-5 transition-all duration-300 ${
+                  isFavorited 
+                    ? 'fill-red-500 text-red-500 scale-110' 
+                    : 'text-muted-foreground hover:text-red-500 hover:scale-105'
+                }`} 
+              />
+            </Button>
+          </div>
         </CardHeader>
 
         <CardFooter>
