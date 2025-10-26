@@ -172,10 +172,13 @@ export const TrendingTemplates: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-2xl font-bold font-heading tracking-tight flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center animate-float">
+              <TrendingUp className="w-6 h-6 text-primary" />
+            </div>
             Trending Templates
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-2 font-medium">
             Most used templates by the community
           </p>
         </div>
@@ -187,7 +190,7 @@ export const TrendingTemplates: React.FC = () => {
           <p className="text-muted-foreground">No templates available yet</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {topTemplates.map((template, index) => {
             const CategoryIcon = categoryIcons[template.category || 'Writing'] || WritingIcon;
             const username = profileMap[template.user_id] || (template.is_official ? 'PrompTek' : 'Unknown');
@@ -198,53 +201,72 @@ export const TrendingTemplates: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
-                whileHover={{ y: -4, rotateY: 2, rotateX: -2 }}
+                whileHover={{ y: -8, scale: 1.02 }}
                 style={{ perspective: '1000px' }}
               >
                 <Card 
-                  className="glass-card p-4 h-full relative overflow-hidden group cursor-pointer"
+                  className="glass-card p-6 h-full relative overflow-hidden group cursor-pointer border-white/10 hover:border-primary/20 transition-all duration-250"
                   onClick={() => openPreview(template)}
                 >
+                  {/* Hover gradient glow */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-300"
+                  />
+
                   {/* Hover reflection sweep */}
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none"
                     initial={{ x: '-100%' }}
                     whileHover={{ x: '200%' }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.7, ease: "easeInOut" }}
                   />
 
                   {/* SVG Thumbnail */}
-                  <div className="mb-3 p-3 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center h-20">
-                    <CategoryIcon className="text-primary" size={40} />
+                  <div className="mb-4 p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center h-24 relative overflow-hidden group-hover:shadow-glow transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <CategoryIcon className="text-primary relative z-10 transition-transform duration-300 group-hover:scale-110" size={48} />
                   </div>
 
                   {/* Content */}
-                  <div className="space-y-2 relative z-10">
+                  <div className="space-y-3 relative z-10">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-sm leading-tight line-clamp-2">{template.title}</h3>
+                      <h3 className="font-bold font-heading tracking-tight text-base leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-250">{template.title}</h3>
                     </div>
 
                     {template.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{template.description}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-2 font-medium">{template.description}</p>
                     )}
 
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {template.category && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
+                        <Badge variant="outline" className="text-xs px-2 py-1 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20 font-semibold">
                           {template.category}
                         </Badge>
                       )}
                       {template.is_official && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary border-primary/20">
+                        <Badge className="text-xs px-2 py-1 bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-primary/30 font-semibold shadow-glow">
+                          <ShieldCheck className="w-3 h-3 mr-1" />
                           Official
                         </Badge>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                      <span className="text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                        <TrendingUp className="w-3.5 h-3.5 text-primary" />
                         {template.uses_count || 0} uses
-                      </span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-xs font-semibold hover:text-primary hover:bg-primary/10 transition-all duration-250"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUseTemplate(template);
+                        }}
+                      >
+                        Use →
+                      </Button>
                     </div>
                   </div>
                 </Card>

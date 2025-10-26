@@ -153,8 +153,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${isCollapsed ? "w-14 md:w-16" : "w-60 md:w-72"} glass-panel border-r border-white/10 transition-all duration-300`}
+      className={`${isCollapsed ? "w-14 md:w-16" : "w-60 md:w-72"} relative transition-all duration-300`}
       collapsible="icon"
+      style={{
+        background: 'linear-gradient(180deg, rgba(5,4,6,0.95) 0%, rgba(5,4,6,0.98) 100%)',
+        backdropFilter: 'blur(24px)',
+        borderRight: '1px solid rgba(110, 231, 255, 0.1)',
+        boxShadow: 'inset 1px 0 0 0 rgba(110, 231, 255, 0.05), 4px 0 24px rgba(0, 0, 0, 0.3)',
+      }}
     >
       <SidebarContent className="p-2 md:p-3 overflow-x-hidden">
         {/* User Info */}
@@ -193,19 +199,27 @@ export function AppSidebar() {
                           navigate(item.url);
                         }
                       }}
-                      className={`w-full justify-start transition-all duration-300 hover:scale-[1.02] rounded-xl group ${
+                      className={`relative w-full justify-start transition-all duration-250 hover:scale-[1.02] hover:-translate-y-0.5 rounded-xl group overflow-hidden ${
                         mode === 'api' && 'section' in item
-                          ? isApiSectionActive(item.section) ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/30' : 'hover:bg-white/5'
-                          : 'url' in item && isActive(item.url) ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/30' : 'hover:bg-white/5'
+                          ? isApiSectionActive(item.section) 
+                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
+                            : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
+                          : 'url' in item && isActive(item.url) 
+                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
+                            : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
                       }`}
                     >
-                      <item.icon className={`h-3 w-3 md:h-4 md:w-4 flex-shrink-0 ${
+                      <item.icon className={`h-3 w-3 md:h-4 md:w-4 flex-shrink-0 transition-all duration-250 ${
                         (mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
                         ('url' in item && isActive(item.url)) 
-                          ? 'text-primary' 
-                          : 'group-hover:text-primary transition-colors'
+                          ? 'text-primary drop-shadow-[0_0_8px_rgba(110,231,255,0.6)]' 
+                          : 'group-hover:text-primary group-hover:drop-shadow-[0_0_6px_rgba(110,231,255,0.4)]'
                       }`} />
-                      {!isCollapsed && <span className="text-sm truncate">{item.title}</span>}
+                      {!isCollapsed && <span className="text-sm truncate font-medium tracking-tight">{item.title}</span>}
+                      {((mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
+                        ('url' in item && isActive(item.url))) && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-accent rounded-r-full" />
+                      )}
                     </Button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

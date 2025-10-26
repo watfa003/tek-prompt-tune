@@ -221,30 +221,31 @@
 @layer components {
   /* Glass Morphism - Enhanced depth */
   .glass-panel {
-    @apply bg-card/40 backdrop-blur-xl supports-[backdrop-filter]:bg-card/40 border border-white/10;
+    @apply bg-card/40 backdrop-blur-2xl supports-[backdrop-filter]:bg-card/40 border border-white/10;
     box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.05);
     overflow: hidden;
     position: relative;
-    transition: all 0.3s cubic-bezier(0.22, 0.9, 0.3, 1);
+    transition: all 0.25s cubic-bezier(0.22, 0.9, 0.3, 1);
   }
 
   .glass-panel:hover {
-    border-color: rgba(110, 231, 255, 0.2);
-    box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.15), 0 8px 32px rgba(110, 231, 255, 0.1);
+    border-color: rgba(110, 231, 255, 0.25);
+    box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.2), 0 12px 40px rgba(110, 231, 255, 0.15);
+    transform: translateY(-2px);
   }
 
   .glass-card {
-    @apply bg-card/30 backdrop-blur-2xl border border-white/10 rounded-[18px];
+    @apply bg-card/35 backdrop-blur-2xl border border-white/10 rounded-[18px];
     box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.05);
     overflow: hidden;
     position: relative;
-    transition: all 0.3s cubic-bezier(0.22, 0.9, 0.3, 1);
+    transition: all 0.25s cubic-bezier(0.22, 0.9, 0.3, 1);
   }
 
   .glass-card:hover {
-    border-color: rgba(110, 231, 255, 0.15);
-    box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.12), 0 12px 40px rgba(0, 0, 0, 0.4);
-    transform: translateY(-2px);
+    border-color: rgba(110, 231, 255, 0.2);
+    box-shadow: var(--shadow-glass), 0 0 0 1px rgba(110, 231, 255, 0.15), 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 80px rgba(110, 231, 255, 0.1);
+    transform: translateY(-4px) scale(1.01);
   }
 
   /* Futuristic Button Shine Effect */
@@ -276,13 +277,15 @@
 
   /* Interactive Card Hover - Enhanced */
   .interactive-card {
-    @apply transition-all duration-300;
+    @apply transition-all;
+    transition-duration: 0.25s;
+    transition-timing-function: cubic-bezier(0.22, 0.9, 0.3, 1);
     transform-gpu: auto;
   }
   
   .interactive-card:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 20px 60px -10px rgba(110,231,255,0.3), 0 0 0 1px rgba(110,231,255,0.1);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 24px 72px -12px rgba(110,231,255,0.35), 0 0 0 1px rgba(110,231,255,0.2), 0 0 60px rgba(124, 92, 255, 0.15);
   }
 
   /* Floating Animation Container */
