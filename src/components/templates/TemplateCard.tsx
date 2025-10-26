@@ -234,48 +234,49 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
   return (
     <>
       <Card 
-        className="group hover:shadow-lg transition-all duration-300 animate-fade-in cursor-pointer"
+        className="group hover:shadow-lg transition-all duration-300 animate-fade-in cursor-pointer overflow-hidden"
         onClick={() => setPreviewOpen(true)}
       >
-        <CardHeader>
-          <div className="flex gap-4">
+        <CardHeader className="pb-3">
+          <div className="flex items-start gap-3">
             {/* Category Icon */}
-            <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-              <CategoryIcon className="text-primary" size={32} />
+            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+              <CategoryIcon className="text-primary" size={24} />
             </div>
             
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-start gap-2">
-                <CardTitle className="text-lg hover:text-primary transition-colors">
-                  {template.title}
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => toggleFavorite(e)}
-                  disabled={loading}
-                  className="shrink-0 transition-all duration-200 hover:scale-110"
-                >
-                  <Heart 
-                    className={`w-5 h-5 transition-all duration-300 ${
-                      isFavorited 
-                        ? 'fill-red-500 text-red-500 scale-110' 
-                        : 'text-muted-foreground hover:text-red-500 hover:scale-105'
-                    }`} 
-                  />
-                </Button>
-              </div>
-              {template.description && (
-                <CardDescription className="mt-2">
-                  {template.description}
-                </CardDescription>
-              )}
+            {/* Title and Favorite */}
+            <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+              <CardTitle className="text-base leading-tight hover:text-primary transition-colors line-clamp-2">
+                {template.title}
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => toggleFavorite(e)}
+                disabled={loading}
+                className="shrink-0 h-8 w-8 transition-all duration-200 hover:scale-110 -mt-1"
+              >
+                <Heart 
+                  className={`w-4 h-4 transition-all duration-300 ${
+                    isFavorited 
+                      ? 'fill-red-500 text-red-500 scale-110' 
+                      : 'text-muted-foreground hover:text-red-500 hover:scale-105'
+                  }`} 
+                />
+              </Button>
             </div>
           </div>
         </CardHeader>
 
-        <CardFooter>
+        {template.description && (
+          <CardContent className="pt-0 pb-3">
+            <CardDescription className="text-sm line-clamp-2 leading-relaxed">
+              {template.description}
+            </CardDescription>
+          </CardContent>
+        )}
+
+        <CardFooter className="pt-3">
           <Button 
             onClick={(e) => {
               e.stopPropagation();
