@@ -42,7 +42,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const historyRef = useRef<PromptHistoryItem[]>([]);
   const lastPollAtRef = useRef<string>("");
   const processingOptimizationsRef = useRef<Set<string>>(new Set());
-
+  const titlesInFlightRef = useRef<Set<string>>(new Set());
   // Keep a live ref of history items for polling without stale closures
   useEffect(() => {
     historyRef.current = historyItems;
@@ -128,10 +128,16 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Centralized title generator that updates state and persists
   const generateTitleAndApply = useCallback(async (promptId: string, promptText: string) => {
+    if (!promptId || !promptText) return;
+    if (titlesInFlightRef.current.has(promptId)) {
+      console.log('[generateTitleAndApply] Skipping, already in-flight:', promptId);
+      return;
+    }
+    titlesInFlightRef.current.add(promptId);
     try {
       console.log('[generateTitleAndApply] Generating title for:', promptId);
       const newTitle = await aiGenerateTitle(promptText);
-      const finalTitle = newTitle?.trim() || "Untitled";
+      const finalTitle = (newTitle?.trim() || 'Untitled');
 
       // Update local state so UI re-renders immediately
       setHistoryItems(prev => {
@@ -139,24 +145,22 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           p.id === promptId ? { ...p, title: finalTitle } : p
         );
         
-        // Persist to localStorage
-        const user = supabase.auth.getUser();
-        user.then(({ data }) => {
+        // Persist to localStorage and cache
+        supabase.auth.getUser().then(({ data }) => {
           if (data?.user?.id) {
             saveToCache(data.user.id, 'history', updated);
-            localStorage.setItem(`prompt-title-${promptId}`, finalTitle);
+            try { localStorage.setItem(`prompt-title-${promptId}`, finalTitle); } catch {}
           }
         });
         
         return updated;
       });
 
-      // Note: We don't persist titles back to Supabase as they're regenerated on load
-      // The title is cached in localStorage for quick access
-
       console.log('[generateTitleAndApply] Title applied:', finalTitle);
     } catch (err) {
       console.error('[generateTitleAndApply] Failed to apply generated title:', err);
+    } finally {
+      titlesInFlightRef.current.delete(promptId);
     }
   }, [aiGenerateTitle, saveToCache]);
 
@@ -438,7 +442,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         
         return {
           id: variant.id,
-          title: generateTitle(prompt.original_prompt),
+          title: (typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${variant.id}`) : null) || generateTitle(prompt.original_prompt),
           description: `${prompt.ai_provider} • ${prompt.model_name}${isGlobalTopPerformer ? ' • 🏆 Top Performer' : ''}`,
           prompt: prompt.original_prompt,
           output: variant.variant_prompt,

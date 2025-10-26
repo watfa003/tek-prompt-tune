@@ -60,12 +60,20 @@ export const PromptHistory = () => {
     }
   }, [searchParams, isSelectingForInfluence]);
 
+  // Track in-flight generations to avoid duplicates
+  const generatingRef = React.useRef<Set<string>>(new Set());
+
   // Auto-generate titles for items missing them
   React.useEffect(() => {
     historyItems.forEach(item => {
       if ((!item.title || item.title === 'Untitled' || /untitled session/i.test(item.title)) && item.prompt) {
+        if (generatingRef.current.has(item.id)) return;
+        generatingRef.current.add(item.id);
         console.log('[PromptHistory] Auto-generating title for item:', item.id);
-        generateTitleAndApply(item.id, item.prompt);
+        Promise.resolve(generateTitleAndApply(item.id, item.prompt))
+          .finally(() => {
+            generatingRef.current.delete(item.id);
+          });
       }
     });
   }, [historyItems, generateTitleAndApply]);
