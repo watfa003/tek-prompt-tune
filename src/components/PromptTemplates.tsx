@@ -128,19 +128,20 @@ export const PromptTemplates = () => {
       </div>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
+          className="w-full lg:w-auto"
         >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow">
-              <Sparkles className="h-6 w-6 text-white" />
+          <div className="flex items-center gap-2 md:gap-3 mb-2 flex-wrap">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow flex-shrink-0">
+              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
-            <h1 className="text-4xl font-bold gradient-text">Template Library</h1>
+            <h1 className="text-3xl md:text-4xl font-bold gradient-text">Template Library</h1>
           </div>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-sm md:text-base lg:text-lg">
             Discover and share professional prompt templates
           </p>
         </motion.div>
@@ -148,6 +149,7 @@ export const PromptTemplates = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
+          className="w-full lg:w-auto"
         >
           <TemplateCreationDialog onTemplateCreated={() => window.location.reload()} />
         </motion.div>
@@ -158,40 +160,40 @@ export const PromptTemplates = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="sticky top-0 z-40 glass-panel border border-white/10 rounded-[18px] p-4 backdrop-blur-xl"
+        className="sticky top-0 z-40 glass-panel border border-white/10 rounded-[14px] md:rounded-[18px] p-3 md:p-4 backdrop-blur-xl"
       >
         {/* Search Bar */}
-        <div className="relative mb-4">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+        <div className="relative mb-3 md:mb-4">
+          <Search className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 md:w-5 md:h-5" />
           <Input
-            placeholder="Search templates by title, description, or creator..."
+            placeholder="Search templates..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 pr-12 h-12 glass-panel border-white/10 focus:border-primary/50 focus:neon-border"
+            className="pl-10 md:pl-12 pr-10 md:pr-12 h-10 md:h-12 glass-panel border-white/10 focus:border-primary/50 focus:neon-border text-sm md:text-base"
           />
           {searchQuery && (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-white/10"
+              className="absolute right-1 md:right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 md:h-8 md:w-8 hover:bg-white/10"
               onClick={() => setSearchQuery("")}
             >
-              <X className="w-4 h-4" />
+              <X className="w-3 h-3 md:w-4 md:h-4" />
             </Button>
           )}
         </div>
 
         {/* Template Type Filter */}
-        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-          <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <div className="flex items-center gap-2 mb-3 md:mb-4 overflow-x-auto pb-2 scrollbar-hide">
+          <Filter className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground flex-shrink-0" />
           <div className="flex gap-2">
             <Button
               variant={templateFilter === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setTemplateFilter("all")}
-              className={templateFilter === "all" 
+              className={`text-xs md:text-sm whitespace-nowrap ${templateFilter === "all" 
                 ? "bg-gradient-to-r from-primary to-accent shadow-glow" 
-                : "glass-panel border-white/10 hover:border-primary/50"}
+                : "glass-panel border-white/10 hover:border-primary/50"}`}
             >
               All Templates
             </Button>

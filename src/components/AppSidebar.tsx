@@ -153,21 +153,21 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${isCollapsed ? "w-16" : "w-72"} glass-panel border-r border-white/10 transition-all duration-300`}
+      className={`${isCollapsed ? "w-14 md:w-16" : "w-60 md:w-72"} glass-panel border-r border-white/10 transition-all duration-300`}
       collapsible="icon"
     >
-      <SidebarContent className="p-3">
+      <SidebarContent className="p-2 md:p-3 overflow-x-hidden">
         {/* User Info */}
         {!isCollapsed && userInfo && (
           <SidebarGroup>
             <SidebarGroupContent>
-              <div className="flex items-center space-x-3 p-4 rounded-[18px] glass-card neon-border mb-2">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent text-white font-semibold flex items-center justify-center text-sm shadow-glow">
+              <div className="flex items-center space-x-2 md:space-x-3 p-3 md:p-4 rounded-[14px] md:rounded-[18px] glass-card neon-border mb-2">
+                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-primary to-accent text-white font-semibold flex items-center justify-center text-xs md:text-sm shadow-glow flex-shrink-0">
                   {userInfo.displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{userInfo.displayName}</p>
-                  <p className="text-xs text-muted-foreground truncate">{userInfo.email}</p>
+                  <p className="text-xs md:text-sm font-semibold truncate">{userInfo.displayName}</p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground truncate">{userInfo.email}</p>
                 </div>
               </div>
             </SidebarGroupContent>
@@ -176,7 +176,7 @@ export function AppSidebar() {
 
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground">
+          <SidebarGroupLabel className="text-muted-foreground text-xs md:text-sm px-2">
             {mode === 'api' ? 'API Management' : 'Navigation'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -199,13 +199,13 @@ export function AppSidebar() {
                           : 'url' in item && isActive(item.url) ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/30' : 'hover:bg-white/5'
                       }`}
                     >
-                      <item.icon className={`h-4 w-4 ${
+                      <item.icon className={`h-3 w-3 md:h-4 md:w-4 flex-shrink-0 ${
                         (mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
                         ('url' in item && isActive(item.url)) 
                           ? 'text-primary' 
                           : 'group-hover:text-primary transition-colors'
                       }`} />
-                      {!isCollapsed && <span>{item.title}</span>}
+                      {!isCollapsed && <span className="text-sm truncate">{item.title}</span>}
                     </Button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

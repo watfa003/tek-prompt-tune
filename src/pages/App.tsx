@@ -184,40 +184,42 @@ const AppPageContent = () => {
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="border-b border-white/10 glass-panel sticky top-0 z-50"
+              className="border-b border-white/10 glass-panel sticky top-0 z-50 overflow-hidden"
             >
-              <div className="h-16 flex items-center justify-between px-6">
-                <div className="flex items-center space-x-4">
-                  <SidebarTrigger />
-                  <Link to="/" className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group">
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                    <span className="font-semibold">Back to Home</span>
+              <div className="h-14 md:h-16 flex items-center justify-between px-3 md:px-6 gap-2 md:gap-4">
+                <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-shrink">
+                  <SidebarTrigger className="flex-shrink-0" />
+                  <Link to="/" className="flex items-center space-x-1 md:space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group min-w-0">
+                    <ArrowLeft className="h-3 w-3 md:h-4 md:w-4 group-hover:-translate-x-1 transition-transform flex-shrink-0" />
+                    <span className="font-semibold text-xs md:text-sm hidden sm:inline truncate">Back to Home</span>
+                    <span className="font-semibold text-xs sm:hidden">Back</span>
                   </Link>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 glass-panel border border-white/10 rounded-xl p-1">
+                <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-1 glass-panel border border-white/10 rounded-lg md:rounded-xl p-0.5 md:p-1">
                     <Button
                       variant={mode === 'optimizer' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setMode('optimizer')}
-                      className={`gap-2 rounded-lg transition-all ${mode === 'optimizer' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
+                      className={`gap-1 md:gap-2 rounded-lg transition-all text-xs md:text-sm px-2 md:px-3 ${mode === 'optimizer' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
                     >
-                      <Zap className="h-4 w-4" />
-                      Optimizer
+                      <Zap className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="hidden sm:inline">Optimizer</span>
+                      <span className="sm:hidden">Opt</span>
                     </Button>
                     <Button
                       variant={mode === 'api' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setMode('api')}
-                      className={`gap-2 rounded-lg transition-all ${mode === 'api' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
+                      className={`gap-1 md:gap-2 rounded-lg transition-all text-xs md:text-sm px-2 md:px-3 ${mode === 'api' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
                     >
-                      <Code className="h-4 w-4" />
-                      API
+                      <Code className="h-3 w-3 md:h-4 md:w-4" />
+                      <span>API</span>
                     </Button>
                   </div>
                   
-                  <Badge className="bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-primary/30 neon-border">
+                  <Badge className="bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-primary/30 neon-border text-xs hidden md:inline-flex">
                     PrompTek
                   </Badge>
                 </div>
@@ -236,7 +238,7 @@ const AppPageContent = () => {
               />
             </motion.header>
 
-            <main className="flex-1 p-6 overflow-auto">
+            <main className="flex-1 p-3 md:p-6 overflow-auto">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={location.pathname}
