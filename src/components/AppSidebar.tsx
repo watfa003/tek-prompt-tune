@@ -193,7 +193,7 @@ export function AppSidebar() {
                           navigate(item.url);
                         }
                       }}
-                      className={`relative w-full justify-start transition-all duration-250 hover:scale-[1.02] hover:-translate-y-0.5 rounded-xl group overflow-hidden ${
+                      className={`relative w-full ${isCollapsed ? 'justify-center' : 'justify-start'} transition-all duration-250 hover:scale-[1.02] hover:-translate-y-0.5 rounded-xl group overflow-hidden ${
                         mode === 'api' && 'section' in item
                           ? isApiSectionActive(item.section) 
                             ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
