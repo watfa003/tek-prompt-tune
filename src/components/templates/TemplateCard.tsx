@@ -211,92 +211,21 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
         onClick={() => setPreviewOpen(true)}
       >
         <CardHeader>
-          <div className="flex justify-between items-start gap-2">
-            <CardTitle className="text-lg hover:text-primary transition-colors flex-1">
-              {template.title}
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => toggleFavorite(e)}
-              disabled={loading}
-              className="shrink-0 transition-all duration-200 hover:scale-110"
-            >
-              <Heart 
-                className={`w-5 h-5 transition-all duration-300 ${
-                  isFavorited 
-                    ? 'fill-red-500 text-red-500 scale-110' 
-                    : 'text-muted-foreground hover:text-red-500 hover:scale-105'
-                }`} 
-              />
-            </Button>
-          </div>
+          <CardTitle className="text-lg hover:text-primary transition-colors">
+            {template.title}
+          </CardTitle>
         </CardHeader>
-      
-        <CardContent className="space-y-3">
-          <div className="flex gap-2 items-center flex-wrap">
-            {template.is_official && (
-              <Badge variant="default" className="gap-1 bg-gradient-to-r from-primary to-primary/80">
-                <ShieldCheck className="w-3 h-3" />
-                Official
-              </Badge>
-            )}
-            {template.category && (
-              <Badge variant="secondary">{template.category}</Badge>
-            )}
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Heart className="w-3 h-3" />
-              {favCount}
-            </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <TrendingUp className="w-3 h-3" />
-              {useCount} uses
-            </div>
-          </div>
 
-          <Link 
-            to={`/user/${username}`} 
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <User className="w-4 h-4" />
-            <span>@{username}</span>
-          </Link>
-        </CardContent>
-
-        <CardFooter className="gap-2">
+        <CardFooter>
           <Button 
             onClick={(e) => {
               e.stopPropagation();
               handleUse();
             }} 
-            className="flex-1"
+            className="w-full"
           >
             Use Template
           </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={(e) => {
-              e.stopPropagation();
-              copyTemplate();
-            }}
-          >
-            <Copy className="w-4 h-4" />
-          </Button>
-          {isOwner && (
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleteDialogOpen(true);
-              }}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
         </CardFooter>
       </Card>
 
