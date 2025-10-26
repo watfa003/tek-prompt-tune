@@ -214,6 +214,11 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
           <CardTitle className="text-lg hover:text-primary transition-colors">
             {template.title}
           </CardTitle>
+          {template.description && (
+            <CardDescription className="line-clamp-2">
+              {template.description}
+            </CardDescription>
+          )}
         </CardHeader>
 
         <CardFooter>
