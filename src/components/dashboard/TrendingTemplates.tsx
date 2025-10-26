@@ -23,7 +23,6 @@ const categoryIcons: Record<string, React.FC<any>> = {
 };
 
 export const TrendingTemplates: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const { templates, profileMap, loading } = useTemplatesData();
@@ -39,14 +38,6 @@ export const TrendingTemplates: React.FC = () => {
     
     return sorted;
   }, [templates]);
-
-  const filteredTemplates = topTemplates.filter((template) => {
-    if (!searchQuery) return true;
-    const matchesSearch =
-      template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => {
@@ -97,7 +88,7 @@ export const TrendingTemplates: React.FC = () => {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-primary">
               <path d="M13 2L3 14H11L10 22L21 10H13L13 2Z" fill="currentColor" opacity="0.2" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
             </svg>
-            Top 5 Templates
+            Trending Templates
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Most used templates by the community
@@ -105,28 +96,14 @@ export const TrendingTemplates: React.FC = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-        <Input
-          placeholder="Search top templates..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-12 glass-panel border-white/10 focus:border-primary/50"
-        />
-      </div>
-
       {/* Templates Grid */}
-      {filteredTemplates.length === 0 ? (
+      {topTemplates.length === 0 ? (
         <div className="text-center py-12 glass-card rounded-2xl">
-          <SearchIcon className="mx-auto mb-3 text-muted-foreground" size={32} />
-          <p className="text-muted-foreground">
-            {searchQuery ? 'No templates match your search' : 'No templates available yet'}
-          </p>
+          <p className="text-muted-foreground">No templates available yet</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {filteredTemplates.map((template, index) => {
+          {topTemplates.map((template, index) => {
             const CategoryIcon = categoryIcons[template.category || 'Writing'] || WritingIcon;
             const isFavorite = favorites.has(template.id);
             const username = profileMap[template.user_id] || (template.is_official ? 'PrompTek' : 'Unknown');
