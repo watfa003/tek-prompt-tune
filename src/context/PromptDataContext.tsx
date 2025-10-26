@@ -186,6 +186,14 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     console.log(`[generateTitleAndApply] Start: ${promptId}`);
     
+    // GUARD: Skip if title already exists (not Untitled)
+    const existingItem = historyRef.current.find(h => h.id === promptId);
+    if (existingItem?.title && existingItem.title !== 'Untitled' && existingItem.title !== 'Untitled Session') {
+      console.log(`[generateTitleAndApply] Skip - title already exists: ${promptId} => ${existingItem.title}`);
+      setTitleStatus(promptId, "done");
+      return;
+    }
+    
     // Check localStorage cache first
     const cached = typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${promptId}`) : null;
     if (cached && cached.trim() && cached !== 'Untitled') {
