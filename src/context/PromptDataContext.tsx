@@ -81,6 +81,61 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
+  // AI Title generation helpers
+  const aiGenerateTitle = useCallback(async (text: string): Promise<string | null> => {
+    try {
+      if (!text) return 'Untitled Session';
+      const { data, error } = await supabase.functions.invoke('generate-title', {
+        body: { prompt: text },
+      });
+      if (error) {
+        console.error('AI title error:', error);
+        return null;
+      }
+      let title = (data as any)?.title ? String((data as any).title) : '';
+      if (!title) return null;
+      // Enforce constraints client-side too
+      const words = title.split(/\s+/).slice(0, 6);
+      title = words.join(' ');
+      if (title.length > 50) title = title.slice(0, 47).trim() + '...';
+      const minor = new Set(['a','an','the','and','but','or','for','nor','on','at','to','by','in','of','with']);
+      title = title
+        .split(/\s+/)
+        .map((w, i) => {
+          const lw = w.toLowerCase();
+          if (i === 0 || !minor.has(lw)) return lw.charAt(0).toUpperCase() + lw.slice(1);
+          return lw;
+        })
+        .join(' ');
+      return title || null;
+    } catch (e) {
+      console.error('AI title exception:', e);
+      return null;
+    }
+  }, []);
+
+  const refineTitlesFor = useCallback(async (items: PromptHistoryItem[]) => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      const uid = user?.user?.id;
+      if (!uid) return;
+
+      const targets = (items || []).slice(0, 40);
+      for (const item of targets) {
+        const ai = await aiGenerateTitle(item.prompt);
+        if (ai && ai !== item.title) {
+          setHistoryItems(prev => {
+            const updated = prev.map(h => h.id === item.id ? { ...h, title: ai } : h);
+            saveToCache(uid, 'history', updated);
+            return updated;
+          });
+        }
+      }
+    } catch (e) {
+      console.error('refineTitlesFor error:', e);
+    }
+  }, [aiGenerateTitle, saveToCache]);
+
   // Load analytics data from history items
   const loadAnalytics = useCallback(async () => {
     try {
@@ -385,6 +440,9 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         })));
       }
       
+      // AI title refinement in background (non-blocking)
+      refineTitlesFor(historyItems);
+      
       // Load analytics after loading history will be triggered by separate effect
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -419,6 +477,22 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       // Queue for background sync to Supabase - always add, no deduplication
       setPendingQueue(prev => [...prev, item]);
+
+      // AI refine title for this new item (non-blocking)
+      try {
+        const ai = await aiGenerateTitle(item.prompt);
+        if (ai) {
+          const { data: user } = await supabase.auth.getUser();
+          const uid = user?.user?.id;
+          setHistoryItems(prev => {
+            const updated = prev.map(h => h.id === item.id ? { ...h, title: ai } : h);
+            if (uid) saveToCache(uid, 'history', updated);
+            return updated;
+          });
+        }
+      } catch (e) {
+        console.error('AI refine new item title error:', e);
+      }
     } catch (error) {
       console.error('Error adding prompt to history:', error);
     }
