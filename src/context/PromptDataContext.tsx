@@ -619,7 +619,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
             if (!promptData) return;
 
-            // Generate heuristic title first
+            // Generate AI title first (no placeholders)
             const generateHeuristicTitle = (originalPrompt: string): string => {
               let text = (originalPrompt || '').trim();
               if (!text) return 'Untitled Session';
@@ -661,9 +661,21 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               return title || 'Untitled Session';
             };
 
+            // Wait for AI title; if it fails, fall back to heuristic
+            let finalTitle = '';
+            try {
+              const aiTitle = await aiGenerateTitle(promptData.original_prompt);
+              if (aiTitle && aiTitle.length > 0) finalTitle = aiTitle;
+            } catch (e) {
+              console.error('AI title generation failed for real-time optimization:', e);
+            }
+            if (!finalTitle) {
+              finalTitle = generateHeuristicTitle(promptData.original_prompt);
+            }
+
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
-              title: generateHeuristicTitle(promptData.original_prompt),
+              title: finalTitle,
               description: `New optimization variant (Score: ${(no.score || 0).toFixed(3)})`,
               prompt: promptData.original_prompt,
               output: no.variant_prompt,
@@ -700,27 +712,6 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               saveToCache(user.user.id, 'history', finalUpdated);
               return finalUpdated;
             });
-
-            // Generate AI title in background (non-blocking)
-            setTimeout(async () => {
-              try {
-                const aiTitle = await aiGenerateTitle(promptData.original_prompt);
-                if (aiTitle && aiTitle.length > 0) {
-                  setHistoryItems(prev => {
-                    const updated = prev.map(h => {
-                      if (h.id === no.id) {
-                        return { ...h, title: h.isBestVariant ? aiTitle + ' (Top Performer)' : aiTitle };
-                      }
-                      return h;
-                    });
-                    saveToCache(user.user.id, 'history', updated);
-                    return updated;
-                  });
-                }
-              } catch (e) {
-                console.error('AI title generation failed for real-time optimization:', e);
-              }
-            }, 100);
           })
           .subscribe();
       } catch (err) {
