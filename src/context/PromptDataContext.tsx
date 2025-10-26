@@ -670,6 +670,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               saveToCache(user.user.id, 'history', finalUpdated);
               return finalUpdated;
             });
+            processingOptimizationsRef.current.delete(no.id);
           })
           .subscribe();
 
@@ -743,6 +744,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 saveToCache(cur.id, 'history', finalUpdated);
                 return finalUpdated;
               });
+              processingOptimizationsRef.current.delete(no.id);
             }
           } catch (e) {
             console.error('Polling error:', e);
