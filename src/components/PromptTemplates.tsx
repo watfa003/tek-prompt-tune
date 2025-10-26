@@ -128,20 +128,20 @@ export const PromptTemplates = () => {
       </div>
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 md:gap-4 relative z-10 w-full">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10 w-full">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full lg:w-auto min-w-0 max-w-full"
+          className="w-full lg:w-auto min-w-0"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow flex-shrink-0">
-              <Sparkles className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
+          <div className="flex items-center gap-2 md:gap-3 mb-2 flex-wrap">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow flex-shrink-0">
+              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
-            <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold gradient-text truncate">Template Library</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text truncate">Template Library</h1>
           </div>
-          <p className="text-muted-foreground text-sm lg:text-base">
+          <p className="text-muted-foreground text-sm md:text-base">
             Discover and share professional prompt templates
           </p>
         </motion.div>
@@ -160,38 +160,38 @@ export const PromptTemplates = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="sticky top-0 z-40 glass-panel border border-white/10 rounded-xl lg:rounded-2xl p-3 lg:p-4 backdrop-blur-xl w-full max-w-full overflow-hidden box-border"
+        className="sticky top-0 z-40 glass-panel border border-white/10 rounded-xl md:rounded-2xl p-3 md:p-4 backdrop-blur-xl w-full max-w-full overflow-hidden box-border"
       >
         {/* Search Bar */}
-        <div className="relative mb-3 w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0" />
+        <div className="relative mb-3 md:mb-4 w-full">
+          <Search className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
           <Input
             placeholder="Search templates..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 lg:pl-12 pr-10 h-10 lg:h-11 glass-panel border-white/10 focus:border-primary/50 focus:neon-border text-sm lg:text-base w-full"
+            className="pl-10 md:pl-12 pr-10 md:pr-12 h-10 md:h-12 glass-panel border-white/10 focus:border-primary/50 focus:neon-border text-sm md:text-base w-full"
           />
           {searchQuery && (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-white/10 flex-shrink-0"
+              className="absolute right-1 md:right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 md:h-8 md:w-8 hover:bg-white/10 flex-shrink-0"
               onClick={() => setSearchQuery("")}
             >
-              <X className="w-4 h-4" />
+              <X className="w-3 h-3 md:w-4 md:h-4" />
             </Button>
           )}
         </div>
 
         {/* Template Type Filter */}
-        <div className="flex items-start gap-2 mb-3 overflow-x-auto pb-2 scrollbar-hide w-full">
-          <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-2" />
+        <div className="flex items-center gap-2 mb-3 md:mb-4 overflow-x-auto pb-2 scrollbar-hide w-full">
+          <Filter className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground flex-shrink-0" />
           <div className="flex gap-2 flex-nowrap">
             <Button
               variant={templateFilter === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setTemplateFilter("all")}
-              className={`text-xs lg:text-sm whitespace-nowrap flex-shrink-0 h-8 lg:h-9 ${templateFilter === "all" 
+              className={`text-xs md:text-sm whitespace-nowrap flex-shrink-0 ${templateFilter === "all" 
                 ? "bg-gradient-to-r from-primary to-accent shadow-glow" 
                 : "glass-panel border-white/10 hover:border-primary/50"}`}
             >
@@ -201,42 +201,42 @@ export const PromptTemplates = () => {
               variant={templateFilter === "official" ? "default" : "outline"}
               size="sm"
               onClick={() => setTemplateFilter("official")}
-              className={`text-xs lg:text-sm whitespace-nowrap flex-shrink-0 h-8 lg:h-9 ${templateFilter === "official" 
+              className={`text-xs md:text-sm whitespace-nowrap flex-shrink-0 ${templateFilter === "official" 
                 ? "bg-gradient-to-r from-primary to-accent shadow-glow" 
                 : "glass-panel border-white/10 hover:border-primary/50"}`}
             >
-              <Sparkles className="h-3 w-3 lg:h-4 lg:w-4 mr-1 flex-shrink-0" />
+              <Sparkles className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 flex-shrink-0" />
               <span>Official</span>
             </Button>
             <Button
               variant={templateFilter === "community" ? "default" : "outline"}
               size="sm"
               onClick={() => setTemplateFilter("community")}
-              className={`text-xs lg:text-sm whitespace-nowrap flex-shrink-0 h-8 lg:h-9 ${templateFilter === "community" 
+              className={`text-xs md:text-sm whitespace-nowrap flex-shrink-0 ${templateFilter === "community" 
                 ? "bg-gradient-to-r from-primary to-accent shadow-glow" 
                 : "glass-panel border-white/10 hover:border-primary/50"}`}
             >
-              <Users className="h-3 w-3 lg:h-4 lg:w-4 mr-1 flex-shrink-0" />
+              <Users className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 flex-shrink-0" />
               <span>Community</span>
             </Button>
           </div>
         </div>
 
         {/* Category Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full -mx-1 px-1">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full">
           {categories.map((category) => (
             <Button
               key={category}
               variant={selectedCategory === category ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategory(category)}
-              className={`whitespace-nowrap flex-shrink-0 text-xs lg:text-sm h-8 lg:h-9 ${
+              className={`whitespace-nowrap flex-shrink-0 text-xs md:text-sm ${
                 selectedCategory === category
                   ? "bg-gradient-to-r from-primary to-accent shadow-glow"
                   : "glass-panel border-white/10 hover:border-primary/50"
               }`}
             >
-              <span className="mr-1.5">{categoryIcons[category]}</span>
+              <span className="mr-1 md:mr-2">{categoryIcons[category]}</span>
               <span>{category}</span>
             </Button>
           ))}
@@ -245,36 +245,34 @@ export const PromptTemplates = () => {
 
       {/* Tabs with Sections */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="relative z-10 w-full max-w-full">
-        <TabsList className="glass-panel border border-white/10 p-1 w-full sm:w-auto grid grid-cols-3 sm:flex gap-1 h-auto">
-          <TabsTrigger value="featured" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow text-xs lg:text-sm px-2 lg:px-4 h-9 lg:h-10">
-            <Star className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2 flex-shrink-0" />
-            <span className="hidden sm:inline">Most Used</span>
-            <span className="sm:hidden">Top</span>
+        <TabsList className="glass-panel border border-white/10 p-1 w-full sm:w-auto flex flex-wrap sm:flex-nowrap">
+          <TabsTrigger value="featured" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow flex-1 sm:flex-initial text-xs sm:text-sm">
+            <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Most Used</span>
           </TabsTrigger>
-          <TabsTrigger value="all" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow text-xs lg:text-sm px-2 lg:px-4 h-9 lg:h-10">
-            <Sparkles className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2 flex-shrink-0" />
-            <span className="truncate">All</span>
+          <TabsTrigger value="all" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow flex-1 sm:flex-initial text-xs sm:text-sm">
+            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">All Templates</span>
           </TabsTrigger>
-          <TabsTrigger value="favorites" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow text-xs lg:text-sm px-2 lg:px-4 h-9 lg:h-10">
-            <Heart className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2 flex-shrink-0" />
-            <span className="hidden sm:inline">Favorites</span>
-            <span className="sm:hidden">Fav</span>
+          <TabsTrigger value="favorites" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow flex-1 sm:flex-initial text-xs sm:text-sm">
+            <Heart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">My Favorites</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Most Used by Community */}
-        <TabsContent value="featured" className="space-y-4 lg:space-y-6 mt-4 lg:mt-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-xl lg:text-2xl font-bold flex items-center gap-2">
-                <Star className="h-5 w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
-                <span className="truncate">Most Used by Community</span>
+        <TabsContent value="featured" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Star className="h-6 w-6 text-primary" />
+                Most Used by Community
               </h2>
-              <p className="text-xs lg:text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Top performing templates loved by the community
               </p>
             </div>
-            <Badge className="bg-primary/20 text-primary border-primary/30 flex-shrink-0 text-xs lg:text-sm">
+            <Badge className="bg-primary/20 text-primary border-primary/30">
               {filteredFeaturedTemplates.length} templates
             </Badge>
           </div>
@@ -290,14 +288,13 @@ export const PromptTemplates = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredFeaturedTemplates.map((template, index) => (
                 <motion.div
                   key={template.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.4 }}
-                  className="w-full max-w-full"
                 >
                   <TemplateCard
                     template={template}
