@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X, Sparkles, Star, Users, Heart } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TemplateCreationDialog } from "@/components/templates/TemplateCreationDialog";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,19 +30,6 @@ interface ProfileMap {
 }
 
 const categories = ["All", "Productivity", "Writing", "Code", "Marketing", "Analytics", "Creative", "Business", "Education", "Custom"];
-
-const categoryIcons: Record<string, string> = {
-  'All': '🌐',
-  'Productivity': '⚡',
-  'Writing': '✍️',
-  'Code': '💻',
-  'Marketing': '📈',
-  'Analytics': '📊',
-  'Creative': '🎨',
-  'Business': '💼',
-  'Education': '📚',
-  'Custom': '📝',
-};
 
 export const PromptTemplates = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -222,24 +210,21 @@ export const PromptTemplates = () => {
           </div>
         </div>
 
-        {/* Category Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full">
-          {categories.map((category) => (
-            <Button
-              key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(category)}
-              className={`whitespace-nowrap flex-shrink-0 text-xs md:text-sm ${
-                selectedCategory === category
-                  ? "bg-gradient-to-r from-primary to-accent shadow-glow"
-                  : "glass-panel border-white/10 hover:border-primary/50"
-              }`}
-            >
-              <span className="mr-1 md:mr-2">{categoryIcons[category]}</span>
-              <span>{category}</span>
-            </Button>
-          ))}
+        {/* Category Dropdown */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground flex-shrink-0">Category:</span>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-[200px] glass-panel border-white/10 focus:border-primary/50">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent className="bg-background/95 backdrop-blur-xl border-white/10 z-50">
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </motion.div>
 

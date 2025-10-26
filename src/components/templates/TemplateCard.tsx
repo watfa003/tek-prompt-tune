@@ -206,15 +206,15 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
 
   return (
     <>
-      <Card className="group hover:shadow-lg transition-all duration-300 animate-fade-in">
+      <Card 
+        className="group hover:shadow-lg transition-all duration-300 animate-fade-in cursor-pointer"
+        onClick={() => setPreviewOpen(true)}
+      >
         <CardHeader>
           <div className="flex justify-between items-start gap-2">
-            <div className="flex-1 cursor-pointer" onClick={() => setPreviewOpen(true)}>
-              <CardTitle className="text-lg hover:text-primary transition-colors">
-                {template.title}
-              </CardTitle>
-              <CardDescription className="mt-1">{template.description}</CardDescription>
-            </div>
+            <CardTitle className="text-lg hover:text-primary transition-colors flex-1">
+              {template.title}
+            </CardTitle>
             <Button
               variant="ghost"
               size="icon"
@@ -254,21 +254,34 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
             </div>
           </div>
 
-          <Link to={`/user/${username}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link 
+            to={`/user/${username}`} 
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
             <User className="w-4 h-4" />
             <span>@{username}</span>
           </Link>
         </CardContent>
 
         <CardFooter className="gap-2">
-          <Button onClick={() => setPreviewOpen(true)} variant="outline" className="flex-1 gap-2">
-            <Eye className="w-4 h-4" />
-            Preview
-          </Button>
-          <Button onClick={handleUse} className="flex-1">
+          <Button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUse();
+            }} 
+            className="flex-1"
+          >
             Use Template
           </Button>
-          <Button variant="outline" size="icon" onClick={copyTemplate}>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={(e) => {
+              e.stopPropagation();
+              copyTemplate();
+            }}
+          >
             <Copy className="w-4 h-4" />
           </Button>
           {isOwner && (
