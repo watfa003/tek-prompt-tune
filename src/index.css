@@ -297,31 +297,4 @@
     background-size: 200% 200%;
     animation: gradient-shift 8s ease infinite;
   }
-
-  /* Safe page wrapper to prevent horizontal scroll */
-  .safe-page {
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  /* Content scroll utility */
-  .content-scroll {
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-  }
-
-  /* Ensure media never overflows */
-  img, video, svg, canvas {
-    max-width: 100%;
-    height: auto;
-  }
-
-  /* Disable hover transforms on touch devices */
-  @media (hover: none) {
-    .interactive-card:hover {
-      transform: none !important;
-      box-shadow: none !important;
-    }
-  }
 }

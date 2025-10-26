@@ -191,8 +191,8 @@ export const PromptHistory = () => {
 
     return (
       <motion.div
-        whileHover={{ y: -2, scale: 1.003 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24 }}
+        whileHover={{ y: -4, scale: 1.01 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
         <Card className={`glass-card interactive-card relative overflow-hidden group transition-all duration-300 ${isHighestRated ? 'neon-border shadow-glow' : 'border-white/10 hover:border-primary/30'}`}>
         {/* Animated Gradient Background */}
@@ -340,11 +340,9 @@ export const PromptHistory = () => {
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
-    <div className="space-y-6 relative safe-page">
+    <div className="space-y-6 relative">
       {/* Ambient Background Particles */}
-      <div className="hidden md:block">
-        <AmbientParticles />
-      </div>
+      <AmbientParticles />
 
       {/* Header */}
       <motion.div
