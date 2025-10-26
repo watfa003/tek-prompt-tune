@@ -10,6 +10,32 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useTemplatesData } from "@/context/TemplatesDataContext";
+import { 
+  ProductivityIcon, 
+  WritingIcon, 
+  CodeIcon, 
+  MarketingIcon, 
+  AnalyticsIcon, 
+  CreativeIcon, 
+  BusinessIcon, 
+  EducationIcon, 
+  CustomIcon, 
+  SupportIcon 
+} from "@/components/dashboard/CategoryIcons";
+
+const categoryIcons: Record<string, React.FC<any>> = {
+  Writing: WritingIcon,
+  Coding: CodeIcon,
+  Code: CodeIcon,
+  Marketing: MarketingIcon,
+  Support: SupportIcon,
+  Productivity: ProductivityIcon,
+  Analytics: AnalyticsIcon,
+  Creative: CreativeIcon,
+  Business: BusinessIcon,
+  Education: EducationIcon,
+  Custom: CustomIcon,
+};
 interface TemplateCardProps {
   template: {
     id: string;
@@ -203,6 +229,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
   };
 
   const isOwner = currentUserId && currentUserId === template.user_id;
+  const CategoryIcon = categoryIcons[template.category || 'Writing'] || WritingIcon;
 
   return (
     <>
@@ -211,32 +238,40 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
         onClick={() => setPreviewOpen(true)}
       >
         <CardHeader>
-          <div className="flex justify-between items-start gap-2">
-            <div className="flex-1">
-              <CardTitle className="text-lg hover:text-primary transition-colors">
-                {template.title}
-              </CardTitle>
+          <div className="flex gap-4">
+            {/* Category Icon */}
+            <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+              <CategoryIcon className="text-primary" size={32} />
+            </div>
+            
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-start gap-2">
+                <CardTitle className="text-lg hover:text-primary transition-colors">
+                  {template.title}
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => toggleFavorite(e)}
+                  disabled={loading}
+                  className="shrink-0 transition-all duration-200 hover:scale-110"
+                >
+                  <Heart 
+                    className={`w-5 h-5 transition-all duration-300 ${
+                      isFavorited 
+                        ? 'fill-red-500 text-red-500 scale-110' 
+                        : 'text-muted-foreground hover:text-red-500 hover:scale-105'
+                    }`} 
+                  />
+                </Button>
+              </div>
               {template.description && (
                 <CardDescription className="mt-2">
                   {template.description}
                 </CardDescription>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => toggleFavorite(e)}
-              disabled={loading}
-              className="shrink-0 transition-all duration-200 hover:scale-110"
-            >
-              <Heart 
-                className={`w-5 h-5 transition-all duration-300 ${
-                  isFavorited 
-                    ? 'fill-red-500 text-red-500 scale-110' 
-                    : 'text-muted-foreground hover:text-red-500 hover:scale-105'
-                }`} 
-              />
-            </Button>
           </div>
         </CardHeader>
 
