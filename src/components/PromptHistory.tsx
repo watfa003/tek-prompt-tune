@@ -42,7 +42,7 @@ export const PromptHistory = () => {
   const [filterScore, setFilterScore] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [activeTab, setActiveTab] = useState<"all" | "favorites">("all");
-  const { historyItems, analytics, loading, toggleFavorite: toggleFavoriteGlobal } = usePromptData();
+  const { historyItems, analytics, loading, toggleFavorite: toggleFavoriteGlobal, generateTitleAndApply } = usePromptData();
   const { settings, loading: settingsLoading } = useSettings();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -59,6 +59,16 @@ export const PromptHistory = () => {
       setActiveTab("favorites");
     }
   }, [searchParams, isSelectingForInfluence]);
+
+  // Auto-generate titles for items missing them
+  React.useEffect(() => {
+    historyItems.forEach(item => {
+      if ((!item.title || item.title === 'Untitled' || /untitled session/i.test(item.title)) && item.prompt) {
+        console.log('[PromptHistory] Auto-generating title for item:', item.id);
+        generateTitleAndApply(item.id, item.prompt);
+      }
+    });
+  }, [historyItems, generateTitleAndApply]);
 
   // Log history items to verify titles are present
   React.useEffect(() => {

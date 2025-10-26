@@ -25,6 +25,7 @@ interface PromptDataContextValue {
   addPromptToHistory: (item: PromptHistoryItem) => Promise<void>;
   hasLocalChanges: boolean;
   favorites: PromptHistoryItem[];
+  generateTitleAndApply: (promptId: string, promptText: string) => Promise<void>;
 }
 
 const PromptDataContext = createContext<PromptDataContextValue | null>(null);
@@ -124,6 +125,40 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return null;
     }
   }, []);
+
+  // Centralized title generator that updates state and persists
+  const generateTitleAndApply = useCallback(async (promptId: string, promptText: string) => {
+    try {
+      console.log('[generateTitleAndApply] Generating title for:', promptId);
+      const newTitle = await aiGenerateTitle(promptText);
+      const finalTitle = newTitle?.trim() || "Untitled";
+
+      // Update local state so UI re-renders immediately
+      setHistoryItems(prev => {
+        const updated = prev.map(p =>
+          p.id === promptId ? { ...p, title: finalTitle } : p
+        );
+        
+        // Persist to localStorage
+        const user = supabase.auth.getUser();
+        user.then(({ data }) => {
+          if (data?.user?.id) {
+            saveToCache(data.user.id, 'history', updated);
+            localStorage.setItem(`prompt-title-${promptId}`, finalTitle);
+          }
+        });
+        
+        return updated;
+      });
+
+      // Note: We don't persist titles back to Supabase as they're regenerated on load
+      // The title is cached in localStorage for quick access
+
+      console.log('[generateTitleAndApply] Title applied:', finalTitle);
+    } catch (err) {
+      console.error('[generateTitleAndApply] Failed to apply generated title:', err);
+    }
+  }, [aiGenerateTitle, saveToCache]);
 
   const refineTitlesFor = useCallback(async (items: PromptHistoryItem[]) => {
     try {
@@ -772,8 +807,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 
   const value = useMemo(
-    () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges, favorites }),
-    [historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges, favorites]
+    () => ({ historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges, favorites, generateTitleAndApply }),
+    [historyItems, analytics, loading, toggleFavorite, addPromptToHistory, hasLocalChanges, favorites, generateTitleAndApply]
   );
 
   return <PromptDataContext.Provider value={value}>{children}</PromptDataContext.Provider>;
