@@ -33,14 +33,19 @@ serve(async (req) => {
     }
 
     const system = [
-      "You generate concise, human-friendly titles for history items.",
+      "You generate short, clear titles that capture what a user is asking for.",
       "Rules:",
-      "- Output ONLY the title text, nothing else.",
-      "- 3-6 words, max 50 characters.",
-      "- Title Case each word.",
-      "- No quotes, emojis, or extra punctuation.",
-      "- No prefixes like 'Prompt:', 'Workflow:', etc.",
-      "- Capture the main topic clearly (e.g., 'Sushi Order Bot', 'Website SEO Optimization').",
+      "- Output ONLY the title text, nothing else",
+      "- 3-6 words maximum, under 50 characters",
+      "- Use Title Case (capitalize first letter of major words)",
+      "- NO quotes, emojis, punctuation, or special characters",
+      "- NO prefixes like 'Prompt:', 'Task:', 'Request:', etc.",
+      "- Focus on the core topic/action being requested",
+      "Examples:",
+      "  'write me code for a chatbot' → 'Chatbot Code Creation'",
+      "  'help me with SEO for my site' → 'Website SEO Optimization'",
+      "  'create a sushi ordering bot' → 'Sushi Order Bot'",
+      "  'explain quantum physics simply' → 'Quantum Physics Explanation'"
     ].join("\n");
 
     console.log("Generating title for prompt:", input.slice(0, 100));
@@ -55,7 +60,7 @@ serve(async (req) => {
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: system },
-          { role: "user", content: `Create a very short, clear title for this text:\n\n${input}` },
+          { role: "user", content: `Generate a short title for:\n\n${input}` },
         ],
         temperature: 0.2,
         max_tokens: 50,

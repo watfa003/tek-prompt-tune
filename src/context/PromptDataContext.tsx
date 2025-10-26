@@ -480,21 +480,24 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Queue for background sync to Supabase - always add, no deduplication
       setPendingQueue(prev => [...prev, item]);
 
-      // AI refine title for this new item (non-blocking)
-      try {
-        const ai = await aiGenerateTitle(item.prompt);
-        if (ai) {
-          const { data: user } = await supabase.auth.getUser();
-          const uid = user?.user?.id;
-          setHistoryItems(prev => {
-            const updated = prev.map(h => h.id === item.id ? { ...h, title: ai } : h);
-            if (uid) saveToCache(uid, 'history', updated);
-            return updated;
-          });
+      // Generate AI title for this new item (background, non-blocking)
+      setTimeout(async () => {
+        try {
+          const aiTitle = await aiGenerateTitle(item.prompt);
+          if (aiTitle && aiTitle.length > 0) {
+            const { data: user } = await supabase.auth.getUser();
+            const uid = user?.user?.id;
+            setHistoryItems(prev => {
+              const updated = prev.map(h => h.id === item.id ? { ...h, title: aiTitle } : h);
+              if (uid) saveToCache(uid, 'history', updated);
+              return updated;
+            });
+          }
+        } catch (e) {
+          console.error('AI title generation failed:', e);
+          // Keep the heuristic title if AI fails
         }
-      } catch (e) {
-        console.error('AI refine new item title error:', e);
-      }
+      }, 100);
     } catch (error) {
       console.error('Error adding prompt to history:', error);
     }
