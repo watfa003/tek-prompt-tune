@@ -225,7 +225,7 @@ export const PerformanceDashboard = () => {
           Recent Activity
         </h3>
         <div className="space-y-3">
-          {analytics.recentActivity.slice(0, 5).map((activity) => (
+          {analytics.recentActivity.slice(0, 6).map((activity) => (
             <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex-1">
                 <div className="flex items-center space-x-2">

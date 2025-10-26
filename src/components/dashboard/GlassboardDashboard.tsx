@@ -336,14 +336,14 @@ export const GlassboardDashboard = () => {
                   </div>
                   Recent Activity
                 </h3>
-                <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 font-semibold">Last 5</Badge>
+                <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 font-semibold">Last 6</Badge>
               </div>
             </div>
 
             <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               <div className="divide-y divide-white/5">
                 {analytics?.recentActivity && analytics.recentActivity.length > 0 ? (
-                  analytics.recentActivity.slice(0, 5).map((activity: any, index: number) => (
+                  analytics.recentActivity.slice(0, 6).map((activity: any, index: number) => (
                     <motion.div
                       key={activity.id || index}
                       initial={{ opacity: 0, x: -20 }}

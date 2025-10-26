@@ -447,7 +447,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 const bTime = new Date(b.timestamp).getTime();
                 return bTime - aTime;
               })
-              .slice(0, 5)
+              .slice(0, 6)
               .map(item => ({
                 id: item.id,
                 title: item.title,
