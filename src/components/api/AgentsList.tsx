@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +76,7 @@ export function AgentsList() {
 
   const loadAgents = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('agents')
         .select('*')
         .order('created_at', { ascending: false });
@@ -99,7 +98,7 @@ export function AgentsList() {
     if (!deleteId) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('agents')
         .delete()
         .eq('id', deleteId);
@@ -119,7 +118,7 @@ export function AgentsList() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('agents')
         .update({
           name: editAgent.name,

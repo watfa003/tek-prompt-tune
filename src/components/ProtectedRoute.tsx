@@ -13,45 +13,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let retryAttempts = 0;
-    let graceTimer: number | undefined;
-
-    const safeSet = (s: Session | null) => {
-      setSession(s);
-      setUser(s?.user ?? null);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
-    };
-
-    const tryRecover = () => {
-      window.clearTimeout(graceTimer);
-      graceTimer = window.setTimeout(async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          safeSet(session);
-          retryAttempts = 0;
-        } else if (retryAttempts < 3) {
-          retryAttempts += 1;
-          tryRecover();
-        }
-      }, 500);
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Update immediately
-      safeSet(session);
-      // If we momentarily lost session (e.g., token refresh 429), start a short recovery loop
-      if (!session) {
-        tryRecover();
-      }
     });
 
-    // Initial session fetch after listener is set
-    supabase.auth.getSession().then(({ data: { session } }) => safeSet(session));
+    // Listen for auth changes - only update on SIGNED_IN and SIGNED_OUT
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+      // Ignore other events to prevent unnecessary sign-outs
+    });
 
-    return () => {
-      subscription.unsubscribe();
-      window.clearTimeout(graceTimer);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   if (loading) {
@@ -59,14 +40,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Reconnecting session…</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
   if (!user || !session) {
-    // Grace window: don't hard-redirect if we're still attempting recovery
     return <Navigate to="/auth" replace />;
   }
 

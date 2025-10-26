@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,7 +58,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
     const userId = session?.user?.id;
     if (!userId) return;
 
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('user_favorites')
       .select('id')
       .eq('user_id', userId)
@@ -90,7 +89,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
     try {
       if (isFavorited) {
         const [deleteRes, decRes] = await Promise.all([
-          supabase
+          (supabase as any)
             .from('user_favorites')
             .delete()
             .eq('user_id', userId)
@@ -103,7 +102,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
         toast.success("Removed from favorites");
       } else {
         const [insertRes, incRes] = await Promise.all([
-          supabase
+          (supabase as any)
             .from('user_favorites')
             .insert({
               user_id: userId,
@@ -118,12 +117,12 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
       }
 
       // Final reconcile: fetch authoritative count to avoid drift
-      const { data: refreshed } = await supabase
+      const { data: refreshed } = await (supabase as any)
         .from('prompt_templates')
         .select('favorites_count')
         .eq('id', template.id)
         .maybeSingle();
-      if (typeof refreshed?.favorites_count === 'number') {
+      if (refreshed && typeof refreshed.favorites_count === 'number') {
         setFavCount(refreshed.favorites_count);
         setTemplateFavoritesCount(template.id, refreshed.favorites_count);
       }
@@ -184,7 +183,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
 
     setDeleting(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('prompt_templates')
         .delete()
         .eq('id', template.id)
