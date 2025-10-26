@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, Sparkles, Star, Users, Heart } from "lucide-react";
 import { TemplateCreationDialog } from "@/components/templates/TemplateCreationDialog";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTemplatesData } from "@/context/TemplatesDataContext";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 interface Template {
   id: string;
@@ -27,6 +29,19 @@ interface ProfileMap {
 }
 
 const categories = ["All", "Productivity", "Writing", "Code", "Marketing", "Analytics", "Creative", "Business", "Education", "Custom"];
+
+const categoryIcons: Record<string, string> = {
+  'All': '🌐',
+  'Productivity': '⚡',
+  'Writing': '✍️',
+  'Code': '💻',
+  'Marketing': '📈',
+  'Analytics': '📊',
+  'Creative': '🎨',
+  'Business': '💼',
+  'Education': '📚',
+  'Custom': '📝',
+};
 
 export const PromptTemplates = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -57,7 +72,6 @@ export const PromptTemplates = () => {
   const filteredFavoriteTemplates = applyFilters(favoriteTemplates);
 
   const handleUseTemplate = (template: string, outputType: string) => {
-    // Always navigate to AI Agent with template as influence
     navigate(`/app/ai-agent?selectedTemplate=${encodeURIComponent(template)}&selectedType=template`);
   };
 
@@ -73,160 +87,340 @@ export const PromptTemplates = () => {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-semibold">Templates</h2>
+          <h2 className="text-3xl font-bold gradient-text">Template Library</h2>
         </div>
-        <div className="text-center py-12">Loading templates...</div>
+        <div className="text-center py-12">
+          <div className="inline-block w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
+          <p className="text-muted-foreground">Loading templates...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold">Templates</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Discover and share prompt templates
-          </p>
-        </div>
-        <TemplateCreationDialog onTemplateCreated={() => window.location.reload()} />
-      </div>
-
-      {/* Template Filter */}
-      <div className="flex items-center gap-2">
-        <Filter className="w-4 h-4 text-muted-foreground" />
-        <div className="flex gap-1">
-          <Button
-            variant={templateFilter === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTemplateFilter("all")}
-          >
-            All Templates
-          </Button>
-          <Button
-            variant={templateFilter === "official" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTemplateFilter("official")}
-          >
-            PromptEK Official
-          </Button>
-          <Button
-            variant={templateFilter === "community" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTemplateFilter("community")}
-          >
-            Community
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-        <Input
-          placeholder="Search by title, description, or username..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 pr-10"
+    <div className="space-y-6 fade-slide-up relative">
+      {/* Floating Gradient Orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <motion.div
+          className="absolute top-20 left-10 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"
+          animate={{
+            y: [0, 30, 0],
+            x: [0, 20, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
         />
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
-            onClick={() => setSearchQuery("")}
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        )}
+        <motion.div
+          className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-[100px]"
+          animate={{
+            y: [0, -30, 0],
+            x: [0, -20, 0],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map((category) => (
-          <Button
-            key={category}
-            variant={selectedCategory === category ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory(category)}
-            className="whitespace-nowrap"
-          >
-            {category}
-          </Button>
-        ))}
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold gradient-text">Template Library</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Discover and share professional prompt templates
+          </p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <TemplateCreationDialog onTemplateCreated={() => window.location.reload()} />
+        </motion.div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="featured">Featured</TabsTrigger>
-          <TabsTrigger value="all">All Templates</TabsTrigger>
-          <TabsTrigger value="favorites">My Favorites</TabsTrigger>
+      {/* Sticky Filter Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="sticky top-0 z-40 glass-panel border border-white/10 rounded-[18px] p-4 backdrop-blur-xl"
+      >
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+          <Input
+            placeholder="Search templates by title, description, or creator..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-12 pr-12 h-12 glass-panel border-white/10 focus:border-primary/50 focus:neon-border"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-white/10"
+              onClick={() => setSearchQuery("")}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Template Type Filter */}
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+          <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <div className="flex gap-2">
+            <Button
+              variant={templateFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTemplateFilter("all")}
+              className={templateFilter === "all" 
+                ? "bg-gradient-to-r from-primary to-accent shadow-glow" 
+                : "glass-panel border-white/10 hover:border-primary/50"}
+            >
+              All Templates
+            </Button>
+            <Button
+              variant={templateFilter === "official" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTemplateFilter("official")}
+              className={templateFilter === "official" 
+                ? "bg-gradient-to-r from-primary to-accent shadow-glow" 
+                : "glass-panel border-white/10 hover:border-primary/50"}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Official
+            </Button>
+            <Button
+              variant={templateFilter === "community" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTemplateFilter("community")}
+              className={templateFilter === "community" 
+                ? "bg-gradient-to-r from-primary to-accent shadow-glow" 
+                : "glass-panel border-white/10 hover:border-primary/50"}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Community
+            </Button>
+          </div>
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {categories.map((category) => (
+            <Button
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(category)}
+              className={`whitespace-nowrap ${
+                selectedCategory === category
+                  ? "bg-gradient-to-r from-primary to-accent shadow-glow"
+                  : "glass-panel border-white/10 hover:border-primary/50"
+              }`}
+            >
+              <span className="mr-2">{categoryIcons[category]}</span>
+              {category}
+            </Button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Tabs with Sections */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="relative z-10">
+        <TabsList className="glass-panel border border-white/10 p-1">
+          <TabsTrigger value="featured" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow">
+            <Star className="h-4 w-4 mr-2" />
+            Most Used
+          </TabsTrigger>
+          <TabsTrigger value="all" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow">
+            <Sparkles className="h-4 w-4 mr-2" />
+            All Templates
+          </TabsTrigger>
+          <TabsTrigger value="favorites" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:shadow-glow">
+            <Heart className="h-4 w-4 mr-2" />
+            My Favorites
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="featured" className="space-y-4">
-          <p className="text-sm text-muted-foreground">Most used templates by the community</p>
+        {/* Most Used by Community */}
+        <TabsContent value="featured" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Star className="h-6 w-6 text-primary" />
+                Most Used by Community
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Top performing templates loved by the community
+              </p>
+            </div>
+            <Badge className="bg-primary/20 text-primary border-primary/30">
+              {filteredFeaturedTemplates.length} templates
+            </Badge>
+          </div>
+          
           {filteredFeaturedTemplates.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No featured templates yet
+            <Card className="glass-card">
+              <CardContent className="py-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <Star className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No featured templates yet</h3>
+                <p className="text-muted-foreground">Check back soon for community favorites</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredFeaturedTemplates.map((template) => (
-                <TemplateCard
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredFeaturedTemplates.map((template, index) => (
+                <motion.div
                   key={template.id}
-                  template={template}
-                  username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
-                  onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
-                  onFavoriteChange={handleFavoriteChange}
-                  onDelete={handleDelete}
-                />
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                >
+                  <TemplateCard
+                    template={template}
+                    username={profileMap[template.user_id] || (template.is_official ? 'PrompTek' : 'Unknown')}
+                    onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
+                    onFavoriteChange={handleFavoriteChange}
+                    onDelete={handleDelete}
+                  />
+                </motion.div>
               ))}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="all" className="space-y-4">
+        {/* All Templates */}
+        <TabsContent value="all" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" />
+                All Templates
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Browse our complete collection
+              </p>
+            </div>
+            <Badge className="bg-primary/20 text-primary border-primary/30">
+              {filteredTemplates.length} templates
+            </Badge>
+          </div>
+
           {filteredTemplates.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No templates found. Try adjusting your search or filters.
+            <Card className="glass-card">
+              <CardContent className="py-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <Search className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No templates found</h3>
+                <p className="text-muted-foreground mb-4">
+                  Try adjusting your search or filters
+                </p>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("All");
+                    setTemplateFilter("all");
+                  }}
+                  className="glass-panel border-white/10"
+                >
+                  Clear Filters
+                </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTemplates.map((template) => (
-                <TemplateCard
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredTemplates.map((template, index) => (
+                <motion.div
                   key={template.id}
-                  template={template}
-                  username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
-                  onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
-                  onFavoriteChange={handleFavoriteChange}
-                  onDelete={handleDelete}
-                />
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                >
+                  <TemplateCard
+                    template={template}
+                    username={profileMap[template.user_id] || (template.is_official ? 'PrompTek' : 'Unknown')}
+                    onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
+                    onFavoriteChange={handleFavoriteChange}
+                    onDelete={handleDelete}
+                  />
+                </motion.div>
               ))}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="favorites" className="space-y-4">
-          <p className="text-sm text-muted-foreground">Your favorited templates</p>
+        {/* My Favorites */}
+        <TabsContent value="favorites" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Heart className="h-6 w-6 text-primary" />
+                My Favorites
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Your personally curated collection
+              </p>
+            </div>
+            <Badge className="bg-primary/20 text-primary border-primary/30">
+              {filteredFavoriteTemplates.length} templates
+            </Badge>
+          </div>
+
           {filteredFavoriteTemplates.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No favorites yet. Start exploring and favoriting templates!
+            <Card className="glass-card">
+              <CardContent className="py-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <Heart className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No favorites yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Start exploring and favoriting templates you love
+                </p>
+                <Button 
+                  onClick={() => setActiveTab("all")}
+                  className="btn-sheen bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-glow"
+                >
+                  Browse Templates
+                </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredFavoriteTemplates.map((template) => (
-                <TemplateCard
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredFavoriteTemplates.map((template, index) => (
+                <motion.div
                   key={template.id}
-                  template={template}
-                  username={profileMap[template.user_id] || (template.is_official ? 'Promptek' : 'Unknown')}
-                  onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
-                  onFavoriteChange={handleFavoriteChange}
-                  onDelete={handleDelete}
-                />
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                >
+                  <TemplateCard
+                    template={template}
+                    username={profileMap[template.user_id] || (template.is_official ? 'PrompTek' : 'Unknown')}
+                    onUseTemplate={(t) => handleUseTemplate(t, template.output_type || 'text')}
+                    onFavoriteChange={handleFavoriteChange}
+                    onDelete={handleDelete}
+                  />
+                </motion.div>
               ))}
             </div>
           )}
