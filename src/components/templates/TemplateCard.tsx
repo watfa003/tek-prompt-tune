@@ -246,7 +246,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
             
             {/* Title and Favorite */}
             <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
-              <CardTitle className="text-base leading-tight hover:text-primary transition-colors line-clamp-2">
+              <CardTitle className="text-base leading-snug font-semibold hover:text-primary transition-colors line-clamp-3 break-words min-h-[60px]">
                 {template.title}
               </CardTitle>
               <Button

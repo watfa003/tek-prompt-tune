@@ -230,7 +230,7 @@ export const TrendingTemplates: React.FC = () => {
                   {/* Content */}
                   <div className="space-y-3 relative z-10 flex-1 flex flex-col">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-bold font-heading tracking-tight text-base leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-250">{template.title}</h3>
+                      <h3 className="font-bold font-heading tracking-tight text-base leading-snug line-clamp-3 break-words min-h-[60px] group-hover:text-primary transition-colors duration-250">{template.title}</h3>
                     </div>
 
                     <div className="h-[40px] flex items-start">
