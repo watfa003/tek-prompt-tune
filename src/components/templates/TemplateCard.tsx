@@ -217,7 +217,7 @@ export function TemplateCard({ template, username, onUseTemplate, onFavoriteChan
                 {template.title}
               </CardTitle>
               {template.description && (
-                <CardDescription className="line-clamp-2 mt-2">
+                <CardDescription className="mt-2">
                   {template.description}
                 </CardDescription>
               )}
