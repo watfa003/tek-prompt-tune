@@ -271,57 +271,65 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
-        // Generate a concise, smart title from any prompt
+        // Generate smart, AI-style summary titles
         const generateTitle = (originalPrompt: string): string => {
-          const text = (originalPrompt || '').trim();
+          let text = (originalPrompt || '').trim();
           if (!text) return 'Untitled Prompt';
           
-          // Extract action verbs and key terms
-          const actionWords = ['write', 'create', 'generate', 'build', 'make', 'develop', 'design', 'draft', 'compose', 'produce', 'implement', 'code', 'explain', 'analyze', 'summarize', 'optimize'];
-          const words = text.toLowerCase().split(/\s+/);
+          // Remove common prompt prefixes
+          text = text
+            .replace(/^(please|kindly|could you|can you|would you|i need you to|i want you to|i need|i want|help me|you are a|act as a)\s+/i, '')
+            .replace(/\[.*?\]/g, '[...]') // shorten placeholders
+            .trim();
           
-          let action = '';
-          let subject = '';
-          
-          // Find the main action
-          for (const word of words) {
-            if (actionWords.some(a => word.includes(a))) {
-              action = word.replace(/[^a-z]/g, '');
-              break;
+          // Detect question format
+          if (text.match(/^(how|what|why|when|where|who|which)\s/i)) {
+            const question = text.split(/[.?!]/)[0].trim();
+            if (question.length <= 55) return question + '?';
+            // Extract key part of question
+            const match = question.match(/^(how|what|why|when|where|who|which)\s+(?:do|does|can|should|would|to|is|are)\s+(.+)/i);
+            if (match) {
+              const subject = match[2].split(/\s+/).slice(0, 6).join(' ');
+              return `${match[1]} ${subject}?`.slice(0, 55);
             }
           }
           
-          // Extract key nouns (simple heuristic: words after common articles/prepositions)
-          const cleaned = text
-            .replace(/^(please|could you|can you|i need|i want|help me)/i, '')
-            .replace(/\[.*?\]/g, '') // remove placeholders
-            .trim();
+          // Detect imperative/command format
+          const imperativeMatch = text.match(/^(write|create|generate|build|make|develop|design|implement|code|explain|describe|analyze|summarize|optimize|refactor|fix|debug|add|update|modify|improve|enhance)\s+(.+?)(?:[.!]|$)/i);
+          if (imperativeMatch) {
+            const verb = imperativeMatch[1];
+            let object = imperativeMatch[2];
+            
+            // Clean up the object
+            object = object
+              .replace(/^(me|a|an|the)\s+/i, '')
+              .replace(/\s+(for|to|that|which|with).+$/i, ''); // remove trailing clauses
+            
+            // Get first meaningful phrase
+            const words = object.split(/\s+/).slice(0, 7);
+            const phrase = words.join(' ');
+            
+            const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+            const title = `${capitalize(verb)} ${phrase}`;
+            return title.length > 55 ? title.slice(0, 52) + '...' : title;
+          }
           
-          // Get important words (skip common words)
-          const skipWords = new Set(['a', 'an', 'the', 'for', 'to', 'of', 'in', 'on', 'at', 'with', 'by', 'from', 'that', 'this', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 'have', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 'me', 'my', 'your']);
+          // For descriptive/complex prompts, extract core topic
+          const sentences = text.split(/[.!]/);
+          const firstSentence = sentences[0].trim();
           
-          const importantWords = cleaned
+          if (firstSentence.length <= 55) {
+            return firstSentence;
+          }
+          
+          // Extract noun phrases (simple heuristic)
+          const nounPhrase = firstSentence
+            .replace(/^(I want|I need|Can you|Could you|Please|Write|Create|Make|Build)\s+/i, '')
             .split(/\s+/)
-            .filter(w => w.length > 2 && !skipWords.has(w.toLowerCase()))
-            .slice(0, 8);
+            .slice(0, 7)
+            .join(' ');
           
-          // Create title: Action + Key Terms
-          if (action && importantWords.length > 0) {
-            const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-            const keyTerms = importantWords.slice(0, 5).join(' ');
-            subject = keyTerms.length > 40 ? keyTerms.slice(0, 37) + '...' : keyTerms;
-            return `${capitalize(action)} ${subject}`.trim();
-          }
-          
-          // Fallback: Take first meaningful sentence or phrase
-          const firstSentence = text.split(/[.!?]/)[0];
-          if (firstSentence.length <= 60) {
-            return firstSentence.trim();
-          }
-          
-          // Last resort: intelligent truncation
-          const truncated = importantWords.slice(0, 6).join(' ');
-          return truncated.length > 50 ? truncated.slice(0, 47) + '...' : truncated;
+          return nounPhrase.length > 50 ? nounPhrase.slice(0, 47) + '...' : nounPhrase;
         };
         
         return {
