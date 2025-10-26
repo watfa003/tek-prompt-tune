@@ -421,6 +421,18 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // REMOVED: backfillMissingTitles function
   // Only generate titles for NEW prompts at creation time via realtime/poller paths
 
+  // Helper: Check if a prompt is recent (within last 5 minutes)
+  const isRecentPrompt = useCallback((createdAt: string): boolean => {
+    try {
+      const created = new Date(createdAt).getTime();
+      const now = Date.now();
+      const ageInMinutes = (now - created) / 1000 / 60;
+      return ageInMinutes <= 5;
+    } catch {
+      return false; // If parsing fails, treat as old
+    }
+  }, []);
+
   // Load initial data from Supabase with full prompt data
   const loadInitialData = useCallback(async () => {
     try {
@@ -706,13 +718,13 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         optimizationChannel = supabase
           .channel('provider-optimizations')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'optimization_history' }, async (payload) => {
-            console.log('New optimization inserted:', payload.new);
+            console.log('[Realtime] New optimization inserted:', payload.new);
             const no: any = payload.new;
             if (no.user_id !== user.user.id) return; // Guard
 
             // De-duplicate processing and skip if already present
             if (processingOptimizationsRef.current.has(no.id) || historyRef.current.some(h => h.id === no.id)) {
-              console.log('Skipping already processed optimization:', no.id);
+              console.log('[Realtime] Skipping already processed optimization:', no.id);
               return;
             }
             processingOptimizationsRef.current.add(no.id);
@@ -723,28 +735,45 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               .eq('id', no.prompt_id)
               .single();
 
-            if (!promptData) return;
-
-            // Generate AI title before inserting; skip until ready
-            console.log(`[Realtime] Generating title for optimization ${no.id}`);
-            const aiTitle = await aiGenerateTitle(promptData.original_prompt);
-            if (!aiTitle) { 
-              console.error(`[Realtime] Failed to generate title for ${no.id}`);
-              processingOptimizationsRef.current.delete(no.id); 
-              return; 
+            if (!promptData) {
+              processingOptimizationsRef.current.delete(no.id);
+              return;
             }
-            console.log(`[Realtime] Generated title: "${aiTitle}" for ${no.id}`);
-            
-            // Persist title to localStorage immediately and mark as done
-            try { 
-              localStorage.setItem(`prompt-title-${no.id}`, aiTitle);
+
+            // Check if prompt is recent (within 5 minutes)
+            const isRecent = isRecentPrompt(no.created_at);
+            let finalTitle = 'Untitled';
+
+            if (!isRecent) {
+              // Old prompt - skip title generation entirely
+              const ageInMinutes = Math.floor((Date.now() - new Date(no.created_at).getTime()) / 1000 / 60);
+              console.log(`[Realtime] Skipping title generation for old prompt ${no.id} (${ageInMinutes} minutes old)`);
               setTitleStatus(no.id, "done");
-              releaseTitleLock(no.id);
-            } catch {}
+              
+              // Check if there's a cached title from before
+              const cached = localStorage.getItem(`prompt-title-${no.id}`);
+              if (cached && cached !== 'Untitled') {
+                finalTitle = cached;
+                console.log(`[Realtime] Using existing cached title for ${no.id}: ${finalTitle}`);
+              }
+            } else {
+              // Recent prompt - generate title using the centralized function
+              console.log(`[Realtime] Calling generateTitleAndApply for recent prompt ${no.id}`);
+              await generateTitleAndApply(no.id, promptData.original_prompt);
+              
+              // Read the generated title from localStorage
+              const cached = localStorage.getItem(`prompt-title-${no.id}`);
+              if (cached && cached !== 'Untitled') {
+                finalTitle = cached;
+                console.log(`[Realtime] Using generated title for ${no.id}: ${finalTitle}`);
+              } else {
+                console.warn(`[Realtime] No title found in cache after generation for ${no.id}`);
+              }
+            }
 
             const newHistoryItem: PromptHistoryItem = {
               id: no.id,
-              title: aiTitle,
+              title: finalTitle,
               description: `New optimization variant (Score: ${(no.score || 0).toFixed(3)})`,
               prompt: promptData.original_prompt,
               output: no.variant_prompt,
@@ -813,21 +842,45 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 .eq('id', no.prompt_id)
                 .single();
 
-              if (!promptData) continue;
+              if (!promptData) {
+                processingOptimizationsRef.current.delete(no.id);
+                continue;
+              }
 
-              const aiTitle = await aiGenerateTitle((promptData as any).original_prompt);
-              if (!aiTitle) { processingOptimizationsRef.current.delete(no.id); continue; } // do not insert until we have the AI title
-              
-              // Persist title to localStorage immediately and mark as done
-              try { 
-                localStorage.setItem(`prompt-title-${no.id}`, aiTitle);
+              // Check if prompt is recent (within 5 minutes)
+              const isRecent = isRecentPrompt(no.created_at);
+              let finalTitle = 'Untitled';
+
+              if (!isRecent) {
+                // Old prompt - skip title generation entirely
+                const ageInMinutes = Math.floor((Date.now() - new Date(no.created_at).getTime()) / 1000 / 60);
+                console.log(`[Poller] Skipping title generation for old prompt ${no.id} (${ageInMinutes} minutes old)`);
                 setTitleStatus(no.id, "done");
-                releaseTitleLock(no.id);
-              } catch {}
+                
+                // Check if there's a cached title from before
+                const cached = localStorage.getItem(`prompt-title-${no.id}`);
+                if (cached && cached !== 'Untitled') {
+                  finalTitle = cached;
+                  console.log(`[Poller] Using existing cached title for ${no.id}: ${finalTitle}`);
+                }
+              } else {
+                // Recent prompt - generate title using the centralized function
+                console.log(`[Poller] Calling generateTitleAndApply for recent prompt ${no.id}`);
+                await generateTitleAndApply(no.id, (promptData as any).original_prompt);
+                
+                // Read the generated title from localStorage
+                const cached = localStorage.getItem(`prompt-title-${no.id}`);
+                if (cached && cached !== 'Untitled') {
+                  finalTitle = cached;
+                  console.log(`[Poller] Using generated title for ${no.id}: ${finalTitle}`);
+                } else {
+                  console.warn(`[Poller] No title found in cache after generation for ${no.id}`);
+                }
+              }
 
               const newHistoryItem: PromptHistoryItem = {
                 id: no.id,
-                title: aiTitle,
+                title: finalTitle,
                 description: `New optimization variant (Score: ${(no.score || 0).toFixed(3)})`,
                 prompt: (promptData as any).original_prompt,
                 output: no.variant_prompt,
@@ -884,7 +937,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (optimizationChannel) supabase.removeChannel(optimizationChannel);
       if (poller) clearInterval(poller);
     };
-  }, [loadInitialData, saveToCache]);
+  }, [loadInitialData, saveToCache, generateTitleAndApply, isRecentPrompt, setTitleStatus]);
 
   const favorites = useMemo(
     () => historyItems.filter(item => item.isFavorite),
