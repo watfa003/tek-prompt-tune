@@ -244,10 +244,14 @@ const Index = () => {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 md:mb-2 flex-wrap">
-                        <h3 className="font-semibold text-sm md:text-base truncate">{item.title}</h3>
+                        <h3 className="font-semibold text-sm md:text-base truncate">
+                          {item.title || item.description || 'Untitled'}
+                        </h3>
                         <Badge variant="outline" className="text-xs whitespace-nowrap">{item.provider}</Badge>
                       </div>
-                      <p className="text-xs md:text-sm text-muted-foreground truncate">{item.description}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">
+                        {item.description}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2 md:gap-4 ml-2 flex-shrink-0">
                       <div className="text-right">
