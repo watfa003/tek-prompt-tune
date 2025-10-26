@@ -174,28 +174,41 @@ export const PromptHistory = () => {
   };
 
   const renderHistoryItem = (item: PromptHistoryItem, index: number) => {
-    const scoreColor = item.score >= 0.8 ? "text-green-500" : item.score >= 0.6 ? "text-yellow-500" : "text-orange-500";
-    const scoreLabel = item.score >= 0.8 ? "Excellent" : item.score >= 0.6 ? "Good" : item.score >= 0.4 ? "Average" : "Poor";
+    const score = typeof item.score === 'number' ? item.score : 0;
+    const scoreColor = score >= 0.8 ? "text-green-400" : score >= 0.6 ? "text-yellow-400" : "text-orange-400";
+    const scoreBg = score >= 0.8 ? "bg-green-500/10 border-green-500/20" : score >= 0.6 ? "bg-yellow-500/10 border-yellow-500/20" : "bg-orange-500/10 border-orange-500/20";
+    const scoreLabel = score >= 0.8 ? "Excellent" : score >= 0.6 ? "Good" : score >= 0.4 ? "Average" : "Poor";
+    
+    // Format date safely
+    const formatDate = (timestamp: any) => {
+      try {
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return "No date";
+        return date.toLocaleDateString();
+      } catch {
+        return "No date";
+      }
+    };
 
     return (
-      <Card key={item.id} className="p-4 sm:p-6 hover:shadow-lg transition-all w-full max-w-full overflow-hidden box-border">
+      <Card key={item.id} className="p-4 sm:p-6 hover:shadow-lg hover:shadow-primary/5 transition-all w-full max-w-full overflow-hidden box-border border-l-4 border-l-primary/50">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 w-full">
           <div className="flex-1 min-w-0 w-full">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-semibold truncate">{item.title}</h3>
-              {item.isFavorite && <Star className="h-4 w-4 fill-yellow-500 text-yellow-500 flex-shrink-0" />}
+              <h3 className="text-base sm:text-lg font-semibold">{item.title}</h3>
+              {item.isFavorite && <Star className="h-4 w-4 fill-accent text-accent flex-shrink-0 animate-pulse" />}
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs sm:text-sm text-muted-foreground">
-              <Badge variant="outline" className="text-xs">{item.provider}</Badge>
-              <Badge variant="outline" className="text-xs">{item.outputType}</Badge>
+              <Badge variant="outline" className="text-xs bg-primary/5 border-primary/30 text-primary">{item.provider}</Badge>
+              <Badge variant="outline" className="text-xs bg-accent/5 border-accent/30 text-accent">{item.outputType}</Badge>
               <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 flex-shrink-0" />
-                <span className="text-xs">{new Date(item.timestamp).toLocaleDateString()}</span>
+                <Calendar className="h-3 w-3 flex-shrink-0 text-primary" />
+                <span className="text-xs">{formatDate(item.timestamp)}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <TrendingUp className={`h-3 w-3 flex-shrink-0 ${scoreColor}`} />
-                <span className={`text-xs ${scoreColor}`}>{(item.score * 100).toFixed(0)}% ({scoreLabel})</span>
-              </div>
+              <Badge className={`text-xs ${scoreBg} ${scoreColor} border`}>
+                <TrendingUp className="h-3 w-3 mr-1" />
+                {(score * 100).toFixed(0)}% {scoreLabel}
+              </Badge>
             </div>
           </div>
           
@@ -228,23 +241,32 @@ export const PromptHistory = () => {
 
         <Collapsible className="w-full">
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between text-sm">
-              <span>Show Details</span>
+            <Button variant="ghost" size="sm" className="w-full justify-between text-sm hover:bg-primary/5">
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Show Details
+              </span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-4 w-full overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
               <div className="space-y-2 min-w-0 overflow-hidden">
-                <p className="text-sm font-semibold text-muted-foreground">Original Prompt</p>
-                <div className="p-3 bg-muted rounded-lg overflow-x-auto">
+                <p className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-accent" />
+                  Original Prompt
+                </p>
+                <div className="p-3 bg-muted/50 rounded-lg overflow-x-auto border border-muted">
                   <pre className="whitespace-pre-wrap text-sm break-words">{item.prompt}</pre>
                 </div>
               </div>
               
               <div className="space-y-2 min-w-0 overflow-hidden">
-                <p className="text-sm font-semibold text-primary">AI Optimization</p>
-                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 overflow-x-auto">
+                <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  AI Optimization
+                </p>
+                <div className="p-3 bg-gradient-to-br from-primary/5 to-accent/5 rounded-lg border border-primary/30 overflow-x-auto">
                   <pre className="whitespace-pre-wrap text-sm break-words">{item.output}</pre>
                 </div>
               </div>
@@ -252,14 +274,23 @@ export const PromptHistory = () => {
           </CollapsibleContent>
         </Collapsible>
 
-        <div className="flex items-center gap-2 pt-4 mt-4 border-t flex-wrap">
-          <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.prompt, "Prompt")}>
+        <div className="flex items-center gap-2 pt-4 mt-4 border-t border-primary/10 flex-wrap">
+          <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.prompt, "Prompt")} className="hover:bg-accent/10 hover:border-accent">
             <Copy className="h-3 w-3 mr-1" />
-            Prompt
+            Copy Prompt
           </Button>
-          <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.output, "Output")}>
+          <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.output, "Output")} className="hover:bg-primary/10 hover:border-primary">
             <Copy className="h-3 w-3 mr-1" />
-            Optimized
+            Copy Optimized
+          </Button>
+          <Button 
+            size="sm" 
+            variant={item.isFavorite ? "default" : "outline"} 
+            onClick={() => toggleFavorite(item.id)}
+            className={item.isFavorite ? "bg-accent hover:bg-accent/80" : "hover:bg-accent/10 hover:border-accent"}
+          >
+            <Star className={`h-3 w-3 mr-1 ${item.isFavorite ? "fill-current" : ""}`} />
+            {item.isFavorite ? "Favorited" : "Favorite"}
           </Button>
         </div>
       </Card>
@@ -279,7 +310,7 @@ export const PromptHistory = () => {
       <div className="relative z-10 w-full max-w-full overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 w-full">
           <div className="min-w-0 flex-1">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2 truncate">
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
               {isSelectingForInfluence ? "Select Favorite for Influence" : "Prompt History"}
             </h1>
             <p className="text-muted-foreground text-sm sm:text-base">
@@ -288,15 +319,37 @@ export const PromptHistory = () => {
           </div>
           
           <div className="flex gap-3 flex-shrink-0">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{historyItems.length}</div>
-              <div className="text-xs text-muted-foreground">Total</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{historyItems.filter(h => h.isFavorite).length}</div>
+            <Card className="px-4 py-2 bg-primary/5 border-primary/20">
+              <div className="text-2xl font-bold text-primary">{historyItems.length}</div>
+              <div className="text-xs text-muted-foreground">Total Prompts</div>
+            </Card>
+            <Card className="px-4 py-2 bg-accent/5 border-accent/20">
+              <div className="text-2xl font-bold text-accent">{historyItems.filter(h => h.isFavorite).length}</div>
               <div className="text-xs text-muted-foreground">Favorites</div>
-            </div>
+            </Card>
           </div>
+        </div>
+
+        {/* Favorites Toggle */}
+        <div className="flex gap-2 mb-4">
+          <Button
+            variant={activeTab === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("all")}
+            className="gap-2"
+          >
+            <HistoryIcon className="h-4 w-4" />
+            All History
+          </Button>
+          <Button
+            variant={activeTab === "favorites" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("favorites")}
+            className="gap-2"
+          >
+            <Star className={`h-4 w-4 ${activeTab === "favorites" ? "fill-current" : ""}`} />
+            Favorites Only
+          </Button>
         </div>
       </div>
 
