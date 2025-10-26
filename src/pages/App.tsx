@@ -147,7 +147,7 @@ const AppPageContent = () => {
 
   return (
     <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background relative overflow-hidden">
+        <div className="min-h-screen flex w-full bg-background relative overflow-hidden isolate">
           {/* Ambient Background Effects */}
           <div className="fixed inset-0 pointer-events-none">
             <motion.div

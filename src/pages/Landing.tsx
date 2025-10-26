@@ -37,7 +37,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden isolate">
       {/* SEO Structured Data */}
       <script type="application/ld+json">
         {JSON.stringify({
@@ -288,7 +288,7 @@ const Landing = () => {
                   </div>
                 </div>
               </div>
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl blur-3xl -z-10 animate-pulse" style={{ animationDuration: '4s' }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl blur-3xl -z-10 animate-pulse" style={{ animationDuration: '4s' }} />
             </motion.div>
           </div>
         </section>

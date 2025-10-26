@@ -5,7 +5,7 @@ import { BackgroundPaths } from '@/components/ui/background-paths';
 import { Particles } from '@/components/ui/particles';
 const AIAgent = () => {
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden ai-optimizer-theme">
+    <div className="min-h-screen bg-background relative overflow-hidden isolate ai-optimizer-theme">
       <Particles />
       <BackgroundPaths>
         <main className="p-6">

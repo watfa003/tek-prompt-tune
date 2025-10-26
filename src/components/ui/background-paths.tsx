@@ -57,7 +57,7 @@ export function BackgroundPaths({
     children?: React.ReactNode;
 }) {
     return (
-        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden isolate bg-gradient-to-br from-background via-background to-primary/5">
             {/* Animated gradient orbs */}
             <div className="absolute top-20 left-10 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
             <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
