@@ -8,24 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Virtuoso } from "react-virtuoso";
 import {
   Search,
   Filter,
-  Clock,
   Star,
   Copy,
-  Play,
   Trash2,
   MoreHorizontal,
   Calendar,
   TrendingUp,
-  Download,
-  Share2,
   Trophy,
   ChevronDown,
   Sparkles,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Zap
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -35,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
+import { AmbientParticles } from "@/components/ui/ambient-particles";
 
 export const PromptHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -194,17 +191,38 @@ export const PromptHistory = () => {
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.05, duration: 0.4 }}
-        key={item.id}
+        whileHover={{ y: -4, scale: 1.01 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
-        <Card className={`glass-card interactive-card relative overflow-hidden ${isHighestRated ? 'neon-border' : ''}`}>
-          {/* Gradient Background */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${getScoreColor(item.score)} opacity-50 pointer-events-none`} />
-          
-          {/* Timeline Node */}
-          <div className="absolute left-0 top-6 w-1 h-16 bg-gradient-to-b from-primary to-transparent" />
+        <Card className={`glass-card interactive-card relative overflow-hidden group transition-all duration-300 ${isHighestRated ? 'neon-border shadow-glow' : 'border-white/10 hover:border-primary/30'}`}>
+        {/* Animated Gradient Background */}
+        <motion.div
+          className={`absolute inset-0 bg-gradient-to-br ${getScoreColor(item.score)} pointer-events-none`}
+          animate={{
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        
+        {/* Timeline Node with Pulse */}
+        <div className="absolute left-0 top-6 w-1 h-16 bg-gradient-to-b from-primary to-transparent">
+          <motion.div
+            className="absolute top-0 left-0 w-2 h-2 -translate-x-[2px] rounded-full bg-primary"
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [1, 0.5, 1],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        </div>
 
           <div className="p-6 relative z-10">
             {/* Header */}
@@ -322,26 +340,65 @@ export const PromptHistory = () => {
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
-    <div className="space-y-6 fade-slide-up">
+    <div className="space-y-6 relative">
+      {/* Ambient Background Particles */}
+      <AmbientParticles />
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        className="relative z-10"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow">
-            <HistoryIcon className="h-6 w-6 text-white" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <motion.div
+              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary via-accent to-primary bg-size-200 animate-gradient flex items-center justify-center shadow-glow relative overflow-hidden"
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              <HistoryIcon className="h-7 w-7 text-white relative z-10" />
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                animate={{
+                  x: ['-200%', '200%']
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  repeatDelay: 1,
+                  ease: "easeInOut"
+                }}
+              />
+            </motion.div>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold gradient-text mb-2">
+                {isSelectingForInfluence ? "Select Favorite for Influence" : "Optimization Timeline"}
+              </h1>
+              <p className="text-muted-foreground text-lg flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" />
+                Your AI prompt evolution journey
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-4xl font-bold gradient-text">
-              {isSelectingForInfluence ? "Select Favorite for Influence" : "Optimization Timeline"}
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Your AI prompt evolution journey
-            </p>
-          </div>
+          
+          {/* Stats Pills */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex gap-3"
+          >
+            <div className="glass-panel border border-white/10 rounded-xl px-4 py-2">
+              <div className="text-xs text-muted-foreground">Total Prompts</div>
+              <div className="text-2xl font-bold gradient-text">{historyItems.length}</div>
+            </div>
+            <div className="glass-panel border border-white/10 rounded-xl px-4 py-2">
+              <div className="text-xs text-muted-foreground">Favorites</div>
+              <div className="text-2xl font-bold gradient-text">{historyItems.filter(h => h.isFavorite).length}</div>
+            </div>
+          </motion.div>
         </div>
       </motion.div>
 
@@ -350,7 +407,7 @@ export const PromptHistory = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="glass-panel border border-white/10 rounded-[18px] p-4 space-y-4"
+        className="glass-panel border border-white/10 rounded-[20px] p-5 space-y-4 relative z-10 shadow-glow"
       >
         {/* Search */}
         <div className="relative">
@@ -399,33 +456,93 @@ export const PromptHistory = () => {
       </motion.div>
 
       {/* History List */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
-          <p className="text-muted-foreground">Loading your history...</p>
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <Card className="glass-card p-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-            <HistoryIcon className="h-8 w-8 text-primary" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No history yet</h3>
-          <p className="text-muted-foreground mb-4">
-            Start optimizing prompts to see them here
-          </p>
-          <Button 
-            onClick={() => navigate("/app/ai-agent")}
-            className="btn-sheen bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-glow"
+      <div className="relative z-10">
+        {loading ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20"
           >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Create First Prompt
-          </Button>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredItems.map((item, index) => renderHistoryItem(item, index))}
-        </div>
-      )}
+            <motion.div
+              className="inline-block w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full mb-6"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+            <p className="text-muted-foreground text-lg">Loading your optimization history...</p>
+          </motion.div>
+        ) : filteredItems.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Card className="glass-card p-16 text-center relative overflow-hidden">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5"
+                animate={{
+                  opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <div className="relative z-10">
+                <motion.div
+                  className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center"
+                  animate={{
+                    scale: [1, 1.1, 1],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <HistoryIcon className="h-10 w-10 text-primary" />
+                </motion.div>
+                <h3 className="text-2xl font-bold mb-3 gradient-text">No history yet</h3>
+                <p className="text-muted-foreground text-lg mb-6 max-w-md mx-auto">
+                  Start your AI optimization journey by creating your first prompt
+                </p>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    onClick={() => navigate("/app/ai-agent")}
+                    size="lg"
+                    className="btn-sheen bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-glow text-base"
+                  >
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    Create First Prompt
+                  </Button>
+                </motion.div>
+              </div>
+            </Card>
+          </motion.div>
+        ) : (
+          <div className="space-y-4">
+            <AnimatePresence mode="popLayout">
+              {filteredItems.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ 
+                    delay: index * 0.05, 
+                    duration: 0.4,
+                    type: "spring",
+                    stiffness: 100
+                  }}
+                  layout
+                >
+                  {renderHistoryItem(item, index)}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

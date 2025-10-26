@@ -22,7 +22,6 @@ import APIManagement from "@/pages/APIManagement";
 import { PromptDataProvider } from "@/context/PromptDataContext";
 import { AppModeProvider, useAppMode } from "@/context/AppModeContext";
 import { TemplatesDataProvider } from "@/context/TemplatesDataContext";
-import { Footer } from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 
 const AppPage = () => {
@@ -249,7 +248,6 @@ const AppPageContent = () => {
                   {renderContent()}
                 </motion.div>
               </AnimatePresence>
-              <Footer />
             </main>
           </div>
         </div>
