@@ -361,7 +361,7 @@ export const GlassboardDashboard = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold tracking-tight">Prompt Optimization</span>
+                              <span className="font-semibold tracking-tight">{activity.title || 'Untitled Prompt'}</span>
                               <Badge variant="outline" className="text-xs bg-primary/5 border-primary/30">
                                 {activity.provider || 'Unknown'}
                               </Badge>
@@ -370,16 +370,14 @@ export const GlassboardDashboard = () => {
                                   {activity.model}
                                 </Badge>
                               )}
-                              <Badge 
-                                variant="outline" 
-                                className={`text-xs ${
-                                  activity.status === 'completed' 
-                                    ? 'bg-green-500/10 border-green-500/30 text-green-400' 
-                                    : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-                                }`}
-                              >
-                                {activity.status || 'completed'}
-                              </Badge>
+                              {activity.outputType && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs bg-gradient-to-r from-primary/10 to-accent/10 border-primary/30"
+                                >
+                                  {activity.outputType}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground mt-1">
                               {activity.createdAt ? new Date(activity.createdAt).toLocaleString('en-US', {

@@ -406,16 +406,18 @@ export const AIAnalyticsDashboard: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <Target className="h-4 w-4 text-primary" />
                       <div>
-                        <div className="text-sm font-medium">Prompt Optimization</div>
+                        <div className="text-sm font-medium">{activity.title || 'Untitled Prompt'}</div>
                         <div className="text-xs text-muted-foreground">
                           {activity.provider} • {activity.model} • {new Date(activity.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge variant={activity.status === 'completed' ? 'default' : 'secondary'}>
-                        {activity.status}
-                      </Badge>
+                      {activity.outputType && (
+                        <Badge variant="outline" className="bg-primary/10 border-primary/30">
+                          {activity.outputType}
+                        </Badge>
+                      )}
                       {activity.score && (
                         <div className="text-sm font-semibold">
                           {Math.round(activity.score * 100)}%
