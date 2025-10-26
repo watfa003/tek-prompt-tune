@@ -271,19 +271,25 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
+        // Generate a meaningful title from the original prompt
+        const generateTitle = (originalPrompt: string): string => {
+          // Take first 50 chars of the prompt as the title
+          const trimmed = originalPrompt.trim();
+          if (trimmed.length <= 50) return trimmed;
+          return trimmed.substring(0, 47) + '...';
+        };
+        
         return {
           id: variant.id,
-          title: `${prompt.ai_provider} ${prompt.model_name}${isGlobalTopPerformer ? ' (Top Performer)' : ''}`,
-          description: isGlobalTopPerformer 
-            ? `🏆 Best performing variant across all optimizations (Score: ${(variant.score || 0).toFixed(3)})`
-            : `Optimization variant (Score: ${(variant.score || 0).toFixed(3)})`,
+          title: generateTitle(prompt.original_prompt),
+          description: `${prompt.ai_provider} • ${prompt.model_name}${isGlobalTopPerformer ? ' • 🏆 Top Performer' : ''}`,
           prompt: prompt.original_prompt,
           output: variant.variant_prompt,
           sampleOutput: variant.ai_response || 'No sample output available',
           provider: prompt.ai_provider,
           outputType: prompt.output_type || 'Code',
           score: variant.score || 0,
-          timestamp: new Date(variant.created_at).toLocaleString(),
+          timestamp: variant.created_at,
           tags: [
             prompt.ai_provider?.toLowerCase?.() || 'provider', 
             (prompt.model_name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),

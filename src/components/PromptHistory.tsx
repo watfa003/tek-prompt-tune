@@ -195,9 +195,11 @@ export const PromptHistory = () => {
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 w-full">
           <div className="flex-1 min-w-0 w-full">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-semibold">{item.title}</h3>
+              <h3 className="text-base sm:text-lg font-semibold whitespace-normal break-words">{item.title}</h3>
               {item.isFavorite && <Star className="h-4 w-4 fill-accent text-accent flex-shrink-0 animate-pulse" />}
+              {item.isBestVariant && <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />}
             </div>
+            <p className="text-sm text-muted-foreground mb-2 whitespace-normal break-words">{item.description}</p>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs sm:text-sm text-muted-foreground">
               <Badge variant="outline" className="text-xs bg-primary/5 border-primary/30 text-primary">{item.provider}</Badge>
               <Badge variant="outline" className="text-xs bg-accent/5 border-accent/30 text-accent">{item.outputType}</Badge>
