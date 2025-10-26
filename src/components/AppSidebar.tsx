@@ -153,20 +153,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={isCollapsed ? "w-14" : "w-64"}
+      className={`${isCollapsed ? "w-16" : "w-72"} glass-panel border-r border-white/10 transition-all duration-300`}
       collapsible="icon"
     >
-      <SidebarContent className="p-2">
+      <SidebarContent className="p-3">
         {/* User Info */}
         {!isCollapsed && userInfo && (
           <SidebarGroup>
             <SidebarGroupContent>
-              <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
-                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center text-sm">
+              <div className="flex items-center space-x-3 p-4 rounded-[18px] glass-card neon-border mb-2">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent text-white font-semibold flex items-center justify-center text-sm shadow-glow">
                   {userInfo.displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{userInfo.displayName}</p>
+                  <p className="text-sm font-semibold truncate">{userInfo.displayName}</p>
                   <p className="text-xs text-muted-foreground truncate">{userInfo.email}</p>
                 </div>
               </div>
@@ -193,13 +193,18 @@ export function AppSidebar() {
                           navigate(item.url);
                         }
                       }}
-                      className={`w-full justify-start transition-all duration-200 hover:scale-[1.02] ${
+                      className={`w-full justify-start transition-all duration-300 hover:scale-[1.02] rounded-xl group ${
                         mode === 'api' && 'section' in item
-                          ? isApiSectionActive(item.section) ? getNavCls({ isActive: true }) : getNavCls({ isActive: false })
-                          : 'url' in item && isActive(item.url) ? getNavCls({ isActive: true }) : getNavCls({ isActive: false })
+                          ? isApiSectionActive(item.section) ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/30' : 'hover:bg-white/5'
+                          : 'url' in item && isActive(item.url) ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/30' : 'hover:bg-white/5'
                       }`}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className={`h-4 w-4 ${
+                        (mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
+                        ('url' in item && isActive(item.url)) 
+                          ? 'text-primary' 
+                          : 'group-hover:text-primary transition-colors'
+                      }`} />
                       {!isCollapsed && <span>{item.title}</span>}
                     </Button>
                   </SidebarMenuButton>

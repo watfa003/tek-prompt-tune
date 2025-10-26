@@ -1,11 +1,247 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Zap, 
+  History, 
+  FileText, 
+  TrendingUp, 
+  ArrowRight,
+  Sparkles,
+  Target,
+  BarChart3,
+  Rocket
+} from "lucide-react";
+import { usePromptData } from "@/context/PromptDataContext";
+import { motion } from "framer-motion";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { historyItems, analytics } = usePromptData();
+
+  const quickActions = [
+    {
+      title: "Create New Prompt",
+      description: "Start optimizing with AI",
+      icon: Zap,
+      gradient: "from-primary to-accent",
+      action: () => navigate("/app/ai-agent"),
+    },
+    {
+      title: "Optimize Existing",
+      description: "Improve your prompts",
+      icon: Target,
+      gradient: "from-accent to-[hsl(330,100%,69%)]",
+      action: () => navigate("/app/ai-agent"),
+    },
+    {
+      title: "View Analytics",
+      description: "Track performance",
+      icon: BarChart3,
+      gradient: "from-[hsl(330,100%,69%)] to-primary",
+      action: () => navigate("/app/history"),
+    },
+    {
+      title: "Explore Templates",
+      description: "Browse community",
+      icon: FileText,
+      gradient: "from-primary via-accent to-primary",
+      action: () => navigate("/app/templates"),
+    },
+  ];
+
+  const stats = [
+    {
+      label: "Total Optimizations",
+      value: historyItems.length || "0",
+      change: "+12%",
+      icon: Rocket,
+    },
+    {
+      label: "Avg Success Rate",
+      value: analytics.averageScore ? `${(analytics.averageScore * 100).toFixed(0)}%` : "—",
+      change: "+8%",
+      icon: TrendingUp,
+    },
+    {
+      label: "Templates Used",
+      value: historyItems.filter(item => item.outputType).length || "0",
+      change: "+5%",
+      icon: FileText,
+    },
+    {
+      label: "Recent Activity",
+      value: historyItems.slice(0, 7).length || "0",
+      change: "This week",
+      icon: History,
+    },
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="space-y-8 fade-slide-up">
+      {/* Hero Welcome Block */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative overflow-hidden rounded-[24px] glass-card p-8 neon-glow"
+      >
+        <div className="absolute inset-0 gradient-bg-animated opacity-30 pointer-events-none" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+            <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">
+              Welcome Back
+            </Badge>
+          </div>
+          <h1 className="text-5xl font-bold mb-3 gradient-text">
+            Command Center
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-2xl">
+            Your AI prompt optimization workspace. Create, test, and refine prompts with intelligent assistance.
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Quick Actions Grid */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <Zap className="h-6 w-6 text-primary" />
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickActions.map((action, index) => (
+            <motion.div
+              key={action.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.4 }}
+            >
+              <Card 
+                className="glass-card interactive-card cursor-pointer group p-6 hover:neon-border"
+                onClick={action.action}
+              >
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <action.icon className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">{action.title}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{action.description}</p>
+                <div className="flex items-center text-primary text-sm font-medium group-hover:gap-2 transition-all">
+                  Get Started
+                  <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Performance Overview */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <TrendingUp className="h-6 w-6 text-primary" />
+          Performance Overview
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 + index * 0.1, duration: 0.4 }}
+            >
+              <Card className="glass-card p-6 hover:neon-border transition-all">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center`}>
+                    <stat.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
+                    {stat.change}
+                  </Badge>
+                </div>
+                <div className="text-3xl font-bold mb-1 gradient-text">{stat.value}</div>
+                <div className="text-sm text-muted-foreground">{stat.label}</div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Activity Preview */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <History className="h-6 w-6 text-primary" />
+            Recent Activity
+          </h2>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate("/app/history")}
+            className="group"
+          >
+            View All
+            <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </div>
+        
+        {historyItems.length === 0 ? (
+          <Card className="glass-card p-12 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                <Zap className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">No optimizations yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Start your first prompt optimization to see results here
+                </p>
+                <Button 
+                  onClick={() => navigate("/app/ai-agent")}
+                  className="btn-sheen bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Create First Prompt
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {historyItems.slice(0, 5).map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 + index * 0.05 }}
+              >
+                <Card 
+                  className="glass-card p-4 hover:neon-border transition-all cursor-pointer group"
+                  onClick={() => navigate("/app/history")}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold truncate">{item.title}</h3>
+                        <Badge variant="outline" className="text-xs">{item.provider}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+                    </div>
+                    <div className="flex items-center gap-4 ml-4">
+                      <div className="text-right">
+                        <div className="text-2xl font-bold gradient-text">
+                          {(item.score * 100).toFixed(0)}%
+                        </div>
+                        <div className="text-xs text-muted-foreground">Score</div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

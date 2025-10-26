@@ -146,11 +146,17 @@ const AppPageContent = () => {
 
   return (
     <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
+        <div className="min-h-screen flex w-full bg-background relative overflow-hidden">
+          {/* Ambient Background Effects */}
+          <div className="fixed inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
+          
           <AppSidebar />
           
-          <div className="flex-1 flex flex-col">
-            <header className="border-b border-border/40 bg-background/95 backdrop-blur">
+          <div className="flex-1 flex flex-col relative z-10">
+            <header className="border-b border-white/10 glass-panel sticky top-0 z-50">
               <div className="h-16 flex items-center justify-between px-6">
                 <div className="flex items-center space-x-4">
                   <SidebarTrigger />
@@ -161,12 +167,12 @@ const AppPageContent = () => {
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 border rounded-lg p-1">
+                  <div className="flex items-center gap-2 glass-panel border border-white/10 rounded-xl p-1">
                     <Button
                       variant={mode === 'optimizer' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setMode('optimizer')}
-                      className="gap-2"
+                      className={`gap-2 rounded-lg transition-all ${mode === 'optimizer' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
                     >
                       <Zap className="h-4 w-4" />
                       Optimizer
@@ -175,14 +181,14 @@ const AppPageContent = () => {
                       variant={mode === 'api' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setMode('api')}
-                      className="gap-2"
+                      className={`gap-2 rounded-lg transition-all ${mode === 'api' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
                     >
                       <Code className="h-4 w-4" />
                       API
                     </Button>
                   </div>
                   
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  <Badge className="bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-primary/30 neon-border">
                     PrompTek
                   </Badge>
                 </div>
@@ -190,7 +196,7 @@ const AppPageContent = () => {
             </header>
 
             <main className="flex-1 p-6 overflow-auto">
-              <div className={`transition-opacity duration-200 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
+              <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}>
                 {renderContent()}
               </div>
             </main>
