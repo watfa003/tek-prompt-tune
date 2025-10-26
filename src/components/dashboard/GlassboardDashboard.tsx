@@ -80,9 +80,9 @@ export const GlassboardDashboard = () => {
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full max-w-full overflow-hidden box-border pb-8">
       {/* Animated Background Layers */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <motion.div
           className="absolute top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px]"
           animate={{
@@ -116,7 +116,7 @@ export const GlassboardDashboard = () => {
 
       {/* Theme & Compact Mode Controls */}
       <motion.div
-        className="fixed top-4 right-4 z-40 flex items-center gap-2"
+        className="fixed top-20 right-4 z-40 flex items-center gap-2"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
@@ -143,9 +143,9 @@ export const GlassboardDashboard = () => {
       </motion.div>
 
       {/* Main Content */}
-      <div className={`space-y-8 relative z-10 ${compactMode ? 'compact-mode' : ''}`}>
+      <div className={`space-y-6 md:space-y-8 relative z-10 w-full max-w-full ${compactMode ? 'compact-mode' : ''}`}>
         {/* Hero Metrics Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
           {[
             {
               label: 'Prompts Generated',
@@ -172,8 +172,9 @@ export const GlassboardDashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: metric.delay, duration: 0.5 }}
               whileHover={{ y: -8 }}
+              className="w-full max-w-full"
             >
-              <Card className="glass-card p-6 md:p-8 backdrop-blur-xl border-white/10 rounded-2xl relative overflow-hidden group">
+              <Card className="glass-card p-4 sm:p-6 md:p-8 backdrop-blur-xl border-white/10 rounded-2xl relative overflow-hidden group w-full">
                 {/* Hover reflection sweep */}
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none"
@@ -187,8 +188,8 @@ export const GlassboardDashboard = () => {
 
                 {/* Content */}
                 <div className="relative z-10">
-                  <div className="text-sm text-muted-foreground mb-2">{metric.label}</div>
-                  <div className="text-3xl md:text-4xl font-bold gradient-text">{metric.value}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground mb-2 truncate">{metric.label}</div>
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text truncate">{metric.value}</div>
                 </div>
               </Card>
             </motion.div>
