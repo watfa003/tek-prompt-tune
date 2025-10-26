@@ -423,17 +423,20 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             avgMessagesPerSession: 0,
             activePrompts: historyItems.length,
           },
-          recentActivity: historyItems.slice(0, 10).map(item => ({
-            id: item.id,
-            title: item.title,
-            type: 'prompt_optimization',
-            outputType: item.outputType,
-            score: item.score,
-            provider: item.provider,
-            model: 'N/A', // Could extract from title
-            createdAt: item.timestamp,
-            status: 'completed',
-          })),
+          recentActivity: [...historyItems]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 5)
+            .map(item => ({
+              id: item.id,
+              title: item.title,
+              type: 'prompt_optimization',
+              outputType: item.outputType,
+              score: item.score,
+              provider: item.provider,
+              model: 'N/A',
+              createdAt: item.timestamp,
+              status: 'completed',
+            })),
           insights,
         };
 

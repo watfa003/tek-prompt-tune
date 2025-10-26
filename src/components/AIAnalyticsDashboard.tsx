@@ -413,11 +413,6 @@ export const AIAnalyticsDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {activity.type && (
-                        <Badge variant="outline" className="bg-muted/30 border-border/40">
-                          {activity.type.replace(/_/g, ' ')}
-                        </Badge>
-                      )}
                       {activity.outputType && (
                         <Badge variant="outline" className="bg-primary/10 border-primary/30">
                           {activity.outputType}
