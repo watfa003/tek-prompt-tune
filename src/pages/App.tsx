@@ -147,9 +147,9 @@ const AppPageContent = () => {
 
   return (
     <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background relative overflow-hidden isolate">
+        <div className="min-h-screen flex w-full max-w-full bg-background relative overflow-hidden isolate box-border">
           {/* Ambient Background Effects */}
-          <div className="fixed inset-0 pointer-events-none">
+          <div className="fixed inset-0 pointer-events-none overflow-hidden">
             <motion.div
               className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]"
               animate={{
@@ -179,17 +179,17 @@ const AppPageContent = () => {
           
           <AppSidebar />
           
-          <div className="flex-1 flex flex-col relative z-10">
+          <div className="flex-1 flex flex-col relative z-base min-w-0 max-w-full overflow-hidden">
             <motion.header
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="border-b border-white/10 glass-panel sticky top-0 z-50 overflow-hidden"
+              className="border-b border-white/10 glass-panel sticky top-0 z-header overflow-hidden"
             >
-              <div className="h-14 md:h-16 flex items-center justify-between px-3 md:px-6 gap-2 md:gap-4">
-                <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-shrink">
+              <div className="h-14 md:h-16 flex items-center justify-between px-3 md:px-6 gap-2 md:gap-4 w-full max-w-full">
+                <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-shrink overflow-hidden">
                   <SidebarTrigger className="flex-shrink-0" />
-                  <Link to="/" className="flex items-center space-x-1 md:space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group min-w-0">
+                  <Link to="/" className="flex items-center space-x-1 md:space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group min-w-0 overflow-hidden">
                     <ArrowLeft className="h-3 w-3 md:h-4 md:w-4 group-hover:-translate-x-1 transition-transform flex-shrink-0" />
                     <span className="font-semibold text-xs md:text-sm hidden sm:inline truncate">Back to Home</span>
                     <span className="font-semibold text-xs sm:hidden">Back</span>
@@ -239,18 +239,21 @@ const AppPageContent = () => {
               />
             </motion.header>
 
-            <main className="flex-1 p-3 md:p-6 overflow-auto">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={location.pathname}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {renderContent()}
-                </motion.div>
-              </AnimatePresence>
+            <main className="flex-1 p-3 md:p-6 overflow-y-auto overflow-x-hidden w-full max-w-full relative">
+              <div className="w-full max-w-[1400px] mx-auto box-border">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={location.pathname}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-full max-w-full overflow-hidden"
+                  >
+                    {renderContent()}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </main>
           </div>
         </div>

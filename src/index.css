@@ -121,15 +121,20 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow-wrap: break-word;
   }
 
   body {
     @apply bg-background text-foreground overflow-x-hidden font-body;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    position: relative;
   }
   
   html {
     @apply overflow-x-hidden;
+    position: relative;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -217,10 +222,14 @@
   /* Glass Morphism */
   .glass-panel {
     @apply bg-card/40 backdrop-blur-xl supports-[backdrop-filter]:bg-card/40 border border-white/10 shadow-[var(--shadow-glass)];
+    overflow: hidden;
+    position: relative;
   }
 
   .glass-card {
     @apply bg-card/30 backdrop-blur-2xl border border-white/10 rounded-[18px] shadow-[var(--shadow-glass)];
+    overflow: hidden;
+    position: relative;
   }
 
   /* Futuristic Button Shine Effect */
@@ -241,6 +250,7 @@
   /* Gradient Text */
   .gradient-text {
     @apply bg-gradient-primary bg-clip-text text-transparent;
+    overflow-wrap: break-word;
   }
 
   /* Neon Border */
@@ -251,11 +261,13 @@
   /* Interactive Card Hover */
   .interactive-card {
     @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_-10px_rgba(110,231,255,0.3)];
+    transform-gpu: auto;
   }
 
   /* Floating Animation Container */
   .floating {
     animation: float 6s ease-in-out infinite;
+    will-change: transform;
   }
 
   /* Shimmer Loading Effect */
@@ -269,6 +281,7 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    overflow-x: hidden;
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
@@ -278,6 +291,7 @@
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: rgba(110, 231, 255, 0.2) transparent;
+    overflow-x: hidden;
   }
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
@@ -299,7 +313,8 @@
   /* 3D Hover Effects */
   .hover-3d { 
     transition: var(--transition-smooth); 
-    transform-style: preserve-3d; 
+    transform-style: preserve-3d;
+    transform-gpu: auto;
   }
   .hover-3d:hover { 
     transform: translateY(-4px) scale(1.02); 
@@ -326,6 +341,14 @@
     background-size: 200% 200%;
     animation: gradient-shift 8s ease infinite;
   }
+
+  /* Z-index layers */
+  .z-base { z-index: 0; }
+  .z-header { z-index: 30; }
+  .z-sidebar { z-index: 30; }
+  .z-modal { z-index: 50; }
+  .z-dropdown { z-index: 60; }
+  .z-toast { z-index: 70; }
 }
 
 /* Keyframes */

@@ -178,34 +178,34 @@ export const PromptHistory = () => {
     const scoreLabel = item.score >= 0.8 ? "Excellent" : item.score >= 0.6 ? "Good" : item.score >= 0.4 ? "Average" : "Poor";
 
     return (
-      <Card key={item.id} className="p-6 hover:shadow-lg transition-all">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-semibold">{item.title}</h3>
-              {item.isFavorite && <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />}
+      <Card key={item.id} className="p-4 sm:p-6 hover:shadow-lg transition-all w-full max-w-full overflow-hidden box-border">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 w-full">
+          <div className="flex-1 min-w-0 w-full">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <h3 className="text-base sm:text-lg font-semibold truncate">{item.title}</h3>
+              {item.isFavorite && <Star className="h-4 w-4 fill-yellow-500 text-yellow-500 flex-shrink-0" />}
             </div>
-            <div className="flex items-center gap-3 flex-wrap text-sm text-muted-foreground">
-              <Badge variant="outline">{item.provider}</Badge>
-              <Badge variant="outline">{item.outputType}</Badge>
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs sm:text-sm text-muted-foreground">
+              <Badge variant="outline" className="text-xs">{item.provider}</Badge>
+              <Badge variant="outline" className="text-xs">{item.outputType}</Badge>
               <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>{new Date(item.timestamp).toLocaleDateString()}</span>
+                <Calendar className="h-3 w-3 flex-shrink-0" />
+                <span className="text-xs">{new Date(item.timestamp).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center gap-1">
-                <TrendingUp className={`h-3 w-3 ${scoreColor}`} />
-                <span className={scoreColor}>{(item.score * 100).toFixed(0)}% ({scoreLabel})</span>
+                <TrendingUp className={`h-3 w-3 flex-shrink-0 ${scoreColor}`} />
+                <span className={`text-xs ${scoreColor}`}>{(item.score * 100).toFixed(0)}% ({scoreLabel})</span>
               </div>
             </div>
           </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="flex-shrink-0">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="z-dropdown bg-popover">
               <DropdownMenuItem onClick={() => copyToClipboard(item.prompt, "Prompt")}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy Prompt
@@ -226,33 +226,33 @@ export const PromptHistory = () => {
           </DropdownMenu>
         </div>
 
-        <Collapsible>
+        <Collapsible className="w-full">
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="w-full justify-between text-sm">
               <span>Show Details</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="space-y-2">
+          <CollapsibleContent className="space-y-4 pt-4 w-full overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+              <div className="space-y-2 min-w-0 overflow-hidden">
                 <p className="text-sm font-semibold text-muted-foreground">Original Prompt</p>
-                <div className="p-3 bg-muted rounded-lg">
-                  <pre className="whitespace-pre-wrap text-sm">{item.prompt}</pre>
+                <div className="p-3 bg-muted rounded-lg overflow-x-auto">
+                  <pre className="whitespace-pre-wrap text-sm break-words">{item.prompt}</pre>
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0 overflow-hidden">
                 <p className="text-sm font-semibold text-primary">AI Optimization</p>
-                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                  <pre className="whitespace-pre-wrap text-sm">{item.output}</pre>
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 overflow-x-auto">
+                  <pre className="whitespace-pre-wrap text-sm break-words">{item.output}</pre>
                 </div>
               </div>
             </div>
           </CollapsibleContent>
         </Collapsible>
 
-        <div className="flex items-center gap-2 pt-4 mt-4 border-t">
+        <div className="flex items-center gap-2 pt-4 mt-4 border-t flex-wrap">
           <Button size="sm" variant="outline" onClick={() => copyToClipboard(item.prompt, "Prompt")}>
             <Copy className="h-3 w-3 mr-1" />
             Prompt
@@ -271,23 +271,23 @@ export const PromptHistory = () => {
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
-    <div className="space-y-6 relative">
+    <div className="w-full max-w-full space-y-6 relative overflow-hidden box-border">
       {/* Ambient Background Particles */}
       <AmbientParticles />
 
       {/* Header */}
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">
+      <div className="relative z-10 w-full max-w-full overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 w-full">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2 truncate">
               {isSelectingForInfluence ? "Select Favorite for Influence" : "Prompt History"}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm sm:text-base">
               Your AI prompt optimization timeline
             </p>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-shrink-0">
             <div className="text-center">
               <div className="text-2xl font-bold">{historyItems.length}</div>
               <div className="text-xs text-muted-foreground">Total</div>
@@ -301,27 +301,27 @@ export const PromptHistory = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-card rounded-lg p-4 space-y-4 relative z-10">
+      <div className="bg-card rounded-lg p-4 space-y-4 relative z-10 w-full max-w-full overflow-hidden box-border">
         {/* Search */}
-        <div className="relative">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
           <Input
             placeholder="Search by title, description, or content..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 w-full"
           />
         </div>
 
         {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-3">
-          <Filter className="h-4 w-4 text-muted-foreground" />
+        <div className="flex flex-wrap items-center gap-3 w-full">
+          <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px] sm:w-[160px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-dropdown bg-popover">
               <SelectItem value="newest">Newest First</SelectItem>
               <SelectItem value="oldest">Oldest First</SelectItem>
               <SelectItem value="score">Highest Score</SelectItem>
@@ -329,19 +329,19 @@ export const PromptHistory = () => {
           </Select>
 
           <Select value={filterProvider} onValueChange={setFilterProvider}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px] sm:w-[160px]">
               <SelectValue placeholder="Provider" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-dropdown bg-popover">
               {providers.map(p => <SelectItem key={p} value={p}>{p === "all" ? "All Providers" : p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}
             </SelectContent>
           </Select>
 
           <Select value={filterScore} onValueChange={setFilterScore}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px] sm:w-[160px]">
               <SelectValue placeholder="Score" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-dropdown bg-popover">
               {scores.map(s => <SelectItem key={s} value={s}>{s === "all" ? "All Scores" : s.charAt(0).toUpperCase() + s.slice(1).replace("-", " ")}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -349,13 +349,13 @@ export const PromptHistory = () => {
       </div>
 
       {/* History List */}
-      <div className="relative z-10">
+      <div className="relative z-10 w-full max-w-full overflow-hidden box-border">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Loading history...</p>
           </div>
         ) : filteredItems.length === 0 ? (
-          <Card className="p-12 text-center">
+          <Card className="p-8 sm:p-12 text-center w-full max-w-full">
             <HistoryIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No history yet</h3>
             <p className="text-muted-foreground mb-4">
@@ -367,7 +367,7 @@ export const PromptHistory = () => {
             </Button>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 w-full max-w-full">
             {filteredItems.map((item, index) => (
               renderHistoryItem(item, index)
             ))}
