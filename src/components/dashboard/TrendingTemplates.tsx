@@ -172,10 +172,7 @@ export const TrendingTemplates: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-primary">
-              <path d="M13 2L3 14H11L10 22L21 10H13L13 2Z" fill="currentColor" opacity="0.2" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            </svg>
+          <h2 className="text-2xl font-bold">
             Trending Templates
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
