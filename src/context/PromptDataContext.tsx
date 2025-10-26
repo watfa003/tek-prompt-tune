@@ -271,26 +271,57 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
-        // Generate a concise, subject-based title from the original prompt
+        // Generate a concise, smart title from any prompt
         const generateTitle = (originalPrompt: string): string => {
           const text = (originalPrompt || '').trim();
           if (!text) return 'Untitled Prompt';
-          // Try to extract the subject after verbs like write/create/generate/build
-          const match = text.match(/^(write|create|generate|build|draft|produce|make|compose)(?:\s+me)?\s+(?:an?\s+|the\s+)?(.+?)(?:[\.!?]|$)/i);
-          let subject = (match?.[2] || text)
-            .replace(/\[.*?\]/g, '') // remove bracketed placeholders
-            .replace(/^["'`\-\s]+|["'`\-\s]+$/g, '') // trim quotes/dashes
+          
+          // Extract action verbs and key terms
+          const actionWords = ['write', 'create', 'generate', 'build', 'make', 'develop', 'design', 'draft', 'compose', 'produce', 'implement', 'code', 'explain', 'analyze', 'summarize', 'optimize'];
+          const words = text.toLowerCase().split(/\s+/);
+          
+          let action = '';
+          let subject = '';
+          
+          // Find the main action
+          for (const word of words) {
+            if (actionWords.some(a => word.includes(a))) {
+              action = word.replace(/[^a-z]/g, '');
+              break;
+            }
+          }
+          
+          // Extract key nouns (simple heuristic: words after common articles/prepositions)
+          const cleaned = text
+            .replace(/^(please|could you|can you|i need|i want|help me)/i, '')
+            .replace(/\[.*?\]/g, '') // remove placeholders
             .trim();
-
-          // Limit to ~12 words
-          subject = subject.split(/\s+/).slice(0, 12).join(' ');
-
-          // Title-case words
-          const toTitle = (s: string) => s.replace(/\b([a-z])(\w*)/g, (_, a, b) => a.toUpperCase() + b);
-          const titled = toTitle(subject);
-
-          const finalTitle = titled || text.slice(0, 60);
-          return finalTitle.length > 60 ? finalTitle.slice(0, 57) + '...' : finalTitle;
+          
+          // Get important words (skip common words)
+          const skipWords = new Set(['a', 'an', 'the', 'for', 'to', 'of', 'in', 'on', 'at', 'with', 'by', 'from', 'that', 'this', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 'have', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 'me', 'my', 'your']);
+          
+          const importantWords = cleaned
+            .split(/\s+/)
+            .filter(w => w.length > 2 && !skipWords.has(w.toLowerCase()))
+            .slice(0, 8);
+          
+          // Create title: Action + Key Terms
+          if (action && importantWords.length > 0) {
+            const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+            const keyTerms = importantWords.slice(0, 5).join(' ');
+            subject = keyTerms.length > 40 ? keyTerms.slice(0, 37) + '...' : keyTerms;
+            return `${capitalize(action)} ${subject}`.trim();
+          }
+          
+          // Fallback: Take first meaningful sentence or phrase
+          const firstSentence = text.split(/[.!?]/)[0];
+          if (firstSentence.length <= 60) {
+            return firstSentence.trim();
+          }
+          
+          // Last resort: intelligent truncation
+          const truncated = importantWords.slice(0, 6).join(' ');
+          return truncated.length > 50 ? truncated.slice(0, 47) + '...' : truncated;
         };
         
         return {
