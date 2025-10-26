@@ -123,27 +123,18 @@
     @apply border-border;
     box-sizing: border-box;
     max-width: 100%;
-  }
-
-  p, h1, h2, h3, h4, h5, h6, span, div {
     overflow-wrap: break-word;
-    word-break: break-word;
   }
 
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground overflow-x-hidden font-body;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     position: relative;
-    overflow-x: hidden;
-    overflow-y: auto;
-    scroll-behavior: smooth;
   }
   
   html {
+    @apply overflow-x-hidden;
     position: relative;
-    overflow-x: hidden;
-    overflow-y: auto;
-    scroll-behavior: smooth;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -231,13 +222,13 @@
   /* Glass Morphism */
   .glass-panel {
     @apply bg-card/40 backdrop-blur-xl supports-[backdrop-filter]:bg-card/40 border border-white/10 shadow-[var(--shadow-glass)];
-    overflow: visible;
+    overflow: hidden;
     position: relative;
   }
 
   .glass-card {
     @apply bg-card/30 backdrop-blur-2xl border border-white/10 rounded-[18px] shadow-[var(--shadow-glass)];
-    overflow: visible;
+    overflow: hidden;
     position: relative;
   }
 
@@ -259,8 +250,7 @@
   /* Gradient Text */
   .gradient-text {
     @apply bg-gradient-primary bg-clip-text text-transparent;
-    white-space: normal;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   /* Neon Border */
@@ -272,7 +262,6 @@
   .interactive-card {
     @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_-10px_rgba(110,231,255,0.3)];
     transform-gpu: auto;
-    overflow: visible;
   }
 
   /* Floating Animation Container */
@@ -292,6 +281,7 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    overflow-x: hidden;
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
@@ -301,6 +291,7 @@
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: rgba(110, 231, 255, 0.2) transparent;
+    overflow-x: hidden;
   }
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
