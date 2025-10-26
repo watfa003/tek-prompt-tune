@@ -127,68 +127,12 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     else localStorage.removeItem('promptOptimizer_speedResult');
   }, [speedResult]);
 
+  // DISABLED: appendToHistory now disabled to prevent local duplicates
+  // All history additions now come ONLY from realtime/poller in PromptDataContext
   const appendToHistory = useCallback(async (data: any, provider: string, modelName: string, outputType: string, originalPrompt: string, skipAutoSaveCheck = false) => {
-    // Determine effective auto-save (prefer loaded settings, fallback to cached localStorage)
-    const cached = (() => { try { return JSON.parse(localStorage.getItem('user_settings') || '{}'); } catch { return {}; } })();
-    const effectiveAutoSave = settingsLoading ? (cached.autoSave ?? true) : settings.autoSave;
-
-    // Skip auto-save if it's disabled (unless explicitly overridden)
-    if (!skipAutoSaveCheck && !effectiveAutoSave) {
-      console.log('Auto-save disabled, skipping history append');
-      return;
-    }
-
-    try {
-      const bestVariant = data?.variants?.reduce((best: any, current: any) => {
-        if (!best) return current;
-        if (current.score > best.score) return current;
-        if (current.score === best.score) {
-          // Tiebreaker: prefer fewer tokens
-          const currentTokens = current.metrics?.tokens_used || 0;
-          const bestTokens = best.metrics?.tokens_used || 0;
-          return currentTokens < bestTokens ? current : best;
-        }
-        return best;
-      }, null);
-
-      // Generate unique ID for each optimization run
-      const uniqueId = `${data?.promptId || 'local'}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      const historyItem = {
-        id: uniqueId,
-        title: `${provider} ${modelName} Optimization`,
-        description: `${(data?.bestScore ?? 0) >= 0.8 ? 'High-performance' : (data?.bestScore ?? 0) >= 0.6 ? 'Good-quality' : (data?.bestScore ?? 0) >= 0.4 ? 'Standard' : 'Experimental'} prompt optimization`,
-        prompt: data?.originalPrompt || originalPrompt,
-        output: data?.bestOptimizedPrompt || data?.variants?.[0]?.prompt || '',
-        sampleOutput: bestVariant?.actualOutput || data?.bestActualOutput || '',
-        provider,
-        outputType: outputType || 'Code',
-        score: data?.bestScore ?? 0,
-        timestamp: new Date().toLocaleString(),
-        tags: [provider?.toLowerCase?.() || 'provider', (modelName || '').toLowerCase().replace(/[^a-z0-9]/g, '-')],
-        isFavorite: false,
-        isBestVariant: true,
-      } as const;
-      
-      await addPromptToHistory(historyItem as any);
-      
-      if (skipAutoSaveCheck) {
-        toast({
-          title: "Saved!",
-          description: "Prompt optimization saved to history.",
-        });
-      }
-    } catch (e) {
-      console.error('Failed to append to local history', e);
-      if (skipAutoSaveCheck) {
-        toast({
-          title: "Error",
-          description: "Failed to save to history.",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [addPromptToHistory, settings.autoSave, toast]);
+    console.log('[appendToHistory] DISABLED - relying on PromptDataContext realtime/poller instead');
+    return; // Early return - do nothing
+  }, []);
 
   // Manual save function for when auto-save is disabled
   const manualSaveToHistory = useCallback(async () => {

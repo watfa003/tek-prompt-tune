@@ -42,6 +42,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const historyRef = useRef<PromptHistoryItem[]>([]);
   const lastPollAtRef = useRef<string>("");
   const processingOptimizationsRef = useRef<Set<string>>(new Set());
+  const seenOptimizationIdsRef = useRef<Set<string>>(new Set());
   const titlesInFlightRef = useRef<Set<string>>(new Set());
   const titleStatusRef = useRef<Record<string, "pending" | "done">>({});
   // Keep a live ref of history items for polling without stale closures
@@ -433,6 +434,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
+  // Helper: Check if ID is a valid UUID
+  const isUUID = useCallback((id: string): boolean => {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  }, []);
+
   // Load initial data from Supabase with full prompt data
   const loadInitialData = useCallback(async () => {
     try {
@@ -538,15 +544,22 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           };
         });
         
-        // Add prev-only items not in remote
+        // Add prev-only items not in remote, BUT ONLY if they have valid UUIDs
+        // This cleans up old local stubs with random non-UUID ids
         for (const p of prev) {
-          if (!merged.find(m => m.id === p.id)) {
+          if (!merged.find(m => m.id === p.id) && isUUID(p.id)) {
             merged.push(p);
+          } else if (!isUUID(p.id)) {
+            console.log(`[Cleanup] Dropped non-UUID legacy item: ${p.id}`);
           }
         }
         
-        saveToCache(user.user.id, 'history', merged);
-        return merged;
+        // Final dedupe by id using Map to guarantee uniqueness
+        const deduped = Array.from(new Map(merged.map(item => [item.id, item])).values());
+        console.log(`[Cleanup] Deduped ${merged.length} -> ${deduped.length} items`);
+        
+        saveToCache(user.user.id, 'history', deduped);
+        return deduped;
       });
       
       // Load favorites
@@ -722,9 +735,16 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const no: any = payload.new;
             if (no.user_id !== user.user.id) return; // Guard
 
+            // Hard sentinel: if we've ever seen this ID, stop immediately
+            if (seenOptimizationIdsRef.current.has(no.id)) {
+              console.log('[SeenIds] Skip already seen:', no.id);
+              return;
+            }
+            
             // De-duplicate processing and skip if already present
             if (processingOptimizationsRef.current.has(no.id) || historyRef.current.some(h => h.id === no.id)) {
               console.log('[Realtime] Skipping already processed optimization:', no.id);
+              seenOptimizationIdsRef.current.add(no.id);
               return;
             }
             processingOptimizationsRef.current.add(no.id);
@@ -793,16 +813,25 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
             console.log(`[Realtime] Adding to history with title: "${newHistoryItem.title}"`);
             setHistoryItems((prev) => {
+              // UPSERT: if item already exists, replace it; otherwise prepend
+              if (prev.some(i => i.id === newHistoryItem.id)) {
+                console.log(`[Deduper] Already have id, replacing not inserting: ${newHistoryItem.id}`);
+                const replaced = prev.map(i => i.id === newHistoryItem.id ? newHistoryItem : i);
+                saveToCache(user.user.id, 'history', replaced);
+                return replaced;
+              }
+              
               const updated = [newHistoryItem, ...prev];
               const globalBest = updated.reduce((best, current) =>
                 (current.score || 0) > (best.score || 0) ? current : best
               );
+              // Make Top Performer suffix idempotent by stripping existing suffixes first
               const finalUpdated = updated.map(item => ({
                 ...item,
                 isBestVariant: item.id === globalBest.id,
                 title: item.id === globalBest.id
-                  ? item.title.replace(' (Top Performer)', '') + ' (Top Performer)'
-                  : item.title.replace(' (Top Performer)', ''),
+                  ? item.title.replace(/\s*\(Top Performer\)+/g, '') + ' (Top Performer)'
+                  : item.title.replace(/\s*\(Top Performer\)+/g, ''),
                 description: item.id === globalBest.id
                   ? `🏆 Best performing variant across all optimizations (Score: ${(item.score || 0).toFixed(3)})`
                   : item.description.replace(/🏆 Best performing variant.*/, `Optimization variant (Score: ${(item.score || 0).toFixed(3)})`)
@@ -812,6 +841,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               saveToCache(user.user.id, 'history', finalUpdated);
               return finalUpdated;
             });
+            seenOptimizationIdsRef.current.add(no.id);
             processingOptimizationsRef.current.delete(no.id);
           })
           .subscribe();
@@ -833,7 +863,15 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             if (latestErr || !latest) return;
 
             for (const no of latest as any[]) {
-              if (historyRef.current.some(h => h.id === no.id) || processingOptimizationsRef.current.has(no.id)) continue;
+              // Hard sentinel: if we've ever seen this ID, skip immediately
+              if (seenOptimizationIdsRef.current.has(no.id)) {
+                continue;
+              }
+              
+              if (historyRef.current.some(h => h.id === no.id) || processingOptimizationsRef.current.has(no.id)) {
+                seenOptimizationIdsRef.current.add(no.id);
+                continue;
+              }
               processingOptimizationsRef.current.add(no.id);
 
               const { data: promptData } = await supabase
@@ -899,16 +937,25 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               };
 
               setHistoryItems((prev) => {
+                // UPSERT: if item already exists, replace it; otherwise prepend
+                if (prev.some(i => i.id === newHistoryItem.id)) {
+                  console.log(`[Deduper] Already have id, replacing not inserting: ${newHistoryItem.id}`);
+                  const replaced = prev.map(i => i.id === newHistoryItem.id ? newHistoryItem : i);
+                  saveToCache(cur.id, 'history', replaced);
+                  return replaced;
+                }
+                
                 const updated = [newHistoryItem, ...prev];
                 const globalBest = updated.reduce((best, current) =>
                   (current.score || 0) > (best.score || 0) ? current : best
                 );
+                // Make Top Performer suffix idempotent by stripping existing suffixes first
                 const finalUpdated = updated.map(item => ({
                   ...item,
                   isBestVariant: item.id === globalBest.id,
                   title: item.id === globalBest.id
-                    ? item.title.replace(' (Top Performer)', '') + ' (Top Performer)'
-                    : item.title.replace(' (Top Performer)', ''),
+                    ? item.title.replace(/\s*\(Top Performer\)+/g, '') + ' (Top Performer)'
+                    : item.title.replace(/\s*\(Top Performer\)+/g, ''),
                   description: item.id === globalBest.id
                     ? `🏆 Best performing variant across all optimizations (Score: ${(item.score || 0).toFixed(3)})`
                     : item.description.replace(/🏆 Best performing variant.*/, `Optimization variant (Score: ${(item.score || 0).toFixed(3)})`)
@@ -917,6 +964,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 saveToCache(cur.id, 'history', finalUpdated);
                 return finalUpdated;
               });
+              seenOptimizationIdsRef.current.add(no.id);
               processingOptimizationsRef.current.delete(no.id);
             }
           } catch (e) {
