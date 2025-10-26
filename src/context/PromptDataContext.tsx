@@ -423,49 +423,17 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             avgMessagesPerSession: 0,
             activePrompts: historyItems.length,
           },
-          recentActivity: (() => {
-            // Group by prompt (using tags to identify unique prompts, or fallback to id)
-            const promptGroups = new Map<string, PromptHistoryItem[]>();
-            
-            historyItems.forEach(item => {
-              // Use a unique key - could be based on original prompt text or a prompt_id if available
-              // For now, we'll group items that share the same base title (without Top Performer suffix)
-              const baseTitle = item.title.replace(/\s*\(Top Performer\)+/g, '').trim();
-              if (!promptGroups.has(baseTitle)) {
-                promptGroups.set(baseTitle, []);
-              }
-              promptGroups.get(baseTitle)!.push(item);
-            });
-            
-            // For each group: get the best variant and the latest timestamp
-            // Sort groups by their latest timestamp, then take top 6, then map to best variants
-            return Array.from(promptGroups.values())
-              .map(group => {
-                const bestVariant = group.reduce((best, current) => 
-                  (current.score || 0) > (best.score || 0) ? current : best
-                );
-                const latestTimestamp = Math.max(
-                  ...group.map(item => {
-                    const time = new Date(item.timestamp).getTime();
-                    return isNaN(time) ? 0 : time;
-                  })
-                );
-                return { bestVariant, latestTimestamp };
-              })
-              .sort((a, b) => b.latestTimestamp - a.latestTimestamp)
-              .slice(0, 6)
-              .map(({ bestVariant }) => ({
-                id: bestVariant.id,
-                title: bestVariant.title,
-                type: 'prompt_optimization',
-                outputType: bestVariant.outputType,
-                score: bestVariant.score,
-                provider: bestVariant.provider,
-                model: 'N/A',
-                createdAt: bestVariant.timestamp,
-                status: 'completed',
-              }));
-          })(),
+          recentActivity: historyItems.slice(0, 6).map(item => ({
+            id: item.id,
+            title: item.title,
+            type: 'prompt_optimization',
+            outputType: item.outputType,
+            score: item.score,
+            provider: item.provider,
+            model: 'N/A',
+            createdAt: item.timestamp,
+            status: 'completed',
+          })),
           insights,
         };
 
