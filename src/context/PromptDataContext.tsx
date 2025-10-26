@@ -271,80 +271,53 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
-        // Generate smart, context-aware titles
-        const generateTitle = (originalPrompt: string, createdAt: string): string => {
+        // Generate simple, human-friendly titles
+        const generateTitle = (originalPrompt: string): string => {
           let text = (originalPrompt || '').trim();
-          if (!text) {
-            // Fallback for empty prompts
-            const date = new Date(createdAt);
-            const formattedDate = date.toLocaleDateString('en-US', { 
-              day: 'numeric', 
-              month: 'short' 
-            });
-            const formattedTime = date.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit', 
-              hour12: true 
-            });
-            return `Session – ${formattedDate}, ${formattedTime}`;
-          }
+          if (!text) return 'Untitled Session';
           
-          // Clean up the prompt
+          // Clean up common prompt patterns
           text = text
-            .replace(/^(please|kindly|could you|can you|would you|i need you to|i want you to|i need|i want|help me)\s+/i, '')
-            .replace(/\[.*?\]/g, '') // remove placeholders
+            .replace(/^(please|kindly|could you|can you|would you|i need you to|i want you to|i need|i want|help me|you are a|act as a)\s+/i, '')
+            .replace(/\[.*?\]/g, '') // remove placeholders like [PRODUCT]
+            .replace(/["'`]/g, '') // remove quotes
             .trim();
           
-          // Context detection patterns
-          const contexts = {
-            prompt: /\b(optimize|improve|enhance|refine|better|fix|rephrase|rewrite)\s+(this|my|the)?\s*prompt/i,
-            workflow: /\b(n8n|workflow|automation|integrate|automate|bot|function node|trigger)/i,
-            design: /\b(ui|ux|design|layout|style|css|tailwind|component|interface|dashboard|overflow|responsive)/i,
-            code: /\b(code|function|api|endpoint|debug|implement|build|develop|script|algorithm)/i,
-            seo: /\b(seo|search engine|meta|keywords|ranking|optimize.*seo)/i,
-            query: /^(what|how|why|when|where|who|which|can|should|is|are|do|does)/i,
-          };
+          // Extract the core action/subject
+          let subject = '';
           
-          let prefix = '';
+          // Pattern 1: Action + Object (e.g., "write a blog post" → "Blog Post")
+          const actionMatch = text.match(/^(write|create|generate|build|make|develop|design|implement|code|fix|debug|add|update|improve|enhance|optimize|refactor)\s+(?:me\s+)?(?:a|an|the)?\s*(.+?)(?:[.!?]|$)/i);
           
-          // Determine context
-          if (contexts.seo.test(text)) {
-            prefix = 'SEO:';
-          } else if (contexts.prompt.test(text)) {
-            prefix = 'Prompt:';
-          } else if (contexts.workflow.test(text)) {
-            prefix = 'Workflow:';
-          } else if (contexts.design.test(text)) {
-            prefix = 'Design:';
-          } else if (contexts.code.test(text)) {
-            prefix = 'Code:';
-          } else if (contexts.query.test(text)) {
-            prefix = 'Query:';
+          if (actionMatch) {
+            subject = actionMatch[2];
+            // If the action verb provides value, keep it (e.g., "fix button" vs just "button")
+            const verb = actionMatch[1].toLowerCase();
+            if (['fix', 'debug', 'optimize', 'improve', 'enhance', 'refactor'].includes(verb)) {
+              const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+              subject = `${capitalize(verb)} ${subject}`;
+            }
+          } else {
+            // Pattern 2: Direct description (take first meaningful part)
+            subject = text.split(/[.!?]/)[0].trim();
           }
           
-          // Extract core subject/action
-          const extractSubject = (txt: string): string => {
-            // Remove common verbs at the start
-            let subject = txt
-              .replace(/^(write|create|generate|build|make|develop|design|implement|code|explain|describe|analyze|summarize|optimize|refactor|fix|debug|add|update|modify|improve|enhance)\s+(me\s+)?(a|an|the)?\s*/i, '')
-              .replace(/\s+(for|to|that|which|with|using|in|on).+$/i, ''); // trim trailing clauses
-            
-            // Get meaningful words
-            const words = subject
-              .split(/\s+/)
-              .filter(w => w.length > 2)
-              .slice(0, 6);
-            
-            return words.join(' ');
-          };
+          // Clean up subject
+          subject = subject
+            .replace(/\s+(for|to|that|which|with|using|in|on|about).+$/i, '') // remove trailing clauses
+            .replace(/^(for|to|from)\s+/i, '') // remove leading prepositions
+            .trim();
           
-          const subject = extractSubject(text);
+          // Limit to 6 words max
+          const words = subject.split(/\s+/).slice(0, 6);
+          subject = words.join(' ');
           
-          // Title case conversion
+          // Title Case conversion
           const toTitleCase = (str: string): string => {
-            const minorWords = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of']);
+            const minorWords = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of', 'with']);
             return str.split(/\s+/).map((word, index) => {
               const lower = word.toLowerCase();
+              // Always capitalize first word and non-minor words
               if (index === 0 || !minorWords.has(lower)) {
                 return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
               }
@@ -352,24 +325,19 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             }).join(' ');
           };
           
-          // Build final title
-          let finalSubject = toTitleCase(subject);
+          const title = toTitleCase(subject);
           
-          // Limit to reasonable length (3-6 words preferred)
-          const subjectWords = finalSubject.split(/\s+/);
-          if (subjectWords.length > 6) {
-            finalSubject = subjectWords.slice(0, 6).join(' ') + '...';
+          // Final length check (max 50 characters)
+          if (title.length > 50) {
+            return title.slice(0, 47).trim() + '...';
           }
           
-          const title = prefix ? `${prefix} ${finalSubject}` : finalSubject;
-          
-          // Final length check
-          return title.length > 55 ? title.slice(0, 52) + '...' : title;
+          return title || 'Untitled Session';
         };
         
         return {
           id: variant.id,
-          title: generateTitle(prompt.original_prompt, variant.created_at),
+          title: generateTitle(prompt.original_prompt),
           description: `${prompt.ai_provider} • ${prompt.model_name}${isGlobalTopPerformer ? ' • 🏆 Top Performer' : ''}`,
           prompt: prompt.original_prompt,
           output: variant.variant_prompt,
