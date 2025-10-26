@@ -15,6 +15,7 @@ export interface PromptHistoryItem {
   tags: string[];
   isFavorite: boolean;
   isBestVariant: boolean;
+  isGeneratingTitle?: boolean; // Flag to prevent duplicate generation
 }
 
 interface PromptDataContextValue {
@@ -186,7 +187,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     console.log(`[generateTitleAndApply] Start: ${promptId}`);
     
-    // GUARD: Skip if title already exists (not Untitled)
+    // GUARD 1: Skip if title already exists (not Untitled)
     const existingItem = historyRef.current.find(h => h.id === promptId);
     if (existingItem?.title && existingItem.title !== 'Untitled' && existingItem.title !== 'Untitled Session') {
       console.log(`[generateTitleAndApply] Skip - title already exists: ${promptId} => ${existingItem.title}`);
@@ -194,13 +195,19 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
     
-    // Check localStorage cache first
+    // GUARD 2: Skip if currently generating
+    if (existingItem?.isGeneratingTitle) {
+      console.log(`[generateTitleAndApply] Skip - already generating: ${promptId}`);
+      return;
+    }
+    
+    // GUARD 3: Check localStorage cache
     const cached = typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${promptId}`) : null;
     if (cached && cached.trim() && cached !== 'Untitled') {
       console.log(`[generateTitleAndApply] Using cache: ${promptId} => ${cached}`);
       setTitleStatus(promptId, "done");
       setHistoryItems(prev => {
-        const updated = prev.map(p => p.id === promptId ? { ...p, title: cached } : p);
+        const updated = prev.map(p => p.id === promptId ? { ...p, title: cached, isGeneratingTitle: false } : p);
         supabase.auth.getUser().then(({ data }) => {
           if (data?.user?.id) saveToCache(data.user.id, 'history', updated);
         });
@@ -209,29 +216,34 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
     
-    // Check status map
+    // GUARD 4: Check status map
     const status = getTitleStatus(promptId);
     if (status === "done") {
-      console.log(`[generateTitleAndApply] Using status done: ${promptId}`);
+      console.log(`[generateTitleAndApply] Skip - status done: ${promptId}`);
       return;
     }
     if (status === "pending") {
-      console.log(`[generateTitleAndApply] Already pending: ${promptId}`);
+      console.log(`[generateTitleAndApply] Skip - status pending: ${promptId}`);
       return;
     }
     
-    // Attempt to acquire lock
+    // GUARD 5: Attempt to acquire lock
     if (!acquireTitleLock(promptId)) {
-      console.log(`[generateTitleAndApply] Lock failed: ${promptId}`);
+      console.log(`[generateTitleAndApply] Skip - lock failed: ${promptId}`);
       return;
     }
     
-    // Check in-flight ref (intra-render guard)
+    // GUARD 6: Check in-flight ref (intra-render guard)
     if (titlesInFlightRef.current.has(promptId)) {
-      console.log(`[generateTitleAndApply] In-flight: ${promptId}`);
+      console.log(`[generateTitleAndApply] Skip - in-flight: ${promptId}`);
       releaseTitleLock(promptId);
       return;
     }
+    
+    // Mark as generating to prevent concurrent calls
+    setHistoryItems(prev => prev.map(p => 
+      p.id === promptId ? { ...p, isGeneratingTitle: true } : p
+    ));
     
     titlesInFlightRef.current.add(promptId);
     setTitleStatus(promptId, "pending");
@@ -244,10 +256,10 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Persist to localStorage
       try { localStorage.setItem(`prompt-title-${promptId}`, finalTitle); } catch {}
       
-      // Update local state
+      // Update local state - clear isGeneratingTitle flag
       setHistoryItems(prev => {
         const updated = prev.map(p =>
-          p.id === promptId ? { ...p, title: finalTitle } : p
+          p.id === promptId ? { ...p, title: finalTitle, isGeneratingTitle: false } : p
         );
         
         supabase.auth.getUser().then(({ data }) => {
@@ -265,6 +277,10 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.error(`[generateTitleAndApply] Failed: ${promptId}`, err);
       // Mark as done even on failure to prevent retry loops
       setTitleStatus(promptId, "done");
+      // Clear isGeneratingTitle flag on error
+      setHistoryItems(prev => prev.map(p => 
+        p.id === promptId ? { ...p, isGeneratingTitle: false } : p
+      ));
     } finally {
       titlesInFlightRef.current.delete(promptId);
       releaseTitleLock(promptId);
@@ -817,6 +833,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               ],
               isFavorite: false,
               isBestVariant: false,
+              isGeneratingTitle: false, // Ensure flag is set to false
             };
 
             console.log(`[Realtime] Adding to history with title: "${newHistoryItem.title}"`);
@@ -942,6 +959,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 ],
                 isFavorite: false,
                 isBestVariant: false,
+                isGeneratingTitle: false, // Ensure flag is set to false
               };
 
               setHistoryItems((prev) => {
