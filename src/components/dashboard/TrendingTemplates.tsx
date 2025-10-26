@@ -3,23 +3,33 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { WritingIcon, CodingIcon, MarketingIcon, SupportIcon, SearchIcon, FavoriteIcon } from './HandCraftedIcons';
+import { FavoriteIcon } from './HandCraftedIcons';
 import { useNavigate } from 'react-router-dom';
 import { useTemplatesData } from '@/context/TemplatesDataContext';
 
-const categoryIcons: Record<string, React.FC<any>> = {
+import ProductivityIcon from '@/assets/category-productivity.svg';
+import WritingIcon from '@/assets/category-writing.svg';
+import CodeIcon from '@/assets/category-code.svg';
+import MarketingIcon from '@/assets/category-marketing.svg';
+import AnalyticsIcon from '@/assets/category-analytics.svg';
+import CreativeIcon from '@/assets/category-creative.svg';
+import BusinessIcon from '@/assets/category-business.svg';
+import EducationIcon from '@/assets/category-education.svg';
+import CustomIcon from '@/assets/category-custom.svg';
+import SupportIcon from '@/assets/category-support.svg';
+
+const categoryIcons: Record<string, string> = {
   Writing: WritingIcon,
-  Coding: CodingIcon,
-  Code: CodingIcon,
+  Coding: CodeIcon,
+  Code: CodeIcon,
   Marketing: MarketingIcon,
   Support: SupportIcon,
-  Productivity: WritingIcon,
-  Analytics: MarketingIcon,
-  Creative: WritingIcon,
-  Business: MarketingIcon,
-  Education: WritingIcon,
-  Custom: WritingIcon,
+  Productivity: ProductivityIcon,
+  Analytics: AnalyticsIcon,
+  Creative: CreativeIcon,
+  Business: BusinessIcon,
+  Education: EducationIcon,
+  Custom: CustomIcon,
 };
 
 export const TrendingTemplates: React.FC = () => {
@@ -104,7 +114,7 @@ export const TrendingTemplates: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {topTemplates.map((template, index) => {
-            const CategoryIcon = categoryIcons[template.category || 'Writing'] || WritingIcon;
+            const categoryIconSrc = categoryIcons[template.category || 'Writing'] || WritingIcon;
             const isFavorite = favorites.has(template.id);
             const username = profileMap[template.user_id] || (template.is_official ? 'PrompTek' : 'Unknown');
 
@@ -128,7 +138,7 @@ export const TrendingTemplates: React.FC = () => {
 
                   {/* SVG Thumbnail */}
                   <div className="mb-3 p-3 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center h-20">
-                    <CategoryIcon className="text-primary" size={32} />
+                    <img src={categoryIconSrc} alt={template.category || 'Category'} className="w-10 h-10 text-primary" />
                   </div>
 
                   {/* Content */}
