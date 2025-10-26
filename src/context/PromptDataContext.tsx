@@ -423,17 +423,43 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             avgMessagesPerSession: 0,
             activePrompts: historyItems.length,
           },
-          recentActivity: historyItems.slice(0, 6).map(item => ({
-            id: item.id,
-            title: item.title,
-            type: 'prompt_optimization',
-            outputType: item.outputType,
-            score: item.score,
-            provider: item.provider,
-            model: 'N/A',
-            createdAt: item.timestamp,
-            status: 'completed',
-          })),
+          recentActivity: (() => {
+            // Group by prompt (using tags to identify unique prompts, or fallback to id)
+            const promptGroups = new Map<string, PromptHistoryItem[]>();
+            
+            historyItems.forEach(item => {
+              // Use a unique key - could be based on original prompt text or a prompt_id if available
+              // For now, we'll group items that share the same base title (without Top Performer suffix)
+              const baseTitle = item.title.replace(/\s*\(Top Performer\)+/g, '').trim();
+              if (!promptGroups.has(baseTitle)) {
+                promptGroups.set(baseTitle, []);
+              }
+              promptGroups.get(baseTitle)!.push(item);
+            });
+            
+            // Get the best variant from each group, then sort by best variant's timestamp
+            return Array.from(promptGroups.values())
+              .map(group => group.reduce((best, current) => 
+                (current.score || 0) > (best.score || 0) ? current : best
+              ))
+              .sort((a, b) => {
+                const aTime = new Date(a.timestamp).getTime();
+                const bTime = new Date(b.timestamp).getTime();
+                return bTime - aTime;
+              })
+              .slice(0, 6)
+              .map(item => ({
+                id: item.id,
+                title: item.title,
+                type: 'prompt_optimization',
+                outputType: item.outputType,
+                score: item.score,
+                provider: item.provider,
+                model: 'N/A',
+                createdAt: item.timestamp,
+                status: 'completed',
+              }));
+          })(),
           insights,
         };
 
