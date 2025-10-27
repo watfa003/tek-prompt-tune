@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Zap, 
   Target, 
@@ -31,7 +32,8 @@ import {
   Clock,
   Crown,
   Trophy,
-  Save
+  Save,
+  Wand2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +41,8 @@ import { useSettings } from '@/hooks/use-settings';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { usePromptData } from '@/context/PromptDataContext';
 import { useOptimizerSession } from '@/context/OptimizerSessionContext';
+import { detectOutputType } from '@/lib/output-formatters';
+import { OutputTypeSelector } from '@/components/ui/output-type-selector';
 
 interface OptimizationResult {
   promptId: string;
@@ -95,7 +99,8 @@ const PromptOptimizerForm = ({
   optimizationMode,
   setOptimizationMode,
   onSubmit,
-  isLoading
+  isLoading,
+  toast
 }: {
   taskDescription: string;
   setTaskDescription: (value: string) => void;
@@ -126,6 +131,7 @@ const PromptOptimizerForm = ({
   setOptimizationMode?: (value: 'speed' | 'deep') => void;
   onSubmit: () => void;
   isLoading: boolean;
+  toast: any;
 }) => {
 
   const clearInfluence = () => {
@@ -237,20 +243,40 @@ const PromptOptimizerForm = ({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Output Type</Label>
-            <Select value={selectedOutputType} onValueChange={setSelectedOutputType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select output type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="text">Text</SelectItem>
-                <SelectItem value="code">Code</SelectItem>
-                <SelectItem value="json">JSON</SelectItem>
-                <SelectItem value="list">List</SelectItem>
-                <SelectItem value="essay">Essay</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Output Type</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      onClick={() => {
+                        const detected = detectOutputType(taskDescription);
+                        setSelectedOutputType(detected);
+                        toast({
+                          title: "Auto-detected!",
+                          description: `Detected output type: ${detected}`,
+                        });
+                      }}
+                      className="h-7 text-xs"
+                    >
+                      <Wand2 className="h-3 w-3 mr-1" />
+                      Auto-detect
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Automatically detect the best output type from your task description</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <OutputTypeSelector 
+              value={selectedOutputType as any} 
+              onChange={(type) => setSelectedOutputType(type)}
+            />
           </div>
         </div>
 
@@ -781,6 +807,7 @@ export const AIPromptOptimizer: React.FC = () => {
         setOptimizationMode={setOptimizationMode}
         onSubmit={optimizePrompt}
         isLoading={isOptimizing}
+        toast={toast}
       />
 
       {/* Optimization Recovery Banner */}

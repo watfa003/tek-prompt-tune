@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useSettings } from "@/hooks/use-settings";
+import { formatOutput, getOutputTypeConfig, OutputType } from '@/lib/output-formatters';
 
 interface PromptResultsProps {
   taskDescription: string;
@@ -236,7 +237,13 @@ export const PromptResults = ({
           </div>
           <div className="text-center">
             <div className="text-sm font-medium text-muted-foreground">Output Type</div>
-            <div className="font-semibold capitalize">{outputType}</div>
+            <div className="flex items-center gap-2 justify-center">
+              <div className="font-semibold capitalize">{outputType}</div>
+              {(() => {
+                const Icon = getOutputTypeConfig(outputType as OutputType).icon;
+                return <Icon className="h-4 w-4 text-primary" />;
+              })()}
+            </div>
           </div>
           <div className="text-center">
             <div className="text-sm font-medium text-muted-foreground">Variants</div>
@@ -328,7 +335,10 @@ export const PromptResults = ({
               </div>
               <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
                 <p className="text-sm whitespace-pre-wrap">
-                  {result.variants.find(v => v.score === result.bestScore)?.response || 'No response available'}
+                  {formatOutput(
+                    result.variants.find(v => v.score === result.bestScore)?.response || 'No response available',
+                    outputType as OutputType
+                  )}
                 </p>
               </div>
             </Card>
@@ -377,7 +387,9 @@ export const PromptResults = ({
                     </Button>
                   </div>
                   <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
-                    <p className="text-sm whitespace-pre-wrap">{variant.response}</p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {formatOutput(variant.response, outputType as OutputType)}
+                    </p>
                   </div>
                 </div>
                 
