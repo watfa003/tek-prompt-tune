@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getAllOutputTypes, OutputType } from '@/lib/output-formatters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface OutputTypeSelectorProps {
   value: OutputType;
@@ -15,36 +14,44 @@ export const OutputTypeSelector: React.FC<OutputTypeSelectorProps> = ({
   className
 }) => {
   const outputTypes = getAllOutputTypes();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   return (
-    <TooltipProvider>
+    <div className="relative">
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className={className}>
           <SelectValue placeholder="Select output type" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50">
           {outputTypes.map((config) => {
             const Icon = config.icon;
             
             return (
-              <Tooltip key={config.id}>
-                <TooltipTrigger asChild>
-                  <SelectItem value={config.id}>
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      <span>{config.label}</span>
+              <div 
+                key={config.id}
+                onMouseEnter={() => setHoveredItem(config.id)}
+                onMouseLeave={() => setHoveredItem(null)}
+                className="relative"
+              >
+                <SelectItem value={config.id} className="cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4" />
+                    <span>{config.label}</span>
+                  </div>
+                </SelectItem>
+                
+                {hoveredItem === config.id && (
+                  <div className="absolute left-full top-0 ml-2 z-[100] pointer-events-none">
+                    <div className="bg-background/95 backdrop-blur-xl border border-primary/30 rounded-lg p-3 shadow-lg shadow-primary/10 min-w-[200px] max-w-xs animate-in fade-in-0 zoom-in-95 duration-150">
+                      <p className="text-xs text-muted-foreground">{config.description}</p>
                     </div>
-                  </SelectItem>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs z-[100]">
-                  <p className="font-medium">{config.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{config.description}</p>
-                </TooltipContent>
-              </Tooltip>
+                  </div>
+                )}
+              </div>
             );
           })}
         </SelectContent>
       </Select>
-    </TooltipProvider>
+    </div>
   );
 };

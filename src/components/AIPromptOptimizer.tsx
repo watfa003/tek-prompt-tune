@@ -244,35 +244,7 @@ const PromptOptimizerForm = ({
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Output Type</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      type="button"
-                      onClick={() => {
-                        const detected = detectOutputType(taskDescription);
-                        setSelectedOutputType(detected);
-                        toast({
-                          title: "Auto-detected!",
-                          description: `Detected output type: ${detected}`,
-                        });
-                      }}
-                      className="h-7 text-xs"
-                    >
-                      <Wand2 className="h-3 w-3 mr-1" />
-                      Auto-detect
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Automatically detect the best output type from your task description</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            <Label className="text-sm font-medium">Output Type</Label>
             <OutputTypeSelector 
               value={selectedOutputType as any} 
               onChange={(type) => setSelectedOutputType(type)}
