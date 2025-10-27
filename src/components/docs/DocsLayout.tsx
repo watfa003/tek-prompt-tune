@@ -56,11 +56,11 @@ export function DocsLayout({ children, title, description }: DocsLayoutProps) {
     <div className="min-h-screen bg-background flex flex-col">
       {/* SEO Meta Tags - handled by parent component */}
       <div className="flex flex-1">
-        <div className="shrink-0 sticky top-0 h-[100vh]">
+        <div className="w-64 sticky top-0 self-start h-screen flex-shrink-0">
           <DocsSidebar />
         </div>
         
-        <main className="flex-1 p-6 md:p-10 lg:p-16 max-w-5xl mx-auto">
+        <main className="flex-1 p-6 md:p-10 lg:p-16 max-w-5xl mx-auto min-w-0">
           <div className="space-y-6">
             {/* Page Header */}
             <div className="space-y-3 pb-8 border-b border-primary/20">

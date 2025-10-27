@@ -34,12 +34,12 @@ const ScrollToTop = () => {
       try {
         const el = document.querySelector(hash);
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.scrollIntoView({ behavior: 'instant', block: 'start' });
           return;
         }
       } catch {}
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname, hash]);
   return null;
 };
