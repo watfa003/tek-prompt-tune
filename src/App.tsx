@@ -44,8 +44,8 @@ const App = () => (
           
           {/* Documentation Routes */}
           <Route path="/docs/features" element={<ProductFeatures />} />
-          <Route path="/docs/engineering-tool" element={<PromptEngineeringTool />} />
-          <Route path="/docs/ai-testing" element={<AIModelTesting />} />
+          <Route path="/docs/engineering" element={<PromptEngineeringTool />} />
+          <Route path="/docs/testing" element={<AIModelTesting />} />
           <Route path="/docs/pricing" element={<Pricing />} />
           <Route path="/docs/documentation" element={<Documentation />} />
           <Route path="/docs/api" element={<APIReference />} />
