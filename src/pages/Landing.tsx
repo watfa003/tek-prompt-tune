@@ -82,6 +82,26 @@ const Landing = () => {
                 className={`transition-all duration-300 ${scrolled ? 'h-14 md:h-16' : 'h-20 md:h-24'}`}
               />
             </Link>
+            
+            {/* Navigation Links */}
+            <div className="hidden lg:flex items-center gap-6">
+              <Link to="/docs/features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Features
+              </Link>
+              <Link to="/docs/pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Pricing
+              </Link>
+              <Link to="/docs/documentation" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Docs
+              </Link>
+              <Link to="/docs/api" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                API
+              </Link>
+              <Link to="/docs/blog" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Blog
+              </Link>
+            </div>
+            
             <div className="flex gap-3">
               <Button 
                 variant="ghost" 
