@@ -183,35 +183,38 @@ export function AppSidebar() {
             <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    onClick={() => {
-                      if (mode === 'api' && 'section' in item) {
-                        setApiSection(item.section);
-                      } else if ('url' in item && currentPath !== item.url) {
-                        navigate(item.url);
-                      }
-                    }}
-                    className={`relative w-full justify-start group-data-[collapsible=icon]:justify-center transition-all duration-250 hover:scale-[1.02] hover:-translate-y-0.5 rounded-xl group overflow-hidden ${
-                      mode === 'api' && 'section' in item
-                        ? isApiSectionActive(item.section) 
-                          ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
-                          : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
-                        : 'url' in item && isActive(item.url) 
-                          ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
-                          : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
-                    }`}
-                  >
-                    <item.icon className={`h-3 w-3 md:h-4 md:w-4 flex-shrink-0 transition-all duration-250 text-sidebar-foreground ${
-                      (mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
-                      ('url' in item && isActive(item.url)) 
-                        ? 'text-primary drop-shadow-[0_0_8px_rgba(110,231,255,0.6)]' 
-                        : 'group-hover:text-primary group-hover:drop-shadow-[0_0_6px_rgba(110,231,255,0.4)]'
-                    }`} />
-                    <span className="text-sm truncate font-medium tracking-tight transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">{item.title}</span>
-                    {((mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
-                      ('url' in item && isActive(item.url))) && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-accent rounded-r-full" />
-                    )}
+                  <SidebarMenuButton asChild>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        if (mode === 'api' && 'section' in item) {
+                          setApiSection(item.section);
+                        } else if ('url' in item && currentPath !== item.url) {
+                          navigate(item.url);
+                        }
+                      }}
+                      className={`relative w-full justify-start group-data-[collapsible=icon]:justify-center transition-all duration-250 hover:scale-[1.02] hover:-translate-y-0.5 rounded-xl group overflow-hidden ${
+                        mode === 'api' && 'section' in item
+                          ? isApiSectionActive(item.section) 
+                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
+                            : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
+                          : 'url' in item && isActive(item.url) 
+                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
+                            : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
+                      }`}
+                    >
+                      <item.icon className={`h-4 w-4 flex-shrink-0 transition-all duration-250 ${
+                        (mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
+                        ('url' in item && isActive(item.url)) 
+                          ? 'text-primary drop-shadow-[0_0_8px_rgba(110,231,255,0.6)]' 
+                          : 'group-hover:text-primary group-hover:drop-shadow-[0_0_6px_rgba(110,231,255,0.4)]'
+                      }`} />
+                      <span className="text-sm truncate font-medium tracking-tight transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">{item.title}</span>
+                      {((mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
+                        ('url' in item && isActive(item.url))) && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-accent rounded-r-full" />
+                      )}
+                    </Button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -299,12 +302,15 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={handleLogout}
-                  className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">Sign Out</span>
+                <SidebarMenuButton asChild>
+                  <Button
+                    variant="ghost"
+                    onClick={handleLogout}
+                    className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">Sign Out</span>
+                  </Button>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
