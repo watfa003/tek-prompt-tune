@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import Landing from "./pages/Landing";
 import AppPage from "./pages/App";
 import Auth from "./pages/Auth";
@@ -29,17 +29,25 @@ const queryClient = new QueryClient();
 
 const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    const prevBehavior = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    window.history.scrollRestoration = 'manual';
+    
     if (hash) {
       try {
         const el = document.querySelector(hash);
         if (el) {
-          el.scrollIntoView({ behavior: 'instant', block: 'start' });
+          el.scrollIntoView({ block: 'start' });
+          html.style.scrollBehavior = prevBehavior;
           return;
         }
       } catch {}
     }
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    
+    window.scrollTo(0, 0);
+    html.style.scrollBehavior = prevBehavior;
   }, [pathname, hash]);
   return null;
 };
