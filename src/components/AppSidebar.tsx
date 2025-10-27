@@ -160,8 +160,8 @@ export function AppSidebar() {
         {/* User Info */}
         {userInfo && (
           <SidebarGroup>
-            <SidebarGroupContent>
-              <div className="flex items-center space-x-2 md:space-x-3 p-3 md:p-4 rounded-[14px] md:rounded-[18px] glass-card neon-border mb-2 transition-opacity duration-200">
+          <SidebarGroupContent className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
+              <div className="flex items-center space-x-2 md:space-x-3 p-3 md:p-4 rounded-[14px] md:rounded-[18px] glass-card neon-border mb-2">
                 <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-primary to-accent text-white font-semibold flex items-center justify-center text-xs md:text-sm shadow-glow flex-shrink-0">
                   {userInfo.displayName.charAt(0).toUpperCase()}
                 </div>
@@ -176,10 +176,10 @@ export function AppSidebar() {
 
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-xs md:text-sm px-2 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">
+          <SidebarGroupLabel className="text-muted-foreground text-xs md:text-sm px-2">
             {mode === 'api' ? 'API Management' : 'Navigation'}
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
             <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -231,7 +231,7 @@ export function AppSidebar() {
                 {favoriteItems.length}
               </Badge>
             </SidebarGroupLabel>
-            <SidebarGroupContent className="transition-opacity duration-200">
+            <SidebarGroupContent className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
               <div className="space-y-2">
                 {/* Search */}
                 <div className="relative">
@@ -299,7 +299,7 @@ export function AppSidebar() {
         
         {/* Logout */}
         <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
+          <SidebarGroupContent className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
