@@ -159,7 +159,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     id: 'text',
     label: 'Text',
     icon: FileText,
-    description: 'Generates short, natural language responses or summaries.',
+    description: 'Short-form, natural paragraph responses',
     promptInstructions: 'Write a clear, concise response in natural paragraph form. Keep sentences short and readable. Use a professional yet approachable tone. No headings or excessive structure - just well-written text.',
     formatResponse: (content: string) => {
       // Clean up excessive line breaks
@@ -183,7 +183,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     id: 'essay',
     label: 'Essay',
     icon: BookOpen,
-    description: 'Creates structured long-form content with intro, body, and conclusion.',
+    description: 'Structured academic writing with introduction, body, and conclusion',
     promptInstructions: 'Write a well-structured essay with clear introduction, body paragraphs, and conclusion. Use coherent transitions between sections. Maintain logical flow and academic tone. Support arguments with clear reasoning.',
     formatResponse: (content: string) => {
       // Ensure proper paragraph spacing
@@ -209,7 +209,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     id: 'list',
     label: 'List',
     icon: List,
-    description: 'Outputs clean, ordered or bulleted lists of key points or steps.',
+    description: 'Clean bullet points or numbered steps',
     promptInstructions: 'Create a clean, structured list with consistent formatting. Use bullets for unordered items, numbers for sequential steps. Ensure each item is concise and parallel in structure. Support nested lists when needed.',
     formatResponse: formatList,
     validateResponse: (content: string) => {
@@ -232,7 +232,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     id: 'code',
     label: 'Code',
     icon: Code,
-    description: 'Generates syntax-highlighted, valid programming code with minimal comments.',
+    description: 'Syntax-highlighted code with proper formatting',
     promptInstructions: 'Generate clean, well-formatted code with proper indentation and syntax. Include minimal inline comments only when necessary. Follow best practices for the specific language. Use fenced code blocks with language specification.',
     formatResponse: formatCodeBlock,
     validateResponse: (content: string) => {
@@ -256,7 +256,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     id: 'json',
     label: 'JSON',
     icon: FileJson,
-    description: 'Returns valid, parsable JSON objects — perfect for API use.',
+    description: 'Valid, parsable JSON objects',
     promptInstructions: 'Return valid, properly formatted JSON only. No additional commentary or explanation. Use consistent key naming (camelCase or snake_case). Include clear type structure. Support nested objects and arrays.',
     formatResponse: formatJSON,
     validateResponse: (content: string) => {
