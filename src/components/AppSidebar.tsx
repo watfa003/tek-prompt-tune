@@ -159,13 +159,13 @@ export function AppSidebar() {
       <SidebarContent className="p-2 md:p-3 overflow-x-hidden">
         {/* User Info */}
         {userInfo && (
-          <SidebarGroup className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
+          <SidebarGroup>
             <SidebarGroupContent>
-              <div className="flex items-center space-x-2 md:space-x-3 p-3 md:p-4 rounded-[14px] md:rounded-[18px] glass-card neon-border mb-2">
+              <div className="flex items-center space-x-2 md:space-x-3 p-3 md:p-4 rounded-[14px] md:rounded-[18px] glass-card neon-border mb-2 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
                 <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-primary to-accent text-white font-semibold flex items-center justify-center text-xs md:text-sm shadow-glow flex-shrink-0">
                   {userInfo.displayName.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">
                   <p className="text-xs md:text-sm font-semibold truncate">{userInfo.displayName}</p>
                   <p className="text-[10px] md:text-xs text-muted-foreground truncate">{userInfo.email}</p>
                 </div>
@@ -209,7 +209,7 @@ export function AppSidebar() {
                           ? 'text-primary drop-shadow-[0_0_8px_rgba(110,231,255,0.6)]' 
                           : 'group-hover:text-primary group-hover:drop-shadow-[0_0_6px_rgba(110,231,255,0.4)]'
                       }`} />
-                      {!isCollapsed && <span className="text-sm truncate font-medium tracking-tight">{item.title}</span>}
+                      {!isCollapsed && <span className="text-sm truncate font-medium tracking-tight group-data-[collapsible=icon]:opacity-0">{item.title}</span>}
                       {((mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
                         ('url' in item && isActive(item.url))) && (
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-accent rounded-r-full" />
@@ -224,14 +224,14 @@ export function AppSidebar() {
 
         {/* Favorites - Only show in optimizer mode */}
         {mode === 'optimizer' && (
-          <SidebarGroup className="mt-6 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
-            <SidebarGroupLabel className="flex items-center justify-between">
+          <SidebarGroup className="mt-6">
+            <SidebarGroupLabel className="flex items-center justify-between transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">
               <span className="text-muted-foreground">Favorites</span>
               <Badge variant="secondary" className="text-xs">
                 {favoriteItems.length}
               </Badge>
             </SidebarGroupLabel>
-            <SidebarGroupContent>
+            <SidebarGroupContent className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
               <div className="space-y-2">
                 {/* Search */}
                 <div className="relative">
@@ -309,7 +309,7 @@ export function AppSidebar() {
                     className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5"
                   >
                     <LogOut className="h-4 w-4" />
-                    {!isCollapsed && <span>Sign Out</span>}
+                    {!isCollapsed && <span className="group-data-[collapsible=icon]:opacity-0">Sign Out</span>}
                   </Button>
                 </SidebarMenuButton>
               </SidebarMenuItem>
