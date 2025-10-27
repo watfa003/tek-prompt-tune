@@ -153,13 +153,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${isCollapsed ? "w-14 md:w-16" : "w-60 md:w-72"} glass-panel border-r border-white/10 transition-all duration-300`}
+      className="glass-panel border-r border-white/10"
       collapsible="icon"
     >
       <SidebarContent className="p-2 md:p-3 overflow-x-hidden">
         {/* User Info */}
-        {!isCollapsed && userInfo && (
-          <SidebarGroup>
+        {userInfo && (
+          <SidebarGroup className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
             <SidebarGroupContent>
               <div className="flex items-center space-x-2 md:space-x-3 p-3 md:p-4 rounded-[14px] md:rounded-[18px] glass-card neon-border mb-2">
                 <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-primary to-accent text-white font-semibold flex items-center justify-center text-xs md:text-sm shadow-glow flex-shrink-0">
@@ -223,8 +223,8 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Favorites - Only show in optimizer mode */}
-        {!isCollapsed && mode === 'optimizer' && (
-          <SidebarGroup className="mt-6">
+        {mode === 'optimizer' && (
+          <SidebarGroup className="mt-6 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
             <SidebarGroupLabel className="flex items-center justify-between">
               <span className="text-muted-foreground">Favorites</span>
               <Badge variant="secondary" className="text-xs">
