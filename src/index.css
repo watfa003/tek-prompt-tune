@@ -134,6 +134,8 @@
   
   html {
     @apply overflow-x-hidden;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
     position: relative;
     scroll-behavior: smooth;
   }
