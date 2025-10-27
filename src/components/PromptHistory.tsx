@@ -214,11 +214,11 @@ export const PromptHistory = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <h3 className="text-base sm:text-lg font-semibold truncate max-w-full cursor-help">
-                      {item.title}
+                      {item.title || item.description || 'Untitled'}
                     </h3>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-md">
-                    <p className="font-semibold">{item.title}</p>
+                    <p className="font-semibold">{item.title || item.description || 'Untitled'}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Created: {formatDate(item.timestamp)}
                     </p>
