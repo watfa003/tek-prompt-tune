@@ -130,6 +130,8 @@
     @apply bg-background text-foreground overflow-x-hidden font-body;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     position: relative;
+    overflow-y: scroll;
+    scrollbar-gutter: stable both-edges;
   }
   
   html {
