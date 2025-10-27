@@ -1200,11 +1200,11 @@ const Landing = () => {
             <div>
               <h3 className="text-sm font-semibold mb-4">Product</h3>
               <nav className="flex flex-col gap-3" aria-label="Product links">
-                {[
-                  { label: "Prompt Optimizer Features", href: "/auth" },
-                  { label: "Prompt Engineering Tool", href: "/auth" },
-                  { label: "AI Model Testing", href: "/auth" },
-                  { label: "Pricing", href: "/auth" }
+              {[
+                  { label: "Prompt Optimizer Features", href: "/docs/features" },
+                  { label: "Prompt Engineering Tool", href: "/docs/engineering" },
+                  { label: "AI Model Testing", href: "/docs/testing" },
+                  { label: "Pricing", href: "/docs/pricing" }
                 ].map((link) => (
                   <Link
                     key={link.label}
@@ -1228,15 +1228,15 @@ const Landing = () => {
             <div>
               <h3 className="text-sm font-semibold mb-4">Resources</h3>
               <nav className="flex flex-col gap-3" aria-label="Resource links">
-                {[
-                  { label: "Documentation", href: "#" },
-                  { label: "API Reference", href: "#" },
-                  { label: "Prompt Templates", href: "/auth" },
-                  { label: "Blog", href: "#" }
+              {[
+                  { label: "Documentation", href: "/docs/documentation" },
+                  { label: "API Reference", href: "/docs/api" },
+                  { label: "Prompt Templates", href: "/docs/templates" },
+                  { label: "Blog", href: "/docs/blog" }
                 ].map((link) => (
-                  <a
+                  <Link
                     key={link.label}
-                    href={link.href}
+                    to={link.href}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                   >
                     {link.label}
@@ -1247,7 +1247,7 @@ const Landing = () => {
                     >
                       →
                     </motion.span>
-                  </a>
+                  </Link>
                 ))}
               </nav>
             </div>
@@ -1256,15 +1256,15 @@ const Landing = () => {
             <div>
               <h3 className="text-sm font-semibold mb-4">Company</h3>
               <nav className="flex flex-col gap-3" aria-label="Company links">
-                {[
-                  { label: "About", href: "#" },
-                  { label: "Contact", href: "#", icon: Mail },
-                  { label: "Privacy Policy", href: "#" },
-                  { label: "Terms of Service", href: "#" }
+              {[
+                  { label: "About", href: "/docs/about" },
+                  { label: "Contact", href: "/docs/contact", icon: Mail },
+                  { label: "Privacy Policy", href: "/docs/privacy" },
+                  { label: "Terms of Service", href: "/docs/terms" }
                 ].map((link) => (
-                  <a
+                  <Link
                     key={link.label}
-                    href={link.href}
+                    to={link.href}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                   >
                     {link.icon && <link.icon className="h-3 w-3" aria-hidden="true" />}
@@ -1276,7 +1276,7 @@ const Landing = () => {
                     >
                       →
                     </motion.span>
-                  </a>
+                  </Link>
                 ))}
               </nav>
             </div>

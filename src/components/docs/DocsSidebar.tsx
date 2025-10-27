@@ -47,7 +47,7 @@ const docsSections = [
 
 export function DocsSidebar() {
   return (
-    <aside className="w-64 border-r border-primary/10 min-h-screen p-6 sticky top-0 overflow-y-auto bg-background/95 backdrop-blur">
+      <aside className="w-64 border-r border-primary/10 sticky top-0 h-[100vh] p-6 overflow-y-auto bg-background/95 backdrop-blur">
       <NavLink to="/" className="block mb-8">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
           PrompTek Docs
