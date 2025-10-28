@@ -222,6 +222,36 @@
   }
 }
 
+@layer base {
+  /* Global scrollbar styling - matches theme */
+  html, body {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)/0.4) hsl(var(--muted));
+  }
+
+  @supports selector(::-webkit-scrollbar) {
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    html::-webkit-scrollbar-track,
+    body::-webkit-scrollbar-track {
+      background: hsl(var(--muted));
+    }
+    html::-webkit-scrollbar-thumb,
+    body::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, hsl(var(--primary)/0.85), hsl(var(--accent)/0.85));
+      border-radius: 9999px;
+      border: 2px solid hsl(var(--muted));
+    }
+    html::-webkit-scrollbar-thumb:hover,
+    body::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--accent)));
+    }
+  }
+}
+
 /* Flagship-Grade Futuristic SaaS Components */
 @layer components {
   /* Glass Morphism - Enhanced depth */

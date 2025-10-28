@@ -12,10 +12,10 @@ const Slider = React.forwardRef<
     className={cn("relative flex w-full touch-none select-none items-center", className)}
     {...props}
   >
-    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary/20 backdrop-blur-sm border border-primary/10">
-      <SliderPrimitive.Range className="absolute h-full bg-gradient-to-r from-primary via-primary-glow to-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]" />
+    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-muted/40 backdrop-blur-sm border border-border">
+      <SliderPrimitive.Range className="absolute h-full bg-gradient-to-r from-primary to-accent shadow-[0_0_18px_hsl(var(--primary)/0.35)]" />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)] ring-offset-background transition-all hover:scale-110 hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+    <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background shadow-[0_0_12px_hsl(var(--primary)/0.4)] ring-offset-background transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;

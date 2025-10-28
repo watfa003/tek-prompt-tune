@@ -245,7 +245,7 @@ export function AppSidebar() {
                 </div>
 
                 {/* Prompt List */}
-                <div className="space-y-1 max-h-48 overflow-y-auto">
+                <div className="space-y-1 max-h-48 overflow-y-auto scrollbar-thin pr-1">
                   {filteredFavorites.map((item) => (
                     <Card 
                       key={item.id} 
