@@ -223,7 +223,7 @@ const AppPageContent = () => {
                     <img 
                       src={promptekLogo} 
                       alt="PrompTek" 
-                      className="h-8 object-contain"
+                      className="h-12 md:h-14 object-contain"
                     />
                   </div>
                 </div>

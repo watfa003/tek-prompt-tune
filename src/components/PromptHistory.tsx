@@ -323,6 +323,22 @@ export const PromptHistory = () => {
             <Star className={`h-3 w-3 mr-1 ${item.isFavorite ? "fill-current" : ""}`} />
             {item.isFavorite ? "Favorited" : "Favorite"}
           </Button>
+          <Button 
+            size="sm" 
+            variant="default"
+            onClick={() => {
+              const influenceText = item.output || item.prompt;
+              navigate(`/?influence=${encodeURIComponent(influenceText)}`);
+              toast({
+                title: "Influence Applied",
+                description: "The optimized prompt has been set as your influence.",
+              });
+            }}
+            className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            Use as Influence
+          </Button>
         </div>
       </Card>
     );
