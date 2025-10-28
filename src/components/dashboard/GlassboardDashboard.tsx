@@ -114,23 +114,6 @@ export const GlassboardDashboard = () => {
         />
       </div>
 
-      {/* Theme & Compact Mode Controls */}
-      <motion.div
-        className="fixed top-20 right-4 z-40 flex items-center gap-2"
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <motion.button
-          onClick={toggleCompactMode}
-          className="w-10 h-10 rounded-xl glass-panel border border-white/10 flex items-center justify-center hover:border-primary/50 transition-all"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          aria-label="Toggle compact mode"
-        >
-          {compactMode ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
-        </motion.button>
-      </motion.div>
 
       {/* Main Content */}
       <div className={`space-y-8 md:space-y-12 relative z-10 w-full max-w-full ${compactMode ? 'compact-mode' : ''}`}>
