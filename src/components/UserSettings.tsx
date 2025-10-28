@@ -44,7 +44,7 @@ export const UserSettings = () => {
   const { theme: currentTheme, setTheme } = useTheme();
 
   // Auto-save debounced
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {
     // Clear existing timeout
@@ -55,7 +55,7 @@ export const UserSettings = () => {
     // Set new timeout to auto-save after 1 second of no changes
     saveTimeoutRef.current = setTimeout(async () => {
       if (!loading) {
-        await saveSettings();
+        await saveSettings({ silent: true });
         if (settings.theme && settings.theme !== currentTheme) {
           setTheme(settings.theme as any);
         }
@@ -150,7 +150,16 @@ export const UserSettings = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Default AI Provider</Label>
-            <Select value={settings.defaultProvider} onValueChange={(value) => setSettings({ ...settings, defaultProvider: value })}>
+            <Select value={settings.defaultProvider} onValueChange={(value) => {
+              const defaultModels: Record<string, string> = {
+                openai: 'gpt-4o-mini',
+                anthropic: 'claude-3-5-haiku-20241022',
+                google: 'gemini-2.5-flash',
+                groq: 'llama-3.1-8b',
+                mistral: 'mistral-medium',
+              };
+              setSettings({ ...settings, defaultProvider: value, defaultModel: defaultModels[value] || settings.defaultModel });
+            }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

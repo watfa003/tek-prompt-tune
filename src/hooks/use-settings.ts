@@ -44,7 +44,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   // Preferences
   defaultProvider: 'openai',
   defaultModel: 'gpt-4o-mini',
-  defaultOutputType: 'Code',
+  defaultOutputType: 'text',
   defaultVariants: 3,
   defaultTemperature: 0.7,
   defaultMaxTokens: null,
@@ -183,15 +183,17 @@ export const useSettings = () => {
   };
 
   // Save settings to database
-  const saveSettings = async () => {
+  const saveSettings = async (opts?: { silent?: boolean }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to save settings",
-          variant: "destructive",
-        });
+        if (!opts?.silent) {
+          toast({
+            title: "Error",
+            description: "You must be logged in to save settings",
+            variant: "destructive",
+          });
+        }
         return;
       }
 
@@ -227,28 +229,33 @@ export const useSettings = () => {
 
       if (error) {
         console.error('Error saving settings:', error);
-        toast({
-          title: "Error",
-          description: "Failed to save settings",
-          variant: "destructive",
-        });
+        if (!opts?.silent) {
+          toast({
+            title: "Error",
+            description: "Failed to save settings",
+            variant: "destructive",
+          });
+        }
         return;
       }
 
-      toast({
-        title: "Settings saved",
-        description: "Your preferences have been updated successfully.",
-      });
+      if (!opts?.silent) {
+        toast({
+          title: "Settings saved",
+          description: "Your preferences have been updated successfully.",
+        });
+      }
     } catch (error) {
       console.error('Error in saveSettings:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      if (!opts?.silent) {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+      }
     }
   };
-
   // Reset settings to defaults
   const resetSettings = async () => {
     setSettings(DEFAULT_SETTINGS);
