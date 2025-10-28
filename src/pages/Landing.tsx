@@ -6,7 +6,6 @@ import { Link } from "react-router-dom";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { Particles } from "@/components/ui/particles";
 import { SpiralAnimation } from "@/components/ui/spiral-animation";
-import promptekLogo from "@/assets/promptek-logo.png";
 import precisionScoringIcon from "@/assets/precision-scoring.svg";
 import crossModelIcon from "@/assets/cross-model-intelligence.svg";
 import adaptiveLearningIcon from "@/assets/adaptive-learning.svg";
@@ -76,11 +75,9 @@ const Landing = () => {
             scrolled ? 'py-3' : 'py-6'
           }`}>
             <Link to="/" className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
-              <img 
-                src={promptekLogo} 
-                alt="PrompTek - AI Prompt Optimizer" 
-                className={`object-contain mix-blend-normal transition-all duration-300 ${scrolled ? 'h-14 md:h-16' : 'h-20 md:h-24'}`}
-              />
+              <span className={`font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent transition-all duration-300 ${scrolled ? 'text-2xl md:text-3xl' : 'text-3xl md:text-4xl'}`}>
+                PrompTek
+              </span>
             </Link>
             
             {/* Navigation Links */}
@@ -1154,13 +1151,9 @@ const Landing = () => {
             {/* Brand Column */}
             <div className="md:col-span-1">
               <Link to="/" className="flex items-center mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
-                <motion.img 
-                  src={promptekLogo} 
-                  alt="PrompTek - AI Prompt Optimizer" 
-                  className="object-contain mix-blend-normal h-14 md:h-16"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                />
+                <span className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  PrompTek
+                </span>
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed mb-6">
                 The ultimate prompt optimizer for AI engineers and developers.
