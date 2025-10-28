@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,7 @@ import { useDataCleanup } from "@/hooks/use-data-cleanup";
 export const UserSettings = () => {
   const {
     settings,
-    setSettings: setSettingsBase,
+    setSettings,
     loading,
     saveSettings,
     resetSettings,
@@ -38,21 +39,36 @@ export const UserSettings = () => {
   const { cleanupOldData, previewCleanup, isLoading: isCleaningUp, isPreviewLoading } = useDataCleanup();
 
   // Apply theme and compact mode settings
-  useThemeSettings(settings, setSettingsBase);
+  useThemeSettings(settings, setSettings);
   // Access current theme and setter for explicit apply on save
   const { theme: currentTheme, setTheme } = useTheme();
 
-  // Auto-save wrapper that saves after updating settings
-  const setSettings = async (newSettings: any) => {
-    setSettingsBase(newSettings);
-    // Save settings and apply theme if changed
-    setTimeout(async () => {
-      await saveSettings();
-      if (newSettings.theme && newSettings.theme !== currentTheme) {
-        setTheme(newSettings.theme as any);
+  // Auto-save debounced
+  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  useEffect(() => {
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Set new timeout to auto-save after 1 second of no changes
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (!loading) {
+        await saveSettings();
+        if (settings.theme && settings.theme !== currentTheme) {
+          setTheme(settings.theme as any);
+        }
       }
-    }, 500);
-  };
+    }, 1000);
+    
+    // Cleanup on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [settings, loading]);
   if (loading) {
     return (
       <div className="space-y-6 max-w-4xl animate-fade-in">
