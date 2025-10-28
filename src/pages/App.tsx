@@ -23,7 +23,7 @@ import { PromptDataProvider } from "@/context/PromptDataContext";
 import { AppModeProvider, useAppMode } from "@/context/AppModeContext";
 import { TemplatesDataProvider } from "@/context/TemplatesDataContext";
 import { motion, AnimatePresence } from "framer-motion";
-
+import promptekLogo from "@/assets/promptek-logo.png";
 const AppPage = () => {
   return (
     <AppModeProvider>
@@ -219,9 +219,13 @@ const AppPageContent = () => {
                     </Button>
                   </div>
                   
-                  <Badge className="bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-primary/30 neon-border text-xs hidden md:inline-flex">
-                    PrompTek
-                  </Badge>
+                  <div className="hidden md:flex items-center">
+                    <img 
+                      src={promptekLogo} 
+                      alt="PrompTek" 
+                      className="h-8 object-contain"
+                    />
+                  </div>
                 </div>
               </div>
               {/* Animated gradient line beneath header */}
