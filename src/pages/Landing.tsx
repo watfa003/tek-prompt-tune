@@ -138,12 +138,8 @@ const Landing = () => {
           onMouseMove={handleMouseMove}
         >
           {/* Parallax background layers */}
-          <motion.div 
+          <div 
             className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent pointer-events-none"
-            style={{ 
-              x: useTransform(mouseX, [-1, 1], [-20, 20]),
-              y: useTransform(mouseY, [-1, 1], [-20, 20])
-            }}
             aria-hidden="true"
           />
           
