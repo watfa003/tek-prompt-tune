@@ -193,14 +193,14 @@ export function AppSidebar() {
                           navigate(item.url);
                         }
                       }}
-                      className={`relative w-full justify-start group-data-[collapsible=icon]:justify-center transition-all duration-250 hover:scale-[1.02] hover:-translate-y-0.5 rounded-xl group overflow-hidden ${
+                      className={`relative w-full justify-start group-data-[collapsible=icon]:justify-center transition-all duration-250 hover:-translate-y-0.5 rounded-xl group overflow-hidden ${
                         mode === 'api' && 'section' in item
                           ? isApiSectionActive(item.section) 
-                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
-                            : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
+                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-2 border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
+                            : 'hover:bg-white/5 hover:border-primary/20 border-2 border-transparent'
                           : 'url' in item && isActive(item.url) 
-                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
-                            : 'hover:bg-white/5 hover:border-primary/20 border border-transparent'
+                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-2 border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
+                            : 'hover:bg-white/5 hover:border-primary/20 border-2 border-transparent'
                       }`}
                     >
                       <item.icon className={`h-4 w-4 flex-shrink-0 transition-all duration-250 ${

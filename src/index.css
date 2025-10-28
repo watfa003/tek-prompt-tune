@@ -130,6 +130,7 @@
     @apply bg-background text-foreground overflow-x-hidden font-body;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     position: relative;
+    overscroll-behavior-x: contain;
   }
   
   html {
@@ -138,6 +139,7 @@
     scrollbar-gutter: stable both-edges;
     position: relative;
     scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
   }
 
   h1, h2, h3, h4, h5, h6 {
