@@ -10,7 +10,7 @@ import { FloatingActionButton } from './FloatingActionButton';
 import { usePromptData } from '@/context/PromptDataContext';
 import { useSettings } from '@/hooks/use-settings';
 import { useTheme } from 'next-themes';
-import { Sun, Moon, Minimize2, Maximize2, Activity } from 'lucide-react';
+import { Minimize2, Maximize2, Activity } from 'lucide-react';
 
 export const GlassboardDashboard = () => {
   const { analytics, loading } = usePromptData();
@@ -121,16 +121,6 @@ export const GlassboardDashboard = () => {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <motion.button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="w-10 h-10 rounded-xl glass-panel border border-white/10 flex items-center justify-center hover:border-primary/50 transition-all"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </motion.button>
-
         <motion.button
           onClick={toggleCompactMode}
           className="w-10 h-10 rounded-xl glass-panel border border-white/10 flex items-center justify-center hover:border-primary/50 transition-all"
