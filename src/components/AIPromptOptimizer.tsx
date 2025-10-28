@@ -598,34 +598,46 @@ export const AIPromptOptimizer: React.FC = () => {
     }
   }, [result, speedResult, isOptimizing]);
 
-  // Check for influence selection from URL params - ONLY process ONCE per unique params
+  // Check for influence from URL params
   const urlParamsProcessedRef = React.useRef<string | null>(null);
   React.useEffect(() => {
+    const influenceParam = searchParams.get('influence');
     const selectedTemplate = searchParams.get('selectedTemplate');
     const selectedType = searchParams.get('selectedType');
     
     // Create a unique key for these params
-    const paramsKey = selectedTemplate && selectedType ? `${selectedTemplate}|${selectedType}` : null;
+    const paramsKey = influenceParam || (selectedTemplate && selectedType ? `${selectedTemplate}|${selectedType}` : null);
     
-    console.log('AIPromptOptimizer URL params:', { selectedTemplate, selectedType });
+    console.log('AIPromptOptimizer URL params:', { influenceParam, selectedTemplate, selectedType });
     
     // Only process if we have params AND haven't processed this exact combination before
     if (paramsKey && urlParamsProcessedRef.current !== paramsKey) {
       urlParamsProcessedRef.current = paramsKey;
-      console.log('Adding influence to existing prompt:', selectedTemplate, selectedType);
       
-      // Only set influence, preserve existing prompt
-      setSelectedInfluence(selectedTemplate);
-      setInfluenceType(selectedType);
-      
-      // Show success message
-      toast({
-        title: "Influence Added",
-        description: "Your selected prompt will now influence the optimization while preserving your current work.",
-      });
+      if (influenceParam) {
+        console.log('Setting influence from URL:', influenceParam);
+        setSelectedInfluence(influenceParam);
+        setInfluenceType('custom');
+        setAdvancedOpen(true); // Auto-open advanced settings
+        
+        toast({
+          title: "Influence Applied",
+          description: "The optimized prompt has been set as your influence.",
+        });
+      } else if (selectedTemplate && selectedType) {
+        console.log('Adding influence to existing prompt:', selectedTemplate, selectedType);
+        setSelectedInfluence(selectedTemplate);
+        setInfluenceType(selectedType);
+        setAdvancedOpen(true); // Auto-open advanced settings
+        
+        toast({
+          title: "Influence Added",
+          description: "Your selected prompt will now influence the optimization while preserving your current work.",
+        });
+      }
       
       // Clear the URL params synchronously
-      navigate('/app/ai-agent', { replace: true });
+      navigate('/app', { replace: true });
     }
   }, [searchParams, navigate, toast]);
 
