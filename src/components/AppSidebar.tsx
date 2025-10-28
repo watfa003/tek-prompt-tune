@@ -203,11 +203,11 @@ export function AppSidebar() {
                             : 'hover:bg-white/5 hover:border-primary/20 border-2 border-transparent'
                       }`}
                     >
-                      <item.icon className={`h-4 w-4 flex-shrink-0 transition-all duration-250 ${
+                      <item.icon className={`h-4 w-4 flex-shrink-0 transition-all duration-250 text-primary ${
                         (mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
                         ('url' in item && isActive(item.url)) 
-                          ? 'text-primary drop-shadow-[0_0_8px_rgba(110,231,255,0.6)]' 
-                          : 'group-hover:text-primary group-hover:drop-shadow-[0_0_6px_rgba(110,231,255,0.4)]'
+                          ? 'drop-shadow-[0_0_8px_rgba(110,231,255,0.6)]' 
+                          : 'drop-shadow-[0_0_6px_rgba(110,231,255,0.4)]'
                       }`} />
                       <span className="text-sm truncate font-medium tracking-tight transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">{item.title}</span>
                       {((mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
