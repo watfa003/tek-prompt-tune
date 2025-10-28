@@ -278,13 +278,13 @@ export const UserSettings = () => {
               value={[settings.defaultMaxTokens || 0]}
               onValueChange={([value]) => setSettings({ ...settings, defaultMaxTokens: value === 0 ? null : value })}
               min={0}
-              max={4000}
+              max={8192}
               step={256}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>No Limit</span>
-              <span>4000</span>
+              <span>8192</span>
             </div>
           </div>
         </div>
