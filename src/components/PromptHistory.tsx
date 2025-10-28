@@ -328,7 +328,7 @@ export const PromptHistory = () => {
             variant="default"
             onClick={() => {
               const influenceText = item.output || item.prompt;
-              navigate(`/app?influence=${encodeURIComponent(influenceText)}`);
+              navigate(`/app/ai-agent?influence=${encodeURIComponent(influenceText)}`);
               toast({
                 title: "Influence Applied",
                 description: "The optimized prompt has been set as your influence.",

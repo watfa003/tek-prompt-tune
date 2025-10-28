@@ -637,7 +637,7 @@ export const AIPromptOptimizer: React.FC = () => {
       }
       
       // Clear the URL params synchronously
-      navigate('/app', { replace: true });
+      navigate('/app/ai-agent', { replace: true });
     }
   }, [searchParams, navigate, toast]);
 
