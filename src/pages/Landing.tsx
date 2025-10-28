@@ -75,7 +75,7 @@ const Landing = () => {
           <div className={`flex items-center justify-between transition-all duration-300 ${
             scrolled ? 'py-3' : 'py-6'
           }`}>
-            <Link to="/" className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg">
+            <Link to="/" className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
               <img 
                 src={promptekLogo} 
                 alt="PrompTek - AI Prompt Optimizer" 
@@ -1153,7 +1153,7 @@ const Landing = () => {
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             {/* Brand Column */}
             <div className="md:col-span-1">
-              <Link to="/" className="flex items-center mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
+              <Link to="/" className="flex items-center mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
                 <motion.img 
                   src={promptekLogo} 
                   alt="PrompTek - AI Prompt Optimizer" 
