@@ -14,7 +14,6 @@ import {
   Shield,
   Palette,
   Zap,
-  Save,
   RefreshCw,
   Trash2,
   Download,
@@ -29,7 +28,7 @@ import { useDataCleanup } from "@/hooks/use-data-cleanup";
 export const UserSettings = () => {
   const {
     settings,
-    setSettings,
+    setSettings: setSettingsBase,
     loading,
     saveSettings,
     resetSettings,
@@ -39,9 +38,21 @@ export const UserSettings = () => {
   const { cleanupOldData, previewCleanup, isLoading: isCleaningUp, isPreviewLoading } = useDataCleanup();
 
   // Apply theme and compact mode settings
-  useThemeSettings(settings, setSettings);
+  useThemeSettings(settings, setSettingsBase);
   // Access current theme and setter for explicit apply on save
   const { theme: currentTheme, setTheme } = useTheme();
+
+  // Auto-save wrapper that saves after updating settings
+  const setSettings = async (newSettings: any) => {
+    setSettingsBase(newSettings);
+    // Save settings and apply theme if changed
+    setTimeout(async () => {
+      await saveSettings();
+      if (newSettings.theme && newSettings.theme !== currentTheme) {
+        setTheme(newSettings.theme as any);
+      }
+    }, 500);
+  };
   if (loading) {
     return (
       <div className="space-y-6 max-w-4xl animate-fade-in">
@@ -67,17 +78,6 @@ export const UserSettings = () => {
           <Button variant="outline" onClick={exportSettings}>
             <Download className="h-4 w-4 mr-2" />
             Export
-          </Button>
-          <Button
-            onClick={async () => {
-              await saveSettings();
-              if (settings.theme && settings.theme !== currentTheme) {
-                setTheme(settings.theme as any);
-              }
-            }}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
           </Button>
         </div>
       </div>
