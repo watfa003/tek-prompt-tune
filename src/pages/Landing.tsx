@@ -211,49 +211,45 @@ const Landing = () => {
               className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
             >
               {/* Primary CTA - Neon glass with 3D lift */}
-              <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
-                <Button 
-                  size="lg" 
-                  className="relative bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-2xl shadow-primary/30 group overflow-hidden min-w-[200px] h-12 text-base font-semibold" 
-                  asChild
-                >
-                  <Link to="/auth" aria-label="Try PrompTek prompt optimizer now">
-                    <span className="relative z-10 flex items-center gap-2">
-                      Try It Now 
-                      <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                    {/* Pulsing glow effect */}
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                      animate={{
-                        scale: [1, 1.05, 1],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  </Link>
-                </Button>
-              </motion.div>
+              <Button 
+                size="lg" 
+                className="relative bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-2xl shadow-primary/30 group overflow-hidden min-w-[200px] h-12 text-base font-semibold" 
+                asChild
+              >
+                <Link to="/auth" aria-label="Try PrompTek prompt optimizer now">
+                  <span className="relative z-10 flex items-center gap-2">
+                    Try It Now 
+                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  {/* Pulsing glow effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                    animate={{
+                      scale: [1, 1.05, 1],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+                </Link>
+              </Button>
               
               {/* Secondary CTA - Glass outline */}
-              <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="relative hover:bg-primary/10 transition-all backdrop-blur-sm border-border/60 hover:border-primary/40 group min-w-[200px] h-12 text-base" 
-                  asChild
-                >
-                  <a href="#how-it-works" aria-label="Learn how PrompTek prompt optimizer works">
-                    <span className="relative z-10">Learn How It Works</span>
-                    <motion.div
-                      className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-primary to-accent w-0 group-hover:w-full transition-all duration-300"
-                    />
-                  </a>
-                </Button>
-              </motion.div>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="relative hover:bg-primary/10 transition-all backdrop-blur-sm border-border/60 hover:border-primary/40 group min-w-[200px] h-12 text-base" 
+                asChild
+              >
+                <a href="#how-it-works" aria-label="Learn how PrompTek prompt optimizer works">
+                  <span className="relative z-10">Learn How It Works</span>
+                  <motion.div
+                    className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-primary to-accent w-0 group-hover:w-full transition-all duration-300"
+                  />
+                </a>
+              </Button>
             </motion.div>
 
             <motion.div 
