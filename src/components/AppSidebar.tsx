@@ -156,18 +156,18 @@ export function AppSidebar() {
       className="glass-panel border-r border-white/10"
       collapsible="icon"
     >
-      <SidebarContent className="p-2 md:p-3 overflow-x-hidden">
+      <SidebarContent className="p-3" style={{ overflowX: "hidden" }}>
         {/* User Info */}
         {userInfo && (
           <SidebarGroup>
           <SidebarGroupContent className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
-              <div className="flex items-center space-x-2 md:space-x-3 p-3 md:p-4 rounded-[14px] md:rounded-[18px] glass-card neon-border mb-2">
-                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-primary to-accent text-white font-semibold flex items-center justify-center text-xs md:text-sm shadow-glow flex-shrink-0">
+              <div className="flex items-center space-x-3 p-4 rounded-[18px] glass-card neon-border mb-2">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent text-white font-semibold flex items-center justify-center text-sm shadow-glow flex-shrink-0">
                   {userInfo.displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">
-                  <p className="text-xs md:text-sm font-semibold truncate">{userInfo.displayName}</p>
-                  <p className="text-[10px] md:text-xs text-muted-foreground truncate">{userInfo.email}</p>
+                  <p className="text-sm font-semibold truncate">{userInfo.displayName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{userInfo.email}</p>
                 </div>
               </div>
             </SidebarGroupContent>
@@ -176,7 +176,7 @@ export function AppSidebar() {
 
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-xs md:text-sm px-2">
+          <SidebarGroupLabel className="text-muted-foreground text-sm px-2">
             {mode === 'api' ? 'API Management' : 'Navigation'}
           </SidebarGroupLabel>
           <SidebarGroupContent className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">

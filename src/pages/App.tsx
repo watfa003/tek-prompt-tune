@@ -146,8 +146,11 @@ const AppPageContent = () => {
   };
 
   return (
-    <SidebarProvider>
-        <div className="min-h-screen flex w-full max-w-full bg-background relative overflow-hidden isolate box-border">
+    <SidebarProvider defaultOpen={true} style={{ 
+      "--sidebar-width": "16rem",
+      "--sidebar-width-mobile": "16rem" 
+    } as React.CSSProperties}>
+        <div className="min-h-screen flex w-full max-w-full bg-background relative isolate box-border" style={{ overflow: "hidden" }}>
           {/* Ambient Background Effects */}
           <div className="fixed inset-0 pointer-events-none overflow-hidden">
             <motion.div
@@ -184,46 +187,45 @@ const AppPageContent = () => {
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="border-b border-white/10 glass-panel sticky top-0 z-header overflow-hidden"
+              className="border-b border-white/10 glass-panel sticky top-0 z-header"
+              style={{ overflow: "hidden" }}
             >
-              <div className="h-14 md:h-16 flex items-center justify-between px-3 md:px-6 gap-2 md:gap-4 w-full max-w-full">
-                <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-shrink overflow-hidden">
+              <div className="h-16 flex items-center justify-between px-6 gap-4 w-full max-w-full">
+                <div className="flex items-center space-x-4 min-w-0 flex-shrink" style={{ overflow: "hidden" }}>
                   <SidebarTrigger className="flex-shrink-0" />
-                  <Link to="/" className="flex items-center space-x-1 md:space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group min-w-0 overflow-hidden">
-                    <ArrowLeft className="h-3 w-3 md:h-4 md:w-4 group-hover:-translate-x-1 transition-transform flex-shrink-0" />
-                    <span className="font-semibold text-xs md:text-sm hidden sm:inline truncate">Back to Home</span>
-                    <span className="font-semibold text-xs sm:hidden">Back</span>
+                  <Link to="/" className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-all duration-300 group min-w-0" style={{ overflow: "hidden" }}>
+                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform flex-shrink-0" />
+                    <span className="font-semibold text-sm truncate">Back to Home</span>
                   </Link>
                 </div>
                 
-                <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-                  <div className="flex items-center gap-1 glass-panel border border-white/10 rounded-lg md:rounded-xl p-0.5 md:p-1">
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-1 glass-panel border border-white/10 rounded-xl p-1">
                     <Button
                       variant={mode === 'optimizer' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setMode('optimizer')}
-                      className={`gap-1 md:gap-2 rounded-lg transition-all text-xs md:text-sm px-2 md:px-3 ${mode === 'optimizer' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
+                      className={`gap-2 rounded-lg transition-all text-sm px-3 ${mode === 'optimizer' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
                     >
-                      <Zap className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="hidden sm:inline">Optimizer</span>
-                      <span className="sm:hidden">Opt</span>
+                      <Zap className="h-4 w-4" />
+                      <span>Optimizer</span>
                     </Button>
                     <Button
                       variant={mode === 'api' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setMode('api')}
-                      className={`gap-1 md:gap-2 rounded-lg transition-all text-xs md:text-sm px-2 md:px-3 ${mode === 'api' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
+                      className={`gap-2 rounded-lg transition-all text-sm px-3 ${mode === 'api' ? 'bg-gradient-to-r from-primary to-accent shadow-glow' : 'hover:bg-white/5'}`}
                     >
-                      <Code className="h-3 w-3 md:h-4 md:w-4" />
+                      <Code className="h-4 w-4" />
                       <span>API</span>
                     </Button>
                   </div>
                   
-                  <div className="hidden md:flex items-center">
+                  <div className="flex items-center">
                     <img 
                       src={promptekLogo} 
                       alt="PrompTek" 
-                      className="h-12 md:h-14 object-contain"
+                      className="h-14 object-contain"
                     />
                   </div>
                 </div>
@@ -243,8 +245,8 @@ const AppPageContent = () => {
               />
             </motion.header>
 
-            <main className="flex-1 p-3 md:p-6 overflow-y-auto overflow-x-hidden w-full max-w-full relative">
-              <div className="w-full max-w-[1400px] mx-auto box-border">
+            <main className="flex-1 p-6 w-full max-w-full relative" style={{ overflowY: "auto", overflowX: "hidden" }}>
+              <div className="w-full max-w-[1280px] mx-auto px-8 box-border">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={location.pathname}
