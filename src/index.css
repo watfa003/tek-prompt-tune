@@ -135,7 +135,7 @@
   html {
     @apply overflow-x-hidden;
     overflow-y: scroll;
-    scrollbar-gutter: stable;
+    scrollbar-gutter: stable both-edges;
     position: relative;
     scroll-behavior: smooth;
   }
@@ -393,6 +393,11 @@
   .z-modal { z-index: 50; }
   .z-dropdown { z-index: 60; }
   .z-toast { z-index: 70; }
+
+  /* Prevent horizontal scroll chaining on x-auto containers */
+  .overflow-x-auto {
+    overscroll-behavior-x: contain;
+  }
 }
 
 /* Keyframes */
