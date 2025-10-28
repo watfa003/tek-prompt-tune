@@ -268,12 +268,6 @@ export function AppSidebar() {
                               {item.outputType}
                             </Badge>
                           </div>
-                          <div className="flex items-center space-x-1 mt-1">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                              {item.timestamp}
-                            </span>
-                          </div>
                         </div>
                         <div className="flex items-center">
                           <span className="text-sm font-medium text-primary">
