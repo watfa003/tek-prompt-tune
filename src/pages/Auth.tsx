@@ -308,7 +308,7 @@ const Auth = () => {
         {/* Header */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center space-x-2 mb-8">
-            <img src={promptekLogo} alt="PrompTek" className="h-12" />
+            <img src={promptekLogo} alt="PrompTek" className="h-12 object-contain mix-blend-normal" />
           </Link>
           <h1 className="text-3xl font-bold">
             {isSignUp ? 'Create Account' : 'Welcome Back'}

@@ -79,7 +79,7 @@ const Landing = () => {
               <img 
                 src={promptekLogo} 
                 alt="PrompTek - AI Prompt Optimizer" 
-                className={`transition-all duration-300 ${scrolled ? 'h-14 md:h-16' : 'h-20 md:h-24'}`}
+                className={`object-contain mix-blend-normal transition-all duration-300 ${scrolled ? 'h-14 md:h-16' : 'h-20 md:h-24'}`}
               />
             </Link>
             
@@ -1157,7 +1157,7 @@ const Landing = () => {
                 <motion.img 
                   src={promptekLogo} 
                   alt="PrompTek - AI Prompt Optimizer" 
-                  className="h-14 md:h-16"
+                  className="object-contain mix-blend-normal h-14 md:h-16"
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: "spring", stiffness: 400 }}
                 />
