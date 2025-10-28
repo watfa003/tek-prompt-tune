@@ -3,7 +3,6 @@ import { DocsSidebar } from './DocsSidebar';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Footer } from '@/components/Footer';
 
 interface DocsLayoutProps {
   children: ReactNode;
@@ -112,8 +111,6 @@ export function DocsLayout({ children, title, description }: DocsLayoutProps) {
           </div>
         </main>
       </div>
-
-      <Footer />
     </div>
   );
 }
