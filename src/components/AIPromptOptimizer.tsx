@@ -898,6 +898,88 @@ export const AIPromptOptimizer: React.FC = () => {
               </div>
             </div>
 
+            {/* Strategy Summary Section */}
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between p-3 h-auto hover:bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">🧠 Strategy Summary</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-4 space-y-4">
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                    <Crown className="h-4 w-4 text-primary" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Primary Strategy</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="cursor-help">
+                                {result.summary?.bestStrategy || 'Adaptive'}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs text-xs">The main optimization approach used to improve your prompt</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {outputType && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                      <Sparkles className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Output Format</span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="secondary" className="cursor-help capitalize">
+                                  {outputType}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs text-xs">Format-specific optimization for {outputType} outputs</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                  <p className="text-sm text-muted-foreground">
+                    {(() => {
+                      const promptLength = originalPrompt.length;
+                      const hasTokenLimit = maxTokens[0] > 0;
+                      const reasons = [];
+                      
+                      if (promptLength < 50) reasons.push("brevity enhancement");
+                      else if (promptLength > 200) reasons.push("structure optimization");
+                      
+                      if (outputType) reasons.push(`${outputType} formatting`);
+                      if (hasTokenLimit) reasons.push("token efficiency");
+                      
+                      const reasonText = reasons.length > 0 ? reasons.join(", ") : "comprehensive improvement";
+                      
+                      return `These strategies were chosen because your prompt required ${reasonText}.`;
+                    })()}
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Separator />
+
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center p-4 rounded-lg bg-muted/50">
@@ -962,6 +1044,70 @@ export const AIPromptOptimizer: React.FC = () => {
                       {getScoreBadge(result.bestScore)}
                     </div>
                   )}
+                </Card>
+
+                {/* Smart Next-Step Actions */}
+                <Card className="p-4 glass-card">
+                  <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Wand2 className="h-4 w-4 text-primary" />
+                    Smart Actions
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-auto p-3 justify-start hover:bg-primary/10 hover:border-primary/30 transition-all"
+                      onClick={() => {
+                        // TODO: Integrate with model testing
+                        toast({
+                          title: "Coming Soon",
+                          description: "Direct model testing integration is being built",
+                        });
+                      }}
+                    >
+                      <div className="flex flex-col items-start gap-1 text-left">
+                        <span className="text-xs font-medium">▶️ Test with Models</span>
+                        <span className="text-[10px] text-muted-foreground">Run on GPT-4, Claude, Gemini</span>
+                      </div>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-auto p-3 justify-start hover:bg-primary/10 hover:border-primary/30 transition-all"
+                      onClick={() => {
+                        localStorage.setItem('templateDraft', JSON.stringify({
+                          title: `Optimized ${outputType || 'Prompt'}`,
+                          content: result.bestOptimizedPrompt,
+                          category: 'custom'
+                        }));
+                        navigate('/app/templates');
+                      }}
+                    >
+                      <div className="flex flex-col items-start gap-1 text-left">
+                        <span className="text-xs font-medium">💾 Save as Template</span>
+                        <span className="text-[10px] text-muted-foreground">Add to your library</span>
+                      </div>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-auto p-3 justify-start hover:bg-primary/10 hover:border-primary/30 transition-all"
+                      onClick={() => {
+                        setOriginalPrompt(result.bestOptimizedPrompt);
+                        toast({
+                          title: "Prompt Loaded",
+                          description: "Edit and re-optimize whenever you're ready",
+                        });
+                      }}
+                    >
+                      <div className="flex flex-col items-start gap-1 text-left">
+                        <span className="text-xs font-medium">✏️ Edit & Re-optimize</span>
+                        <span className="text-[10px] text-muted-foreground">Fine-tune further</span>
+                      </div>
+                    </Button>
+                  </div>
                 </Card>
               </TabsContent>
 
