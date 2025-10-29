@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { handleSpeedMode } from './speed-mode-functions.ts';
+import { getOutputTypeSystemPrompt, getOutputTypeGuidance, type OutputType } from './output-type-strategies.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -316,7 +317,7 @@ You are optimizing a prompt using the ${strategy.name.toUpperCase()} strategy.
 
 ${strategy.definition}
 
-${strategy.systemPrompt}
+${strategy.systemPrompt}${getOutputTypeSystemPrompt(outputType as OutputType)}
 
 Original prompt to optimize:
 ${enhancedPrompt}`;
@@ -333,7 +334,8 @@ ${enhancedPrompt}`;
         }
         
         // Critical rules: keep user's intent and only improve the prompt
-        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategy.name.toUpperCase()} strategy throughout your optimization.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.\n- Ensure the optimized prompt still requests the same task and does not alter the intended output type.`;
+        const outputGuidance = getOutputTypeGuidance(outputType as OutputType, maxTokens || undefined);
+        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategy.name.toUpperCase()} strategy throughout your optimization.\n- Include the following output format guidance in the optimized prompt:\n\n${outputGuidance}\n\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.\n- Ensure the optimized prompt still requests the same task and does not alter the intended output type.`;
         
         // UNIFORM influence instructions - exactly the same for ALL variants
         if (influence && influence.trim().length > 0 && influenceWeight > 0) {

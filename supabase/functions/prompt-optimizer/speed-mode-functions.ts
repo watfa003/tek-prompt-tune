@@ -1,4 +1,6 @@
 // Speed Mode: Optimizes via API calls (like deep mode) but skips testing responses
+import { getOutputTypeSystemPrompt, getOutputTypeGuidance, type OutputType } from './output-type-strategies.ts';
+
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
@@ -613,7 +615,7 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
   }
 
   // Build instruction IDENTICAL to deep mode
-  let instruction = `You are optimizing a prompt using the ${strategyConfig.name} strategy.\n\n${strategyConfig.systemPrompt}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
+  let instruction = `You are optimizing a prompt using the ${strategyConfig.name} strategy.\n\n${strategyConfig.systemPrompt}${getOutputTypeSystemPrompt(outputType as OutputType)}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
   
   // CRITICAL: Add task description as meta-instructions FIRST, before anything else
   if (taskDescription) {
@@ -627,7 +629,8 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
   }
   
   // Critical rules: keep user's intent and only improve the prompt
-  instruction += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategyConfig.name} strategy throughout your optimization.\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+  const outputGuidance = getOutputTypeGuidance(outputType as OutputType, maxTokens || undefined);
+  instruction += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategyConfig.name} strategy throughout your optimization.\n- Include the following output format guidance in the optimized prompt:\n\n${outputGuidance}\n\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
   
   // UNIFORM influence instructions - exactly the same for ALL variants
   if (influence && influence.trim().length > 0 && influenceWeight > 0) {
@@ -649,14 +652,6 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
     instruction += `\n\n=== INFLUENCE: DISABLED (0%) ===\nA template was provided but set to 0% - COMPLETELY IGNORE IT. Focus only on the original prompt.`;
   }
   
-  if (outputType && outputType !== 'text') {
-    instruction += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
-  }
-  
-  // CRITICAL: Only integrate max_tokens if it's set
-  if (maxTokens) {
-    instruction += `\n- IMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
-  }
 
   return instruction;
 }
