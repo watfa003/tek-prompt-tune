@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Star, Loader2, Award, TrendingUp, Target, BarChart3, Zap } from "lucide-react";
+import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Star, Loader2, Award, TrendingUp, Target, BarChart3, Zap, ChevronDown, ChevronUp, HelpCircle, Play, Save, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useSettings } from "@/hooks/use-settings";
 import { formatOutput, getOutputTypeConfig, OutputType } from '@/lib/output-formatters';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PromptResultsProps {
   taskDescription: string;
@@ -159,6 +161,75 @@ export const PromptResults = ({
     return "text-red-500";
   };
 
+  const [isStrategyOpen, setIsStrategyOpen] = useState(false);
+
+  const getStrategySummary = () => {
+    const strategies = [];
+    const outputTypeStrategy = {
+      name: outputType === 'text' ? 'CLARITY & TONE' :
+            outputType === 'essay' ? 'STRUCTURE & STEPS' :
+            outputType === 'list' ? 'STRUCTURED ENUMERATION' :
+            outputType === 'code' ? 'CODE DIRECTIVES' :
+            'SCHEMA-FORMATTED OUTPUT',
+      description: outputType === 'text' ? 'Concise, natural language responses in paragraph format' :
+                   outputType === 'essay' ? 'Introduction → Body → Conclusion format with logical progression' :
+                   outputType === 'list' ? 'Numbered or bulleted lists of ideas, facts, or steps' :
+                   outputType === 'code' ? 'Clean, executable code in a defined language' :
+                   'Valid JSON object/array with defined keys',
+      isPrimary: true
+    };
+
+    strategies.push(outputTypeStrategy);
+
+    // Add supporting strategies based on best strategy
+    if (result?.summary.bestStrategy) {
+      strategies.push({
+        name: result.summary.bestStrategy,
+        description: 'Applied for maximum effectiveness',
+        isPrimary: false
+      });
+    }
+
+    // Infer additional strategies
+    const promptLength = taskDescription.length;
+    if (promptLength < 50) {
+      strategies.push({
+        name: 'ELABORATION & CONTEXT',
+        description: 'Enriches brief prompts with necessary context',
+        isPrimary: false
+      });
+    }
+    if (maxTokens) {
+      strategies.push({
+        name: 'EFFICIENCY OPTIMIZATION',
+        description: 'Optimizes token usage within specified limits',
+        isPrimary: false
+      });
+    }
+
+    return strategies;
+  };
+
+  const getStrategyExplanation = () => {
+    const promptLength = taskDescription.length;
+    const reasons = [];
+
+    if (outputType !== 'text') {
+      reasons.push(`structured ${outputType} formatting`);
+    }
+    if (promptLength < 50) {
+      reasons.push('limited clarity in the original task');
+    }
+    if (maxTokens) {
+      reasons.push(`token optimization (${maxTokens} max)`);
+    }
+    if (result?.summary.improvementScore && result.summary.improvementScore > 20) {
+      reasons.push('significant optimization potential detected');
+    }
+
+    return `These strategies were chosen because your prompt required ${reasons.join(', ')}.`;
+  };
+
   if (isLoading) {
     return (
       <Card className="p-6 shadow-card">
@@ -277,6 +348,63 @@ export const PromptResults = ({
 
         <Separator />
 
+        {/* Strategy Summary Section */}
+        <Collapsible open={isStrategyOpen} onOpenChange={setIsStrategyOpen}>
+          <Card className="p-4 bg-muted/30 border-primary/20">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-0 hover:bg-transparent">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">🧠</span>
+                  <h4 className="font-semibold">Strategy Summary</h4>
+                  <Badge variant="outline" className="ml-2">{getStrategySummary().length} active</Badge>
+                </div>
+                {isStrategyOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="space-y-4 mt-4 animate-accordion-down">
+              <div className="space-y-2">
+                {getStrategySummary().map((strategy, index) => (
+                  <div 
+                    key={index} 
+                    className={`flex items-start space-x-3 p-3 rounded-md transition-all ${
+                      strategy.isPrimary 
+                        ? 'bg-primary/10 border border-primary/30' 
+                        : 'bg-background/50'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium text-sm">{strategy.name}</span>
+                        {strategy.isPrimary && (
+                          <Badge variant="default" className="text-xs">Primary</Badge>
+                        )}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{strategy.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{strategy.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="p-3 bg-primary/5 rounded-md border-l-2 border-primary">
+                <p className="text-sm text-muted-foreground italic">
+                  {getStrategyExplanation()}
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
         {/* Tabs for Results */}
         <Tabs defaultValue="best" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -315,6 +443,52 @@ export const PromptResults = ({
                   {getScoreBadge(result.bestScore)}
                 </div>
               )}
+
+              {/* Smart Next-Step Actions */}
+              <div className="flex flex-wrap gap-2 mt-4 p-3 bg-muted/30 rounded-lg border border-primary/20">
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="hover-scale"
+                  onClick={() => {
+                    toast({
+                      title: "Model Tester",
+                      description: "Testing feature coming soon!",
+                    });
+                  }}
+                >
+                  <Play className="h-3 w-3 mr-1" />
+                  Test on {aiProvider}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="hover-scale"
+                  onClick={() => {
+                    // TODO: Implement save as template
+                    toast({
+                      title: "Save Template",
+                      description: "Template saving feature coming soon!",
+                    });
+                  }}
+                >
+                  <Save className="h-3 w-3 mr-1" />
+                  Save as Template
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="hover-scale"
+                  onClick={() => {
+                    generateOptimizedPrompts();
+                  }}
+                >
+                  <Edit className="h-3 w-3 mr-1" />
+                  Reoptimize
+                </Button>
+              </div>
             </Card>
             
             {/* Sample Output from Best Prompt */}
