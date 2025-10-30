@@ -210,44 +210,110 @@ function scorePrompt(prompt: string, output?: string): CategoryScores {
     scores.efficiency = 2;
     scores.clarity = 1;
     scores.specificity = 1;
+    scores.structure = 1;
+    scores.constraints = 1;
+    scores.elaboration = 1;
+    scores.intent_alignment = 2;
+    scores.adaptability = 2;
   } else if (/^[a-zA-Z]{1,5}$/.test(prompt.trim())) {
     // Single word prompts
     scores.clarity = 2;
     scores.specificity = 2;
+    scores.efficiency = 3;
+    scores.structure = 1;
+    scores.constraints = 1;
+    scores.elaboration = 1;
+    scores.intent_alignment = 3;
+    scores.adaptability = 4;
   } else {
-    // Clarity - check for vague language
-    const vagueWords = ['good', 'nice', 'better', 'make it', 'kind of', 'sort of', 'maybe'];
+    // Clarity - check for vague language and filler words
+    const vagueWords = ['good', 'nice', 'better', 'make it', 'kind of', 'sort of', 'maybe', 'idk', 'something', 'stuff', 'thing'];
     const hasVague = vagueWords.some(word => prompt.toLowerCase().includes(word));
-    scores.clarity = hasVague ? 6 : 9;
+    const hasActionVerb = /write|create|generate|analyze|summarize|explain|list|describe|compare|translate/.test(prompt.toLowerCase());
+    
+    if (!hasActionVerb) {
+      scores.clarity = hasVague ? 2 : 4;
+    } else {
+      scores.clarity = hasVague ? 5 : 9;
+    }
 
     // Specificity - check for concrete details
     const hasNumbers = /\d+/.test(prompt);
-    const hasFormat = /format|style|tone|json|markdown|list/.test(prompt.toLowerCase());
-    scores.specificity = (hasNumbers ? 4 : 0) + (hasFormat ? 4 : 2);
+    const hasFormat = /format|style|tone|json|markdown|list|bullet|paragraph/.test(prompt.toLowerCase());
+    const hasTopic = wordCount > 5; // At least some topic detail
+    
+    let specificity = 3; // Base score
+    if (hasNumbers) specificity += 2;
+    if (hasFormat) specificity += 2;
+    if (hasTopic) specificity += 2;
+    scores.specificity = Math.min(specificity, 10);
 
-    // Efficiency - penalize excessive length
-    scores.efficiency = wordCount < 50 ? 10 : wordCount < 100 ? 8 : wordCount < 200 ? 6 : 4;
+    // Efficiency - penalize excessive length but reward conciseness with substance
+    if (wordCount < 5) {
+      scores.efficiency = 3; // Too short to be useful
+    } else if (wordCount < 30) {
+      scores.efficiency = 10; // Sweet spot
+    } else if (wordCount < 80) {
+      scores.efficiency = 8;
+    } else if (wordCount < 150) {
+      scores.efficiency = 6;
+    } else {
+      scores.efficiency = 4;
+    }
+    
+    // Structure - check for organized content
+    const hasSteps = /step|first|then|finally|1\.|2\.|3\./.test(prompt.toLowerCase());
+    const hasSections = /\n\n/.test(prompt);
+    const hasBullets = /\n-|\n\*/.test(prompt);
+    
+    let structure = 4; // Base
+    if (hasSteps) structure += 3;
+    if (hasSections) structure += 2;
+    if (hasBullets) structure += 2;
+    scores.structure = Math.min(structure, 10);
+
+    // Constraints - check for explicit boundaries
+    const hasConstraints = /must|should|don't|avoid|only|exactly|no more than|at least|maximum|minimum/.test(prompt.toLowerCase());
+    const hasNegativeConstraints = /don't|avoid|not|never|without/.test(prompt.toLowerCase());
+    
+    let constraints = 4; // Base
+    if (hasConstraints) constraints += 3;
+    if (hasNegativeConstraints) constraints += 2;
+    scores.constraints = Math.min(constraints, 10);
+
+    // Elaboration - check for context and examples
+    const hasContext = /because|for example|such as|like|to help|in order to/.test(prompt.toLowerCase());
+    const hasExample = /e\.g\.|for instance|example/.test(prompt.toLowerCase());
+    
+    let elaboration = 4; // Base
+    if (hasContext) elaboration += 3;
+    if (hasExample) elaboration += 2;
+    scores.elaboration = Math.min(elaboration, 10);
+
+    // Intent alignment - FOCUS ON PROMPT CLARITY, not output quality
+    // Only penalize if output suggests prompt was misunderstood
+    const outputSeemsBroken = output && output.length < 10;
+    const promptHasClearGoal = hasActionVerb && !hasVague;
+    
+    if (outputSeemsBroken) {
+      scores.intent_alignment = 2; // Output failure suggests prompt was bad
+    } else if (promptHasClearGoal) {
+      scores.intent_alignment = 9; // Clear goal in prompt
+    } else if (hasActionVerb) {
+      scores.intent_alignment = 6; // Has verb but vague
+    } else {
+      scores.intent_alignment = 3; // No clear goal
+    }
+
+    // Adaptability - check for flexibility cues
+    const hasFlexibility = /if|when|depending|consider|might|could|optional|prefer/.test(prompt.toLowerCase());
+    const hasOptions = /or|alternatively|either/.test(prompt.toLowerCase());
+    
+    let adaptability = 5; // Base
+    if (hasFlexibility) adaptability += 2;
+    if (hasOptions) adaptability += 2;
+    scores.adaptability = Math.min(adaptability, 10);
   }
-
-  // Structure - check for organized content
-  const hasSteps = /step|first|then|finally|1\.|2\.|3\./.test(prompt.toLowerCase());
-  const hasSections = /\n\n/.test(prompt);
-  scores.structure = (hasSteps ? 5 : 3) + (hasSections ? 3 : 1);
-
-  // Constraints - check for explicit boundaries
-  const hasConstraints = /must|should|don't|avoid|only|exactly/.test(prompt.toLowerCase());
-  scores.constraints = hasConstraints ? 8 : 5;
-
-  // Elaboration - check for context and examples
-  const hasContext = /because|for example|such as|like/.test(prompt.toLowerCase());
-  scores.elaboration = hasContext ? 8 : 5;
-
-  // Intent alignment - check if output matches expected format
-  scores.intent_alignment = output ? 9 : 8;
-
-  // Adaptability - check for flexibility cues
-  const hasFlexibility = /if|when|depending|consider|might/.test(prompt.toLowerCase());
-  scores.adaptability = hasFlexibility ? 8 : 6;
 
   return scores;
 }
