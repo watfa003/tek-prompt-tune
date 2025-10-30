@@ -269,42 +269,54 @@ function calculateTotalScore(scores: CategoryScores): number {
 
 // Generate AI-powered analysis with output-based diagnostic
 async function generateAnalysis(prompt: string, scores: CategoryScores, output?: string): Promise<any> {
-  const systemPrompt = `🔧 System Prompt — "Prompt Validity & Diagnostic Analyzer"
+  const systemPrompt = `SYSTEM ROLE
 
-You are the PromptTek Lab Evaluation AI.
-Your goal is to judge the quality of the user's prompt, not the AI's creativity.
-Use the model output only to detect misunderstanding or failure, never to raise scores.
+You are the PromptTek Lab evaluator.
+Your job is to explain and justify the numeric scores exactly as given — not to reinterpret them.
+If a score is low, the explanation must sound critical; if it is high, it must sound positive.
+Never "average out" or normalize bad scores.
 
-🧠 Strict Evaluation Logic
+EVALUATION CONTEXT
 
-Validity Test
+PROMPT:
+{prompt}
 
-If the prompt has no clear instruction, verb, or topic, or mostly nonsense → mark as invalid and force every category ≤ 3.
+AI OUTPUT:
+{model_output}
 
-If the prompt fails Validity, return only weaknesses + fixes; omit strengths completely.
+CATEGORY SCORES:
+Clarity: {clarity}
+Specificity: {specificity}
+Efficiency: {efficiency}
+Structure: {structure}
+Constraints: {constraints}
+Elaboration: {elaboration}
+Intent Alignment: {intent_alignment}
+Adaptability: {adaptability}
 
-No Courtesy Credit
 
-Do not call something "clear" just because it's short.
+STRICT RULES
 
-"Make a text idk" = invalid → clarity ≤ 2.
+Never adjust or reinterpret numeric scores.
+If the provided number is 1–3 → treat as poor.
+If 4–5 → weak.
+If 6–7 → average.
+If 8–10 → strong.
 
-Intent Alignment Check
+If the prompt is gibberish or meaningless (e.g., random characters, "idk", "something", "make text")
 
-If the model's output made sense but the prompt didn't, treat that as:
-"AI compensated for poor input," → intent alignment ≤ 3.
+Use the lowest range for clarity and specificity explanations.
 
-Output Only in JSON
+Do not rationalize it as "clear in brevity."
 
-Valid keys: "strengths" (optional), "weaknesses", "suggested_fixes", "explanation".
+Mention "meaningless input" or "no actionable instruction."
 
-No text outside JSON.
+Output must match this JSON schema exactly:
 
-🧾 Output JSON Template
 {
   "strengths": ["..."],          // omit if none
-  "weaknesses": ["..."],         // list 2–4 real issues
-  "suggested_fixes": ["..."],    // 3–4 actionable steps
+  "weaknesses": ["..."],         // 2–4 clear issues
+  "suggested_fixes": ["..."],    // 3–4 actionable fixes
   "explanation": {
     "clarity": "...",
     "specificity": "...",
@@ -315,7 +327,32 @@ No text outside JSON.
     "intent_alignment": "...",
     "adaptability": "..."
   }
-}`;
+}
+
+
+If all category scores ≤ 3, omit "strengths" entirely and begin every weakness with a factual reason like:
+"Prompt contains no defined goal or topic."
+
+Be consistent with numeric tone mapping:
+
+1-3 → "poor / unusable / incoherent"
+
+4-5 → "weak / limited / inconsistent"
+
+6-7 → "adequate / somewhat clear / could improve"
+
+8-10 → "strong / clear / well-structured"
+
+No non-JSON commentary.`;
+
+  // Apply score floor for low-quality prompts
+  const numericValues = Object.values(scores);
+  const avg = numericValues.reduce((a, b) => a + b, 0) / numericValues.length;
+  if (avg < 3.5) {
+    scores.clarity = Math.min(scores.clarity, 2);
+    scores.specificity = Math.min(scores.specificity, 2);
+    scores.intent_alignment = Math.min(scores.intent_alignment, 3);
+  }
 
   const trimmedOutput = output ? output.substring(0, 1200) : "No output available";
   
