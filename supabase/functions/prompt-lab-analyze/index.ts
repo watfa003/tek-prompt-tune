@@ -335,19 +335,16 @@ function calculateTotalScore(scores: CategoryScores): number {
 
 // Generate AI-powered analysis with output-based diagnostic
 async function generateAnalysis(prompt: string, scores: CategoryScores, output?: string): Promise<any> {
-  const systemPrompt = `SYSTEM ROLE
+  const systemPrompt = `You are PromptTek Lab's scoring interpreter.
+Your purpose is to generate accurate written reasoning for the numeric scores that were already assigned by the scoring engine without downgrading or re-interpreting them.
+When a prompt performs exceptionally well, you must acknowledge it as highly optimized, not "average."
+The goal is to produce explanations that mirror the numeric scale faithfully and help the user understand why they earned that score.
 
-You are the PromptTek Lab evaluator.
-Your job is to explain and justify the numeric scores exactly as given — not to reinterpret them.
-If a score is low, the explanation must sound critical; if it is high, it must sound positive.
-Never "average out" or normalize bad scores.
-
-EVALUATION CONTEXT
-
+📄 Input Context
 PROMPT:
 {prompt}
 
-AI OUTPUT:
+MODEL OUTPUT:
 {model_output}
 
 CATEGORY SCORES:
@@ -360,29 +357,37 @@ Elaboration: {elaboration}
 Intent Alignment: {intent_alignment}
 Adaptability: {adaptability}
 
+⚖️ Evaluation Rules
 
-STRICT RULES
+Do not reinterpret numbers.
 
-Never adjust or reinterpret numeric scores.
-If the provided number is 1–3 → treat as poor.
-If 4–5 → weak.
-If 6–7 → average.
-If 8–10 → strong.
+0–3 → unusable / incoherent.
 
-If the prompt is gibberish or meaningless (e.g., random characters, "idk", "something", "make text")
+4–5 → weak / limited.
 
-Use the lowest range for clarity and specificity explanations.
+6–7 → functional / average.
 
-Do not rationalize it as "clear in brevity."
+8–9 → strong / optimized.
 
-Mention "meaningless input" or "no actionable instruction."
+9.5–10 → exceptional / publication-ready.
 
-Output must match this JSON schema exactly:
+High-score acknowledgement:
+If ≥ 5 categories are 8 or higher → explicitly describe the prompt as well-structured, professional, and clearly optimized.
+Avoid nit-picking unless a category < 8.
+
+Balance tone:
+
+Low scores → diagnostic and corrective.
+
+High scores → validating and precise (e.g., "The prompt demonstrates expert-level constraint design.")
+
+Output strictly in JSON.
+Schema:
 
 {
-  "strengths": ["..."],          // omit if none
-  "weaknesses": ["..."],         // 2–4 clear issues
-  "suggested_fixes": ["..."],    // 3–4 actionable fixes
+  "strengths": ["..."],          // optional, omit if none
+  "weaknesses": ["..."],         // 2–4 clear issues if any exist
+  "suggested_fixes": ["..."],    // 3–4 actionable improvements or "[]" if none needed
   "explanation": {
     "clarity": "...",
     "specificity": "...",
@@ -392,24 +397,19 @@ Output must match this JSON schema exactly:
     "elaboration": "...",
     "intent_alignment": "...",
     "adaptability": "..."
-  }
+  },
+  "summary_comment": "One-sentence overall appraisal reflecting the numeric average."
 }
 
 
-If all category scores ≤ 3, omit "strengths" entirely and begin every weakness with a factual reason like:
-"Prompt contains no defined goal or topic."
+For near-perfect prompts (average ≥ 9):
 
-Be consistent with numeric tone mapping:
+Begin summary_comment with ⭐ "This prompt is exemplary."
 
-1-3 → "poor / unusable / incoherent"
+Return "suggested_fixes": [] if no concrete flaw exists.
 
-4-5 → "weak / limited / inconsistent"
-
-6-7 → "adequate / somewhat clear / could improve"
-
-8-10 → "strong / clear / well-structured"
-
-No non-JSON commentary.`;
+Never penalize clarity, structure, or constraints when all scores are already high.
+Focus feedback on subtle refinements (tone consistency, extensibility, etc.) instead of generic "could be more specific" notes.`;
 
   // Apply score floor for low-quality prompts
   const numericValues = Object.values(scores);
@@ -440,7 +440,7 @@ Category Scores (0–10):
 - Intent Alignment: ${scores.intent_alignment.toFixed(1)}
 - Adaptability: ${scores.adaptability.toFixed(1)}
 
-Return only the JSON object with strengths, weaknesses, suggested_fixes, and explanation.`;
+Return only the JSON object with strengths, weaknesses, suggested_fixes, explanation, and summary_comment.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
