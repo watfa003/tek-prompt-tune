@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { LabParticles } from '@/components/ui/lab-particles';
+import { ScoreGauge } from '@/components/ui/score-gauge';
+import { FeedbackCard } from '@/components/ui/feedback-card';
 import { 
   FlaskConical,
   Loader2,
@@ -18,9 +21,11 @@ import {
   Trophy,
   Zap,
   Target,
-  ChevronRight,
   Copy,
-  BarChart3
+  BarChart3,
+  ArrowRight,
+  Activity,
+  Cpu
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -73,7 +78,7 @@ const PromptLab = () => {
   const [promptA, setPromptA] = useState('');
   const [promptB, setPromptB] = useState('');
   const [testTask, setTestTask] = useState('');
-  const [targetLLM, setTargetLLM] = useState('openai/gpt-4o-mini');
+  const [targetLLM, setTargetLLM] = useState('google/gemini-2.5-flash');
   const [isLoading, setIsLoading] = useState(false);
   const [singleResult, setSingleResult] = useState<SingleTestResult | null>(null);
   const [compareResult, setCompareResult] = useState<CompareTestResult | null>(null);
@@ -154,372 +159,637 @@ const PromptLab = () => {
   };
 
   return (
-    <div className="space-y-6 fade-slide-up">
-      {/* Header */}
-      <div className="glass-card rounded-[24px] p-6 md:p-8 neon-glow">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <FlaskConical className="h-6 w-6 text-white" />
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Ambient Background */}
+      <LabParticles />
+      
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Cinematic Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="relative"
+        >
+          <div className="glass-card rounded-[28px] p-8 md:p-12 overflow-hidden group hover:shadow-[0_0_80px_rgba(110,231,255,0.3)] transition-shadow duration-500">
+            {/* Animated gradient border */}
+            <motion.div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{
+                background: "linear-gradient(90deg, transparent, rgba(110,231,255,0.1), transparent)",
+              }}
+              animate={{
+                x: ['-100%', '100%'],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+            
+            <div className="relative z-10">
+              <div className="flex items-start gap-4 mb-4">
+                <motion.div
+                  className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-accent to-[hsl(330,100%,69%)] flex items-center justify-center relative"
+                  whileHover={{ scale: 1.05, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  <FlaskConical className="h-8 w-8 text-white" />
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl"
+                    style={{
+                      background: "radial-gradient(circle, rgba(110,231,255,0.4), transparent 70%)",
+                      filter: "blur(15px)",
+                    }}
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.5, 0.8, 0.5],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  />
+                </motion.div>
+                
+                <div className="flex-1">
+                  <motion.h1
+                    className="text-4xl md:text-5xl lg:text-6xl font-bold font-heading tracking-tight mb-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <span className="gradient-text">PromptTek Lab</span>
+                    <motion.span
+                      className="inline-block ml-3"
+                      animate={{
+                        rotate: [0, 10, -10, 0],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatDelay: 3,
+                      }}
+                    >
+                      🔬
+                    </motion.span>
+                  </motion.h1>
+                  
+                  <motion.p
+                    className="text-muted-foreground text-lg max-w-2xl"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    Enter the AI laboratory. Test prompts in real-time, get precision scores across 8 metrics, 
+                    and watch your prompts battle head-to-head with cinematic analysis.
+                  </motion.p>
+                </div>
+              </div>
+              
+              {/* Feature Pills */}
+              <motion.div
+                className="flex flex-wrap gap-2 mt-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                {[
+                  { icon: Activity, text: "Real-time Testing" },
+                  { icon: BarChart3, text: "8D Scoring" },
+                  { icon: Cpu, text: "AI Analysis" },
+                  { icon: Trophy, text: "Battle Mode" },
+                ].map((feature, idx) => (
+                  <motion.div
+                    key={feature.text}
+                    className="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 flex items-center gap-2 text-sm hover:bg-primary/20 transition-colors cursor-default"
+                    whileHover={{ scale: 1.05, borderColor: "rgba(110,231,255,0.4)" }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.7 + idx * 0.1 }}
+                  >
+                    <feature.icon className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-foreground/80">{feature.text}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold gradient-text">PromptTek Lab 🔬</h1>
-            <p className="text-muted-foreground mt-1">
-              Test, score, and optimize your prompts with AI-powered analysis
-            </p>
-          </div>
-        </div>
+        </motion.div>
+
+        {/* Main Lab Interface */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <Card className="glass-card border-primary/20 rounded-[24px] overflow-hidden">
+            <CardHeader className="border-b border-primary/10 bg-gradient-to-r from-primary/5 to-accent/5">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Target className="h-5 w-5 text-primary" />
+                Prompt Testing Zone
+              </CardTitle>
+              <CardDescription>
+                Select your mode, choose an LLM, and launch your test
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 p-6 md:p-8">
+              <Tabs value={mode} onValueChange={(v) => setMode(v as 'single' | 'compare')}>
+                <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
+                  <TabsTrigger 
+                    value="single" 
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground"
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    Single Test
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="compare"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-accent data-[state=active]:to-accent/80 data-[state=active]:text-accent-foreground"
+                  >
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Battle Mode
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Single Prompt Mode */}
+                <TabsContent value="single" className="space-y-6 mt-6">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        Your Prompt
+                      </Label>
+                      <Textarea
+                        placeholder="Enter your prompt to test and score..."
+                        value={promptA}
+                        onChange={(e) => setPromptA(e.target.value)}
+                        rows={8}
+                        className="resize-none font-mono text-sm border-primary/20 focus:border-primary/40 focus:ring-primary/20 transition-all bg-background/50"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Target LLM</Label>
+                        <Select value={targetLLM} onValueChange={setTargetLLM}>
+                          <SelectTrigger className="border-primary/20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LLM_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Test Task (Optional)</Label>
+                        <Textarea
+                          placeholder="e.g., 'Summarize the article'"
+                          value={testTask}
+                          onChange={(e) => setTestTask(e.target.value)}
+                          rows={1}
+                          className="border-primary/20 bg-background/50"
+                        />
+                      </div>
+                    </div>
+
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={handleRunTest} 
+                        disabled={isLoading || !promptA.trim()}
+                        className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white h-14 text-lg font-semibold shadow-[0_0_30px_rgba(110,231,255,0.3)] hover:shadow-[0_0_50px_rgba(110,231,255,0.5)] transition-all btn-sheen"
+                        size="lg"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Analyzing Prompt...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="h-5 w-5 mr-2" />
+                            Run Test & Score
+                            <ArrowRight className="h-5 w-5 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                </TabsContent>
+
+                {/* Compare Mode */}
+                <TabsContent value="compare" className="space-y-6 mt-6">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-4"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">A</span>
+                          Prompt A
+                        </Label>
+                        <Textarea
+                          placeholder="Enter first prompt..."
+                          value={promptA}
+                          onChange={(e) => setPromptA(e.target.value)}
+                          rows={8}
+                          className="resize-none font-mono text-sm border-primary/20 focus:border-primary/40 bg-background/50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">B</span>
+                          Prompt B
+                        </Label>
+                        <Textarea
+                          placeholder="Enter second prompt..."
+                          value={promptB}
+                          onChange={(e) => setPromptB(e.target.value)}
+                          rows={8}
+                          className="resize-none font-mono text-sm border-accent/20 focus:border-accent/40 bg-background/50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Target LLM</Label>
+                        <Select value={targetLLM} onValueChange={setTargetLLM}>
+                          <SelectTrigger className="border-primary/20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LLM_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Test Task (Optional)</Label>
+                        <Textarea
+                          placeholder="e.g., 'Summarize the article'"
+                          value={testTask}
+                          onChange={(e) => setTestTask(e.target.value)}
+                          rows={1}
+                          className="border-primary/20 bg-background/50"
+                        />
+                      </div>
+                    </div>
+
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={handleRunTest} 
+                        disabled={isLoading || !promptA.trim() || !promptB.trim()}
+                        className="w-full bg-gradient-to-r from-accent via-primary to-[hsl(330,100%,69%)] hover:opacity-90 text-white h-14 text-lg font-semibold shadow-[0_0_30px_rgba(124,92,255,0.3)] hover:shadow-[0_0_50px_rgba(124,92,255,0.5)] transition-all btn-sheen"
+                        size="lg"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Running Battle...
+                          </>
+                        ) : (
+                          <>
+                            <Trophy className="h-5 w-5 mr-2" />
+                            Start Battle
+                            <ArrowRight className="h-5 w-5 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Single Test Results */}
+        <AnimatePresence>
+          {singleResult && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="glass-card border-primary/30 rounded-[24px] overflow-hidden shadow-[0_0_60px_rgba(110,231,255,0.2)]">
+                <CardHeader className="border-b border-primary/10 bg-gradient-to-r from-primary/10 to-accent/10">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                    Diagnostic Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-8 p-6 md:p-8">
+                  {/* Overall Score Gauge */}
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.5 }}
+                    className="flex justify-center py-8"
+                  >
+                    <ScoreGauge score={singleResult.total_score} size="lg" />
+                  </motion.div>
+
+                  {/* Radar Chart */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="h-[350px] glass-panel rounded-xl p-6"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={formatChartData(singleResult.category_breakdown)}>
+                        <defs>
+                          <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.8} />
+                            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.3} />
+                          </linearGradient>
+                        </defs>
+                        <PolarGrid stroke="hsl(var(--primary) / 0.2)" strokeWidth={1.5} />
+                        <PolarAngleAxis 
+                          dataKey="category" 
+                          tick={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 500 }} 
+                        />
+                        <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                        <Radar
+                          name="Score"
+                          dataKey="score"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                          fill="url(#radarGradient)"
+                          fillOpacity={0.6}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+
+                  {/* Category Breakdown */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="space-y-4"
+                  >
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      Category Breakdown
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(singleResult.category_breakdown).map(([key, value], idx) => (
+                        <motion.div
+                          key={key}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.7 + idx * 0.05 }}
+                          className="glass-panel rounded-lg p-4 space-y-2 hover:border-primary/40 transition-colors"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium capitalize">{key.replace(/_/g, ' ')}</span>
+                            <span className={`font-bold text-lg ${getScoreColor(value)}`}>
+                              {value.toFixed(1)}
+                            </span>
+                          </div>
+                          <Progress value={value * 10} className="h-2" />
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  <Separator className="bg-primary/20" />
+
+                  {/* AI Analysis */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 }}
+                    className="space-y-4"
+                  >
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      AI-Powered Analysis
+                    </h3>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <FeedbackCard
+                        type="success"
+                        title="Strengths"
+                        icon={<CheckCircle className="h-4 w-4" />}
+                        items={singleResult.ai_analysis.strengths}
+                      />
+
+                      <FeedbackCard
+                        type="warning"
+                        title="Areas to Improve"
+                        icon={<AlertCircle className="h-4 w-4" />}
+                        items={singleResult.ai_analysis.weaknesses}
+                      />
+
+                      <FeedbackCard
+                        type="info"
+                        title="Suggested Fixes"
+                        icon={<Zap className="h-4 w-4" />}
+                        items={singleResult.ai_analysis.suggested_fixes}
+                      />
+                    </div>
+                  </motion.div>
+
+                  {/* Actions */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.1 }}
+                    className="flex flex-col sm:flex-row gap-3 pt-4"
+                  >
+                    <Button 
+                      variant="outline" 
+                      onClick={() => copyToClipboard(promptA)}
+                      className="flex-1 border-primary/30 hover:bg-primary/10"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Prompt
+                    </Button>
+                    <Button 
+                      onClick={() => navigate('/app/ai-agent', { state: { prompt: promptA } })}
+                      className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Auto-Optimize
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Compare Results */}
+        <AnimatePresence>
+          {compareResult && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="glass-card border-primary/30 rounded-[24px] overflow-hidden shadow-[0_0_60px_rgba(124,92,255,0.2)]">
+                <CardHeader className="border-b border-accent/10 bg-gradient-to-r from-accent/10 to-primary/10">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Trophy className="h-5 w-5 text-accent" />
+                    Battle Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-8 p-6 md:p-8">
+                  {/* Winner Declaration */}
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                    className="text-center p-10 rounded-2xl bg-gradient-to-br from-primary/10 via-accent/10 to-[hsl(330,100%,69%)/10] border border-primary/20 relative overflow-hidden"
+                  >
+                    <motion.div
+                      className="absolute inset-0"
+                      animate={{
+                        background: [
+                          "radial-gradient(circle at 0% 0%, rgba(110,231,255,0.1), transparent 50%)",
+                          "radial-gradient(circle at 100% 100%, rgba(124,92,255,0.1), transparent 50%)",
+                          "radial-gradient(circle at 0% 100%, rgba(255,98,198,0.1), transparent 50%)",
+                          "radial-gradient(circle at 0% 0%, rgba(110,231,255,0.1), transparent 50%)",
+                        ],
+                      }}
+                      transition={{ duration: 10, repeat: Infinity }}
+                    />
+                    
+                    <div className="relative z-10">
+                      {compareResult.winner === 'Tie' ? (
+                        <>
+                          <motion.div
+                            className="text-6xl mb-4"
+                            animate={{ rotate: [0, 10, -10, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                          >
+                            🤝
+                          </motion.div>
+                          <div className="text-4xl font-bold gradient-text mb-3">It's a Tie!</div>
+                          <p className="text-muted-foreground max-w-md mx-auto">
+                            Both prompts scored equally. They're evenly matched!
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <motion.div
+                            className="text-6xl mb-4"
+                            animate={{ 
+                              y: [0, -10, 0],
+                              rotate: [0, 5, -5, 0]
+                            }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          >
+                            🏆
+                          </motion.div>
+                          <div className="text-5xl font-bold gradient-text mb-3">
+                            Prompt {compareResult.winner} Wins!
+                          </div>
+                          <p className="text-muted-foreground text-lg max-w-md mx-auto">
+                            {compareResult.reasoning}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Side-by-Side Scores */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className={`glass-panel rounded-xl p-6 ${compareResult.winner === 'A' ? 'border-primary/50 shadow-[0_0_30px_rgba(110,231,255,0.2)]' : 'border-primary/20'}`}
+                    >
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">A</span>
+                        <h4 className="font-semibold text-lg">Prompt A</h4>
+                        {compareResult.winner === 'A' && <Trophy className="h-5 w-5 text-primary ml-auto" />}
+                      </div>
+                      <ScoreGauge score={compareResult.prompt_a_score} size="md" />
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className={`glass-panel rounded-xl p-6 ${compareResult.winner === 'B' ? 'border-accent/50 shadow-[0_0_30px_rgba(124,92,255,0.2)]' : 'border-accent/20'}`}
+                    >
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center font-bold">B</span>
+                        <h4 className="font-semibold text-lg">Prompt B</h4>
+                        {compareResult.winner === 'B' && <Trophy className="h-5 w-5 text-accent ml-auto" />}
+                      </div>
+                      <ScoreGauge score={compareResult.prompt_b_score} size="md" />
+                    </motion.div>
+                  </div>
+
+                  {/* Category Comparison */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="space-y-4"
+                  >
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      Category-by-Category Comparison
+                    </h3>
+                    <div className="space-y-3">
+                      {Object.entries(compareResult.comparison).map(([category, result], idx) => (
+                        <motion.div
+                          key={category}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.7 + idx * 0.05 }}
+                          className="glass-panel rounded-lg p-4"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="font-medium capitalize text-sm">{category.replace(/_/g, ' ')}</span>
+                            <div className="flex items-center gap-4">
+                              <span className="text-primary font-bold">
+                                {compareResult.prompt_a_breakdown[category as keyof CategoryScores].toFixed(1)}
+                              </span>
+                              <span className="text-muted-foreground">vs</span>
+                              <span className="text-accent font-bold">
+                                {compareResult.prompt_b_breakdown[category as keyof CategoryScores].toFixed(1)}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">{result}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* Main Lab Interface */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
-            Prompt Testing Lab
-          </CardTitle>
-          <CardDescription>
-            Choose a mode, select your target LLM, and run comprehensive tests
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Mode Selection */}
-          <Tabs value={mode} onValueChange={(v) => setMode(v as 'single' | 'compare')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="single">🧠 Single Prompt Test</TabsTrigger>
-              <TabsTrigger value="compare">⚖️ Battle Mode</TabsTrigger>
-            </TabsList>
-
-            {/* Single Prompt Mode */}
-            <TabsContent value="single" className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <Label>Your Prompt</Label>
-                <Textarea
-                  placeholder="Enter your prompt to test and score..."
-                  value={promptA}
-                  onChange={(e) => setPromptA(e.target.value)}
-                  rows={6}
-                  className="resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Target LLM</Label>
-                  <Select value={targetLLM} onValueChange={setTargetLLM}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LLM_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Test Task (Optional)</Label>
-                  <Textarea
-                    placeholder="e.g., 'Summarize the article' or 'Write a poem'"
-                    value={testTask}
-                    onChange={(e) => setTestTask(e.target.value)}
-                    rows={1}
-                  />
-                </div>
-              </div>
-
-              <Button 
-                onClick={handleRunTest} 
-                disabled={isLoading || !promptA.trim()}
-                className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90"
-                size="lg"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Testing Prompt...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-5 w-5 mr-2" />
-                    Run Test & Score
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-
-            {/* Compare Mode */}
-            <TabsContent value="compare" className="space-y-4 mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Prompt A</Label>
-                  <Textarea
-                    placeholder="Enter first prompt..."
-                    value={promptA}
-                    onChange={(e) => setPromptA(e.target.value)}
-                    rows={6}
-                    className="resize-none"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Prompt B</Label>
-                  <Textarea
-                    placeholder="Enter second prompt..."
-                    value={promptB}
-                    onChange={(e) => setPromptB(e.target.value)}
-                    rows={6}
-                    className="resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Target LLM</Label>
-                  <Select value={targetLLM} onValueChange={setTargetLLM}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LLM_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Test Task (Optional)</Label>
-                  <Textarea
-                    placeholder="e.g., 'Summarize the article'"
-                    value={testTask}
-                    onChange={(e) => setTestTask(e.target.value)}
-                    rows={1}
-                  />
-                </div>
-              </div>
-
-              <Button 
-                onClick={handleRunTest} 
-                disabled={isLoading || !promptA.trim() || !promptB.trim()}
-                className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90"
-                size="lg"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Running Battle...
-                  </>
-                ) : (
-                  <>
-                    <Trophy className="h-5 w-5 mr-2" />
-                    Start Battle
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Single Test Results */}
-      {singleResult && (
-        <Card className="glass-card neon-glow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              Diagnostic Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Overall Score */}
-            <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl">
-              <div className="text-5xl font-bold gradient-text mb-2">
-                {singleResult.total_score.toFixed(1)}/10
-              </div>
-              <p className="text-muted-foreground">Overall Prompt Score</p>
-            </div>
-
-            {/* Radar Chart */}
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={formatChartData(singleResult.category_breakdown)}>
-                  <PolarGrid stroke="hsl(var(--border))" />
-                  <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--foreground))' }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 10]} />
-                  <Radar
-                    name="Score"
-                    dataKey="score"
-                    stroke="hsl(var(--primary))"
-                    fill="hsl(var(--primary))"
-                    fillOpacity={0.3}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Category Breakdown */}
-            <div className="space-y-3">
-              <h3 className="font-semibold flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                Category Scores
-              </h3>
-              {Object.entries(singleResult.category_breakdown).map(([key, value]) => (
-                <div key={key} className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm capitalize">{key.replace(/_/g, ' ')}</span>
-                    <span className={`font-semibold ${getScoreColor(value)}`}>
-                      {value.toFixed(1)}/10
-                    </span>
-                  </div>
-                  <Progress value={value * 10} className="h-2" />
-                </div>
-              ))}
-            </div>
-
-            <Separator />
-
-            {/* AI Analysis */}
-            <div className="space-y-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                AI Analysis
-              </h3>
-
-              {/* Strengths */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-success flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Strengths
-                </h4>
-                {singleResult.ai_analysis.strengths.map((strength, idx) => (
-                  <div key={idx} className="flex gap-2 text-sm">
-                    <ChevronRight className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
-                    <span>{strength}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Weaknesses */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-warning flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Areas to Improve
-                </h4>
-                {singleResult.ai_analysis.weaknesses.map((weakness, idx) => (
-                  <div key={idx} className="flex gap-2 text-sm">
-                    <ChevronRight className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
-                    <span>{weakness}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Suggested Fixes */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-primary flex items-center gap-2">
-                  <Zap className="h-4 w-4" />
-                  Suggested Fixes
-                </h4>
-                {singleResult.ai_analysis.suggested_fixes.map((fix, idx) => (
-                  <div key={idx} className="flex gap-2 text-sm">
-                    <ChevronRight className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                    <span>{fix}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => copyToClipboard(promptA)}
-                className="flex-1"
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Prompt
-              </Button>
-              <Button 
-                onClick={() => navigate('/app/ai-agent', { state: { prompt: promptA } })}
-                className="flex-1 bg-gradient-to-r from-primary to-accent"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Auto-Optimize
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Compare Results */}
-      {compareResult && (
-        <Card className="glass-card neon-glow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-primary" />
-              Battle Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Winner Declaration */}
-            <div className="text-center p-8 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl">
-              {compareResult.winner === 'Tie' ? (
-                <>
-                  <div className="text-4xl mb-2">🤝</div>
-                  <div className="text-3xl font-bold gradient-text mb-2">It's a Tie!</div>
-                </>
-              ) : (
-                <>
-                  <div className="text-4xl mb-2">🏆</div>
-                  <div className="text-3xl font-bold gradient-text mb-2">
-                    Prompt {compareResult.winner} Wins!
-                  </div>
-                </>
-              )}
-              <p className="text-muted-foreground max-w-2xl mx-auto mt-3">
-                {compareResult.reasoning}
-              </p>
-            </div>
-
-            {/* Side-by-Side Scores */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 border border-border rounded-lg">
-                <div className="text-sm text-muted-foreground mb-1">Prompt A</div>
-                <div className={`text-3xl font-bold ${compareResult.winner === 'A' ? 'text-success' : 'text-foreground'}`}>
-                  {compareResult.prompt_a_score.toFixed(1)}
-                </div>
-                {compareResult.winner === 'A' && (
-                  <Badge className="mt-2 bg-success">Winner</Badge>
-                )}
-              </div>
-              <div className="text-center p-4 border border-border rounded-lg">
-                <div className="text-sm text-muted-foreground mb-1">Prompt B</div>
-                <div className={`text-3xl font-bold ${compareResult.winner === 'B' ? 'text-success' : 'text-foreground'}`}>
-                  {compareResult.prompt_b_score.toFixed(1)}
-                </div>
-                {compareResult.winner === 'B' && (
-                  <Badge className="mt-2 bg-success">Winner</Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Comparison Details */}
-            <div className="space-y-2">
-              <h3 className="font-semibold">Category Comparison</h3>
-              {Object.entries(compareResult.comparison).map(([category, result]) => (
-                <div key={category} className="flex justify-between items-center p-2 rounded bg-muted/50">
-                  <span className="capitalize text-sm">{category}</span>
-                  <Badge variant="outline">{result}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
