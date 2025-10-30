@@ -342,21 +342,24 @@ Your job is to explain and justify the numeric scores exactly as given — not t
 If a score is low, the explanation must sound critical; if it is high, it must sound positive.
 Never "average out" or normalize bad scores.
 
-HOW TO USE THE AI OUTPUT
+EVALUATION CONTEXT
 
-The AI output is provided ONLY to detect failures in the prompt, NOT to grade the AI's creativity or quality.
+PROMPT:
+{prompt}
 
-Use the output to detect:
-- Complete misunderstanding (output is irrelevant to any reasonable interpretation)
-- Format breaking (prompt asked for JSON but got prose)
-- Topic drift (output discusses something completely different)
+AI OUTPUT:
+{model_output}
 
-DO NOT use the output to:
-- Praise a vague prompt because the AI "figured it out"
-- Increase scores because the output was creative or well-written
-- Assume a good output means a good prompt
+CATEGORY SCORES:
+Clarity: {clarity}
+Specificity: {specificity}
+Efficiency: {efficiency}
+Structure: {structure}
+Constraints: {constraints}
+Elaboration: {elaboration}
+Intent Alignment: {intent_alignment}
+Adaptability: {adaptability}
 
-If the AI output is coherent but the prompt was vague → treat this as a WEAKNESS: "AI compensated for poor clarity in the prompt."
 
 STRICT RULES
 
@@ -367,9 +370,12 @@ If 6–7 → average.
 If 8–10 → strong.
 
 If the prompt is gibberish or meaningless (e.g., random characters, "idk", "something", "make text")
-- Use the lowest range for clarity and specificity explanations.
-- Do not rationalize it as "clear in brevity."
-- Mention "meaningless input" or "no actionable instruction."
+
+Use the lowest range for clarity and specificity explanations.
+
+Do not rationalize it as "clear in brevity."
+
+Mention "meaningless input" or "no actionable instruction."
 
 Output must match this JSON schema exactly:
 
@@ -389,13 +395,18 @@ Output must match this JSON schema exactly:
   }
 }
 
+
 If all category scores ≤ 3, omit "strengths" entirely and begin every weakness with a factual reason like:
 "Prompt contains no defined goal or topic."
 
 Be consistent with numeric tone mapping:
+
 1-3 → "poor / unusable / incoherent"
+
 4-5 → "weak / limited / inconsistent"
+
 6-7 → "adequate / somewhat clear / could improve"
+
 8-10 → "strong / clear / well-structured"
 
 No non-JSON commentary.`;
@@ -410,58 +421,6 @@ No non-JSON commentary.`;
   }
 
   const trimmedOutput = output ? output.substring(0, 1200) : "No output available";
-  
-  const analysisPrompt = `🧠 Context Input
-
-Prompt:
-${prompt}
-
-Model Output (from the test run):
-${trimmedOutput}
-
-Category Scores (0–10):
-- Clarity: ${scores.clarity.toFixed(1)}
-- Specificity: ${scores.specificity.toFixed(1)}
-- Efficiency: ${scores.efficiency.toFixed(1)}
-- Structure: ${scores.structure.toFixed(1)}
-- Constraints: ${scores.constraints.toFixed(1)}
-- Elaboration: ${scores.elaboration.toFixed(1)}
-- Intent Alignment: ${scores.intent_alignment.toFixed(1)}
-- Adaptability: ${scores.adaptability.toFixed(1)}
-
-Return only the JSON object with strengths, weaknesses, suggested_fixes, and explanation.`;
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: analysisPrompt }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.2,
-        max_tokens: 1000,
-      }),
-    });
-    
-    const data = await response.json();
-    return JSON.parse(data.choices[0].message.content);
-  } catch (error) {
-    console.error('Error generating analysis:', error);
-    return {
-      strengths: ["Analysis unavailable"],
-      weaknesses: ["Analysis unavailable"],
-      suggested_fixes: ["Please try again"],
-      explanation: {}
-    };
-  }
-}
   
   const analysisPrompt = `🧠 Context Input
 
