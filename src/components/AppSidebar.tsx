@@ -27,6 +27,7 @@ import {
   Code,
   Key,
   BookOpen,
+  FlaskConical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ import { useAppMode } from "@/context/AppModeContext";
 const optimizerNavigationItems = [
   { title: "Dashboard", url: "/app", icon: Home },
   { title: "AI Agent", url: "/app/ai-agent", icon: Bot },
+  { title: "PromptTek Lab", url: "/app/lab", icon: FlaskConical },
   { title: "History", url: "/app/history", icon: History },
   { title: "Templates", url: "/app/templates", icon: FileText },
   { title: "Settings", url: "/app/settings", icon: Settings },

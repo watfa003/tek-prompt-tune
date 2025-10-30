@@ -344,6 +344,60 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_lab_results: {
+        Row: {
+          ai_analysis: Json
+          category_breakdown_a: Json | null
+          category_breakdown_b: Json | null
+          created_at: string
+          id: string
+          mode: string
+          prompt_a: string
+          prompt_b: string | null
+          response_latency_ms: number | null
+          target_llm: string
+          test_task: string | null
+          total_score_a: number | null
+          total_score_b: number | null
+          user_id: string
+          winner: string | null
+        }
+        Insert: {
+          ai_analysis: Json
+          category_breakdown_a?: Json | null
+          category_breakdown_b?: Json | null
+          created_at?: string
+          id?: string
+          mode: string
+          prompt_a: string
+          prompt_b?: string | null
+          response_latency_ms?: number | null
+          target_llm: string
+          test_task?: string | null
+          total_score_a?: number | null
+          total_score_b?: number | null
+          user_id: string
+          winner?: string | null
+        }
+        Update: {
+          ai_analysis?: Json
+          category_breakdown_a?: Json | null
+          category_breakdown_b?: Json | null
+          created_at?: string
+          id?: string
+          mode?: string
+          prompt_a?: string
+          prompt_b?: string | null
+          response_latency_ms?: number | null
+          target_llm?: string
+          test_task?: string | null
+          total_score_a?: number | null
+          total_score_b?: number | null
+          user_id?: string
+          winner?: string | null
+        }
+        Relationships: []
+      }
       prompt_templates: {
         Row: {
           category: string | null
@@ -634,6 +688,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_cleanup_old_data: { Args: never; Returns: undefined }
       decrement_template_favorites: {
         Args: { template_id: string }
         Returns: undefined
@@ -660,10 +715,7 @@ export type Database = {
         Args: { template_id: string }
         Returns: undefined
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
