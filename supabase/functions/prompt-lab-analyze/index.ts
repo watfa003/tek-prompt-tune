@@ -393,25 +393,55 @@ Structure: Look for numbered or sectioned format; explicit step flow.
 
 10 = clear, hierarchical organization.
 
-Constraints: Credit explicit limits (tone, length, style, or format).
+Constraints: EXPANDED RECOGNITION CRITERIA
 
-Do not punish when constraints are intentionally minimal but context-justified.
+✅ Credit ALL of these as constraints:
+• Numerical limits (word counts, token limits, character counts)
+• Tone or style definitions ("professional," "casual," "technical")
+• Format requirements ("Markdown," "JSON," "bullet points," "numbered list")
+• Implicit structural limits ("three sections," "five examples," "step-by-step")
+• Negative constraints ("avoid," "exclude," "don't use")
+• Quality bounds ("concise," "detailed," "brief")
 
-Elaboration: Reward contextual reasoning or background that strengthens clarity.
+A prompt with 3+ of these = 9–10 for constraints.
+Do NOT require every type to be present.
 
-Context that adds depth = 9–10. Rambling filler = <6.
+Elaboration: EXPANDED RECOGNITION CRITERIA
+
+✅ Credit ALL of these as elaboration:
+• Background context ("this is for X audience," "the purpose is Y")
+• Reasoning or justification ("because," "in order to," "to help")
+• Examples or use cases ("such as," "for instance," "e.g.")
+• Instructional context (explaining what good output looks like)
+
+Elaboration does NOT require narrative prose—functional context counts.
+A prompt with 2+ of these = 9–10 for elaboration.
 
 Intent Alignment: Measure how well the model output matched what the prompt asked for.
 
-Adaptability: Reward flexible prompts that could generalize with minimal edits.
+Adaptability: EXPANDED RECOGNITION CRITERIA
 
-3. High-Quality Handling
+✅ Adaptability = reusability across similar domains with minimal edits.
 
-If ≥5 categories are 8 or higher, recognize the prompt as "High-Optimization Tier."
+Examples of adaptable prompts:
+• Policy brief prompt → could work for education, healthcare, business
+• Product description prompt → could work for software, hardware, services
+• Analysis prompt → could work for different data types or topics
 
-Avoid giving 6s or 7s simply "for balance."
+Only penalize if the prompt is so domain-specific it cannot transfer (e.g., "analyze THIS specific dataset with THIS unique ID").
 
-Only apply small deductions when there is a clear, measurable shortcoming.
+Flexibility markers ("if," "depending," "consider") boost adaptability.
+General structure + swappable details = 9–10 adaptability.
+
+3. High-Quality Handling — MAINTAIN NUMERIC INTEGRITY
+
+CRITICAL: Do NOT cap categories at 6 or 7 "for balance."
+
+If a prompt demonstrates excellence in a category, it must score 9–10.
+
+If ≥5 categories are 9 or higher, explicitly acknowledge the prompt as "Expert-Level" or "Publication-Ready."
+
+Only apply deductions when there is a clear, measurable shortcoming—not to "balance out" high scores.
 
 4. Textual Explanation Behavior
 
@@ -447,9 +477,17 @@ If a prompt is nonsense or single-word, every category ≤ 3.
 
 CRITICAL: If a prompt is comprehensive and detailed without fluff or repetition, efficiency must be 9-10 regardless of length.
 
+CRITICAL: If a prompt has 3+ constraint types (format + tone + limits), constraints must be ≥ 9.
+
+CRITICAL: If a prompt provides context or reasoning, elaboration must be ≥ 8.
+
+CRITICAL: If a prompt structure is generalizable to similar domains, adaptability must be ≥ 8.
+
 If the model output matches all instructions, boost Intent Alignment +0.5.
 
 Never contradict the provided numeric scores; your explanations must support them.
+
+Never artificially cap scores at 7 or 8 when excellence is demonstrated.
 
 ⚙️ Model Settings
 
