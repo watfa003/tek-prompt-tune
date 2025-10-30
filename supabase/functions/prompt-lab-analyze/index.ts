@@ -406,16 +406,19 @@ Constraints: EXPANDED RECOGNITION CRITERIA
 A prompt with 3+ of these = 9–10 for constraints.
 Do NOT require every type to be present.
 
-Elaboration: EXPANDED RECOGNITION CRITERIA
+Elaboration: EXPANDED RECOGNITION CRITERIA — BE GENEROUS
 
-✅ Credit ALL of these as elaboration:
+✅ Credit ALL of these as elaboration (even minimal presence counts):
 • Background context ("this is for X audience," "the purpose is Y")
 • Reasoning or justification ("because," "in order to," "to help")
 • Examples or use cases ("such as," "for instance," "e.g.")
 • Instructional context (explaining what good output looks like)
+• ANY contextual detail beyond the bare instruction
 
-Elaboration does NOT require narrative prose—functional context counts.
+Elaboration does NOT require narrative prose or extensive explanation.
+A prompt with 1+ of these = 8–9 for elaboration.
 A prompt with 2+ of these = 9–10 for elaboration.
+Even a brief "for X purpose" or single example qualifies as elaboration ≥ 7.
 
 Intent Alignment: Measure how well the model output matched what the prompt asked for.
 
@@ -479,7 +482,7 @@ CRITICAL: If a prompt is comprehensive and detailed without fluff or repetition,
 
 CRITICAL: If a prompt has 3+ constraint types (format + tone + limits), constraints must be ≥ 9.
 
-CRITICAL: If a prompt provides context or reasoning, elaboration must be ≥ 8.
+CRITICAL: If a prompt provides ANY context, reasoning, or examples (even brief), elaboration must be ≥ 7. If it has multiple forms of context, elaboration must be ≥ 9.
 
 CRITICAL: If a prompt structure is generalizable to similar domains, adaptability must be ≥ 8.
 
