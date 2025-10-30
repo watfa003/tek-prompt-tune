@@ -39,9 +39,10 @@ interface DiagnoseResult {
   total_score: number;
   category_breakdown: CategoryScores;
   ai_analysis: {
-    strengths: string[];
-    weaknesses: string[];
+    strengths?: string[];
+    weaknesses?: string[];
     suggested_fixes: string[];
+    explanation?: Record<string, string>;
   };
 }
 
@@ -184,31 +185,73 @@ function calculateTotalScore(scores: CategoryScores): number {
   return Math.round(average * 10) / 10;
 }
 
-// Generate AI-powered analysis
-async function generateAnalysis(prompt: string, scores: CategoryScores): Promise<DiagnoseResult['ai_analysis']> {
-  const analysisPrompt = `You are a prompt engineering expert. Analyze this prompt and its scores, then provide:
-1. 2-3 specific strengths
-2. 2-3 specific weaknesses
-3. 3-4 actionable fixes to improve the prompt
+// Generate AI-powered analysis with output-based diagnostic
+async function generateAnalysis(prompt: string, scores: CategoryScores, output?: string): Promise<any> {
+  const systemPrompt = `🔧 System Role
 
-Prompt: "${prompt}"
+You are the PromptTek Lab Diagnostic AI, a world-class prompt engineering specialist.
+You evaluate prompts using both:
+1. The user's prompt text, and
+2. The actual AI output produced by the target LLM.
 
-Scores (out of 10):
-- Clarity: ${scores.clarity}
-- Specificity: ${scores.specificity}
-- Efficiency: ${scores.efficiency}
-- Structure: ${scores.structure}
-- Constraints: ${scores.constraints}
-- Elaboration: ${scores.elaboration}
-- Intent Alignment: ${scores.intent_alignment}
-- Adaptability: ${scores.adaptability}
+Your task is to explain and justify each score category with precision, and then summarize the key findings.
+You are analytical, objective, and concise — never vague or generic.
 
-Return your analysis in JSON format:
+🧩 Evaluation Rules
+
+- Base your reasoning on both the prompt and the AI's actual output.
+  Example: If the prompt said "Answer in JSON" but the output wasn't JSON → low Structure/Constraints.
+  If the output follows instructions perfectly → boost Intent Alignment and Structure.
+- Never invent strengths or weaknesses.
+  If a section has nothing valid to say, omit that array entirely.
+  Example: If no genuine strengths, omit "strengths" key instead of returning empty strings.
+- Focus on evidence-based analysis.
+  Quote or paraphrase tiny snippets ("Output ignored requested format") to justify points.
+  Each bullet ≤ 25 words.
+- Be clear, not flattering.
+  Tone = precise, professional, diagnostic.
+  Avoid "great job!" or subjective praise.
+
+Return a valid JSON object following this structure exactly:
 {
-  "strengths": ["...", "..."],
-  "weaknesses": ["...", "..."],
-  "suggested_fixes": ["...", "...", "..."]
-}`;
+  "strengths": ["..."],  // optional, omit if none
+  "weaknesses": ["..."], // optional, omit if none
+  "suggested_fixes": ["..."], // always include
+  "explanation": {
+    "clarity": "...",
+    "specificity": "...",
+    "efficiency": "...",
+    "structure": "...",
+    "constraints": "...",
+    "elaboration": "...",
+    "intent_alignment": "...",
+    "adaptability": "..."
+  }
+}
+
+Each explanation under "explanation" must be 1–2 short sentences explaining why that score was given, referencing the prompt or its output.`;
+
+  const trimmedOutput = output ? output.substring(0, 1200) : "No output available";
+  
+  const analysisPrompt = `🧠 Context Input
+
+Prompt:
+${prompt}
+
+Model Output (from the test run):
+${trimmedOutput}
+
+Category Scores (0–10):
+- Clarity: ${scores.clarity.toFixed(1)}
+- Specificity: ${scores.specificity.toFixed(1)}
+- Efficiency: ${scores.efficiency.toFixed(1)}
+- Structure: ${scores.structure.toFixed(1)}
+- Constraints: ${scores.constraints.toFixed(1)}
+- Elaboration: ${scores.elaboration.toFixed(1)}
+- Intent Alignment: ${scores.intent_alignment.toFixed(1)}
+- Adaptability: ${scores.adaptability.toFixed(1)}
+
+Return only the JSON object with strengths, weaknesses, suggested_fixes, and explanation.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -219,9 +262,12 @@ Return your analysis in JSON format:
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: analysisPrompt }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: analysisPrompt }
+        ],
         response_format: { type: 'json_object' },
-        max_tokens: 800,
+        max_tokens: 1200,
       }),
     });
     
@@ -233,6 +279,7 @@ Return your analysis in JSON format:
       strengths: ["Analysis unavailable"],
       weaknesses: ["Analysis unavailable"],
       suggested_fixes: ["Please try again"],
+      explanation: {}
     };
   }
 }
@@ -248,8 +295,8 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const scores = scorePrompt(req.prompt_a, output);
   const totalScore = calculateTotalScore(scores);
   
-  // Generate AI analysis
-  const analysis = await generateAnalysis(req.prompt_a, scores);
+  // Generate AI analysis with output
+  const analysis = await generateAnalysis(req.prompt_a, scores, output);
   
   return {
     total_score: totalScore,

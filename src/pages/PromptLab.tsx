@@ -47,9 +47,10 @@ interface SingleTestResult {
   total_score: number;
   category_breakdown: CategoryScores;
   ai_analysis: {
-    strengths: string[];
-    weaknesses: string[];
+    strengths?: string[];
+    weaknesses?: string[];
     suggested_fixes: string[];
+    explanation?: Record<string, string>;
   };
 }
 
@@ -588,19 +589,23 @@ const PromptLab = () => {
                     </h3>
 
                     <div className="grid grid-cols-1 gap-4">
-                      <FeedbackCard
-                        type="success"
-                        title="Strengths"
-                        icon={<CheckCircle className="h-4 w-4" />}
-                        items={singleResult.ai_analysis.strengths}
-                      />
+                      {singleResult.ai_analysis.strengths && singleResult.ai_analysis.strengths.length > 0 && (
+                        <FeedbackCard
+                          type="success"
+                          title="Strengths"
+                          icon={<CheckCircle className="h-4 w-4" />}
+                          items={singleResult.ai_analysis.strengths}
+                        />
+                      )}
 
-                      <FeedbackCard
-                        type="warning"
-                        title="Areas to Improve"
-                        icon={<AlertCircle className="h-4 w-4" />}
-                        items={singleResult.ai_analysis.weaknesses}
-                      />
+                      {singleResult.ai_analysis.weaknesses && singleResult.ai_analysis.weaknesses.length > 0 && (
+                        <FeedbackCard
+                          type="warning"
+                          title="Areas to Improve"
+                          icon={<AlertCircle className="h-4 w-4" />}
+                          items={singleResult.ai_analysis.weaknesses}
+                        />
+                      )}
 
                       <FeedbackCard
                         type="info"
@@ -609,6 +614,33 @@ const PromptLab = () => {
                         items={singleResult.ai_analysis.suggested_fixes}
                       />
                     </div>
+
+                    {/* Per-Category Explanations */}
+                    {singleResult.ai_analysis.explanation && Object.keys(singleResult.ai_analysis.explanation).length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="glass-panel p-6 mt-4"
+                      >
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                          <Activity className="h-5 w-5 text-primary" />
+                          Score Explanations
+                        </h3>
+                        <div className="space-y-3">
+                          {Object.entries(singleResult.ai_analysis.explanation).map(([key, value]) => (
+                            <div key={key} className="border-l-2 border-primary/30 pl-4">
+                              <div className="text-sm font-medium text-primary capitalize mb-1">
+                                {key.replace(/_/g, ' ')}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {value}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
 
                   {/* Actions */}
