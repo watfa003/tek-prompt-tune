@@ -250,19 +250,31 @@ function scorePrompt(prompt: string, output?: string): CategoryScores {
 
     // Efficiency - only penalize fluff and repetition, NOT length
     // Check for redundancy and filler
-    const hasRepetition = /(.{20,})\1/.test(prompt); // Detects repeated phrases
-    const fillerWords = ['basically', 'actually', 'literally', 'very', 'really', 'just', 'quite', 'rather', 'somewhat'];
+    const words = prompt.toLowerCase().split(/\s+/);
+    const wordSet = new Set(words);
+    const uniqueRatio = wordSet.size / words.length;
+    
+    // Detect repeated phrases (3+ words repeated)
+    const hasRepetition = /(\b\w+\s+\w+\s+\w+\b).*\1/.test(prompt.toLowerCase());
+    
+    // Count filler words
+    const fillerWords = ['basically', 'actually', 'literally', 'very', 'really', 'just', 'quite', 'rather', 'somewhat', 'like', 'you know', 'i mean'];
     const fillerCount = fillerWords.filter(word => prompt.toLowerCase().includes(word)).length;
     const hasFluff = fillerCount >= 3;
     
+    // Check for low unique word ratio (lots of repetition)
+    const isRepetitive = uniqueRatio < 0.6 && wordCount > 20;
+    
     if (wordCount < 5) {
       scores.efficiency = 3; // Too short to be useful
-    } else if (hasRepetition || hasFluff) {
-      scores.efficiency = 5; // Has unnecessary content
+    } else if (hasRepetition || isRepetitive) {
+      scores.efficiency = 4; // Significant repetition detected
+    } else if (hasFluff) {
+      scores.efficiency = 6; // Has filler words but not terrible
     } else if (wordCount < 30) {
       scores.efficiency = 10; // Sweet spot
     } else {
-      // Long prompts are fine if they're purposeful
+      // Long prompts are fine if they're purposeful (no repetition/fluff)
       scores.efficiency = 9; // Default to high for comprehensive prompts
     }
     
