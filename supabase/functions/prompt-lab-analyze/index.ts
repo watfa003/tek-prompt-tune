@@ -248,17 +248,22 @@ function scorePrompt(prompt: string, output?: string): CategoryScores {
     if (hasTopic) specificity += 2;
     scores.specificity = Math.min(specificity, 10);
 
-    // Efficiency - penalize excessive length but reward conciseness with substance
+    // Efficiency - only penalize fluff and repetition, NOT length
+    // Check for redundancy and filler
+    const hasRepetition = /(.{20,})\1/.test(prompt); // Detects repeated phrases
+    const fillerWords = ['basically', 'actually', 'literally', 'very', 'really', 'just', 'quite', 'rather', 'somewhat'];
+    const fillerCount = fillerWords.filter(word => prompt.toLowerCase().includes(word)).length;
+    const hasFluff = fillerCount >= 3;
+    
     if (wordCount < 5) {
       scores.efficiency = 3; // Too short to be useful
+    } else if (hasRepetition || hasFluff) {
+      scores.efficiency = 5; // Has unnecessary content
     } else if (wordCount < 30) {
       scores.efficiency = 10; // Sweet spot
-    } else if (wordCount < 80) {
-      scores.efficiency = 8;
-    } else if (wordCount < 150) {
-      scores.efficiency = 6;
     } else {
-      scores.efficiency = 4;
+      // Long prompts are fine if they're purposeful
+      scores.efficiency = 9; // Default to high for comprehensive prompts
     }
     
     // Structure - check for organized content
@@ -378,9 +383,11 @@ Penalize only if the user's task could be interpreted multiple ways.
 
 Efficiency:
 
-Efficiency = density of useful instruction / total length.
-A long, well-structured prompt that wastes no words can still be 9–10.
-Penalize only when the text contains fluff, repetition, or contradictions.
+CRITICAL: Length is NOT a penalty. Efficiency measures wasted words, not total words.
+A 200-word prompt with zero fluff = 10/10 efficiency.
+A 20-word prompt with vague filler = 3/10 efficiency.
+Only penalize when you detect: repetition, contradictions, meaningless filler words, or redundant instructions.
+Comprehensive, detailed prompts with all necessary context should score 9-10.
 
 Structure: Look for numbered or sectioned format; explicit step flow.
 
@@ -438,7 +445,7 @@ Always include a one-sentence summary_comment that captures overall performance.
 
 If a prompt is nonsense or single-word, every category ≤ 3.
 
-If a prompt is very long but entirely purposeful, do not reduce efficiency below 8.
+CRITICAL: If a prompt is comprehensive and detailed without fluff or repetition, efficiency must be 9-10 regardless of length.
 
 If the model output matches all instructions, boost Intent Alignment +0.5.
 
