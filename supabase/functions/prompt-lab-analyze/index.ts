@@ -56,6 +56,49 @@ interface BattleResult {
   comparison: Record<string, string>;
 }
 
+// Common English words for nonsense detection
+const COMMON_WORDS = new Set([
+  'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
+  'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what',
+  'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take',
+  'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also',
+  'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
+  'is', 'are', 'was', 'were', 'been', 'being', 'has', 'had', 'having', 'does', 'did', 'doing', 'am', 'can', 'could', 'should', 'would', 'may', 'might', 'must',
+  'write', 'create', 'generate', 'make', 'provide', 'give', 'tell', 'explain', 'describe', 'list', 'show', 'help', 'answer', 'respond', 'format', 'json', 'markdown',
+  'please', 'need', 'want', 'story', 'text', 'content', 'code', 'example', 'information', 'data', 'task', 'prompt', 'question', 'message', 'email', 'article',
+  'short', 'long', 'simple', 'detailed', 'clear', 'concise', 'brief', 'comprehensive', 'specific', 'general', 'professional', 'casual', 'formal', 'informal',
+  'must', 'should', 'avoid', 'include', 'exclude', 'only', 'exactly', 'approximately', 'around', 'between', 'using', 'without', 'based', 'following'
+]);
+
+// Detect nonsense and gibberish prompts
+function detectNonsense(prompt: string, output?: string): number {
+  if (!prompt || prompt.trim().length === 0) return 3;
+  
+  // 1️⃣ Non-alphabetic ratio
+  const clean = prompt.replace(/\s+/g, '');
+  if (clean.length === 0) return 3;
+  
+  const alphaCount = (clean.match(/[a-zA-Z]/g)?.length ?? 0);
+  const alphaRatio = alphaCount / clean.length;
+
+  // 2️⃣ English-word density
+  const words = prompt.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return 3;
+  
+  const knownWords = words.filter(w => COMMON_WORDS.has(w) || w.length > 8).length;
+  const wordRatio = knownWords / words.length;
+
+  // 3️⃣ Output sanity check
+  const outputValid = output && output.trim().length > 10;
+
+  let nonsenseScore = 0;
+  if (alphaRatio < 0.5) nonsenseScore += 1;
+  if (wordRatio < 0.25) nonsenseScore += 1;
+  if (!outputValid) nonsenseScore += 1;
+
+  return nonsenseScore; // 0-3
+}
+
 // Helper to call AI models
 async function callAIModel(prompt: string, targetLLM: string, testTask?: string): Promise<string> {
   const systemMessage = testTask 
@@ -131,6 +174,24 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
 
 // Scoring function
 function scorePrompt(prompt: string, output?: string): CategoryScores {
+  // 🚨 NONSENSE DETECTION - Apply hard penalty first
+  const nonsensePenalty = detectNonsense(prompt, output);
+  
+  if (nonsensePenalty >= 2) {
+    // Hard cap for gibberish/nonsense prompts
+    const baseScore = 2 + Math.random() * 0.5; // 2.0-2.5
+    return {
+      clarity: baseScore,
+      specificity: baseScore,
+      efficiency: baseScore,
+      structure: baseScore,
+      constraints: baseScore,
+      elaboration: baseScore,
+      intent_alignment: baseScore,
+      adaptability: baseScore,
+    };
+  }
+
   const scores: CategoryScores = {
     clarity: 0,
     specificity: 0,
@@ -142,19 +203,31 @@ function scorePrompt(prompt: string, output?: string): CategoryScores {
     adaptability: 0,
   };
 
-  // Clarity - check for vague language
-  const vagueWords = ['good', 'nice', 'better', 'make it', 'kind of', 'sort of', 'maybe'];
-  const hasVague = vagueWords.some(word => prompt.toLowerCase().includes(word));
-  scores.clarity = hasVague ? 6 : 9;
+  const wordCount = prompt.split(/\s+/).filter(w => w.length > 0).length;
 
-  // Specificity - check for concrete details
-  const hasNumbers = /\d+/.test(prompt);
-  const hasFormat = /format|style|tone|json|markdown|list/.test(prompt.toLowerCase());
-  scores.specificity = (hasNumbers ? 4 : 0) + (hasFormat ? 4 : 2);
+  // 🔒 GUARD: Very short prompts get penalized
+  if (prompt.trim().length < 8) {
+    scores.efficiency = 2;
+    scores.clarity = 1;
+    scores.specificity = 1;
+  } else if (/^[a-zA-Z]{1,5}$/.test(prompt.trim())) {
+    // Single word prompts
+    scores.clarity = 2;
+    scores.specificity = 2;
+  } else {
+    // Clarity - check for vague language
+    const vagueWords = ['good', 'nice', 'better', 'make it', 'kind of', 'sort of', 'maybe'];
+    const hasVague = vagueWords.some(word => prompt.toLowerCase().includes(word));
+    scores.clarity = hasVague ? 6 : 9;
 
-  // Efficiency - penalize excessive length
-  const wordCount = prompt.split(/\s+/).length;
-  scores.efficiency = wordCount < 50 ? 10 : wordCount < 100 ? 8 : wordCount < 200 ? 6 : 4;
+    // Specificity - check for concrete details
+    const hasNumbers = /\d+/.test(prompt);
+    const hasFormat = /format|style|tone|json|markdown|list/.test(prompt.toLowerCase());
+    scores.specificity = (hasNumbers ? 4 : 0) + (hasFormat ? 4 : 2);
+
+    // Efficiency - penalize excessive length
+    scores.efficiency = wordCount < 50 ? 10 : wordCount < 100 ? 8 : wordCount < 200 ? 6 : 4;
+  }
 
   // Structure - check for organized content
   const hasSteps = /step|first|then|finally|1\.|2\.|3\./.test(prompt.toLowerCase());
@@ -182,7 +255,16 @@ function scorePrompt(prompt: string, output?: string): CategoryScores {
 function calculateTotalScore(scores: CategoryScores): number {
   const values = Object.values(scores);
   const average = values.reduce((a, b) => a + b, 0) / values.length;
-  return Math.round(average * 10) / 10;
+  let total = Math.round(average * 10) / 10;
+  
+  // 🔒 MINIMUM QUALITY THRESHOLD
+  // If core trio (clarity + specificity + intent) is weak, cap the total
+  const coreTrio = (scores.clarity + scores.specificity + scores.intent_alignment) / 3;
+  if (total > 3 && coreTrio < 4) {
+    total = Math.min(total, 3.5);
+  }
+  
+  return total;
 }
 
 // Generate AI-powered analysis with output-based diagnostic

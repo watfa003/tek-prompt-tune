@@ -154,9 +154,24 @@ const PromptLab = () => {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 8) return 'text-success';
-    if (score >= 6) return 'text-warning';
-    return 'text-destructive';
+    if (score >= 8) return 'text-green-400';
+    if (score >= 6) return 'text-yellow-400';
+    if (score >= 3) return 'text-orange-400';
+    return 'text-red-400';
+  };
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 8) return 'Optimized';
+    if (score >= 6) return 'Functional but Weak';
+    if (score >= 3) return 'Needs Major Fixing';
+    return 'Unusable / Unintelligible';
+  };
+
+  const getScoreRingColor = (score: number) => {
+    if (score >= 8) return 'from-green-500 to-emerald-400';
+    if (score >= 6) return 'from-yellow-500 to-amber-400';
+    if (score >= 3) return 'from-orange-500 to-red-400';
+    return 'from-red-600 to-rose-500';
   };
 
   return (
@@ -504,9 +519,25 @@ const PromptLab = () => {
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.2, duration: 0.5 }}
-                    className="flex justify-center py-8"
+                    className="flex flex-col items-center gap-4 py-8"
                   >
                     <ScoreGauge score={singleResult.total_score} size="lg" />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className={`px-6 py-3 rounded-full text-base font-semibold ${
+                        singleResult.total_score >= 8 
+                          ? 'bg-green-500/20 text-green-400 border-2 border-green-500/40 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
+                          : singleResult.total_score >= 6
+                          ? 'bg-yellow-500/20 text-yellow-400 border-2 border-yellow-500/40 shadow-[0_0_20px_rgba(234,179,8,0.3)]'
+                          : singleResult.total_score >= 3
+                          ? 'bg-orange-500/20 text-orange-400 border-2 border-orange-500/40 shadow-[0_0_20px_rgba(249,115,22,0.3)]'
+                          : 'bg-red-500/20 text-red-400 border-2 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                      }`}
+                    >
+                      {getScoreLabel(singleResult.total_score)}
+                    </motion.div>
                   </motion.div>
 
                   {/* Radar Chart */}
