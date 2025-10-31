@@ -641,10 +641,10 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
   const totalA = calculateTotalScore(scoresA);
   const totalB = calculateTotalScore(scoresB);
   
-  // Determine winner
+  // Determine winner - higher score always wins
   let winner: 'A' | 'B' | 'Tie' = 'Tie';
-  if (totalA > totalB + 0.5) winner = 'A';
-  else if (totalB > totalA + 0.5) winner = 'B';
+  if (totalA > totalB) winner = 'A';
+  else if (totalB > totalA) winner = 'B';
   
   // Generate comparison reasoning
   const comparisonPrompt = `Compare these two prompts and explain which is better and why:
@@ -690,6 +690,12 @@ Provide a brief explanation (2-3 sentences) of why one prompt performed better, 
     comparison: {
       clarity: scoresA.clarity > scoresB.clarity ? "A wins" : scoresB.clarity > scoresA.clarity ? "B wins" : "Tie",
       specificity: scoresA.specificity > scoresB.specificity ? "A wins" : scoresB.specificity > scoresA.specificity ? "B wins" : "Tie",
+      efficiency: scoresA.efficiency > scoresB.efficiency ? "A wins" : scoresB.efficiency > scoresA.efficiency ? "B wins" : "Tie",
+      structure: scoresA.structure > scoresB.structure ? "A wins" : scoresB.structure > scoresA.structure ? "B wins" : "Tie",
+      constraints: scoresA.constraints > scoresB.constraints ? "A wins" : scoresB.constraints > scoresA.constraints ? "B wins" : "Tie",
+      elaboration: scoresA.elaboration > scoresB.elaboration ? "A wins" : scoresB.elaboration > scoresA.elaboration ? "B wins" : "Tie",
+      intent_alignment: scoresA.intent_alignment > scoresB.intent_alignment ? "A wins" : scoresB.intent_alignment > scoresA.intent_alignment ? "B wins" : "Tie",
+      adaptability: scoresA.adaptability > scoresB.adaptability ? "A wins" : scoresB.adaptability > scoresA.adaptability ? "B wins" : "Tie",
     },
   };
 }
