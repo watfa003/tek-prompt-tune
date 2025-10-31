@@ -112,22 +112,46 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
   
   try {
     if (provider === 'openai') {
+      const modelName = model || 'gpt-4o-mini';
+      const isNewModel = modelName.includes('gpt-5') || modelName.includes('o3') || modelName.includes('o4');
+      
+      const requestBody: any = {
+        model: modelName,
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage }
+        ],
+      };
+      
+      // New models use max_completion_tokens, old models use max_tokens
+      if (isNewModel) {
+        requestBody.max_completion_tokens = 500;
+      } else {
+        requestBody.max_tokens = 500;
+      }
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${openAIApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: model || 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemMessage },
-            { role: 'user', content: userMessage }
-          ],
-          max_tokens: 500,
-        }),
+        body: JSON.stringify(requestBody),
       });
+      
       const data = await response.json();
+      
+      // Add error logging
+      if (!response.ok) {
+        console.error('OpenAI API error:', response.status, data);
+        throw new Error(`OpenAI API error: ${JSON.stringify(data)}`);
+      }
+      
+      if (!data.choices || !data.choices[0]) {
+        console.error('Unexpected OpenAI response:', data);
+        throw new Error('Invalid response from OpenAI API');
+      }
+      
       return data.choices[0].message.content;
     } else if (provider === 'anthropic') {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
