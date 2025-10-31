@@ -389,16 +389,17 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
   
   // Score with TESTED mode (validates with actual output)
-  const scores = scorePromptTested(req.prompt_a, output);
-  const totalScore = calculateTotalScore(scores);
+  const result = scorePromptTested(req.prompt_a, output);
+  const totalScore = calculateTotalScore(result.scores, result.promptType, req.prompt_a);
   
   // Generate AI analysis with output
-  const analysis = await generateAnalysis(req.prompt_a, scores, output);
+  const analysis = await generateAnalysis(req.prompt_a, result.scores, output);
   
   return {
     total_score: totalScore,
-    category_breakdown: scores,
+    category_breakdown: result.scores,
     ai_analysis: analysis,
+    prompt_type: result.promptType,
   };
 }
 
@@ -415,11 +416,11 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
   ]);
   
   // Score both with TESTED mode (validates with actual outputs)
-  const scoresA = scorePromptTested(req.prompt_a, outputA);
-  const scoresB = scorePromptTested(req.prompt_b, outputB);
+  const resultA = scorePromptTested(req.prompt_a, outputA);
+  const resultB = scorePromptTested(req.prompt_b, outputB);
   
-  const totalA = calculateTotalScore(scoresA);
-  const totalB = calculateTotalScore(scoresB);
+  const totalA = calculateTotalScore(resultA.scores, resultA.promptType, req.prompt_a);
+  const totalB = calculateTotalScore(resultB.scores, resultB.promptType, req.prompt_b);
   
   // Determine winner - higher score always wins
   let winner: 'A' | 'B' | 'Tie' = 'Tie';
@@ -463,20 +464,22 @@ Provide a brief explanation (2-3 sentences) of why one prompt performed better, 
   return {
     prompt_a_score: totalA,
     prompt_b_score: totalB,
-    prompt_a_breakdown: scoresA,
-    prompt_b_breakdown: scoresB,
+    prompt_a_breakdown: resultA.scores,
+    prompt_b_breakdown: resultB.scores,
     winner,
     reasoning,
     comparison: {
-      clarity: scoresA.clarity > scoresB.clarity ? "A wins" : scoresB.clarity > scoresA.clarity ? "B wins" : "Tie",
-      specificity: scoresA.specificity > scoresB.specificity ? "A wins" : scoresB.specificity > scoresA.specificity ? "B wins" : "Tie",
-      efficiency: scoresA.efficiency > scoresB.efficiency ? "A wins" : scoresB.efficiency > scoresA.efficiency ? "B wins" : "Tie",
-      structure: scoresA.structure > scoresB.structure ? "A wins" : scoresB.structure > scoresA.structure ? "B wins" : "Tie",
-      constraints: scoresA.constraints > scoresB.constraints ? "A wins" : scoresB.constraints > scoresA.constraints ? "B wins" : "Tie",
-      elaboration: scoresA.elaboration > scoresB.elaboration ? "A wins" : scoresB.elaboration > scoresA.elaboration ? "B wins" : "Tie",
-      intent_alignment: scoresA.intent_alignment > scoresB.intent_alignment ? "A wins" : scoresB.intent_alignment > scoresA.intent_alignment ? "B wins" : "Tie",
-      adaptability: scoresA.adaptability > scoresB.adaptability ? "A wins" : scoresB.adaptability > scoresA.adaptability ? "B wins" : "Tie",
+      clarity: resultA.scores.clarity > resultB.scores.clarity ? "A wins" : resultB.scores.clarity > resultA.scores.clarity ? "B wins" : "Tie",
+      specificity: resultA.scores.specificity > resultB.scores.specificity ? "A wins" : resultB.scores.specificity > resultA.scores.specificity ? "B wins" : "Tie",
+      efficiency: resultA.scores.efficiency > resultB.scores.efficiency ? "A wins" : resultB.scores.efficiency > resultA.scores.efficiency ? "B wins" : "Tie",
+      structure: resultA.scores.structure > resultB.scores.structure ? "A wins" : resultB.scores.structure > resultA.scores.structure ? "B wins" : "Tie",
+      constraints: resultA.scores.constraints > resultB.scores.constraints ? "A wins" : resultB.scores.constraints > resultA.scores.constraints ? "B wins" : "Tie",
+      elaboration: resultA.scores.elaboration > resultB.scores.elaboration ? "A wins" : resultB.scores.elaboration > resultB.scores.elaboration ? "B wins" : "Tie",
+      intent_alignment: resultA.scores.intent_alignment > resultB.scores.intent_alignment ? "A wins" : resultB.scores.intent_alignment > resultA.scores.intent_alignment ? "B wins" : "Tie",
+      adaptability: resultA.scores.adaptability > resultB.scores.adaptability ? "A wins" : resultB.scores.adaptability > resultA.scores.adaptability ? "B wins" : "Tie",
     },
+    prompt_a_type: resultA.promptType,
+    prompt_b_type: resultB.promptType,
   };
 }
 

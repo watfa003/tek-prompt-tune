@@ -1,6 +1,8 @@
 // Master Grader - Unified prompt scoring system for Lab and Optimizer
 // Philosophy: Grade the prompt by its results when possible, structure when not
 
+export type PromptType = 'simple' | 'complex' | 'creative' | 'analytical';
+
 export interface CategoryScores {
   clarity: number;
   specificity: number;
@@ -51,6 +53,93 @@ export function detectNonsense(prompt: string, output?: string): number {
   if (output && output.includes('cannot') && output.includes('unclear')) return 0.1;
   
   return 1.0;
+}
+
+/**
+ * Calculate Intent Alignment - ONLY meaningful with actual output
+ */
+/**
+ * Detect the type of prompt for task-aware grading
+ */
+export function detectPromptType(prompt: string): PromptType {
+  const wordCount = prompt.split(/\s+/).length;
+  const promptLower = prompt.toLowerCase();
+  
+  // Creative prompts
+  const creativeKeywords = /\b(?:write|create|generate|compose)\s+(?:a|an)\s+(?:poem|story|haiku|tagline|slogan|joke|metaphor|song|rap|limerick)/i;
+  if (creativeKeywords.test(prompt)) return 'creative';
+  
+  // Analytical prompts
+  const analyticalKeywords = /\b(?:analyze|compare|evaluate|assess|research|investigate|examine|critique|review|explain why|explain how)/i;
+  if (analyticalKeywords.test(prompt)) return 'analytical';
+  
+  // Complex prompts (multi-step, long, or has structure markers)
+  const hasMultipleSteps = /\b(?:first|then|next|finally|step \d+)/i.test(prompt);
+  const hasSections = (prompt.match(/\n\n+/g) || []).length >= 2;
+  const hasExamples = /\b(?:example|such as|e\.g\.|for instance)[:\s]+.{30,}/gi.test(prompt);
+  
+  if (wordCount > 50 || hasMultipleSteps || hasSections || hasExamples) {
+    return 'complex';
+  }
+  
+  // Default: simple
+  return 'simple';
+}
+
+/**
+ * Get contextual weights based on prompt type
+ */
+export function getContextualWeights(promptType: PromptType): Record<keyof CategoryScores, number> {
+  switch (promptType) {
+    case 'simple':
+      return {
+        clarity: 2.0,        // Most important - is it clear?
+        specificity: 1.8,    // Is it specific enough?
+        efficiency: 1.5,     // No wasted words?
+        structure: 0.3,      // Don't need bullet points
+        constraints: 0.2,    // Don't need "don't do X"
+        elaboration: 0.4,    // Don't need examples
+        intent_alignment: 1.6, // Does it say what it wants?
+        adaptability: 0.3    // Don't need options
+      };
+      
+    case 'creative':
+      return {
+        clarity: 1.5,
+        specificity: 1.2,
+        efficiency: 1.3,
+        structure: 0.6,
+        constraints: 0.5,
+        elaboration: 0.8,
+        intent_alignment: 1.8, // Very important
+        adaptability: 1.4      // Creative freedom matters
+      };
+      
+    case 'analytical':
+      return {
+        clarity: 1.3,
+        specificity: 1.8,      // Need specific criteria
+        efficiency: 1.0,
+        structure: 1.5,        // Need organization
+        constraints: 1.2,
+        elaboration: 1.6,      // Need context
+        intent_alignment: 1.4,
+        adaptability: 1.0
+      };
+      
+    case 'complex':
+      // All categories matter
+      return {
+        clarity: 1.5,
+        specificity: 1.3,
+        efficiency: 1.0,
+        structure: 1.0,
+        constraints: 1.2,
+        elaboration: 1.1,
+        intent_alignment: 1.4,
+        adaptability: 0.8
+      };
+  }
 }
 
 /**
@@ -107,7 +196,13 @@ export function calculateIntentAlignment(prompt: string, output?: string): numbe
 /**
  * Static Mode Scoring - Fast structural analysis
  */
-export function scorePromptStatic(prompt: string): CategoryScores {
+export interface StaticGradeResult {
+  scores: CategoryScores;
+  promptType: PromptType;
+}
+
+export function scorePromptStatic(prompt: string): StaticGradeResult {
+  const promptType = detectPromptType(prompt);
   const promptLower = prompt.toLowerCase();
   const words = prompt.split(/\s+/);
   const sentences = prompt.split(/[.!?]+/).filter(s => s.trim().length > 0);
@@ -214,23 +309,27 @@ export function scorePromptStatic(prompt: string): CategoryScores {
   if (hasEdgeCases) adaptability += 1;
   
   return {
-    clarity: Math.max(0, Math.min(10, clarity)),
-    specificity: Math.max(0, Math.min(10, specificity)),
-    efficiency: Math.max(0, Math.min(10, efficiency)),
-    structure: Math.max(0, Math.min(10, structure)),
-    constraints: Math.max(0, Math.min(10, constraints)),
-    elaboration: Math.max(0, Math.min(10, elaboration)),
-    intent_alignment: Math.max(0, Math.min(10, intentAlignment)),
-    adaptability: Math.max(0, Math.min(10, adaptability))
+    scores: {
+      clarity: Math.max(0, Math.min(10, clarity)),
+      specificity: Math.max(0, Math.min(10, specificity)),
+      efficiency: Math.max(0, Math.min(10, efficiency)),
+      structure: Math.max(0, Math.min(10, structure)),
+      constraints: Math.max(0, Math.min(10, constraints)),
+      elaboration: Math.max(0, Math.min(10, elaboration)),
+      intent_alignment: Math.max(0, Math.min(10, intentAlignment)),
+      adaptability: Math.max(0, Math.min(10, adaptability))
+    },
+    promptType
   };
 }
 
 /**
  * Tested Mode Scoring - Validates with actual AI output
  */
-export function scorePromptTested(prompt: string, output: string): CategoryScores {
+export function scorePromptTested(prompt: string, output: string): { scores: CategoryScores; promptType: PromptType } {
   // Start with static scores
-  const scores = scorePromptStatic(prompt);
+  const staticResult = scorePromptStatic(prompt);
+  const scores = staticResult.scores;
   
   const outputLower = output.toLowerCase();
   const outputLength = output.length;
@@ -301,23 +400,25 @@ export function scorePromptTested(prompt: string, output: string): CategoryScore
     scores.adaptability = Math.min(10, scores.adaptability + 1);
   }
   
-  return scores;
+  return {
+    scores,
+    promptType: staticResult.promptType
+  };
 }
 
 /**
- * Calculate total score with minimum quality threshold
+ * Calculate total score with task-aware weighting
  */
-export function calculateTotalScore(scores: CategoryScores): number {
-  const weights = {
-    clarity: 1.5,
-    specificity: 1.3,
-    efficiency: 1.0,
-    structure: 1.0,
-    constraints: 1.2,
-    elaboration: 1.1,
-    intent_alignment: 1.4,
-    adaptability: 0.8
-  };
+export function calculateTotalScore(
+  scores: CategoryScores, 
+  promptType?: PromptType,
+  prompt?: string
+): number {
+  // Auto-detect type if not provided
+  const detectedType = promptType || (prompt ? detectPromptType(prompt) : 'complex');
+  
+  // Get contextual weights
+  const weights = getContextualWeights(detectedType);
   
   const weightedSum = 
     scores.clarity * weights.clarity +
@@ -332,9 +433,11 @@ export function calculateTotalScore(scores: CategoryScores): number {
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
   const normalizedScore = (weightedSum / totalWeight);
   
-  // Minimum quality threshold
-  const avgScore = Object.values(scores).reduce((a, b) => a + b, 0) / 8;
-  if (avgScore < 3.0) return Math.min(normalizedScore, 3.5);
+  // Minimum quality threshold (only for complex prompts)
+  if (detectedType === 'complex') {
+    const avgScore = Object.values(scores).reduce((a, b) => a + b, 0) / 8;
+    if (avgScore < 3.0) return Math.min(normalizedScore, 3.5);
+  }
   
   return Math.round(normalizedScore * 10) / 10;
 }

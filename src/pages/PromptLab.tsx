@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { LabParticles } from '@/components/ui/lab-particles';
 import { ScoreGauge } from '@/components/ui/score-gauge';
 import { FeedbackCard } from '@/components/ui/feedback-card';
@@ -52,6 +53,7 @@ interface SingleTestResult {
     suggested_fixes: string[];
     explanation?: Record<string, string>;
   };
+  prompt_type?: 'simple' | 'complex' | 'creative' | 'analytical';
 }
 
 interface CompareTestResult {
@@ -62,6 +64,8 @@ interface CompareTestResult {
   winner: 'A' | 'B' | 'Tie';
   reasoning: string;
   comparison: Record<string, string>;
+  prompt_a_type?: 'simple' | 'complex' | 'creative' | 'analytical';
+  prompt_b_type?: 'simple' | 'complex' | 'creative' | 'analytical';
 }
 
 const PromptLab = () => {
@@ -611,6 +615,32 @@ const PromptLab = () => {
                     className="flex flex-col items-center gap-4 py-8"
                   >
                     <ScoreGauge score={singleResult.total_score} size="lg" />
+                    
+                    {/* Prompt Type Badge */}
+                    {singleResult.prompt_type && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Badge 
+                          variant={
+                            singleResult.prompt_type === 'simple' ? 'default' :
+                            singleResult.prompt_type === 'creative' ? 'secondary' :
+                            singleResult.prompt_type === 'analytical' ? 'outline' :
+                            'destructive'
+                          }
+                          className="px-3 py-1 text-xs"
+                        >
+                          {singleResult.prompt_type.toUpperCase()} PROMPT
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Graded using {singleResult.prompt_type} criteria
+                        </span>
+                      </motion.div>
+                    )}
+                    
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -817,6 +847,31 @@ const PromptLab = () => {
                     transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
                     className="text-center p-10 rounded-2xl bg-gradient-to-br from-primary/10 via-accent/10 to-[hsl(330,100%,69%)/10] border border-primary/20 relative overflow-hidden"
                   >
+                    {/* Prompt Type Badges */}
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.25 }}
+                      className="flex justify-center gap-4 mb-6"
+                    >
+                      {compareResult.prompt_a_type && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Prompt A:</span>
+                          <Badge variant="default" className="px-2 py-0.5 text-xs">
+                            {compareResult.prompt_a_type.toUpperCase()}
+                          </Badge>
+                        </div>
+                      )}
+                      {compareResult.prompt_b_type && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Prompt B:</span>
+                          <Badge variant="secondary" className="px-2 py-0.5 text-xs">
+                            {compareResult.prompt_b_type.toUpperCase()}
+                          </Badge>
+                        </div>
+                      )}
+                    </motion.div>
+                    
                     <motion.div
                       className="absolute inset-0"
                       animate={{

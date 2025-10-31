@@ -835,8 +835,8 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
 // NEW: Unified evaluation using Master Grader
 function evaluateOutput(output: string, strategyWeight: number, originalPrompt: string = ''): number {
   // Use master grader's tested mode for consistent scoring
-  const scores = scorePromptTested(originalPrompt, output);
-  const totalScore = calculateTotalScore(scores);
+  const result = scorePromptTested(originalPrompt, output);
+  const totalScore = calculateTotalScore(result.scores, result.promptType, originalPrompt);
   
   // Convert 0-10 scale to 0-1 scale for optimizer compatibility
   let normalizedScore = totalScore / 10;
