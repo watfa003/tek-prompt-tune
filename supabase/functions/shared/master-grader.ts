@@ -1,0 +1,355 @@
+// Master Grader - Unified prompt scoring system for Lab and Optimizer
+// Philosophy: Grade the prompt by its results when possible, structure when not
+
+export interface CategoryScores {
+  clarity: number;
+  specificity: number;
+  efficiency: number;
+  structure: number;
+  constraints: number;
+  elaboration: number;
+  intent_alignment: number;
+  adaptability: number;
+}
+
+export interface MasterGradeResult {
+  scores: CategoryScores;
+  totalScore: number;
+  metadata: {
+    mode: 'static' | 'tested' | 'compared';
+    testedWithAI: boolean;
+    outputLength?: number;
+  };
+}
+
+// Common words set for nonsense detection
+const COMMON_WORDS = new Set([
+  'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with',
+  'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
+  'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up', 'out', 'if',
+  'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no', 'just',
+  'him', 'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see',
+  'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also', 'back',
+  'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because',
+  'any', 'these', 'give', 'day', 'most', 'us', 'is', 'was', 'are', 'been', 'has', 'had', 'were', 'said',
+  'did', 'having', 'may', 'should', 'am', 'being', 'write', 'create', 'generate', 'make', 'provide'
+]);
+
+/**
+ * Detects nonsense or gibberish prompts
+ */
+export function detectNonsense(prompt: string, output?: string): number {
+  const words = prompt.toLowerCase().split(/\s+/);
+  const alphaRatio = (prompt.match(/[a-z]/gi) || []).length / prompt.length;
+  
+  if (alphaRatio < 0.5) return 0.3;
+  
+  const englishWords = words.filter(w => COMMON_WORDS.has(w) || w.length > 12);
+  const englishRatio = englishWords.length / words.length;
+  
+  if (englishRatio < 0.3) return 0.2;
+  if (output && output.includes('cannot') && output.includes('unclear')) return 0.1;
+  
+  return 1.0;
+}
+
+/**
+ * Calculate Intent Alignment - ONLY meaningful with actual output
+ */
+export function calculateIntentAlignment(prompt: string, output?: string): number {
+  const promptLower = prompt.toLowerCase();
+  
+  // Static analysis (baseline)
+  const hasGoal = /(?:write|create|generate|make|provide|explain|list|analyze|compare|design|build)/i.test(prompt);
+  const hasOutcome = /(?:that|which|should|must|will|would)/.test(promptLower);
+  const hasSuccessCriteria = /(?:ensure|make sure|verify|check|include|contain|focus on)/i.test(prompt);
+  
+  let staticScore = 3;
+  if (hasGoal) staticScore += 2;
+  if (hasOutcome) staticScore += 1;
+  if (hasSuccessCriteria) staticScore += 2;
+  
+  // If no output, return static score (capped at 8)
+  if (!output) return Math.min(8, staticScore);
+  
+  // Output-based validation (THE REAL SCORE)
+  const outputLower = output.toLowerCase();
+  
+  const wantsExplanation = /explain|why|how|describe|what is|define/.test(promptLower);
+  const wantsList = /list|steps|ways|methods|examples|items/.test(promptLower);
+  const wantsComparison = /compare|contrast|difference|versus|vs\./.test(promptLower);
+  const wantsCreative = /creative|funny|witty|catchy|clever|engaging/.test(promptLower);
+  const wantsCode = /code|function|script|program|implement/.test(promptLower);
+  const wantsFormat = /json|markdown|table|csv|html/.test(promptLower);
+  
+  const hasExplanation = wantsExplanation && /because|due to|reason|this means|therefore|thus|since/.test(outputLower);
+  const hasList = wantsList && /(?:\n\s*[-*•]\s|\n\s*\d+[\.)]\s)/.test(output);
+  const hasComparison = wantsComparison && /while|whereas|however|on the other hand|in contrast|compared to/.test(outputLower);
+  const isCreative = wantsCreative && (output.length < 300 || /[!?]{2,}|[.]{3}/.test(output));
+  const hasCode = wantsCode && /```|function |def |class |const |let |var /.test(output);
+  const matchesFormat = wantsFormat && (
+    (promptLower.includes('json') && /^\s*[\{\[]/.test(output)) ||
+    (promptLower.includes('markdown') && /#{1,6}\s/.test(output)) ||
+    (promptLower.includes('table') && /\|.*\|/.test(output))
+  );
+  
+  let score = 5; // Baseline when tested
+  if (wantsExplanation && hasExplanation) score += 2;
+  if (wantsList && hasList) score += 2;
+  if (wantsComparison && hasComparison) score += 2;
+  if (wantsCreative && isCreative) score += 1;
+  if (wantsCode && hasCode) score += 2;
+  if (wantsFormat && matchesFormat) score += 2;
+  
+  return Math.min(10, score);
+}
+
+/**
+ * Static Mode Scoring - Fast structural analysis
+ */
+export function scorePromptStatic(prompt: string): CategoryScores {
+  const promptLower = prompt.toLowerCase();
+  const words = prompt.split(/\s+/);
+  const sentences = prompt.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  
+  // 1. CLARITY (0-10)
+  const hasActionVerb = /^(?:write|create|generate|make|provide|explain|list|analyze|compare|design|build|develop|implement|describe)/i.test(prompt.trim());
+  const vaguePhrases = (prompt.match(/\b(?:good|nice|stuff|thing|something|somehow|kind of|sort of)\b/gi) || []).length;
+  const ambiguousPronouns = (prompt.match(/\b(?:it|this|that|they|them)\b/gi) || []).length;
+  const hasClearSubject = sentences.length > 0 && sentences[0].split(/\s+/).length > 3;
+  
+  let clarity = 5;
+  if (hasActionVerb) clarity += 2;
+  if (hasClearSubject) clarity += 1;
+  if (vaguePhrases === 0) clarity += 1;
+  if (ambiguousPronouns < 2) clarity += 1;
+  else clarity -= Math.min(2, ambiguousPronouns);
+  
+  // 2. SPECIFICITY (0-10)
+  const hasNumbers = /\b\d+\b/.test(prompt);
+  const hasFormat = /\b(?:json|markdown|html|csv|table|list|bullet|paragraph|essay|email|code)\b/i.test(prompt);
+  const hasTone = /\b(?:formal|casual|professional|friendly|technical|simple|detailed|concise|brief)\b/i.test(prompt);
+  const hasConcreteNouns = (prompt.match(/\b(?:company|product|user|customer|article|report|website|app|system|team|project)\b/gi) || []).length;
+  const wordCount = words.length;
+  
+  let specificity = 0;
+  if (hasNumbers) specificity += 2;
+  if (hasFormat) specificity += 2;
+  if (hasTone) specificity += 2;
+  if (hasConcreteNouns > 0) specificity += 2;
+  if (wordCount > 15) specificity += 1;
+  if (wordCount > 30) specificity += 1;
+  
+  // 3. EFFICIENCY (0-10)
+  const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
+  const uniqueRatio = uniqueWords / words.length;
+  const fillerWords = (prompt.match(/\b(?:basically|actually|literally|very|really|just|simply|totally|completely|absolutely)\b/gi) || []).length;
+  const repetitivePhrases = detectRepetition(prompt);
+  
+  let efficiency = 10;
+  if (uniqueRatio < 0.6) efficiency -= 2;
+  if (fillerWords >= 3) efficiency -= 2;
+  if (repetitivePhrases) efficiency -= 3;
+  if (wordCount > 100 && !promptLower.includes('example')) efficiency -= 1;
+  
+  // 4. STRUCTURE (0-10)
+  const hasSteps = /\b(?:first|second|third|then|next|finally|lastly|step \d+)\b/i.test(prompt);
+  const hasSections = (prompt.match(/\n\n+/g) || []).length >= 1;
+  const hasBullets = /(?:\n\s*[-*•]\s|\n\s*\d+[\.)]\s)/.test(prompt);
+  const hasHeaders = /(?:\n#{1,6}\s|^#{1,6}\s|\n[A-Z][^.!?]*:)/.test(prompt);
+  
+  let structure = 4;
+  if (hasSteps) structure += 2;
+  if (hasSections) structure += 2;
+  if (hasBullets) structure += 2;
+  if (hasHeaders) structure += 1;
+  
+  // 5. CONSTRAINTS (0-10)
+  const boundaryWords = (prompt.match(/\b(?:must|should|need to|have to|required|necessary)\b/gi) || []).length;
+  const negativeConstraints = (prompt.match(/\b(?:don't|do not|avoid|never|without|exclude|not include)\b/gi) || []).length;
+  const quantitativeLimits = (prompt.match(/\b(?:no more than|at least|maximum|minimum|exactly|between \d+ and \d+)\b/gi) || []).length;
+  const formatRestrictions = (prompt.match(/\b(?:only|just|exclusively|specifically)\b/gi) || []).length;
+  
+  let constraints = 3;
+  if (boundaryWords > 0) constraints += 2;
+  if (negativeConstraints > 0) constraints += 2;
+  if (quantitativeLimits > 0) constraints += 2;
+  if (formatRestrictions > 0) constraints += 1;
+  
+  // 6. ELABORATION (0-10) - STRICT
+  // Real example blocks with actual content (30+ chars after keyword)
+  const exampleBlocks = (prompt.match(/(?:example|such as|e\.g\.|for instance)[:\s]+.{30,}/gi) || []).length;
+  const numberedExamples = (prompt.match(/(?:example\s*\d+|e\.g\.|for instance)[:\s]+.{30,}/gi) || []).length;
+  const bulletExamples = (prompt.match(/(?:[-•*]\s+.{30,}.*(?:shows?|demonstrates?|illustrates?))/gi) || []).length;
+  const actualExampleCount = exampleBlocks + numberedExamples + bulletExamples;
+  
+  const hasBackground = /\b(?:background|context|because|since|given that|considering)\b/i.test(prompt) && wordCount > 30;
+  const hasPurpose = /\b(?:purpose|goal|aim|objective|in order to|so that)\b/i.test(prompt);
+  const hasReasoning = /\b(?:because|since|due to|as a result|therefore|thus)\b/i.test(prompt);
+  
+  let elaboration = 3; // Base score
+  if (actualExampleCount >= 1) elaboration += 2;
+  if (actualExampleCount >= 2) elaboration += 2;
+  if (actualExampleCount >= 3) elaboration += 1;
+  if (hasBackground) elaboration += 1;
+  if (hasPurpose) elaboration += 1;
+  if (hasReasoning) elaboration += 1;
+  
+  // Cap at 8 for static (need output validation for 9-10)
+  elaboration = Math.min(8, elaboration);
+  
+  // 7. INTENT ALIGNMENT (0-10) - Static baseline only
+  const intentAlignment = calculateIntentAlignment(prompt);
+  
+  // 8. ADAPTABILITY (0-10)
+  const hasConditionals = (prompt.match(/\b(?:if|when|unless|in case|depending on|based on)\b/gi) || []).length;
+  const hasOptions = (prompt.match(/\b(?:or|alternatively|either|consider|might|could|prefer)\b/gi) || []).length;
+  const hasFlexibility = (prompt.match(/\b(?:consider|might|could|may|prefer|optionally)\b/gi) || []).length;
+  const hasEdgeCases = /\b(?:edge case|exception|special case|if not|otherwise)\b/i.test(prompt);
+  
+  let adaptability = 5;
+  if (hasConditionals > 0) adaptability += 2;
+  if (hasOptions > 0) adaptability += 2;
+  if (hasFlexibility > 0) adaptability += 1;
+  if (hasEdgeCases) adaptability += 1;
+  
+  return {
+    clarity: Math.max(0, Math.min(10, clarity)),
+    specificity: Math.max(0, Math.min(10, specificity)),
+    efficiency: Math.max(0, Math.min(10, efficiency)),
+    structure: Math.max(0, Math.min(10, structure)),
+    constraints: Math.max(0, Math.min(10, constraints)),
+    elaboration: Math.max(0, Math.min(10, elaboration)),
+    intent_alignment: Math.max(0, Math.min(10, intentAlignment)),
+    adaptability: Math.max(0, Math.min(10, adaptability))
+  };
+}
+
+/**
+ * Tested Mode Scoring - Validates with actual AI output
+ */
+export function scorePromptTested(prompt: string, output: string): CategoryScores {
+  // Start with static scores
+  const scores = scorePromptStatic(prompt);
+  
+  const outputLower = output.toLowerCase();
+  const outputLength = output.length;
+  
+  // Enhance CLARITY with output validation
+  const outputIsCoherent = outputLength > 20 && !outputLower.includes('i cannot') && !outputLower.includes('unclear');
+  const outputIsOnTopic = !outputLower.includes('i need more information');
+  if (outputIsCoherent && outputIsOnTopic && scores.clarity >= 7) {
+    scores.clarity = Math.min(10, scores.clarity + 2);
+  } else if (!outputIsCoherent || !outputIsOnTopic) {
+    scores.clarity = Math.max(3, scores.clarity - 2);
+  }
+  
+  // Enhance SPECIFICITY with format matching
+  const requestedFormat = prompt.match(/\b(json|markdown|table|csv|html|list)\b/i)?.[0]?.toLowerCase();
+  let formatMatches = false;
+  if (requestedFormat === 'json') formatMatches = /^\s*[\{\[]/.test(output);
+  if (requestedFormat === 'markdown') formatMatches = /#{1,6}\s/.test(output);
+  if (requestedFormat === 'table') formatMatches = /\|.*\|/.test(output);
+  if (requestedFormat === 'list') formatMatches = /(?:\n\s*[-*•]\s|\n\s*\d+[\.)]\s)/.test(output);
+  
+  if (formatMatches) scores.specificity = Math.min(10, scores.specificity + 2);
+  
+  // Enhance EFFICIENCY with output quality
+  const outputRambles = outputLength > 500 && (output.match(/\.\s+/g) || []).length < 5;
+  const outputIsFocused = !outputRambles && outputLength > 50;
+  if (outputRambles) scores.efficiency = Math.max(4, scores.efficiency - 2);
+  if (outputIsFocused) scores.efficiency = Math.min(10, scores.efficiency + 1);
+  
+  // Enhance STRUCTURE with output organization
+  const outputHasStructure = /(?:\n\s*[-*•]\s|\n\s*\d+[\.)]\s|#{1,6}\s)/.test(output);
+  if (outputHasStructure) scores.structure = Math.min(10, scores.structure + 2);
+  
+  // Enhance CONSTRAINTS with validation
+  const promptConstraints = prompt.match(/\b(?:don't|avoid|never|without|no more than|at least)\b/gi) || [];
+  let constraintsRespected = true;
+  
+  for (const constraint of promptConstraints) {
+    if (constraint.toLowerCase().includes("don't") || constraint.toLowerCase().includes("avoid")) {
+      const forbiddenWord = prompt.match(new RegExp(constraint + '\\s+(\\w+)', 'i'))?.[1];
+      if (forbiddenWord && outputLower.includes(forbiddenWord.toLowerCase())) {
+        constraintsRespected = false;
+        break;
+      }
+    }
+  }
+  
+  if (!constraintsRespected) {
+    scores.constraints = Math.min(5, scores.constraints);
+  } else if (promptConstraints.length > 0) {
+    scores.constraints = Math.min(10, scores.constraints + 2);
+  }
+  
+  // Enhance ELABORATION with output quality
+  const outputShowsNuance = outputLength > 200 && (output.match(/\b(?:however|although|while|whereas|on the other hand)\b/gi) || []).length > 0;
+  if (outputShowsNuance && scores.elaboration >= 7) {
+    scores.elaboration = Math.min(10, scores.elaboration + 1);
+  } else if (outputLength < 50 && scores.elaboration < 5) {
+    scores.elaboration = Math.max(3, scores.elaboration - 1);
+  }
+  
+  // INTENT ALIGNMENT - Use real calculation
+  scores.intent_alignment = calculateIntentAlignment(prompt, output);
+  
+  // ADAPTABILITY - Check if output shows flexibility
+  const outputShowsOptions = (output.match(/\b(?:alternatively|option|choice|could also|might|consider)\b/gi) || []).length > 0;
+  if (outputShowsOptions) {
+    scores.adaptability = Math.min(10, scores.adaptability + 1);
+  }
+  
+  return scores;
+}
+
+/**
+ * Calculate total score with minimum quality threshold
+ */
+export function calculateTotalScore(scores: CategoryScores): number {
+  const weights = {
+    clarity: 1.5,
+    specificity: 1.3,
+    efficiency: 1.0,
+    structure: 1.0,
+    constraints: 1.2,
+    elaboration: 1.1,
+    intent_alignment: 1.4,
+    adaptability: 0.8
+  };
+  
+  const weightedSum = 
+    scores.clarity * weights.clarity +
+    scores.specificity * weights.specificity +
+    scores.efficiency * weights.efficiency +
+    scores.structure * weights.structure +
+    scores.constraints * weights.constraints +
+    scores.elaboration * weights.elaboration +
+    scores.intent_alignment * weights.intent_alignment +
+    scores.adaptability * weights.adaptability;
+  
+  const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
+  const normalizedScore = (weightedSum / totalWeight);
+  
+  // Minimum quality threshold
+  const avgScore = Object.values(scores).reduce((a, b) => a + b, 0) / 8;
+  if (avgScore < 3.0) return Math.min(normalizedScore, 3.5);
+  
+  return Math.round(normalizedScore * 10) / 10;
+}
+
+/**
+ * Helper: Detect repetitive phrases
+ */
+function detectRepetition(text: string): boolean {
+  const phrases = text.toLowerCase().match(/\b\w+\s+\w+\s+\w+\b/g) || [];
+  const phraseCounts = new Map<string, number>();
+  
+  for (const phrase of phrases) {
+    phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);
+    if (phraseCounts.get(phrase)! > 2) return true;
+  }
+  
+  return false;
+}

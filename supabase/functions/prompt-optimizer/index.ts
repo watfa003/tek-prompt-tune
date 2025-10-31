@@ -3,6 +3,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { handleSpeedMode } from './speed-mode-functions.ts';
 import { getOutputTypeSystemPrompt, getOutputTypeGuidance, type OutputType } from './output-type-strategies.ts';
+import { 
+  scorePromptTested, 
+  calculateTotalScore, 
+  type CategoryScores 
+} from '../shared/master-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -825,269 +830,25 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
   return data.candidates[0].content.parts[0].text;
 }
 
-// Detect the type of output expected based on prompt intent
-function detectGradingMode(originalPrompt: string, optimizedOutput: string): 'creative' | 'essay' {
-  const prompt = originalPrompt.toLowerCase();
-  const output = optimizedOutput.toLowerCase();
+// Removed - grading mode detection no longer needed with unified master grader
+
+// NEW: Unified evaluation using Master Grader
+function evaluateOutput(output: string, strategyWeight: number, originalPrompt: string = ''): number {
+  // Use master grader's tested mode for consistent scoring
+  const scores = scorePromptTested(originalPrompt, output);
+  const totalScore = calculateTotalScore(scores);
   
-  // Creative indicators in prompt
-  const creativeKeywords = /\b(witty|clever|funny|humorous|joke|pun|creative|poetic|poem|haiku|slogan|tagline|catchy|memorable|short|brief|concise|one-liner|headline|tweet)\b/i;
-  const creativeVerbs = /\b(make|write|create|generate|come up with|think of)\s+(a|an)?\s*(funny|witty|clever|creative|catchy|short|brief)\b/i;
+  // Convert 0-10 scale to 0-1 scale for optimizer compatibility
+  let normalizedScore = totalScore / 10;
   
-  // Essay indicators in prompt
-  const essayKeywords = /\b(explain|describe|analyze|discuss|elaborate|detail|comprehensive|thorough|in-depth|step-by-step|guide|tutorial|essay|article|report)\b/i;
+  // Apply strategy weight bonus (small influence)
+  normalizedScore += strategyWeight * 0.03;
   
-  // Output length analysis
-  const wordCount = optimizedOutput.split(/\s+/).length;
-  const isShort = wordCount < 100;
-  
-  // Decision logic
-  if (creativeKeywords.test(prompt) || creativeVerbs.test(prompt)) {
-    return 'creative';
-  }
-  
-  if (essayKeywords.test(prompt)) {
-    return 'essay';
-  }
-  
-  // Default based on output length
-  return isShort ? 'creative' : 'essay';
+  // Keep in valid range
+  return Math.min(0.95, Math.max(0.15, normalizedScore));
 }
 
-// Advanced evaluation logic with adaptive grading
-function evaluateOutput(prompt: string, strategyWeight: number, originalPrompt: string = ''): number {
-  const gradingMode = detectGradingMode(originalPrompt, prompt);
-  
-  if (gradingMode === 'creative') {
-    return evaluateCreativeOutput(prompt, strategyWeight, originalPrompt);
-  } else {
-    return evaluateEssayOutput(prompt, strategyWeight, originalPrompt);
-  }
-}
-
-// Creative/Short-form scoring
-function evaluateCreativeOutput(output: string, strategyWeight: number, originalPrompt: string): number {
-  const words = output.split(/\s+/).length;
-  const sentences = output.split(/[.!?]+/).filter(s => s.trim()).length;
-  
-  // User intent alignment - does output match what was asked for?
-  const intentAlignment = calculateIntentAlignment(originalPrompt, output);
-  
-  // Originality - avoid clichés and generic phrases
-  const cliches = /\b(think outside the box|at the end of the day|game changer|low-hanging fruit|circle back|synergy|paradigm shift)\b/i;
-  const hasCliches = cliches.test(output);
-  const originality = hasCliches ? 0.3 : 0.8;
-  
-  // Conciseness - reward brevity for creative outputs
-  const conciseness = words <= 50 ? 1.0 : words <= 100 ? 0.8 : words <= 150 ? 0.6 : 0.4;
-  
-  // Impact - does it have punch, wit, or emotional resonance?
-  const hasImpact = /[!?]/.test(output) || /\b(wow|amazing|brilliant|perfect|exactly)\b/i.test(output);
-  const emotionalImpact = hasImpact ? 0.9 : 0.6;
-  
-  // Relevance - stays on topic
-  const relevance = output.trim().length > 5 && !checkForRepetition(output) ? 0.9 : 0.4;
-  
-  // Weighted scoring for creative outputs (boosted to 0.7-0.95 range)
-  let score = 0.55 + 0.5 * (
-    0.35 * intentAlignment +
-    0.25 * originality +
-    0.20 * conciseness +
-    0.10 * emotionalImpact +
-    0.10 * relevance
-  );
-  
-  // Penalties
-  const isBlank = output.trim().length < 5;
-  const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(output.trim());
-  
-  if (isBlank || isGibberish) score = 0.15;
-  else if (words < 3) score -= 0.2;
-  else if (words > 200) score -= 0.1; // Too long for creative
-  
-  if (checkForRepetition(output)) score -= 0.1;
-  
-  // Strategy bonus
-  score += strategyWeight * 0.05;
-  
-  return Math.min(0.95, Math.max(0.15, score));
-}
-
-// Essay/Long-form scoring (existing logic)
-function evaluateEssayOutput(prompt: string, strategyWeight: number, originalPrompt: string): number {
-  const words = prompt.split(' ').length;
-  const sentences = prompt.split(/[.!?]+/).length;
-  const approximateTokens = words * 1.3;
-
-  // User intent alignment
-  const intentAlignment = calculateIntentAlignment(originalPrompt, prompt);
-
-  if (approximateTokens <= 1000) {
-    return fullDetailedEvaluation(prompt, words, sentences, strategyWeight, intentAlignment);
-  } else {
-    return compressedAnalysis(prompt, words, sentences, strategyWeight, intentAlignment);
-  }
-}
-
-// Calculate how well output matches user intent
-function calculateIntentAlignment(originalPrompt: string, output: string): number {
-  if (!originalPrompt || !output) return 0.5;
-  
-  const prompt = originalPrompt.toLowerCase();
-  const result = output.toLowerCase();
-  
-  // Extract key intent signals from prompt
-  const wantsExplanation = /\b(explain|why|how|describe)\b/i.test(prompt);
-  const wantsList = /\b(list|steps|examples|ways|methods)\b/i.test(prompt);
-  const wantsComparison = /\b(compare|contrast|difference|versus|vs)\b/i.test(prompt);
-  const wantsCreative = /\b(creative|funny|witty|catchy|clever)\b/i.test(prompt);
-  
-  // Check if output delivers on intent
-  const hasExplanation = wantsExplanation && /\b(because|due to|reason|this means|therefore)\b/i.test(result);
-  const hasList = wantsList && /(?:\n\s*[-*]\s|\d+\.)/.test(output);
-  const hasComparison = wantsComparison && /\b(while|whereas|however|on the other hand|in contrast)\b/i.test(result);
-  const isCreative = wantsCreative && (output.length < 200 || /[!?]/.test(output));
-  
-  let alignment = 0.5;
-  
-  if (wantsExplanation && hasExplanation) alignment += 0.3;
-  if (wantsList && hasList) alignment += 0.3;
-  if (wantsComparison && hasComparison) alignment += 0.3;
-  if (wantsCreative && isCreative) alignment += 0.3;
-  
-  return Math.min(1.0, alignment);
-}
-
-// Full detailed evaluation for shorter outputs
-function fullDetailedEvaluation(prompt: string, words: number, sentences: number, strategyWeight: number, intentAlignment: number): number {
-  // Base score starts at 0.35 for more realistic distribution
-  const hasSpecificTerms = /\b(specific|detail|example|step|instruction|format|constraint|criteria|acceptance)\b/i.test(prompt);
-  const hasStructure = /(?:\n\s*[-*]\s|\d+\.|:|#\s)/.test(prompt);
-  const hasContext = /\b(context|background|purpose|goal|objective|audience|constraints)\b/i.test(prompt);
-  const hasTransitions = /\b(then|next|after|before|finally|additionally|furthermore|therefore|however)\b/i.test(prompt);
-  const avgWordsPerSentence = words / Math.max(sentences, 1);
-
-  const accuracy = Math.min(1,
-    0.3 + (hasSpecificTerms ? 0.3 : 0) + (hasContext ? 0.2 : 0) + (hasStructure ? 0.2 : 0)
-  );
-
-  const sectionsCount = prompt.split(/\n\n|\n(?=[A-Z])|\d+\.|#{1,6}\s/).length;
-  const completeness = Math.min(1,
-    0.3 + (words >= 50 ? 0.25 : 0) + (words >= 100 ? 0.25 : 0) + (hasStructure ? 0.2 : 0)
-  );
-
-  const clarity = Math.min(1,
-    0.3 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 22) ? 0.3 : 0) + (hasTransitions ? 0.2 : 0) + (sentences >= 3 ? 0.2 : 0)
-  );
-
-  // Include intent alignment in scoring (boosted to 0.7-0.95 range)
-  let score = 0.50 + 0.55 * (0.3 * accuracy + 0.25 * completeness + 0.20 * clarity + 0.25 * intentAlignment);
-
-  // Penalties for bad quality
-  const hasCutoffText = prompt.trim().endsWith('...') || /\b(tbc|to be continued)\b/i.test(prompt);
-  const isVeryShort = words < 10;
-  const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(prompt.trim());
-  const isBlank = prompt.trim().length < 5;
-  
-  if (isBlank || isGibberish) score = 0.15; // Poor quality
-  else if (isVeryShort) score -= 0.20; 
-  else if (words < 20) score -= 0.12; 
-  else if (words < 40) score -= 0.08;
-  
-  if (words > 400) score -= 0.03;
-  if (hasCutoffText) score -= 0.10;
-  if (checkForRepetition(prompt)) score -= 0.08;
-
-  // Strategy bonus (reduced for balanced scoring)
-  score += strategyWeight * 0.05;
-
-  return Math.min(0.95, Math.max(0.15, score));
-}
-
-// Compressed analysis for longer outputs
-function compressedAnalysis(prompt: string, words: number, sentences: number, strategyWeight: number, intentAlignment: number): number {
-  const sections = prompt.split(/\n\n|\n(?=[A-Z])|\d+\.|#{1,6}\s/).length;
-  const avgWordsPerSentence = words / Math.max(sentences, 1);
-
-  // Required sections presence check
-  const requiredSections = {
-    introduction: /\b(introduction|overview|purpose|goal)\b/i.test(prompt),
-    methodology: /\b(method|approach|steps|process|procedure)\b/i.test(prompt),
-    requirements: /\b(requirement|constraint|criteria|specification|acceptance)\b/i.test(prompt),
-    format: /\b(format|structure|template|output|result)\b/i.test(prompt),
-    conclusion: /\b(conclusion|summary|final|end)\b/i.test(prompt)
-  } as const;
-  const presentSections = Object.values(requiredSections).filter(Boolean).length;
-
-  const structure = Math.min(1, 0.3 + (sections >= 3 ? 0.25 : 0) + (sections >= 5 ? 0.25 : 0) + (sections >= 7 ? 0.2 : 0));
-  const coverage = Math.min(1, 0.3 + (presentSections / 5) * 0.7);
-  const clarity = Math.min(1, 0.3 + ((avgWordsPerSentence >= 12 && avgWordsPerSentence <= 24) ? 0.3 : 0) + (/\b(first|second|third|finally)\b/i.test(prompt) ? 0.2 : 0) + (sentences >= 5 ? 0.2 : 0));
-
-  // Include intent alignment in scoring
-  let score = 0.35 + 0.5 * (0.4 * structure + 0.25 * coverage + 0.15 * clarity + 0.20 * intentAlignment);
-
-  // Penalties for bad quality
-  const hasCutoffText = prompt.trim().endsWith('...') || /\b(tbc|to be continued)\b/i.test(prompt);
-  const isVeryShort = words < 50;
-  const isGibberish = /^(.)\1{10,}|^[^a-zA-Z0-9\s]{20,}/.test(prompt.trim());
-  const isBlank = prompt.trim().length < 5;
-  
-  if (isBlank || isGibberish) score = 0.15; // Poor quality
-  else if (isVeryShort) score -= 0.25; 
-  else if (words < 200) score -= 0.15; 
-  else if (words < 350) score -= 0.08;
-  
-  if (hasCutoffText) score -= 0.15;
-  if (checkForRepetition(prompt)) score -= 0.12;
-  if (words > 3000) score -= 0.05;
-
-  // Strategy bonus (reduced for balanced scoring)
-  score += strategyWeight * 0.05;
-
-  return Math.min(0.95, Math.max(0.15, score));
-}
-
-// Helper function to detect repetition
-function checkForRepetition(text: string): boolean {
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
-  const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
-  return sentences.length > uniqueSentences.size * 1.1; // Slightly stricter repetition detection
-}
-
-// Fast skim evaluation for long outputs (over 2 pages)
-function fastSkimEvaluation(text: string, strategyWeight: number): number {
-  const words = text.split(' ').length;
-  
-  // Quick quality checks on first and last portions
-  const firstPortion = text.substring(0, 500);
-  const lastPortion = text.substring(Math.max(0, text.length - 500));
-  const middlePortion = text.substring(Math.floor(text.length * 0.4), Math.floor(text.length * 0.6));
-  
-  // Quick indicators of quality
-  const hasGoodStructure = /(?:\n\s*[-*]\s|\d+\.|:{1,2}|#{1,6}\s)/g.test(text);
-  const hasVariedSentences = !/^(.{20,50}[.!?]\s*){10,}$/m.test(firstPortion);
-  const isNotTruncated = !text.trim().endsWith('...') && !/\b(tbc|to be continued|truncated)\b/i.test(lastPortion);
-  const hasGoodTransitions = /\b(however|furthermore|additionally|therefore|moreover|consequently)\b/i.test(middlePortion);
-  
-  // Start with lower base score for realistic distribution
-  let score = 0.5;
-  
-  // Quality bonuses
-  if (hasGoodStructure) score += 0.15;
-  if (hasVariedSentences) score += 0.10;
-  if (isNotTruncated) score += 0.10;
-  if (hasGoodTransitions) score += 0.08;
-  
-  // Penalties
-  if (words < 800) score -= 0.20; 
-  if (words > 5000) score -= 0.10; 
-  if (checkForRepetition(firstPortion + lastPortion)) score -= 0.15;
-  
-  // Strategy bonus (reduced for balanced scoring)
-  score += strategyWeight * 0.05;
-  
-  return Math.min(0.95, Math.max(0.15, score));
-}
+// Removed old evaluation functions - now using master-grader.ts unified scoring
 
 // Load cached optimization insights for fast optimization
 async function loadOptimizationInsights(supabase: any, userId: string, aiProvider: string, modelName: string) {

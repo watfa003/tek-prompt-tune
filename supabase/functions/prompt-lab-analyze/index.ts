@@ -1,6 +1,12 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { 
+  scorePromptStatic, 
+  scorePromptTested, 
+  calculateTotalScore, 
+  type CategoryScores 
+} from '../shared/master-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,16 +30,7 @@ interface LabRequest {
   test_task?: string;
 }
 
-interface CategoryScores {
-  clarity: number;
-  specificity: number;
-  efficiency: number;
-  structure: number;
-  constraints: number;
-  elaboration: number;
-  intent_alignment: number;
-  adaptability: number;
-}
+// CategoryScores imported from master-grader.ts
 
 interface DiagnoseResult {
   total_score: number;
@@ -56,48 +53,7 @@ interface BattleResult {
   comparison: Record<string, string>;
 }
 
-// Common English words for nonsense detection
-const COMMON_WORDS = new Set([
-  'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
-  'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what',
-  'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take',
-  'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also',
-  'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
-  'is', 'are', 'was', 'were', 'been', 'being', 'has', 'had', 'having', 'does', 'did', 'doing', 'am', 'can', 'could', 'should', 'would', 'may', 'might', 'must',
-  'write', 'create', 'generate', 'make', 'provide', 'give', 'tell', 'explain', 'describe', 'list', 'show', 'help', 'answer', 'respond', 'format', 'json', 'markdown',
-  'please', 'need', 'want', 'story', 'text', 'content', 'code', 'example', 'information', 'data', 'task', 'prompt', 'question', 'message', 'email', 'article',
-  'short', 'long', 'simple', 'detailed', 'clear', 'concise', 'brief', 'comprehensive', 'specific', 'general', 'professional', 'casual', 'formal', 'informal',
-  'must', 'should', 'avoid', 'include', 'exclude', 'only', 'exactly', 'approximately', 'around', 'between', 'using', 'without', 'based', 'following'
-]);
-
-// Detect nonsense and gibberish prompts
-function detectNonsense(prompt: string, output?: string): number {
-  if (!prompt || prompt.trim().length === 0) return 3;
-  
-  // 1️⃣ Non-alphabetic ratio
-  const clean = prompt.replace(/\s+/g, '');
-  if (clean.length === 0) return 3;
-  
-  const alphaCount = (clean.match(/[a-zA-Z]/g)?.length ?? 0);
-  const alphaRatio = alphaCount / clean.length;
-
-  // 2️⃣ English-word density
-  const words = prompt.toLowerCase().split(/\s+/).filter(w => w.length > 0);
-  if (words.length === 0) return 3;
-  
-  const knownWords = words.filter(w => COMMON_WORDS.has(w) || w.length > 8).length;
-  const wordRatio = knownWords / words.length;
-
-  // 3️⃣ Output sanity check
-  const outputValid = output && output.trim().length > 10;
-
-  let nonsenseScore = 0;
-  if (alphaRatio < 0.5) nonsenseScore += 1;
-  if (wordRatio < 0.25) nonsenseScore += 1;
-  if (!outputValid) nonsenseScore += 1;
-
-  return nonsenseScore; // 0-3
-}
+// Removed - now using master-grader.ts
 
 // Helper to call AI models
 async function callAIModel(prompt: string, targetLLM: string, testTask?: string): Promise<string> {
@@ -196,207 +152,7 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
   return "Unable to generate response.";
 }
 
-// Scoring function
-function scorePrompt(prompt: string, output?: string): CategoryScores {
-  // 🚨 NONSENSE DETECTION - Apply hard penalty first
-  const nonsensePenalty = detectNonsense(prompt, output);
-  
-  if (nonsensePenalty >= 2) {
-    // Hard cap for gibberish/nonsense prompts
-    const baseScore = 2 + Math.random() * 0.5; // 2.0-2.5
-    return {
-      clarity: baseScore,
-      specificity: baseScore,
-      efficiency: baseScore,
-      structure: baseScore,
-      constraints: baseScore,
-      elaboration: baseScore,
-      intent_alignment: baseScore,
-      adaptability: baseScore,
-    };
-  }
-
-  const scores: CategoryScores = {
-    clarity: 0,
-    specificity: 0,
-    efficiency: 0,
-    structure: 0,
-    constraints: 0,
-    elaboration: 0,
-    intent_alignment: 0,
-    adaptability: 0,
-  };
-
-  const wordCount = prompt.split(/\s+/).filter(w => w.length > 0).length;
-
-  // 🔒 GUARD: Very short prompts get penalized
-  if (prompt.trim().length < 8) {
-    scores.efficiency = 2;
-    scores.clarity = 1;
-    scores.specificity = 1;
-    scores.structure = 1;
-    scores.constraints = 1;
-    scores.elaboration = 1;
-    scores.intent_alignment = 2;
-    scores.adaptability = 2;
-  } else if (/^[a-zA-Z]{1,5}$/.test(prompt.trim())) {
-    // Single word prompts
-    scores.clarity = 2;
-    scores.specificity = 2;
-    scores.efficiency = 3;
-    scores.structure = 1;
-    scores.constraints = 1;
-    scores.elaboration = 1;
-    scores.intent_alignment = 3;
-    scores.adaptability = 4;
-  } else {
-    // Clarity - check for vague language and filler words
-    const vagueWords = ['good', 'nice', 'better', 'make it', 'kind of', 'sort of', 'maybe', 'idk', 'something', 'stuff', 'thing'];
-    const hasVague = vagueWords.some(word => prompt.toLowerCase().includes(word));
-    const hasActionVerb = /write|create|generate|analyze|summarize|explain|list|describe|compare|translate/.test(prompt.toLowerCase());
-    
-    if (!hasActionVerb) {
-      scores.clarity = hasVague ? 2 : 4;
-    } else {
-      scores.clarity = hasVague ? 5 : 9;
-    }
-
-    // Specificity - check for concrete details
-    const hasNumbers = /\d+/.test(prompt);
-    const hasFormat = /format|style|tone|json|markdown|list|bullet|paragraph/.test(prompt.toLowerCase());
-    const hasTopic = wordCount > 5; // At least some topic detail
-    
-    let specificity = 3; // Base score
-    if (hasNumbers) specificity += 2;
-    if (hasFormat) specificity += 2;
-    if (hasTopic) specificity += 2;
-    scores.specificity = Math.min(specificity, 10);
-
-    // Efficiency - only penalize fluff and repetition, NOT length
-    // Check for redundancy and filler
-    const words = prompt.toLowerCase().split(/\s+/);
-    const wordSet = new Set(words);
-    const uniqueRatio = wordSet.size / words.length;
-    
-    // Detect repeated phrases (3+ words repeated)
-    const hasRepetition = /(\b\w+\s+\w+\s+\w+\b).*\1/.test(prompt.toLowerCase());
-    
-    // Count filler words
-    const fillerWords = ['basically', 'actually', 'literally', 'very', 'really', 'just', 'quite', 'rather', 'somewhat', 'like', 'you know', 'i mean'];
-    const fillerCount = fillerWords.filter(word => prompt.toLowerCase().includes(word)).length;
-    const hasFluff = fillerCount >= 3;
-    
-    // Check for low unique word ratio (lots of repetition)
-    const isRepetitive = uniqueRatio < 0.6 && wordCount > 20;
-    
-    if (wordCount < 5) {
-      scores.efficiency = 3; // Too short to be useful
-    } else if (hasRepetition || isRepetitive) {
-      scores.efficiency = 4; // Significant repetition detected
-    } else if (hasFluff) {
-      scores.efficiency = 6; // Has filler words but not terrible
-    } else if (wordCount < 30) {
-      scores.efficiency = 10; // Sweet spot
-    } else {
-      // Long prompts are fine if they're purposeful (no repetition/fluff)
-      scores.efficiency = 9; // Default to high for comprehensive prompts
-    }
-    
-    // Structure - check for organized content
-    const hasSteps = /step|first|then|finally|1\.|2\.|3\./.test(prompt.toLowerCase());
-    const hasSections = /\n\n/.test(prompt);
-    const hasBullets = /\n-|\n\*/.test(prompt);
-    
-    let structure = 4; // Base
-    if (hasSteps) structure += 3;
-    if (hasSections) structure += 2;
-    if (hasBullets) structure += 2;
-    scores.structure = Math.min(structure, 10);
-
-    // Constraints - check for explicit boundaries
-    const hasConstraints = /must|should|don't|avoid|only|exactly|no more than|at least|maximum|minimum/.test(prompt.toLowerCase());
-    const hasNegativeConstraints = /don't|avoid|not|never|without/.test(prompt.toLowerCase());
-    
-    let constraints = 4; // Base
-    if (hasConstraints) constraints += 3;
-    if (hasNegativeConstraints) constraints += 2;
-    scores.constraints = Math.min(constraints, 10);
-
-    // Elaboration - check for context and examples (multiple detection methods)
-    const hasContext = /because|for example|such as|like|to help|in order to|for the purpose of|aimed at|designed for/.test(prompt.toLowerCase());
-    const hasExample = /e\.g\.|for instance|example|here's an example|here are examples|sample/.test(prompt.toLowerCase());
-    
-    // Count actual examples in the prompt (look for patterns like "Example:", numbered examples, etc)
-    const exampleMatches = prompt.match(/example\s*\d*\s*:|\d+\.\s+[A-Z]|•\s+[A-Z]|-\s+[A-Z]/gi) || [];
-    const multipleExamples = exampleMatches.length >= 2;
-    
-    // Check for background/purpose statements
-    const hasPurpose = /purpose|goal|aim|objective|intended for|audience|target|use case/.test(prompt.toLowerCase());
-    
-    // Check for reasoning/explanation
-    const hasReasoning = /because|since|therefore|thus|so that|in order to|this will|this helps/.test(prompt.toLowerCase());
-    
-    // Count elaboration signals
-    let elaborationSignals = 0;
-    if (hasContext) elaborationSignals++;
-    if (hasExample) elaborationSignals++;
-    if (multipleExamples) elaborationSignals++;
-    if (hasPurpose) elaborationSignals++;
-    if (hasReasoning) elaborationSignals++;
-    
-    // Score based on number of elaboration signals detected
-    if (elaborationSignals === 0) {
-      scores.elaboration = 4; // No elaboration at all
-    } else if (elaborationSignals === 1) {
-      scores.elaboration = 7; // Single form of context/example
-    } else if (elaborationSignals === 2) {
-      scores.elaboration = 8; // Two forms
-    } else {
-      scores.elaboration = 10; // Multiple forms of elaboration
-    }
-
-    // Intent alignment - FOCUS ON PROMPT CLARITY, not output quality
-    // Only penalize if output suggests prompt was misunderstood
-    const outputSeemsBroken = output && output.length < 10;
-    const promptHasClearGoal = hasActionVerb && !hasVague;
-    
-    if (outputSeemsBroken) {
-      scores.intent_alignment = 2; // Output failure suggests prompt was bad
-    } else if (promptHasClearGoal) {
-      scores.intent_alignment = 9; // Clear goal in prompt
-    } else if (hasActionVerb) {
-      scores.intent_alignment = 6; // Has verb but vague
-    } else {
-      scores.intent_alignment = 3; // No clear goal
-    }
-
-    // Adaptability - check for flexibility cues
-    const hasFlexibility = /if|when|depending|consider|might|could|optional|prefer/.test(prompt.toLowerCase());
-    const hasOptions = /or|alternatively|either/.test(prompt.toLowerCase());
-    
-    let adaptability = 5; // Base
-    if (hasFlexibility) adaptability += 2;
-    if (hasOptions) adaptability += 2;
-    scores.adaptability = Math.min(adaptability, 10);
-  }
-
-  return scores;
-}
-
-function calculateTotalScore(scores: CategoryScores): number {
-  const values = Object.values(scores);
-  const average = values.reduce((a, b) => a + b, 0) / values.length;
-  let total = Math.round(average * 10) / 10;
-  
-  // 🔒 MINIMUM QUALITY THRESHOLD
-  // If core trio (clarity + specificity + intent) is weak, cap the total
-  const coreTrio = (scores.clarity + scores.specificity + scores.intent_alignment) / 3;
-  if (total > 3 && coreTrio < 4) {
-    total = Math.min(total, 3.5);
-  }
-  
-  return total;
-}
+// Removed - now using master-grader.ts
 
 // Generate AI-powered analysis with output-based diagnostic
 async function generateAnalysis(prompt: string, scores: CategoryScores, output?: string): Promise<any> {
@@ -625,15 +381,15 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
   }
 }
 
-// Handle single prompt test
+// Handle single prompt test - Using TESTED mode with real AI output
 async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const startTime = Date.now();
   
-  // Call AI model
+  // Call AI model to get real output
   const output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
   
-  // Score the prompt
-  const scores = scorePrompt(req.prompt_a, output);
+  // Score with TESTED mode (validates with actual output)
+  const scores = scorePromptTested(req.prompt_a, output);
   const totalScore = calculateTotalScore(scores);
   
   // Generate AI analysis with output
@@ -646,7 +402,7 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   };
 }
 
-// Handle comparison test
+// Handle comparison test - Using TESTED mode with real AI outputs
 async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
   if (!req.prompt_b) {
     throw new Error('Prompt B is required for comparison mode');
@@ -658,9 +414,9 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
     callAIModel(req.prompt_b, req.target_llm, req.test_task),
   ]);
   
-  // Score both prompts
-  const scoresA = scorePrompt(req.prompt_a, outputA);
-  const scoresB = scorePrompt(req.prompt_b, outputB);
+  // Score both with TESTED mode (validates with actual outputs)
+  const scoresA = scorePromptTested(req.prompt_a, outputA);
+  const scoresB = scorePromptTested(req.prompt_b, outputB);
   
   const totalA = calculateTotalScore(scoresA);
   const totalB = calculateTotalScore(scoresB);
