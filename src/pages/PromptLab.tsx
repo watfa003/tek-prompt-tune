@@ -64,13 +64,22 @@ interface CompareTestResult {
   comparison: Record<string, string>;
 }
 
+const LLM_OPTIONS = [
+  { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini (Fast)' },
+  { value: 'openai/gpt-4o', label: 'GPT-4o (Powerful)' },
+  { value: 'openai/gpt-5-2025-08-07', label: 'GPT-5 (Latest)' },
+  { value: 'anthropic/claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
+  { value: 'anthropic/claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+];
+
 const PromptLab = () => {
   const [mode, setMode] = useState<'single' | 'compare'>('single');
   const [promptA, setPromptA] = useState('');
   const [promptB, setPromptB] = useState('');
   const [testTask, setTestTask] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState('google');
-  const [selectedLLM, setSelectedLLM] = useState('gemini-2.5-flash');
+  const [targetLLM, setTargetLLM] = useState('google/gemini-2.5-flash');
   const [isLoading, setIsLoading] = useState(false);
   const [singleResult, setSingleResult] = useState<SingleTestResult | null>(null);
   const [compareResult, setCompareResult] = useState<CompareTestResult | null>(null);
@@ -100,8 +109,6 @@ const PromptLab = () => {
         return;
       }
 
-      const targetLLM = `${selectedProvider}/${selectedLLM}`;
-      
       const { data, error } = await supabase.functions.invoke('prompt-lab-analyze', {
         body: {
           mode,
@@ -344,67 +351,19 @@ const PromptLab = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">AI Provider</Label>
-                        <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                        <Label className="text-sm font-medium">Target LLM</Label>
+                        <Select value={targetLLM} onValueChange={setTargetLLM}>
                           <SelectTrigger className="border-primary/20">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="openai">OpenAI</SelectItem>
-                            <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                            <SelectItem value="google">Google (Gemini)</SelectItem>
-                            <SelectItem value="groq">Groq</SelectItem>
-                            <SelectItem value="mistral">Mistral</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">LLM Model</Label>
-                        <Select value={selectedLLM} onValueChange={setSelectedLLM}>
-                          <SelectTrigger className="border-primary/20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedProvider === "openai" && (
-                              <>
-                                <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
-                                <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 mini</SelectItem>
-                                <SelectItem value="gpt-5-nano-2025-08-07">GPT-5 nano</SelectItem>
-                                <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1</SelectItem>
-                                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                                <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                              </>
-                            )}
-                            {selectedProvider === "anthropic" && (
-                              <>
-                                <SelectItem value="claude-opus-4-1-20250805">Claude 4 Opus</SelectItem>
-                                <SelectItem value="claude-sonnet-4-20250514">Claude 4 Sonnet</SelectItem>
-                                <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
-                              </>
-                            )}
-                            {selectedProvider === "google" && (
-                              <>
-                                <SelectItem value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite</SelectItem>
-                                <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                                <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</SelectItem>
-                                <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                                <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                              </>
-                            )}
-                            {selectedProvider === "groq" && (
-                              <>
-                                <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
-                              </>
-                            )}
-                            {selectedProvider === "mistral" && (
-                              <>
-                                <SelectItem value="mistral-large">Mistral Large</SelectItem>
-                                <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
-                              </>
-                            )}
+                            {LLM_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -481,67 +440,19 @@ const PromptLab = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">AI Provider</Label>
-                        <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                        <Label className="text-sm font-medium">Target LLM</Label>
+                        <Select value={targetLLM} onValueChange={setTargetLLM}>
                           <SelectTrigger className="border-primary/20">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="openai">OpenAI</SelectItem>
-                            <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                            <SelectItem value="google">Google (Gemini)</SelectItem>
-                            <SelectItem value="groq">Groq</SelectItem>
-                            <SelectItem value="mistral">Mistral</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">LLM Model</Label>
-                        <Select value={selectedLLM} onValueChange={setSelectedLLM}>
-                          <SelectTrigger className="border-primary/20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedProvider === "openai" && (
-                              <>
-                                <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
-                                <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 mini</SelectItem>
-                                <SelectItem value="gpt-5-nano-2025-08-07">GPT-5 nano</SelectItem>
-                                <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1</SelectItem>
-                                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                                <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                              </>
-                            )}
-                            {selectedProvider === "anthropic" && (
-                              <>
-                                <SelectItem value="claude-opus-4-1-20250805">Claude 4 Opus</SelectItem>
-                                <SelectItem value="claude-sonnet-4-20250514">Claude 4 Sonnet</SelectItem>
-                                <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
-                              </>
-                            )}
-                            {selectedProvider === "google" && (
-                              <>
-                                <SelectItem value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite</SelectItem>
-                                <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                                <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</SelectItem>
-                                <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                                <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                              </>
-                            )}
-                            {selectedProvider === "groq" && (
-                              <>
-                                <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
-                              </>
-                            )}
-                            {selectedProvider === "mistral" && (
-                              <>
-                                <SelectItem value="mistral-large">Mistral Large</SelectItem>
-                                <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
-                              </>
-                            )}
+                            {LLM_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
