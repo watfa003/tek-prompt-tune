@@ -298,14 +298,38 @@ function scorePrompt(prompt: string, output?: string): CategoryScores {
     if (hasNegativeConstraints) constraints += 2;
     scores.constraints = Math.min(constraints, 10);
 
-    // Elaboration - check for context and examples
-    const hasContext = /because|for example|such as|like|to help|in order to/.test(prompt.toLowerCase());
-    const hasExample = /e\.g\.|for instance|example/.test(prompt.toLowerCase());
+    // Elaboration - check for context and examples (multiple detection methods)
+    const hasContext = /because|for example|such as|like|to help|in order to|for the purpose of|aimed at|designed for/.test(prompt.toLowerCase());
+    const hasExample = /e\.g\.|for instance|example|here's an example|here are examples|sample/.test(prompt.toLowerCase());
     
-    let elaboration = 4; // Base
-    if (hasContext) elaboration += 3;
-    if (hasExample) elaboration += 2;
-    scores.elaboration = Math.min(elaboration, 10);
+    // Count actual examples in the prompt (look for patterns like "Example:", numbered examples, etc)
+    const exampleMatches = prompt.match(/example\s*\d*\s*:|\d+\.\s+[A-Z]|•\s+[A-Z]|-\s+[A-Z]/gi) || [];
+    const multipleExamples = exampleMatches.length >= 2;
+    
+    // Check for background/purpose statements
+    const hasPurpose = /purpose|goal|aim|objective|intended for|audience|target|use case/.test(prompt.toLowerCase());
+    
+    // Check for reasoning/explanation
+    const hasReasoning = /because|since|therefore|thus|so that|in order to|this will|this helps/.test(prompt.toLowerCase());
+    
+    // Count elaboration signals
+    let elaborationSignals = 0;
+    if (hasContext) elaborationSignals++;
+    if (hasExample) elaborationSignals++;
+    if (multipleExamples) elaborationSignals++;
+    if (hasPurpose) elaborationSignals++;
+    if (hasReasoning) elaborationSignals++;
+    
+    // Score based on number of elaboration signals detected
+    if (elaborationSignals === 0) {
+      scores.elaboration = 4; // No elaboration at all
+    } else if (elaborationSignals === 1) {
+      scores.elaboration = 7; // Single form of context/example
+    } else if (elaborationSignals === 2) {
+      scores.elaboration = 8; // Two forms
+    } else {
+      scores.elaboration = 10; // Multiple forms of elaboration
+    }
 
     // Intent alignment - FOCUS ON PROMPT CLARITY, not output quality
     // Only penalize if output suggests prompt was misunderstood
