@@ -87,6 +87,9 @@ const OPTIMIZATION_MODELS = {
   google: 'gemini-2.5-flash'
 };
 
+// Network safety: time out external AI calls so variants don't hang forever
+const REQUEST_TIMEOUT_MS = 25000;
+
 // Faster optimization strategies (simplified for speed)
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
@@ -925,6 +928,8 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
 
   console.log('📦 OpenAI Payload:', { model, isNewerModel, maxTokens, temp: payload.temperature });
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
   const response = await fetch(providerConfig.baseUrl, {
     method: 'POST',
     headers: {
@@ -932,7 +937,9 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+    signal: controller.signal,
   });
+  clearTimeout(timeout);
 
   console.log(`📡 Response status: ${response.status} for model: ${model}`);
   
@@ -952,6 +959,8 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
   
   console.log('📦 Anthropic Payload:', { model, maxTokens });
   
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
   const response = await fetch(providerConfig.baseUrl, {
     method: 'POST',
     headers: {
@@ -964,7 +973,9 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
       max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }],
     }),
+    signal: controller.signal,
   });
+  clearTimeout(timeout);
 
   console.log(`📡 Response status: ${response.status} for model: ${model}`);
 
@@ -984,6 +995,8 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
   
   console.log('📦 Google Payload:', { model, maxOutputTokens: maxTokens });
   
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
   const response = await fetch(`${providerConfig.baseUrl}/${model}:generateContent?key=${providerConfig.apiKey}`, {
     method: 'POST',
     headers: {
@@ -997,7 +1010,9 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
         maxOutputTokens: maxTokens,
       }
     }),
+    signal: controller.signal,
   });
+  clearTimeout(timeout);
 
   console.log(`📡 Response status: ${response.status} for model: ${model}`);
 
