@@ -5,6 +5,7 @@ import { handleSpeedMode } from './speed-mode-functions.ts';
 import { getOutputTypeSystemPrompt, getOutputTypeGuidance, type OutputType } from './output-type-strategies.ts';
 import { 
   scorePromptTested, 
+  scorePromptStatic,
   calculateTotalScore,
   detectPromptType,
   type CategoryScores,
@@ -585,9 +586,29 @@ ${enhancedPrompt}`;
         }
 
 
+        // Run polish pass on the best variant
+        console.log('🔧 Running polish pass on best variant...');
+        const { polishedPrompt, finalScore: polishScore, improvements } = await polishPromptForMaxScore(
+          bestVariant.prompt,
+          aiProvider,
+          modelName,
+          maxTokens,
+          temperature
+        );
+        
+        // If polish improved the score, update the best variant
+        if (polishScore > bestVariant.score) {
+          console.log(`✨ Polish improved score: ${bestVariant.score.toFixed(2)} → ${polishScore.toFixed(2)}`);
+          bestVariant.prompt = polishedPrompt;
+          bestVariant.score = polishScore;
+          bestVariant.metrics.polished = true;
+          bestVariant.metrics.polish_improvements = improvements;
+          bestVariant.metrics.score_improvement = polishScore - bestVariant.score;
+        }
+        
         // Save batch findings to optimization insights - CRITICAL for speed optimization
         console.log('Starting to save batch insights to optimization_insights table...');
-        await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights);
+        await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights, polishScore > bestVariant.score ? polishScore - bestVariant.score : 0);
         console.log('✅ Batch insights saved successfully to optimization_insights table');
 
         console.log('Background database updates and insights completed');
@@ -596,7 +617,7 @@ ${enhancedPrompt}`;
         // Try to save insights even if other operations failed
         try {
           console.log('Attempting fallback save of batch insights...');
-          await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights);
+          await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights, 0);
           console.log('✅ Fallback batch insights save successful');
         } catch (fallbackError) {
           console.error('❌ Fallback batch insights save failed:', fallbackError);
@@ -658,6 +679,155 @@ ${enhancedPrompt}`;
     });
   }
 });
+
+// Polish pass: Fix identified issues from grading
+async function polishPromptForMaxScore(
+  prompt: string,
+  aiProvider: string,
+  modelName: string,
+  maxTokens: number,
+  temperature: number
+): Promise<{ polishedPrompt: string; finalScore: number; improvements: string[] }> {
+  
+  console.log('🔧 Starting polish pass...');
+  
+  // 1. Score the current prompt
+  const { scores, promptType } = scorePromptStatic(prompt);
+  const totalScore = calculateTotalScore(scores, promptType, prompt);
+  
+  console.log(`📊 Current score: ${totalScore.toFixed(2)}/10`);
+  
+  // 2. If already 9.0+, return as-is
+  if (totalScore >= 9.0) {
+    console.log(`✅ Prompt already scores ${totalScore.toFixed(2)}/10 - no polish needed`);
+    return { polishedPrompt: prompt, finalScore: totalScore, improvements: [] };
+  }
+  
+  // 3. Identify weak categories (< 9/10) and build fix instructions
+  const weakCategories: Array<{ category: string; score: number; fix: string }> = [];
+  
+  if (scores.clarity < 9) {
+    weakCategories.push({
+      category: 'clarity',
+      score: scores.clarity,
+      fix: 'Use clear action verbs (write/create/generate/analyze). Remove vague phrases like "good", "nice", "stuff", "something". Replace ambiguous pronouns with specific nouns.'
+    });
+  }
+  
+  if (scores.specificity < 9) {
+    weakCategories.push({
+      category: 'specificity',
+      score: scores.specificity,
+      fix: 'Add specific details: numbers, formats (JSON/markdown/table), tone (formal/casual/technical), concrete nouns (company/product/user/system).'
+    });
+  }
+  
+  if (scores.structure < 9) {
+    weakCategories.push({
+      category: 'structure',
+      score: scores.structure,
+      fix: 'Add clear step-by-step structure with numbered steps (1., 2., 3.) or bullet points. Use section breaks or headers to organize.'
+    });
+  }
+  
+  if (scores.constraints < 9) {
+    weakCategories.push({
+      category: 'constraints',
+      score: scores.constraints,
+      fix: 'Add explicit constraints using "must", "should", "avoid", "do not", "no more than", "exactly", "at least". Specify what NOT to do.'
+    });
+  }
+  
+  if (scores.elaboration < 9) {
+    weakCategories.push({
+      category: 'elaboration',
+      score: scores.elaboration,
+      fix: 'Include concrete examples with "Example:" or "e.g.:". Add background context explaining why this task matters. Show what good output looks like.'
+    });
+  }
+  
+  if (scores.adaptability < 9) {
+    weakCategories.push({
+      category: 'adaptability',
+      score: scores.adaptability,
+      fix: 'Add conditional handling with "if/when/unless/in case" for edge cases. Consider alternative scenarios or preferences.'
+    });
+  }
+  
+  if (scores.efficiency < 9) {
+    weakCategories.push({
+      category: 'efficiency',
+      score: scores.efficiency,
+      fix: 'Remove filler words (basically/actually/literally/very/really). Remove repetitive phrases. Keep unique vocabulary high.'
+    });
+  }
+  
+  if (scores.intent_alignment < 9) {
+    weakCategories.push({
+      category: 'intent_alignment',
+      score: scores.intent_alignment,
+      fix: 'Ensure the prompt clearly states what the user wants the AI to DO. Make the expected action explicit and unambiguous.'
+    });
+  }
+  
+  if (weakCategories.length === 0) {
+    console.log('✅ All categories score 9+ - returning original');
+    return { polishedPrompt: prompt, finalScore: totalScore, improvements: [] };
+  }
+  
+  console.log(`🔍 Found ${weakCategories.length} weak categories:`, weakCategories.map(w => `${w.category} (${w.score}/10)`).join(', '));
+  
+  // 4. Build polish instruction targeting weak categories
+  let polishInstructions = `You are a prompt quality expert. The following prompt has been analyzed and has quality issues in these areas:\n\n`;
+  
+  weakCategories.forEach(({ category, score, fix }) => {
+    polishInstructions += `**${category.toUpperCase()} (Current: ${score}/10)**\n${fix}\n\n`;
+  });
+  
+  polishInstructions += `**CRITICAL RULES:**
+1. PRESERVE the original intent and action - do NOT change what the user is asking for
+2. ONLY enhance HOW they ask, not WHAT they ask
+3. Fix ONLY the issues listed above
+4. Do NOT make the prompt unnecessarily long if it's a simple request
+5. Return ONLY the enhanced prompt, nothing else (no explanations, no metadata)
+
+Original prompt to enhance:
+${prompt}
+
+Enhanced prompt:`;
+  
+  // 5. Call AI to polish
+  const polishedPrompt = await callAIProvider(
+    aiProvider,
+    modelName,
+    polishInstructions,
+    maxTokens,
+    0.3 // Low temperature for consistency
+  );
+  
+  if (!polishedPrompt) {
+    console.warn('⚠️ Polish pass failed, returning original');
+    return { polishedPrompt: prompt, finalScore: totalScore, improvements: [] };
+  }
+  
+  // 6. Score the polished version
+  const { scores: polishedScores, promptType: polishedType } = scorePromptStatic(polishedPrompt);
+  const finalScore = calculateTotalScore(polishedScores, polishedType, polishedPrompt);
+  
+  console.log(`✨ Polish complete: ${totalScore.toFixed(2)}/10 → ${finalScore.toFixed(2)}/10 (${finalScore > totalScore ? '+' : ''}${(finalScore - totalScore).toFixed(2)})`);
+  
+  // 7. Track improvements
+  const improvements = weakCategories.map(w => w.category);
+  
+  // 8. Return the better version
+  if (finalScore > totalScore) {
+    console.log(`🎯 Polish improved score - using polished version`);
+    return { polishedPrompt, finalScore, improvements };
+  } else {
+    console.log(`⚠️ Polish did not improve score - keeping original`);
+    return { polishedPrompt: prompt, finalScore: totalScore, improvements: [] };
+  }
+}
 
 // Helper function to get model-friendly name
 function getModelFriendlyName(provider: string, model: string): string {
@@ -922,7 +1092,7 @@ async function loadOptimizationInsights(supabase: any, userId: string, aiProvide
 }
 
 // Save batch optimization findings to insights table
-async function saveBatchInsights(supabase: any, userId: string, aiProvider: string, modelName: string, optimizedVariants: any[], previousInsights: any) {
+async function saveBatchInsights(supabase: any, userId: string, aiProvider: string, modelName: string, optimizedVariants: any[], previousInsights: any, polishImprovement: number = 0) {
   try {
     // Analyze current batch findings
     const batchSummary = {
@@ -964,6 +1134,28 @@ async function saveBatchInsights(supabase: any, userId: string, aiProvider: stri
       }
     });
 
+    // Track polish pass effectiveness per LLM
+    if (polishImprovement > 0) {
+      const polishKey = 'polish';
+      if (!successfulStrategies[polishKey]) {
+        successfulStrategies[polishKey] = { 
+          patterns: ['polish_pass'], 
+          scores: [], 
+          count: 0,
+          byLLM: {}
+        };
+      }
+      
+      successfulStrategies[polishKey].scores.push(polishImprovement);
+      successfulStrategies[polishKey].count++;
+      
+      if (!successfulStrategies[polishKey].byLLM[llmKey]) {
+        successfulStrategies[polishKey].byLLM[llmKey] = { scores: [], count: 0 };
+      }
+      successfulStrategies[polishKey].byLLM[llmKey].scores.push(polishImprovement);
+      successfulStrategies[polishKey].byLLM[llmKey].count++;
+    }
+    
     // Calculate averages for successful strategies (overall and per-LLM)
     Object.keys(successfulStrategies).forEach(key => {
       const strategy = successfulStrategies[key];
