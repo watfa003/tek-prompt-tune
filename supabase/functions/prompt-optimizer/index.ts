@@ -5,8 +5,10 @@ import { handleSpeedMode } from './speed-mode-functions.ts';
 import { getOutputTypeSystemPrompt, getOutputTypeGuidance, type OutputType } from './output-type-strategies.ts';
 import { 
   scorePromptTested, 
-  calculateTotalScore, 
-  type CategoryScores 
+  calculateTotalScore,
+  detectPromptType,
+  type CategoryScores,
+  type PromptType
 } from '../shared/master-grader.ts';
 
 const corsHeaders = {
@@ -266,17 +268,35 @@ serve(async (req) => {
     // Load cached optimization insights instead of checking all history
     const cachedInsights = await loadOptimizationInsights(supabase, userId, aiProvider, modelName);
     
+    // Detect prompt type to determine optimization approach
+    const promptType = detectPromptType(enhancedPrompt);
+    console.log(`🔍 Detected prompt type: ${promptType}`);
+    
     // Generate optimized variants in parallel for maximum speed
-    // Filter strategies based on their conditional logic
+    // Filter strategies based on their conditional logic AND prompt type
     const allAvailableStrategies = Object.keys(OPTIMIZATION_STRATEGIES).filter(key => {
       const strategy = OPTIMIZATION_STRATEGIES[key as keyof typeof OPTIMIZATION_STRATEGIES];
+      
       // Check if strategy has a condition function, and if so, test it
       if (strategy.condition && typeof strategy.condition === 'function') {
-        return strategy.condition(originalPrompt);
+        if (!strategy.condition(originalPrompt)) return false;
       }
-      // Always include strategies without conditions
+      
+      // Filter strategies based on prompt type to avoid bloat
+      if (promptType === 'simple') {
+        // For simple prompts: Focus on clarity, specificity, intent - skip heavy strategies
+        const simpleStrategies = ['clarity', 'specificity', 'efficiency', 'intent'];
+        return simpleStrategies.includes(key);
+      } else if (promptType === 'creative') {
+        // For creative prompts: Focus on intent, adaptability, clarity - avoid rigid structure/constraints
+        const creativeStrategies = ['clarity', 'intent', 'adaptability', 'specificity'];
+        return creativeStrategies.includes(key);
+      }
+      // For complex prompts: Use ALL strategies to maximize score
       return true;
     });
+    
+    console.log(`📋 Available strategies for ${promptType} prompt: [${allAvailableStrategies.join(', ')}]`);
     
     // Get ALL strategies sorted by performance for this specific LLM
     const allStrategiesSorted = selectBestStrategies(allAvailableStrategies, 0, cachedInsights, aiProvider, modelName);
