@@ -547,6 +547,37 @@ ${enhancedPrompt}`;
 
     const processingTime = Date.now() - startTime;
 
+    // Ensure client receives polished prompt, not just background-polished
+    try {
+      console.log('🔧 Pre-response polish pass on best variant...');
+      const preOriginalScore = bestVariant.score;
+      const { polishedPrompt: prePolishedPrompt, finalScore: prePolishScore, improvements: preImprovements } = await polishPromptForMaxScore(
+        bestVariant.prompt,
+        aiProvider,
+        modelName,
+        maxTokens,
+        temperature
+      );
+      const shouldApplyPrePolish = prePolishScore > preOriginalScore || preOriginalScore < 9.0;
+      if (shouldApplyPrePolish) {
+        if (prePolishScore > preOriginalScore) {
+          console.log(`✨ Pre-response polish improved: ${preOriginalScore.toFixed(2)} → ${prePolishScore.toFixed(2)} (+${(prePolishScore - preOriginalScore).toFixed(2)})`);
+        } else {
+          console.log(`⚠️ Pre-response polish did not increase score; applying due to low initial score (${preOriginalScore.toFixed(2)})`);
+        }
+        bestVariant.prompt = prePolishedPrompt;
+        bestVariant.score = prePolishScore;
+        bestVariant.metrics = {
+          ...bestVariant.metrics,
+          polished: true,
+          polish_improvements: preImprovements,
+          score_improvement: Math.max(0, (prePolishScore - preOriginalScore))
+        };
+      }
+    } catch (e) {
+      console.warn('⚠️ Pre-response polish failed, continuing with current bestVariant:', e);
+    }
+
     // Background task for database updates and optimization insights (don't block response)
     const backgroundUpdates = async () => {
       try {
@@ -601,15 +632,19 @@ ${enhancedPrompt}`;
         );
         
         let polishImprovement = 0;
-        // If polish improved the score, update the best variant
-        if (polishScore > originalScore) {
-          polishImprovement = polishScore - originalScore;
-          console.log(`✨ Polish improved score: ${originalScore.toFixed(2)} → ${polishScore.toFixed(2)} (+${polishImprovement.toFixed(2)})`);
+        const shouldApplyPolish = polishScore > originalScore || originalScore < 9.0;
+        if (shouldApplyPolish) {
+          if (polishScore > originalScore) {
+            polishImprovement = polishScore - originalScore;
+            console.log(`✨ Polish improved score: ${originalScore.toFixed(2)} → ${polishScore.toFixed(2)} (+${polishImprovement.toFixed(2)})`);
+          } else {
+            console.log(`⚠️ Polish did not increase score (stayed at ${originalScore.toFixed(2)}), applying polished version due to low initial score`);
+          }
           bestVariant.prompt = polishedPrompt;
           bestVariant.score = polishScore;
           bestVariant.metrics.polished = true;
           bestVariant.metrics.polish_improvements = improvements;
-          bestVariant.metrics.score_improvement = polishImprovement;
+          bestVariant.metrics.score_improvement = Math.max(0, polishImprovement);
         }
         
         // Save batch findings to optimization insights - CRITICAL for speed optimization
