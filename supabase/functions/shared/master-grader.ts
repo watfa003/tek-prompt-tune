@@ -292,17 +292,32 @@ export function scorePromptStatic(prompt: string): StaticGradeResult {
   if (hasFlexibility > 0) adaptability += 1;
   if (hasEdgeCases) adaptability += 1;
   
+  const scores = {
+    clarity: Math.max(0, Math.min(10, clarity)),
+    specificity: Math.max(0, Math.min(10, specificity)),
+    efficiency: Math.max(0, Math.min(10, efficiency)),
+    structure: Math.max(0, Math.min(10, structure)),
+    constraints: Math.max(0, Math.min(10, constraints)),
+    elaboration: Math.max(0, Math.min(10, elaboration)),
+    intent_alignment: Math.max(0, Math.min(10, intentAlignment)),
+    adaptability: Math.max(0, Math.min(10, adaptability))
+  };
+  
+  // Normalize scores for simple prompts (boost irrelevant categories)
+  if (promptType === 'simple') {
+    // Boost irrelevant categories to neutral scores
+    if (scores.constraints < 6) scores.constraints = 7;
+    if (scores.elaboration < 6) scores.elaboration = 7;
+    if (scores.structure < 6) scores.structure = 6;
+    
+    // Be lenient on specificity if clarity is high
+    if (scores.clarity >= 7 && scores.specificity < 6) {
+      scores.specificity = Math.max(scores.specificity, 6);
+    }
+  }
+  
   return {
-    scores: {
-      clarity: Math.max(0, Math.min(10, clarity)),
-      specificity: Math.max(0, Math.min(10, specificity)),
-      efficiency: Math.max(0, Math.min(10, efficiency)),
-      structure: Math.max(0, Math.min(10, structure)),
-      constraints: Math.max(0, Math.min(10, constraints)),
-      elaboration: Math.max(0, Math.min(10, elaboration)),
-      intent_alignment: Math.max(0, Math.min(10, intentAlignment)),
-      adaptability: Math.max(0, Math.min(10, adaptability))
-    },
+    scores,
     promptType
   };
 }
@@ -382,6 +397,19 @@ export function scorePromptTested(prompt: string, output: string): { scores: Cat
   const outputShowsOptions = (output.match(/\b(?:alternatively|option|choice|could also|might|consider)\b/gi) || []).length > 0;
   if (outputShowsOptions) {
     scores.adaptability = Math.min(10, scores.adaptability + 1);
+  }
+  
+  // Normalize scores for simple prompts (boost irrelevant categories)
+  if (staticResult.promptType === 'simple') {
+    // Boost irrelevant categories to neutral scores
+    if (scores.constraints < 6) scores.constraints = 7;
+    if (scores.elaboration < 6) scores.elaboration = 7;
+    if (scores.structure < 6) scores.structure = 6;
+    
+    // Be lenient on specificity if clarity is high
+    if (scores.clarity >= 7 && scores.specificity < 6) {
+      scores.specificity = Math.max(scores.specificity, 6);
+    }
   }
   
   return {
