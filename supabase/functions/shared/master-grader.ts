@@ -1,7 +1,7 @@
 // Master Grader - Unified prompt scoring system for Lab and Optimizer
 // Philosophy: Grade the prompt by its results when possible, structure when not
 
-export type PromptType = 'simple' | 'complex' | 'creative' | 'analytical';
+export type PromptType = 'simple' | 'complex' | 'creative';
 
 export interface CategoryScores {
   clarity: number;
@@ -65,24 +65,21 @@ export function detectPromptType(prompt: string): PromptType {
   const wordCount = prompt.split(/\s+/).length;
   const promptLower = prompt.toLowerCase();
   
-  // Creative prompts
-  const creativeKeywords = /\b(?:write|create|generate|compose)\s+(?:a|an)\s+(?:poem|story|haiku|tagline|slogan|joke|metaphor|song|rap|limerick)/i;
+  // CREATIVE prompts - explicit creative intent
+  const creativeKeywords = /\b(?:write|create|generate|compose)\s+(?:a|an)\s+(?:poem|story|haiku|tagline|slogan|joke|metaphor|song|rap|limerick|narrative|character|scene)/i;
   if (creativeKeywords.test(prompt)) return 'creative';
   
-  // Analytical prompts
-  const analyticalKeywords = /\b(?:analyze|compare|evaluate|assess|research|investigate|examine|critique|review|explain why|explain how)/i;
-  if (analyticalKeywords.test(prompt)) return 'analytical';
-  
-  // Complex prompts (multi-step, long, or has structure markers)
-  const hasMultipleSteps = /\b(?:first|then|next|finally|step \d+)/i.test(prompt);
+  // COMPLEX prompts - multi-step, analytical, or long with structure
+  const hasMultipleSteps = /\b(?:first|second|third|then|next|finally|lastly|step \d+)/i.test(prompt);
   const hasSections = (prompt.match(/\n\n+/g) || []).length >= 2;
   const hasExamples = /\b(?:example|such as|e\.g\.|for instance)[:\s]+.{30,}/gi.test(prompt);
+  const isAnalytical = /\b(?:analyze|compare|evaluate|assess|research|investigate|examine|critique|review|explain why|explain how)/i.test(prompt);
   
-  if (wordCount > 50 || hasMultipleSteps || hasSections || hasExamples) {
+  if (wordCount > 50 || hasMultipleSteps || hasSections || hasExamples || isAnalytical) {
     return 'complex';
   }
   
-  // Default: simple
+  // DEFAULT: simple
   return 'simple';
 }
 
@@ -93,14 +90,14 @@ export function getContextualWeights(promptType: PromptType): Record<keyof Categ
   switch (promptType) {
     case 'simple':
       return {
-        clarity: 2.0,        // Most important - is it clear?
-        specificity: 1.8,    // Is it specific enough?
-        efficiency: 1.5,     // No wasted words?
-        structure: 0.3,      // Don't need bullet points
-        constraints: 0.2,    // Don't need "don't do X"
-        elaboration: 0.4,    // Don't need examples
-        intent_alignment: 1.6, // Does it say what it wants?
-        adaptability: 0.3    // Don't need options
+        clarity: 2.0,           // ⭐⭐ CRITICAL - is it clear?
+        specificity: 1.8,       // ⭐⭐ CRITICAL - specific enough?
+        efficiency: 1.5,        // ⭐ IMPORTANT - no fluff?
+        intent_alignment: 1.6,  // ⭐⭐ CRITICAL - says what it wants?
+        structure: 0.1,         // ❌ IRRELEVANT for simple prompts
+        constraints: 0.0,       // ❌ COMPLETELY IGNORE
+        elaboration: 0.0,       // ❌ COMPLETELY IGNORE
+        adaptability: 0.1       // ❌ IRRELEVANT for simple prompts
       };
       
     case 'creative':
@@ -115,29 +112,16 @@ export function getContextualWeights(promptType: PromptType): Record<keyof Categ
         adaptability: 1.4      // Creative freedom matters
       };
       
-    case 'analytical':
-      return {
-        clarity: 1.3,
-        specificity: 1.8,      // Need specific criteria
-        efficiency: 1.0,
-        structure: 1.5,        // Need organization
-        constraints: 1.2,
-        elaboration: 1.6,      // Need context
-        intent_alignment: 1.4,
-        adaptability: 1.0
-      };
-      
     case 'complex':
-      // All categories matter
       return {
-        clarity: 1.5,
-        specificity: 1.3,
-        efficiency: 1.0,
-        structure: 1.0,
-        constraints: 1.2,
-        elaboration: 1.1,
-        intent_alignment: 1.4,
-        adaptability: 0.8
+        clarity: 1.5,           // Always important
+        specificity: 1.3,       // Need details
+        efficiency: 1.0,        // Balance verbosity
+        structure: 1.2,         // ⭐ Organization matters
+        constraints: 1.2,       // ⭐ Boundaries help
+        elaboration: 1.3,       // ⭐ Examples/context crucial
+        intent_alignment: 1.4,  // Clear goals needed
+        adaptability: 0.8       // Some flexibility
       };
   }
 }

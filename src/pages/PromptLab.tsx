@@ -53,7 +53,7 @@ interface SingleTestResult {
     suggested_fixes: string[];
     explanation?: Record<string, string>;
   };
-  prompt_type?: 'simple' | 'complex' | 'creative' | 'analytical';
+  prompt_type?: 'simple' | 'complex' | 'creative';
 }
 
 interface CompareTestResult {
@@ -64,8 +64,8 @@ interface CompareTestResult {
   winner: 'A' | 'B' | 'Tie';
   reasoning: string;
   comparison: Record<string, string>;
-  prompt_a_type?: 'simple' | 'complex' | 'creative' | 'analytical';
-  prompt_b_type?: 'simple' | 'complex' | 'creative' | 'analytical';
+  prompt_a_type?: 'simple' | 'complex' | 'creative';
+  prompt_b_type?: 'simple' | 'complex' | 'creative';
 }
 
 const PromptLab = () => {
@@ -628,8 +628,7 @@ const PromptLab = () => {
                           variant={
                             singleResult.prompt_type === 'simple' ? 'default' :
                             singleResult.prompt_type === 'creative' ? 'secondary' :
-                            singleResult.prompt_type === 'analytical' ? 'outline' :
-                            'destructive'
+                            'outline'
                           }
                           className="px-3 py-1 text-xs"
                         >
