@@ -142,6 +142,18 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
         }
       );
       const data = await response.json();
+      
+      // Add error logging
+      if (!response.ok) {
+        console.error('Google API error:', response.status, data);
+        throw new Error(`Google API error: ${JSON.stringify(data)}`);
+      }
+      
+      if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+        console.error('Unexpected Google response:', data);
+        throw new Error('Invalid response from Google API');
+      }
+      
       return data.candidates[0].content.parts[0].text;
     }
   } catch (error) {
