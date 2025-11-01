@@ -588,6 +588,7 @@ ${enhancedPrompt}`;
 
         // Run polish pass on the best variant
         console.log('🔧 Running polish pass on best variant...');
+        const originalScore = bestVariant.score;
         const { polishedPrompt, finalScore: polishScore, improvements } = await polishPromptForMaxScore(
           bestVariant.prompt,
           aiProvider,
@@ -596,19 +597,21 @@ ${enhancedPrompt}`;
           temperature
         );
         
+        let polishImprovement = 0;
         // If polish improved the score, update the best variant
-        if (polishScore > bestVariant.score) {
-          console.log(`✨ Polish improved score: ${bestVariant.score.toFixed(2)} → ${polishScore.toFixed(2)}`);
+        if (polishScore > originalScore) {
+          polishImprovement = polishScore - originalScore;
+          console.log(`✨ Polish improved score: ${originalScore.toFixed(2)} → ${polishScore.toFixed(2)} (+${polishImprovement.toFixed(2)})`);
           bestVariant.prompt = polishedPrompt;
           bestVariant.score = polishScore;
           bestVariant.metrics.polished = true;
           bestVariant.metrics.polish_improvements = improvements;
-          bestVariant.metrics.score_improvement = polishScore - bestVariant.score;
+          bestVariant.metrics.score_improvement = polishImprovement;
         }
         
         // Save batch findings to optimization insights - CRITICAL for speed optimization
         console.log('Starting to save batch insights to optimization_insights table...');
-        await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights, polishScore > bestVariant.score ? polishScore - bestVariant.score : 0);
+        await saveBatchInsights(supabase, userId, aiProvider, modelName, optimizedVariants, cachedInsights, polishImprovement);
         console.log('✅ Batch insights saved successfully to optimization_insights table');
 
         console.log('Background database updates and insights completed');
