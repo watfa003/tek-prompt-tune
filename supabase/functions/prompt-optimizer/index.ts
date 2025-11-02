@@ -5,6 +5,7 @@ import { handleSpeedMode } from './speed-mode-functions.ts';
 import { getOutputTypeSystemPrompt, getOutputTypeGuidance, type OutputType } from './output-type-strategies.ts';
 import { 
   scorePromptTested, 
+  calculateTotalScore,
   detectPromptType,
   type CategoryScores,
   type PromptType
@@ -927,8 +928,11 @@ function evaluateOutput(output: string, strategyWeight: number, originalPrompt: 
   // Use master grader's tested mode for consistent scoring
   const result = scorePromptTested(originalPrompt, output);
   
-  // scorePromptTested returns a 0-1 normalized score directly
-  let normalizedScore = result.normalizedScore;
+  // Calculate total score (returns 0-10 scale)
+  const totalScore = calculateTotalScore(result.scores, result.promptType, originalPrompt);
+  
+  // Convert 0-10 scale to 0-1 scale for optimizer compatibility
+  let normalizedScore = totalScore / 10;
   
   // Apply strategy weight bonus (small influence)
   normalizedScore += strategyWeight * 0.03;
