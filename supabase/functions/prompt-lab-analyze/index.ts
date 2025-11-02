@@ -3,7 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { 
   scorePromptStatic, 
-  scorePromptTested, 
+  scorePromptTested,
+  scorePromptAndOutput,
   calculateTotalScore, 
   type CategoryScores 
 } from '../shared/master-grader.ts';
@@ -393,29 +394,28 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
   }
 }
 
-// Handle single prompt test - Using TESTED mode with real AI output
+// Handle single prompt test - Using 50/50 scoring with real AI output
 async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const startTime = Date.now();
   
   // Call AI model to get real output
   const output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
   
-  // Score with TESTED mode (validates with actual output)
-  const result = scorePromptTested(req.prompt_a, output);
-  const totalScore = calculateTotalScore(result.scores, result.promptType, req.prompt_a);
+  // Score with 50/50 split (50% prompt quality + 50% output quality)
+  const result = scorePromptAndOutput(req.prompt_a, output);
   
   // Generate AI analysis with output
   const analysis = await generateAnalysis(req.prompt_a, result.scores, output);
   
   return {
-    total_score: totalScore,
+    total_score: result.finalScore,
     category_breakdown: result.scores,
     ai_analysis: analysis,
     prompt_type: result.promptType,
   };
 }
 
-// Handle comparison test - Using TESTED mode with real AI outputs
+// Handle comparison test - Using 50/50 scoring with real AI outputs
 async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
   if (!req.prompt_b) {
     throw new Error('Prompt B is required for comparison mode');
@@ -427,12 +427,12 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
     callAIModel(req.prompt_b, req.target_llm, req.test_task),
   ]);
   
-  // Score both with TESTED mode (validates with actual outputs)
-  const resultA = scorePromptTested(req.prompt_a, outputA);
-  const resultB = scorePromptTested(req.prompt_b, outputB);
+  // Score both with 50/50 split (50% prompt quality + 50% output quality)
+  const resultA = scorePromptAndOutput(req.prompt_a, outputA);
+  const resultB = scorePromptAndOutput(req.prompt_b, outputB);
   
-  const totalA = calculateTotalScore(resultA.scores, resultA.promptType, req.prompt_a);
-  const totalB = calculateTotalScore(resultB.scores, resultB.promptType, req.prompt_b);
+  const totalA = resultA.finalScore;
+  const totalB = resultB.finalScore;
   
   // Determine winner - higher score always wins
   let winner: 'A' | 'B' | 'Tie' = 'Tie';

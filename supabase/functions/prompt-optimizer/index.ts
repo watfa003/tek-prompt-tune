@@ -4,7 +4,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { handleSpeedMode } from './speed-mode-functions.ts';
 import { getOutputTypeSystemPrompt, getOutputTypeGuidance, type OutputType } from './output-type-strategies.ts';
 import { 
-  scorePromptTested, 
+  scorePromptTested,
+  scorePromptAndOutput,
   calculateTotalScore,
   detectPromptType,
   type CategoryScores,
@@ -923,48 +924,22 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
 
 // Removed - grading mode detection no longer needed with unified master grader
 
-// NEW: Unified evaluation using Master Grader
+// NEW: Unified 50/50 evaluation using Master Grader
 function evaluateOutput(output: string, strategyWeight: number, originalPrompt: string = ''): number {
-  // Score the AI response quality (not the prompt)
-  // Quick heuristic scoring based on response characteristics
-  let score = 0.5; // baseline
+  // Use 50/50 split scoring: 50% prompt quality + 50% output quality
+  const result = scorePromptAndOutput(originalPrompt, output);
   
-  const outputLength = output.length;
-  const words = output.split(/\s+/).length;
-  const sentences = output.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-  const avgWordsPerSentence = sentences > 0 ? words / sentences : 0;
-  
-  // Length appropriateness (not too short, not excessively long)
-  if (outputLength > 50 && outputLength < 3000) score += 0.1;
-  if (outputLength > 200) score += 0.05;
-  
-  // Structure quality
-  if (avgWordsPerSentence > 8 && avgWordsPerSentence < 30) score += 0.1;
-  if (sentences > 2) score += 0.05;
-  
-  // Content richness
-  const hasVariety = /[,;:]/.test(output); // punctuation variety
-  const hasStructure = /(\n|  )/.test(output); // formatting
-  if (hasVariety) score += 0.05;
-  if (hasStructure) score += 0.05;
-  
-  // Coherence indicators
-  const startsCapital = /^[A-Z]/.test(output.trim());
-  const properEnding = /[.!?]$/.test(output.trim());
-  if (startsCapital) score += 0.03;
-  if (properEnding) score += 0.02;
-  
-  // Avoid repetitive or low-quality patterns
-  const hasRepetition = /(.{20,})\1{2,}/.test(output);
-  const tooManyNewlines = (output.match(/\n/g) || []).length > sentences * 2;
-  if (hasRepetition) score -= 0.15;
-  if (tooManyNewlines) score -= 0.1;
+  // Get the final 50/50 score (0-10 scale)
+  let score = result.finalScore;
   
   // Apply strategy weight bonus (small influence)
-  score += strategyWeight * 0.03;
+  score += strategyWeight * 0.3;
+  
+  // Convert 0-10 scale to 0-1 scale for optimizer compatibility
+  const normalizedScore = score / 10;
   
   // Keep in valid range
-  return Math.min(0.95, Math.max(0.15, score));
+  return Math.min(0.95, Math.max(0.15, normalizedScore));
 }
 
 // Removed old evaluation functions - now using master-grader.ts unified scoring

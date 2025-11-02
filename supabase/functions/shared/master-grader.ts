@@ -468,3 +468,75 @@ function detectRepetition(text: string): boolean {
   
   return false;
 }
+
+/**
+ * Score output quality on 0-10 scale
+ * Evaluates AI response characteristics independently of prompt
+ */
+export function scoreOutputQuality(output: string): number {
+  let score = 5; // baseline
+  
+  const outputLength = output.length;
+  const words = output.split(/\s+/).length;
+  const sentences = output.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
+  const avgWordsPerSentence = sentences > 0 ? words / sentences : 0;
+  
+  // Length appropriateness (not too short, not excessively long)
+  if (outputLength > 50 && outputLength < 3000) score += 1;
+  if (outputLength > 200) score += 0.5;
+  
+  // Structure quality
+  if (avgWordsPerSentence > 8 && avgWordsPerSentence < 30) score += 1;
+  if (sentences > 2) score += 0.5;
+  
+  // Content richness
+  const hasVariety = /[,;:]/.test(output); // punctuation variety
+  const hasStructure = /(\n|  )/.test(output); // formatting
+  if (hasVariety) score += 0.5;
+  if (hasStructure) score += 0.5;
+  
+  // Coherence indicators
+  const startsCapital = /^[A-Z]/.test(output.trim());
+  const properEnding = /[.!?]$/.test(output.trim());
+  if (startsCapital) score += 0.3;
+  if (properEnding) score += 0.2;
+  
+  // Avoid repetitive or low-quality patterns
+  const hasRepetition = /(.{20,})\1{2,}/.test(output);
+  const tooManyNewlines = (output.match(/\n/g) || []).length > sentences * 2;
+  if (hasRepetition) score -= 1.5;
+  if (tooManyNewlines) score -= 1;
+  
+  // Keep in valid range
+  return Math.max(0, Math.min(10, score));
+}
+
+/**
+ * 50/50 Split Scoring - Combines prompt quality + output quality
+ * This is the unified scoring function for both Lab and Optimizer
+ */
+export function scorePromptAndOutput(prompt: string, output: string): {
+  scores: CategoryScores;
+  promptType: PromptType;
+  promptScore: number;
+  outputScore: number;
+  finalScore: number;
+} {
+  // 50% - Score the prompt itself
+  const staticResult = scorePromptStatic(prompt);
+  const promptScore = calculateTotalScore(staticResult.scores, staticResult.promptType, prompt);
+  
+  // 50% - Score the output quality
+  const outputScore = scoreOutputQuality(output);
+  
+  // Combine 50/50
+  const finalScore = (promptScore * 0.5) + (outputScore * 0.5);
+  
+  return {
+    scores: staticResult.scores,
+    promptType: staticResult.promptType,
+    promptScore,
+    outputScore,
+    finalScore
+  };
+}
