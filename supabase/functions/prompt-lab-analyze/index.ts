@@ -68,120 +68,85 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
   const [provider, model] = targetLLM.split('/');
   
   try {
-    if (provider === 'openai') {
-      const modelName = model || 'gpt-4o-mini';
-      const isNewModel = modelName.includes('gpt-5') || modelName.includes('o3') || modelName.includes('o4');
-      
-      const requestBody: any = {
-        model: modelName,
-        messages: [
-          { role: 'system', content: systemMessage },
-          { role: 'user', content: userMessage }
-        ],
-      };
-      
-      // New models use max_completion_tokens, old models use max_tokens
-      // GPT-5 and newer models need higher limits
-      if (isNewModel) {
-        requestBody.max_completion_tokens = 2048;
-      } else {
-        requestBody.max_tokens = 1024;
+    // Route all model calls through Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
+
+    const mapToLovableModel = (prov: string, mdl?: string) => {
+      const m = mdl || '';
+      if (prov === 'openai') {
+        if (m.includes('gpt-5-nano')) return 'openai/gpt-5-nano';
+        if (m.includes('gpt-5-mini')) return 'openai/gpt-5-mini';
+        if (m.includes('gpt-5')) return 'openai/gpt-5';
+        // Map legacy OpenAI selections to a supported default
+        return 'openai/gpt-5-mini';
       }
-      
-      console.log('📦 OpenAI request payload:', {
-        model: modelName,
-        isNewModel,
-        maxTokensField: isNewModel ? 'max_completion_tokens' : 'max_tokens',
-        maxTokensValue: isNewModel ? 2048 : 1024,
-        systemPromptLength: systemMessage.length,
-        userPromptLength: userMessage.length
-      });
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-      
-      console.log('📡 OpenAI response status:', response.status, 'for model:', modelName);
-      
-      const data = await response.json();
-      
-      // Add error logging
-      if (!response.ok) {
-        console.error('❌ OpenAI API error:', response.status, JSON.stringify(data, null, 2));
-        throw new Error(`OpenAI API error: ${JSON.stringify(data)}`);
+      if (prov === 'google') {
+        if (m.includes('pro')) return 'google/gemini-2.5-pro';
+        if (m.includes('flash-lite')) return 'google/gemini-2.5-flash-lite';
+        return 'google/gemini-2.5-flash';
       }
-      
-      if (!data.choices || !data.choices[0]) {
-        console.error('❌ Unexpected OpenAI response structure:', JSON.stringify(data, null, 2));
-        throw new Error('Invalid response from OpenAI API');
-      }
-      
-      const content = data.choices[0].message?.content;
-      
-      if (!content) {
-        console.error('❌ OpenAI returned null/empty content:', {
-          fullResponse: JSON.stringify(data, null, 2),
-          choice: data.choices[0],
-          finishReason: data.choices[0].finish_reason
-        });
-        throw new Error(`OpenAI returned no content. Finish reason: ${data.choices[0].finish_reason || 'unknown'}`);
-      }
-      
-      console.log('✅ OpenAI API success:', modelName, '- Response length:', content.length, 'chars');
-      
-      return content;
-    } else if (provider === 'anthropic') {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': anthropicApiKey!,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: model || 'claude-3-5-haiku-20241022',
-          max_tokens: 500,
-          messages: [
-            { role: 'user', content: `${systemMessage}\n\n${userMessage}` }
-          ],
-        }),
-      });
-      const data = await response.json();
-      return data.content[0].text;
-    } else if (provider === 'google') {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.5-flash'}:generateContent?key=${googleApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: `${systemMessage}\n\n${userMessage}` }]
-            }],
-            generationConfig: { maxOutputTokens: 500 }
-          }),
-        }
-      );
-      const data = await response.json();
-      
-      // Add error logging
-      if (!response.ok) {
-        console.error('Google API error:', response.status, data);
-        throw new Error(`Google API error: ${JSON.stringify(data)}`);
-      }
-      
-      if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-        console.error('Unexpected Google response:', data);
-        throw new Error('Invalid response from Google API');
-      }
-      
-      return data.candidates[0].content.parts[0].text;
+      // Default
+      return 'google/gemini-2.5-flash';
+    };
+
+    const mappedModel = mapToLovableModel(provider, model);
+
+    const body: Record<string, unknown> = {
+      model: mappedModel,
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: userMessage }
+      ],
+    };
+
+    // Token parameter differences
+    if (mappedModel.startsWith('openai/gpt-5')) {
+      body.max_completion_tokens = 2048; // GPT-5 uses max_completion_tokens
+    } else {
+      body.max_tokens = 1024; // Others accept max_tokens
+      // Avoid temperature for GPT-5 models per spec
+      body.temperature = 0.2;
     }
+
+    console.log('📦 Lovable AI request:', {
+      mappedModel,
+      provider,
+      originalModel: model,
+      systemPromptLength: systemMessage.length,
+      userPromptLength: userMessage.length,
+    });
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    console.log('📡 Lovable AI response status:', response.status, 'model:', mappedModel);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('❌ Lovable AI error:', response.status, errText);
+      if (response.status === 429) throw new Error('Rate limits exceeded (429)');
+      if (response.status === 402) throw new Error('Payment required (402)');
+      throw new Error(`AI gateway error: ${errText}`);
+    }
+
+    const data = await response.json();
+
+    const content = data?.choices?.[0]?.message?.content as string | undefined;
+    if (!content) {
+      console.error('❌ Lovable AI returned empty content', JSON.stringify(data, null, 2));
+      const finish = data?.choices?.[0]?.finish_reason;
+      throw new Error(`AI returned no content. Finish reason: ${finish ?? 'unknown'}`);
+    }
+
+    console.log('✅ Lovable AI success:', mappedModel, 'len:', content.length);
+    return content;
   } catch (error) {
     console.error('❌ Error calling AI model:', {
       provider,
@@ -437,19 +402,9 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   let output: string;
   try {
     output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
-    if (!output || output.length === 0) {
-      console.warn('⚠️ Target model returned empty output. Falling back to google/gemini-2.5-flash');
-      output = await callAIModel(req.prompt_a, 'google/gemini-2.5-flash', req.test_task);
-    }
   } catch (error) {
-    console.error('❌ Failed to call AI model, attempting fallback:', error);
-    try {
-      output = await callAIModel(req.prompt_a, 'google/gemini-2.5-flash', req.test_task);
-    } catch (fallbackErr) {
-      console.error('❌ Fallback model also failed:', fallbackErr);
-      // Proceed with empty output to avoid hard failure
-      output = '';
-    }
+    console.error('❌ Failed to call AI model:', error);
+    throw new Error(`AI model call failed: ${error instanceof Error ? error.message : String(error)}`);
   }
   
   console.log('📤 AI output received:', {
@@ -459,7 +414,8 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   });
   
   if (!output || output.length === 0) {
-    console.warn('⚠️ Proceeding with empty output; scoring will rely on prompt quality only.');
+    console.error('❌ ERROR: AI model returned empty output!');
+    throw new Error('AI model returned no output');
   }
   
   // Score with 50/50 split (50% prompt quality + 50% output quality)
@@ -487,29 +443,10 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
     throw new Error('Prompt B is required for comparison mode');
   }
   
-  // Call AI models for both prompts with fallback logic
-  const safeCall = async (p: string) => {
-    try {
-      let out = await callAIModel(p, req.target_llm, req.test_task);
-      if (!out || out.length === 0) {
-        console.warn('⚠️ Empty output from target model in compare mode; falling back to google/gemini-2.5-flash');
-        out = await callAIModel(p, 'google/gemini-2.5-flash', req.test_task);
-      }
-      return out ?? '';
-    } catch (e) {
-      console.error('❌ Target model failed in compare mode, attempting fallback:', e);
-      try {
-        return await callAIModel(p, 'google/gemini-2.5-flash', req.test_task);
-      } catch (fallbackErr) {
-        console.error('❌ Fallback also failed in compare mode:', fallbackErr);
-        return '';
-      }
-    }
-  };
-  
+  // Call AI models for both prompts in parallel
   const [outputA, outputB] = await Promise.all([
-    safeCall(req.prompt_a),
-    safeCall(req.prompt_b),
+    callAIModel(req.prompt_a, req.target_llm, req.test_task),
+    callAIModel(req.prompt_b, req.target_llm, req.test_task),
   ]);
   
   // Score both with 50/50 split (50% prompt quality + 50% output quality)
