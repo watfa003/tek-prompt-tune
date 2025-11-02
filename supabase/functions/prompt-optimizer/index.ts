@@ -553,19 +553,12 @@ ${enhancedPrompt}`;
           if (testResponse) {
             actualResponse = testResponse;
             // Score based on the actual response from the user's selected model
-            // Use fast evaluation for very long responses (over 2 pages)
-            const responseWords = testResponse.split(' ').length;
-            if (responseWords > 1500) { // Roughly 2 pages
-              console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
-              actualScore = fastSkimEvaluation(testResponse, strategy.weight);
-            } else {
-              actualScore = evaluateOutput(testResponse, strategy.weight, optimizedPrompt);
-             }
-             console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
+            actualScore = evaluateOutput(testResponse, optimizedPrompt);
+            console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
          } else {
             // If no response, re-score the optimized prompt but ensure it's actually optimized
             if (optimizedPrompt.length > originalPrompt.length * 0.8) {
-              actualScore = evaluateOutput(optimizedPrompt, strategy.weight, optimizedPrompt);
+              actualScore = evaluateOutput(optimizedPrompt, optimizedPrompt);
               actualResponse = `Successfully optimized using ${strategy.name} strategy`;
             } else {
               // Prompt wasn't properly optimized, give low score
@@ -578,7 +571,7 @@ ${enhancedPrompt}`;
           console.error(`Error testing with user model ${modelName}:`, error);
           // Ensure we still have a properly optimized prompt even in error cases
           if (optimizedPrompt && optimizedPrompt.length > originalPrompt.length * 0.8) {
-            actualScore = evaluateOutput(optimizedPrompt, strategy.weight, optimizedPrompt);
+            actualScore = evaluateOutput(optimizedPrompt, optimizedPrompt);
             actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
           } else {
             // If optimization failed completely, return a lower score
@@ -964,11 +957,11 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
 // Removed - grading mode detection no longer needed with unified master grader
 
 // NEW: Unified 50/50 evaluation using Master Grader
-function evaluateOutput(output: string, strategyWeight: number, originalPrompt: string = ''): number {
+function evaluateOutput(output: string, optimizedPrompt: string): number {
   // Use 50/50 split scoring: 50% prompt quality + 50% output quality
-  const result = scorePromptAndOutput(originalPrompt, output);
+  const result = scorePromptAndOutput(optimizedPrompt, output);
   
-  console.log(`[Opt Score] Strategy: ${strategyWeight.toFixed(2)} | Final: ${result.finalScore.toFixed(2)} | Prompt: ${result.promptScore.toFixed(2)} | Output: ${result.outputScore.toFixed(2)} | Normalized: ${(result.finalScore/10).toFixed(3)}`);
+  console.log(`[Opt Score] Final: ${result.finalScore.toFixed(2)} | Prompt: ${result.promptScore.toFixed(2)} | Output: ${result.outputScore.toFixed(2)} | Normalized: ${(result.finalScore/10).toFixed(3)}`);
   
   // Get the final 50/50 score (0-10 scale) and convert to 0-1 scale
   const normalizedScore = result.finalScore / 10;
