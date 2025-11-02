@@ -929,16 +929,12 @@ function evaluateOutput(output: string, strategyWeight: number, originalPrompt: 
   // Use 50/50 split scoring: 50% prompt quality + 50% output quality
   const result = scorePromptAndOutput(originalPrompt, output);
   
-  // Get the final 50/50 score (0-10 scale)
-  let score = result.finalScore;
+  console.log(`[Opt Score] Strategy: ${strategyWeight.toFixed(2)} | Final: ${result.finalScore.toFixed(2)} | Prompt: ${result.promptScore.toFixed(2)} | Output: ${result.outputScore.toFixed(2)} | Normalized: ${(result.finalScore/10).toFixed(3)}`);
   
-  // Apply strategy weight bonus (small influence)
-  score += strategyWeight * 0.3;
+  // Get the final 50/50 score (0-10 scale) and convert to 0-1 scale
+  const normalizedScore = result.finalScore / 10;
   
-  // Convert 0-10 scale to 0-1 scale for optimizer compatibility
-  const normalizedScore = score / 10;
-  
-  // Keep in valid range
+  // Keep in valid range (0.15-0.95 = 1.5-9.5 on 0-10 scale)
   return Math.min(0.95, Math.max(0.15, normalizedScore));
 }
 
