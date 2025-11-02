@@ -122,6 +122,10 @@ const PromptLab = () => {
         return;
       }
 
+      // Always fetch fresh access token for functions auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
       console.log('🚀 Calling edge function with targetLLM:', targetLLM);
       
@@ -132,6 +136,7 @@ const PromptLab = () => {
       
       // Create edge function promise
       const edgeFunctionPromise = supabase.functions.invoke('prompt-lab-analyze', {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         body: {
           mode,
           target_llm: targetLLM,
@@ -149,16 +154,19 @@ const PromptLab = () => {
         timeoutPromise
       ]) as any;
 
-      console.log('📥 Received response:', { data: !!data, error: !!error });
+      console.log('📥 Received response:', { hasData: !!data, hasError: !!error, preview: typeof data === 'string' ? data.slice(0, 120) : JSON.stringify(data)?.slice(0, 120) });
 
       if (error) throw error;
 
+      const payload = typeof data === 'string' ? JSON.parse(data) : data;
+      if (!payload) throw new Error('No data received from Lab function');
+
       if (mode === 'single') {
-        setSingleResult(data);
+        setSingleResult(payload);
         toast({ title: "Analysis Complete", description: "Your prompt has been scored!" });
       } else {
-        setCompareResult(data);
-        toast({ title: "Battle Complete", description: `Prompt ${data.winner} wins!` });
+        setCompareResult(payload);
+        toast({ title: "Battle Complete", description: `Prompt ${payload.winner} wins!` });
       }
     } catch (error) {
       console.error('Lab test error:', error);
