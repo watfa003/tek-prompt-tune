@@ -101,12 +101,19 @@ const PromptLab = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({ title: "Error", description: "Please sign in to use the lab", variant: "destructive" });
+        setIsLoading(false);
         return;
       }
 
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
       
-      const { data, error } = await supabase.functions.invoke('prompt-lab-analyze', {
+      // Create timeout promise (90 seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timed out after 90 seconds')), 90000);
+      });
+      
+      // Create edge function promise
+      const edgeFunctionPromise = supabase.functions.invoke('prompt-lab-analyze', {
         body: {
           mode,
           target_llm: targetLLM,
@@ -115,6 +122,12 @@ const PromptLab = () => {
           test_task: testTask || undefined,
         },
       });
+      
+      // Race between timeout and edge function
+      const { data, error } = await Promise.race([
+        edgeFunctionPromise,
+        timeoutPromise
+      ]) as any;
 
       if (error) throw error;
 
@@ -133,6 +146,7 @@ const PromptLab = () => {
         variant: "destructive" 
       });
     } finally {
+      // Always reset loading state, even on timeout or error
       setIsLoading(false);
     }
   };
