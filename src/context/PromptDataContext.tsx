@@ -511,7 +511,12 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
 
       // Fetch all optimization history with prompt data to show all variants
-      const { data: optimizations, error: optError } = await supabase
+      // Add timeout wrapper (30 seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database query timed out after 30 seconds')), 30000);
+      });
+
+      const queryPromise = supabase
         .from('optimization_history')
         .select(`
           *,
@@ -528,6 +533,12 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         .eq('user_id', user.user.id)
         .order('score', { ascending: false })
         .limit(500);
+
+      // Race between query and timeout
+      const { data: optimizations, error: optError } = await Promise.race([
+        queryPromise,
+        timeoutPromise
+      ]) as any;
 
       if (optError) throw optError;
 
@@ -763,14 +774,21 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     let poller: any;
 
     const init = async () => {
+      // Fallback timeout to guarantee loading state reset
+      const initTimeout = setTimeout(() => {
+        console.error('Init took longer than 35 seconds, forcing loading=false');
+        setLoading(false);
+      }, 35000);
+
       try {
         const { data: user } = await supabase.auth.getUser();
         if (!user.user) {
           setLoading(false);
+          clearTimeout(initTimeout);
           return;
         }
 
-        // Load initial data
+        // Load initial data with timeout protection
         await loadInitialData();
 
         // Set up real-time subscriptions
@@ -1034,6 +1052,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (err) {
         console.error('PromptDataProvider init error:', err);
       } finally {
+        clearTimeout(initTimeout);
         setLoading(false);
       }
     };
