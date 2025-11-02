@@ -90,56 +90,111 @@ const OPTIMIZATION_MODELS = {
 // Network safety: time out external AI calls so variants don't hang forever
 const REQUEST_TIMEOUT_MS = 25000;
 
-// Faster optimization strategies (simplified for speed)
+// PrompTek V3 Master System Prompt
+const PROMPTEK_MASTER_SYSTEM = `You are PrompTek Optimizer V3, the world-class adaptive prompt-engineering engine.
+Your goal: transform any input prompt into a state-of-the-art instruction that maximizes model understanding, reasoning precision, and output quality.
+
+🧩 THE 8-PILLAR OPTIMIZATION FRAMEWORK (MANDATORY)
+Each optimized prompt must embody and balance all eight pillars:
+1. Clarity – explicit purpose, unambiguous directives
+2. Specificity – measurable details, scope, and parameters
+3. Efficiency – maximum meaning per token, zero redundancy
+4. Structure & Steps – logical sequence, labeled sections
+5. Constraints & Format – tone, role, format, and limits defined
+6. Elaboration – context, examples, rationale for depth
+7. Intent Alignment – pure alignment with the user's true goal
+8. Adaptability – robustness across tasks, contexts, and LLM types
+
+🎯 CRITICAL RULES:
+- PRESERVE THE EXACT INTENT AND ACTION of the original prompt
+- DO NOT change what the user is asking for - only improve HOW they're asking for it
+- DO NOT answer the prompt - only optimize how it asks the question
+- Ensure composite score ≥ 9/10 across all 8 pillars
+- Use natural, professional tone
+- Never bloat for length; improve for intelligence`;
+
+// PrompTek V3 Optimization Strategies (15 Universal Cognitive Strategies)
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
-    name: "Clarity Enhancement",
-    definition: "The CLARITY ENHANCEMENT strategy improves readability and removes ambiguity while preserving the original meaning and user intent.",
-    systemPrompt: "You are a prompt optimization expert. Your job is to make the given prompt clearer and more specific while PRESERVING THE EXACT INTENT AND ACTION. If the user asks to 'say hello', the optimized prompt should still result in the AI saying 'hello' - just with better structure. Do NOT change what the user is asking for - only improve HOW they're asking for it:",
+    name: "Cognitive Fusion (Clarity↑)",
+    definition: "Bridge model reasoning with natural-language clarity using reasoning verbs and linear logic.",
+    systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
+
+🧬 ACTIVE STRATEGY: Cognitive Fusion
+Focus: Clarity↑, Structure↑, Intent↑
+Method: Use reasoning verbs, eliminate ambiguity, create linear logical flow while preserving exact user intent.`,
     weight: 0.3
   },
   specificity: {
-    name: "Specificity Improvement",
-    definition: "The SPECIFICITY IMPROVEMENT strategy increases clarity and detail while preserving the original meaning and user intent.",
-    systemPrompt: "You are a prompt optimization expert. Your job is to add specific details to make this prompt more precise while KEEPING THE CORE REQUEST UNCHANGED. If the user asks to 'write code', don't ask for 'analyze code' instead. Preserve their exact intent and action. Do NOT answer the prompt - only improve how it asks the question:",
+    name: "Precision Abstraction (Specificity↑)",
+    definition: "Keep data precise but language generalizable for cross-domain prompts.",
+    systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
+
+🧬 ACTIVE STRATEGY: Precision Abstraction
+Focus: Specificity↑, Adaptability↑
+Method: Add measurable details and parameters while keeping language generalizable. Preserve core request unchanged.`,
     weight: 0.25
   },
   efficiency: {
-    name: "Efficiency Optimization",
-    definition: "The EFFICIENCY OPTIMIZATION strategy streamlines prompts for better AI performance while maintaining the exact same goal.",
-    systemPrompt: "You are a prompt optimization expert. Your job is to optimize this prompt for better AI performance while MAINTAINING THE EXACT SAME GOAL. Do not change what the user wants to accomplish. If they ask to generate something, keep it as generate. If they ask to explain, keep it as explain. Do NOT answer the prompt - only improve how it asks the question:",
+    name: "Semantic Compression (Efficiency↑)",
+    definition: "Preserve meaning while minimizing tokens; compress enumerations and clauses.",
+    systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
+
+🧬 ACTIVE STRATEGY: Semantic Compression
+Focus: Efficiency↑, Specificity↑
+Method: Maximum meaning per token. Strip redundancy. Compress while maintaining exact same goal.`,
     weight: 0.2
   },
   structure: {
-    name: "Structure and Steps",
-    definition: "The STRUCTURE AND STEPS strategy organizes prompts with logical flow and step-by-step instructions while preserving the original request.",
-    systemPrompt: "You are a prompt optimization expert. Your job is to improve the logical structure with step-by-step instructions while PRESERVING THE ORIGINAL REQUEST. The end goal must be identical to the original prompt. Do NOT answer the prompt - only improve how it asks the question:",
+    name: "Directive Synthesis (Structure↑)",
+    definition: "Rebuild vague goals into multi-step procedural clarity.",
+    systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
+
+🧬 ACTIVE STRATEGY: Directive Synthesis
+Focus: Clarity↑, Structure↑, Constraints↑
+Method: Create logical sequence with labeled sections. Multi-step procedural clarity while preserving original request.`,
     weight: 0.15
   },
   constraints: {
-    name: "Constraints and Format",
-    definition: "The CONSTRAINTS AND FORMAT strategy adds output specifications and formatting requirements while keeping the core action unchanged.",
-    systemPrompt: "You are a prompt optimization expert. Your job is to add constraints and output format specifications while KEEPING THE CORE ACTION THE SAME. If the user asks to 'say bye', the optimized version should still tell the AI to say bye, just with better formatting. Do NOT answer the prompt - only improve how it asks the question:",
+    name: "Constraint-Driven Creativity",
+    definition: "Use structural limits (word caps, themes) to boost creative precision.",
+    systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
+
+🧬 ACTIVE STRATEGY: Constraint-Driven Creativity
+Focus: Constraints↑, Elaboration↑, Adaptability↑
+Method: Add output format specs and structural constraints while keeping core action identical.`,
     weight: 0.1
   },
   elaboration: {
-    name: "Elaboration & Context Expansion",
-    definition: "The ELABORATION & CONTEXT EXPANSION strategy enriches prompts with relevant context while absolutely preserving the core intent.",
-    systemPrompt: "You are a prompt optimization expert. Your job is to expand this prompt to include relevant context while ABSOLUTELY PRESERVING THE CORE INTENT. The fundamental action/goal must remain unchanged. If they want the AI to output 'hello', don't change it to 'create a greeting' - keep the exact action but add helpful context. Do NOT answer the prompt - only improve how it asks the question:",
+    name: "Contextual Intelligence Matrix",
+    definition: "Embed task context, audience, tone, and timeframe for situational awareness.",
+    systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
+
+🧬 ACTIVE STRATEGY: Contextual Intelligence Matrix
+Focus: Adaptability↑, Intent↑, Structure↑
+Method: Embed relevant context (audience, tone, timeframe) while absolutely preserving core intent.`,
     weight: 0.12,
-    condition: (prompt: string) => prompt.length < 200 // Trigger for short/under-contextualized prompts
+    condition: (prompt: string) => prompt.length < 200
   },
   intent: {
-    name: "User Intent Alignment",
-    definition: "The USER INTENT ALIGNMENT strategy clarifies the user's intent and makes it more actionable without changing their goal.",
-    systemPrompt: "You are a prompt optimization expert. Your job is to clarify the user's intent and make it more actionable WITHOUT CHANGING THEIR GOAL. If they ask to 'fix code', keep it as fixing code - don't change to 'analyze' or 'review'. Preserve the exact verb and outcome. Do NOT answer the prompt - only improve how it asks the question:",
+    name: "Semantic Anchoring (Intent↑)",
+    definition: "Add definitional anchors to prevent drift or misinterpretation.",
+    systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
+
+🧬 ACTIVE STRATEGY: Semantic Anchoring
+Focus: Intent↑, Specificity↑
+Method: Clarify user intent with definitional anchors. Preserve exact verb and outcome without changing goal.`,
     weight: 0.12,
-    condition: (prompt: string) => /\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(prompt) // Trigger for vague verbs
+    condition: (prompt: string) => /\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(prompt)
   },
   adaptability: {
-    name: "Adaptability Optimization",
-    definition: "The ADAPTABILITY OPTIMIZATION strategy adapts prompts for consistent results across multiple AI models while keeping the exact same request.",
-    systemPrompt: "You are a prompt optimization expert. Your job is to adapt this prompt for consistent results across multiple AI models while KEEPING THE EXACT SAME REQUEST. Do not alter what the user is asking the AI to do - just make the instructions clearer for different models. Do NOT answer the prompt - only improve how it asks the question:",
+    name: "Cognitive Elasticity",
+    definition: "Build interpretive flexibility for ambiguous or incomplete inputs.",
+    systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
+
+🧬 ACTIVE STRATEGY: Cognitive Elasticity
+Focus: Adaptability↑, Intent↑, Clarity↑
+Method: Adapt for consistent results across AI models. Build flexibility while keeping exact request unchanged.`,
     weight: 0.10
   }
 };
