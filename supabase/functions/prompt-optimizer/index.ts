@@ -11,6 +11,15 @@ import {
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
+import { 
+  callLovableGateway,
+  callWithRetry,
+  fetchWithTimeout,
+  API_TIMEOUTS,
+  RETRY_CONFIG,
+  logAPICall,
+  trackRateLimit
+} from '../shared/api-reliability.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -87,8 +96,7 @@ const OPTIMIZATION_MODELS = {
   google: 'gemini-2.5-flash'
 };
 
-// Network safety: time out external AI calls so variants don't hang forever
-const REQUEST_TIMEOUT_MS = 25000;
+// REMOVED: Using unified API_TIMEOUTS from api-reliability.ts
 
 // PrompTek V3 Master System Prompt - STRICT 8+ ENFORCEMENT
 const PROMPTEK_MASTER_SYSTEM = `You are PrompTek Optimizer V3, the world-class adaptive prompt-engineering engine.
@@ -561,13 +569,16 @@ ${enhancedPrompt}`;
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
         // Ensure minimum 1024 tokens for optimization to avoid MAX_TOKENS errors
         const optimizationTokens = maxTokens ? Math.max(1024, Math.min(maxTokens, 4096)) : 2048;
-        const optimizedPromptRaw = await callAIProvider(
-          aiProvider, 
-          optimizationModel, 
-          optimizationPrompt, 
-          optimizationTokens,
-          temperature
-        );
+        // Route through Lovable AI Gateway with retry logic
+        const optimizedPromptRaw = await callLovableGateway({
+          provider: aiProvider,
+          model: optimizationModel,
+          systemPrompt: PROMPTEK_MASTER_SYSTEM,
+          userPrompt: optimizationPrompt,
+          maxTokens: optimizationTokens,
+          temperature,
+          context: `Optimizer-${strategyKey}`
+        });
         
         // Sanitize to ensure we only keep the improved prompt text (never an AI answer)
         let optimizedPrompt = (optimizedPromptRaw ?? '').toString();
@@ -596,13 +607,16 @@ ${enhancedPrompt}`;
           console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
           // Use 1024 tokens for testing when no limit is set (faster responses), otherwise respect user's limit
           const testTokens = maxTokens ? Math.max(512, Math.min(maxTokens, 4096)) : 1024;
-          const testResponse = await callAIProvider(
-            aiProvider,
-            modelName,
-            optimizedPrompt,
-            testTokens,
-            temperature
-          );
+          // Route through Lovable AI Gateway with retry logic
+          const testResponse = await callLovableGateway({
+            provider: aiProvider,
+            model: modelName,
+            systemPrompt: 'You are a helpful AI assistant.',
+            userPrompt: optimizedPrompt,
+            maxTokens: testTokens,
+            temperature,
+            context: `Test-${strategyKey}`
+          });
           
           if (testResponse) {
             actualResponse = testResponse;
@@ -841,172 +855,13 @@ function getModelFriendlyName(provider: string, model: string): string {
 }
 
 
-// Optimized AI provider calls
-async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
-  const providerConfig = AI_PROVIDERS[provider as keyof typeof AI_PROVIDERS];
-  if (!providerConfig || !providerConfig.apiKey) {
-    throw new Error(`Provider ${provider} not configured`);
-  }
+// REMOVED: callAIProvider - now using unified callLovableGateway from api-reliability.ts
 
-  let modelConfig = (providerConfig.models as any)[model];
-  if (!modelConfig && provider === 'groq') {
-    // Fallback to the only supported Groq model we expose
-    modelConfig = (providerConfig.models as any)['llama-3.1-8b'];
-  }
-  if (!modelConfig) {
-    throw new Error(`Model ${model} not available`);
-  }
+// REMOVED: callOpenAICompatible - now using unified callLovableGateway from api-reliability.ts
 
-  try {
-    switch (provider) {
-      case 'openai':
-      case 'groq':
-      case 'mistral':
-        return await callOpenAICompatible(providerConfig, modelConfig.name, prompt, maxTokens, temperature);
-      
-      case 'anthropic':
-        return await callAnthropic(providerConfig, modelConfig.name, prompt, maxTokens);
-      
-      case 'google':
-        return await callGoogle(providerConfig, modelConfig.name, prompt, maxTokens);
-      
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
-  } catch (error) {
-    console.error(`Error calling ${provider} API:`, error);
-    return null;
-  }
-}
+// REMOVED: callAnthropic - now using unified callLovableGateway from api-reliability.ts
 
-async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
-  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}`);
-  
-  const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
-  const payload: any = {
-    model: model,
-    messages: [{ role: 'user', content: prompt }],
-  };
-  
-  if (isNewerModel) {
-    payload.max_completion_tokens = maxTokens;
-    // Newer models don't support temperature parameter - defaults to 1.0
-  } else {
-    payload.max_tokens = maxTokens;
-    // Ignore temperature; style is enforced via prompt wording
-  }
-
-  console.log('📦 OpenAI Payload:', { model, isNewerModel, maxTokens, temp: payload.temperature });
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
-  const response = await fetch(providerConfig.baseUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${providerConfig.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-    signal: controller.signal,
-  });
-  clearTimeout(timeout);
-
-  console.log(`📡 Response status: ${response.status} for model: ${model}`);
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`❌ API call failed for ${model}:`, errorText);
-    throw new Error(`API call failed: ${response.statusText} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  console.log(`✅ OpenAI-compatible API success: ${model}`);
-  return data.choices[0].message.content;
-}
-
-async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
-  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}`);
-  
-  console.log('📦 Anthropic Payload:', { model, maxTokens });
-  
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
-  const response = await fetch(providerConfig.baseUrl, {
-    method: 'POST',
-    headers: {
-      'x-api-key': providerConfig.apiKey,
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: model,
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-    signal: controller.signal,
-  });
-  clearTimeout(timeout);
-
-  console.log(`📡 Response status: ${response.status} for model: ${model}`);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`❌ Anthropic API error (${response.status}):`, errorText);
-    throw new Error(`Anthropic API call failed: ${response.statusText} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  console.log(`✅ Anthropic API success: ${model}`);
-  return data.content[0].text;
-}
-
-async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
-  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}`);
-  
-  console.log('📦 Google Payload:', { model, maxOutputTokens: maxTokens });
-  
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
-  const response = await fetch(`${providerConfig.baseUrl}/${model}:generateContent?key=${providerConfig.apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{ text: prompt }]
-      }],
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-      }
-    }),
-    signal: controller.signal,
-  });
-  clearTimeout(timeout);
-
-  console.log(`📡 Response status: ${response.status} for model: ${model}`);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`❌ Google API error (${response.status}):`, errorText);
-    throw new Error(`Google API call failed: ${response.status} ${response.statusText} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.candidates || data.candidates.length === 0) {
-    console.error('❌ Google API response has no candidates:', JSON.stringify(data));
-    throw new Error('Google API returned no candidates');
-  }
-  
-  if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
-    console.error('❌ Google API response has no content parts:', JSON.stringify(data.candidates[0]));
-    throw new Error('Google API returned no content parts');
-  }
-  
-  console.log(`✅ Google API success: ${model}`);
-  return data.candidates[0].content.parts[0].text;
-}
+// REMOVED: callGoogle - now using unified callLovableGateway from api-reliability.ts
 
 // Removed - grading mode detection no longer needed with unified master grader
 
