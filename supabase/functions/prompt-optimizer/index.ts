@@ -11,15 +11,6 @@ import {
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
-import { 
-  callLovableGateway,
-  callWithRetry,
-  fetchWithTimeout,
-  API_TIMEOUTS,
-  RETRY_CONFIG,
-  logAPICall,
-  trackRateLimit
-} from '../shared/api-reliability.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,67 +87,31 @@ const OPTIMIZATION_MODELS = {
   google: 'gemini-2.5-flash'
 };
 
-// REMOVED: Using unified API_TIMEOUTS from api-reliability.ts
+// Network safety: time out external AI calls so variants don't hang forever
+const REQUEST_TIMEOUT_MS = 25000;
 
-// PrompTek V3 Master System Prompt - STRICT 8+ ENFORCEMENT
+// PrompTek V3 Master System Prompt
 const PROMPTEK_MASTER_SYSTEM = `You are PrompTek Optimizer V3, the world-class adaptive prompt-engineering engine.
 Your goal: transform any input prompt into a state-of-the-art instruction that maximizes model understanding, reasoning precision, and output quality.
 
-🧩 THE 8-PILLAR OPTIMIZATION FRAMEWORK (MANDATORY - ALL MUST SCORE 8+)
-⚠️ CRITICAL: Each optimized prompt MUST score 8+ on ALL EIGHT pillars. No exceptions.
-
-1. **Clarity** (MANDATORY: 8-10) – Use explicit action verbs, define the goal unambiguously
-   ✅ REQUIRED: Start with "Your task is to..." or "You will..." + clear outcome definition
-   ✅ Eliminate ALL vague terms like "good", "better", "nice", "appropriate"
-
-2. **Specificity** (MANDATORY: 8-10) – Include precise measurable details
-   ✅ REQUIRED: Add concrete numbers (word counts, example quantities, time constraints)
-   ✅ REQUIRED: Include at least one specific example or scenario
-   ✅ Define exact scope boundaries (what to include AND what to exclude)
-
-3. **Efficiency** (MANDATORY: 8-10) – Maximum meaning per token, zero fluff
-   ✅ REQUIRED: Remove ALL filler words: "please", "kindly", "if possible", "try to"
-   ✅ Compress redundant phrases while maintaining ALL essential information
-
-4. **Structure & Steps** (MANDATORY: 8-10) – Logical sequence with clear organization
-   ✅ REQUIRED: Use numbered steps OR bullet points OR labeled sections
-   ✅ Each section must have a clear purpose and flow logically to the next
-
-5. **Constraints & Format** (MANDATORY: 8-10) – Define ALL output requirements explicitly
-   ✅ REQUIRED: Specify exact format (Markdown, JSON, plain text, HTML, etc.)
-   ✅ REQUIRED: Define tone (professional, casual, technical, creative, etc.)
-   ✅ REQUIRED: Set length boundaries (word count, character limit, or paragraph count)
-   ✅ REQUIRED: Add any relevant style constraints (active voice, present tense, etc.)
-   ⚠️ LOW SCORES HERE = MISSING FORMAT/TONE/LENGTH SPECS
-
-6. **Elaboration** (MANDATORY: 8-10) – Provide rich context for situational awareness
-   ✅ REQUIRED: Add "Context:" section explaining WHY this task matters
-   ✅ REQUIRED: Add "Purpose:" or "Goal:" to clarify the end objective
-   ✅ REQUIRED: Include at least one concrete example with "For example:"
-   ✅ Provide background information or scenario details
-   ⚠️ LOW SCORES HERE = MISSING CONTEXT/PURPOSE/EXAMPLES
-
-7. **Intent Alignment** (MANDATORY: 8-10) – Define success explicitly
-   ✅ REQUIRED: Add "Success criteria:" or "The ideal output will..."
-   ✅ Make it crystal-clear what constitutes a good vs. bad result
-
-8. **Adaptability** (MANDATORY: 8-10) – Works across models and contexts
-   ✅ REQUIRED: Use general principles that apply beyond one narrow case
-   ✅ Avoid model-specific jargon or overly niche domain terminology
+🧩 THE 8-PILLAR OPTIMIZATION FRAMEWORK (MANDATORY)
+Each optimized prompt must embody and balance all eight pillars:
+1. Clarity – explicit purpose, unambiguous directives
+2. Specificity – measurable details, scope, and parameters
+3. Efficiency – maximum meaning per token, zero redundancy
+4. Structure & Steps – logical sequence, labeled sections
+5. Constraints & Format – tone, role, format, and limits defined
+6. Elaboration – context, examples, rationale for depth
+7. Intent Alignment – pure alignment with the user's true goal
+8. Adaptability – robustness across tasks, contexts, and LLM types
 
 🎯 CRITICAL RULES:
 - PRESERVE THE EXACT INTENT AND ACTION of the original prompt
 - DO NOT change what the user is asking for - only improve HOW they're asking for it
 - DO NOT answer the prompt - only optimize how it asks the question
-- EVERY optimized prompt MUST score 8+ on ALL 8 pillars (especially Constraints & Elaboration)
-- If original lacks constraints/elaboration, YOU MUST ADD THEM based on logical inference
+- Ensure composite score ≥ 9/10 across all 8 pillars
 - Use natural, professional tone
-- Never bloat for length; improve for intelligence
-
-⚠️ COMMON FAILURE POINTS (FIX THESE):
-- Constraints score 3-5 → MISSING format/tone/length specifications
-- Elaboration score 3-5 → MISSING context/purpose/examples
-→ Solution: Always add these sections even if the original prompt doesn't have them!`;
+- Never bloat for length; improve for intelligence`;
 
 // PrompTek V3 Optimization Strategies (15 Universal Cognitive Strategies)
 const OPTIMIZATION_STRATEGIES = {
@@ -166,16 +121,8 @@ const OPTIMIZATION_STRATEGIES = {
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Cognitive Fusion
-PRIMARY Focus: Clarity↑, Structure↑, Intent↑
-MANDATORY: ALL 8 pillars must score 8+
-
-Method: 
-- Use explicit action verbs ("Your task is to...", "You will...")
-- Define clear outcomes and success criteria
-- Add logical structure (numbered steps or sections)
-- ⚠️ CRITICAL: Add format/tone/length constraints (if missing, infer from context)
-- ⚠️ CRITICAL: Add Context/Purpose/Examples for elaboration (if missing, create reasonable ones)
-- Preserve exact user intent while making crystal-clear HOW to achieve it`,
+Focus: Clarity↑, Structure↑, Intent↑
+Method: Use reasoning verbs, eliminate ambiguity, create linear logical flow while preserving exact user intent.`,
     weight: 0.3
   },
   specificity: {
@@ -184,16 +131,8 @@ Method:
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Precision Abstraction
-PRIMARY Focus: Specificity↑, Adaptability↑
-MANDATORY: ALL 8 pillars must score 8+
-
-Method: 
-- Add measurable details (word counts, number of examples, specific domains)
-- Include concrete examples or scenarios with "For example:"
-- Define clear boundaries and scope (what to include AND exclude)
-- ⚠️ CRITICAL: Add explicit format/tone/length constraints
-- ⚠️ CRITICAL: Provide Context/Purpose section explaining WHY
-- Keep language generalizable for reuse across contexts`,
+Focus: Specificity↑, Adaptability↑
+Method: Add measurable details and parameters while keeping language generalizable. Preserve core request unchanged.`,
     weight: 0.25
   },
   efficiency: {
@@ -202,16 +141,8 @@ Method:
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Semantic Compression
-PRIMARY Focus: Efficiency↑, Specificity↑
-MANDATORY: ALL 8 pillars must score 8+
-
-Method: 
-- Maximum meaning per token (remove ALL filler: "please", "kindly", "try to")
-- Compress redundant phrases WHILE adding missing critical elements
-- ⚠️ CRITICAL: While compressing, ADD constraints (format/tone/length) if missing
-- ⚠️ CRITICAL: ADD elaboration (Context/Purpose/Examples) if missing
-- Never sacrifice completeness for brevity - add what's needed for 8+ on all pillars
-- Maintain exact same goal with clearer, more complete execution`,
+Focus: Efficiency↑, Specificity↑
+Method: Maximum meaning per token. Strip redundancy. Compress while maintaining exact same goal.`,
     weight: 0.2
   },
   structure: {
@@ -220,14 +151,8 @@ Method:
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Directive Synthesis
-PRIMARY Focus: Clarity↑, Structure↑, Constraints↑
-MANDATORY: ALL 8 pillars must score 8+
-
-Method: 
-- Create logical sequence with numbered steps or labeled sections
-- ⚠️ CRITICAL: Add format/tone/length constraints explicitly
-- ⚠️ CRITICAL: Add Context/Purpose/Examples for elaboration
-- Multi-step procedural clarity while preserving original request`,
+Focus: Clarity↑, Structure↑, Constraints↑
+Method: Create logical sequence with labeled sections. Multi-step procedural clarity while preserving original request.`,
     weight: 0.15
   },
   constraints: {
@@ -236,14 +161,8 @@ Method:
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Constraint-Driven Creativity
-PRIMARY Focus: Constraints↑, Elaboration↑, Adaptability↑
-MANDATORY: ALL 8 pillars must score 8+
-
-Method: 
-- ⚠️ CRITICAL: Add EXPLICIT format (Markdown/JSON/etc.), tone (professional/casual), length (word/character count)
-- ⚠️ CRITICAL: Add Context/Purpose/Examples sections
-- Add output specifications and structural boundaries
-- Keep core action identical while making requirements crystal-clear`,
+Focus: Constraints↑, Elaboration↑, Adaptability↑
+Method: Add output format specs and structural constraints while keeping core action identical.`,
     weight: 0.1
   },
   elaboration: {
@@ -252,16 +171,8 @@ Method:
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Contextual Intelligence Matrix
-PRIMARY Focus: Elaboration↑, Adaptability↑, Intent↑
-MANDATORY: ALL 8 pillars must score 8+
-
-Method: 
-- ⚠️ CRITICAL: Add "Context:" section explaining WHY this task matters
-- ⚠️ CRITICAL: Add "Purpose:" or "Goal:" to clarify end objective
-- ⚠️ CRITICAL: Include concrete "For example:" with specific scenario
-- ⚠️ CRITICAL: Add format/tone/length constraints
-- Embed audience, tone, timeframe for situational awareness
-- Preserve core intent while enriching understanding`,
+Focus: Adaptability↑, Intent↑, Structure↑
+Method: Embed relevant context (audience, tone, timeframe) while absolutely preserving core intent.`,
     weight: 0.12,
     condition: (prompt: string) => prompt.length < 200
   },
@@ -271,14 +182,8 @@ Method:
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Semantic Anchoring
-PRIMARY Focus: Intent↑, Specificity↑
-MANDATORY: ALL 8 pillars must score 8+
-
-Method: 
-- Clarify user intent with definitional anchors and success criteria
-- ⚠️ CRITICAL: Add format/tone/length constraints
-- ⚠️ CRITICAL: Add Context/Purpose/Examples for elaboration
-- Preserve exact verb and outcome without changing goal`,
+Focus: Intent↑, Specificity↑
+Method: Clarify user intent with definitional anchors. Preserve exact verb and outcome without changing goal.`,
     weight: 0.12,
     condition: (prompt: string) => /\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(prompt)
   },
@@ -288,14 +193,8 @@ Method:
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Cognitive Elasticity
-PRIMARY Focus: Adaptability↑, Intent↑, Clarity↑
-MANDATORY: ALL 8 pillars must score 8+
-
-Method: 
-- Adapt for consistent results across AI models using general principles
-- ⚠️ CRITICAL: Add format/tone/length constraints
-- ⚠️ CRITICAL: Add Context/Purpose/Examples for elaboration
-- Build flexibility while keeping exact request unchanged`,
+Focus: Adaptability↑, Intent↑, Clarity↑
+Method: Adapt for consistent results across AI models. Build flexibility while keeping exact request unchanged.`,
     weight: 0.10
   }
 };
@@ -569,16 +468,13 @@ ${enhancedPrompt}`;
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
         // Ensure minimum 1024 tokens for optimization to avoid MAX_TOKENS errors
         const optimizationTokens = maxTokens ? Math.max(1024, Math.min(maxTokens, 4096)) : 2048;
-        // Route through Lovable AI Gateway with retry logic
-        const optimizedPromptRaw = await callLovableGateway({
-          provider: aiProvider,
-          model: optimizationModel,
-          systemPrompt: PROMPTEK_MASTER_SYSTEM,
-          userPrompt: optimizationPrompt,
-          maxTokens: optimizationTokens,
-          temperature,
-          context: `Optimizer-${strategyKey}`
-        });
+        const optimizedPromptRaw = await callAIProvider(
+          aiProvider, 
+          optimizationModel, 
+          optimizationPrompt, 
+          optimizationTokens,
+          temperature
+        );
         
         // Sanitize to ensure we only keep the improved prompt text (never an AI answer)
         let optimizedPrompt = (optimizedPromptRaw ?? '').toString();
@@ -607,26 +503,30 @@ ${enhancedPrompt}`;
           console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
           // Use 1024 tokens for testing when no limit is set (faster responses), otherwise respect user's limit
           const testTokens = maxTokens ? Math.max(512, Math.min(maxTokens, 4096)) : 1024;
-          // Route through Lovable AI Gateway with retry logic
-          const testResponse = await callLovableGateway({
-            provider: aiProvider,
-            model: modelName,
-            systemPrompt: 'You are a helpful AI assistant.',
-            userPrompt: optimizedPrompt,
-            maxTokens: testTokens,
-            temperature,
-            context: `Test-${strategyKey}`
-          });
+          const testResponse = await callAIProvider(
+            aiProvider,
+            modelName,
+            optimizedPrompt,
+            testTokens,
+            temperature
+          );
           
           if (testResponse) {
             actualResponse = testResponse;
             // Score based on the actual response from the user's selected model
-            actualScore = evaluateOutput(testResponse, optimizedPrompt);
-            console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
+            // Use fast evaluation for very long responses (over 2 pages)
+            const responseWords = testResponse.split(' ').length;
+            if (responseWords > 1500) { // Roughly 2 pages
+              console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
+              actualScore = fastSkimEvaluation(testResponse, strategy.weight);
+            } else {
+              actualScore = evaluateOutput(testResponse, strategy.weight, originalPrompt);
+             }
+             console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
          } else {
             // If no response, re-score the optimized prompt but ensure it's actually optimized
             if (optimizedPrompt.length > originalPrompt.length * 0.8) {
-              actualScore = evaluateOutput(optimizedPrompt, optimizedPrompt);
+              actualScore = evaluateOutput(optimizedPrompt, strategy.weight, originalPrompt);
               actualResponse = `Successfully optimized using ${strategy.name} strategy`;
             } else {
               // Prompt wasn't properly optimized, give low score
@@ -639,7 +539,7 @@ ${enhancedPrompt}`;
           console.error(`Error testing with user model ${modelName}:`, error);
           // Ensure we still have a properly optimized prompt even in error cases
           if (optimizedPrompt && optimizedPrompt.length > originalPrompt.length * 0.8) {
-            actualScore = evaluateOutput(optimizedPrompt, optimizedPrompt);
+            actualScore = evaluateOutput(optimizedPrompt, strategy.weight, originalPrompt);
             actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
           } else {
             // If optimization failed completely, return a lower score
@@ -855,22 +755,181 @@ function getModelFriendlyName(provider: string, model: string): string {
 }
 
 
-// REMOVED: callAIProvider - now using unified callLovableGateway from api-reliability.ts
+// Optimized AI provider calls
+async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
+  const providerConfig = AI_PROVIDERS[provider as keyof typeof AI_PROVIDERS];
+  if (!providerConfig || !providerConfig.apiKey) {
+    throw new Error(`Provider ${provider} not configured`);
+  }
 
-// REMOVED: callOpenAICompatible - now using unified callLovableGateway from api-reliability.ts
+  let modelConfig = (providerConfig.models as any)[model];
+  if (!modelConfig && provider === 'groq') {
+    // Fallback to the only supported Groq model we expose
+    modelConfig = (providerConfig.models as any)['llama-3.1-8b'];
+  }
+  if (!modelConfig) {
+    throw new Error(`Model ${model} not available`);
+  }
 
-// REMOVED: callAnthropic - now using unified callLovableGateway from api-reliability.ts
+  try {
+    switch (provider) {
+      case 'openai':
+      case 'groq':
+      case 'mistral':
+        return await callOpenAICompatible(providerConfig, modelConfig.name, prompt, maxTokens, temperature);
+      
+      case 'anthropic':
+        return await callAnthropic(providerConfig, modelConfig.name, prompt, maxTokens);
+      
+      case 'google':
+        return await callGoogle(providerConfig, modelConfig.name, prompt, maxTokens);
+      
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  } catch (error) {
+    console.error(`Error calling ${provider} API:`, error);
+    return null;
+  }
+}
 
-// REMOVED: callGoogle - now using unified callLovableGateway from api-reliability.ts
+async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
+  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}`);
+  
+  const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
+  const payload: any = {
+    model: model,
+    messages: [{ role: 'user', content: prompt }],
+  };
+  
+  if (isNewerModel) {
+    payload.max_completion_tokens = maxTokens;
+    // Newer models don't support temperature parameter - defaults to 1.0
+  } else {
+    payload.max_tokens = maxTokens;
+    // Ignore temperature; style is enforced via prompt wording
+  }
+
+  console.log('📦 OpenAI Payload:', { model, isNewerModel, maxTokens, temp: payload.temperature });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
+  const response = await fetch(providerConfig.baseUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${providerConfig.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
+
+  console.log(`📡 Response status: ${response.status} for model: ${model}`);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ API call failed for ${model}:`, errorText);
+    throw new Error(`API call failed: ${response.statusText} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log(`✅ OpenAI-compatible API success: ${model}`);
+  return data.choices[0].message.content;
+}
+
+async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
+  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}`);
+  
+  console.log('📦 Anthropic Payload:', { model, maxTokens });
+  
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
+  const response = await fetch(providerConfig.baseUrl, {
+    method: 'POST',
+    headers: {
+      'x-api-key': providerConfig.apiKey,
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: model,
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
+
+  console.log(`📡 Response status: ${response.status} for model: ${model}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ Anthropic API error (${response.status}):`, errorText);
+    throw new Error(`Anthropic API call failed: ${response.statusText} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log(`✅ Anthropic API success: ${model}`);
+  return data.content[0].text;
+}
+
+async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
+  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}`);
+  
+  console.log('📦 Google Payload:', { model, maxOutputTokens: maxTokens });
+  
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
+  const response = await fetch(`${providerConfig.baseUrl}/${model}:generateContent?key=${providerConfig.apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+      }
+    }),
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
+
+  console.log(`📡 Response status: ${response.status} for model: ${model}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ Google API error (${response.status}):`, errorText);
+    throw new Error(`Google API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.candidates || data.candidates.length === 0) {
+    console.error('❌ Google API response has no candidates:', JSON.stringify(data));
+    throw new Error('Google API returned no candidates');
+  }
+  
+  if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+    console.error('❌ Google API response has no content parts:', JSON.stringify(data.candidates[0]));
+    throw new Error('Google API returned no content parts');
+  }
+  
+  console.log(`✅ Google API success: ${model}`);
+  return data.candidates[0].content.parts[0].text;
+}
 
 // Removed - grading mode detection no longer needed with unified master grader
 
 // NEW: Unified 50/50 evaluation using Master Grader
-function evaluateOutput(output: string, optimizedPrompt: string): number {
+function evaluateOutput(output: string, strategyWeight: number, originalPrompt: string = ''): number {
   // Use 50/50 split scoring: 50% prompt quality + 50% output quality
-  const result = scorePromptAndOutput(optimizedPrompt, output);
+  const result = scorePromptAndOutput(originalPrompt, output);
   
-  console.log(`[Opt Score] Final: ${result.finalScore.toFixed(2)} | Prompt: ${result.promptScore.toFixed(2)} | Output: ${result.outputScore.toFixed(2)} | Normalized: ${(result.finalScore/10).toFixed(3)}`);
+  console.log(`[Opt Score] Strategy: ${strategyWeight.toFixed(2)} | Final: ${result.finalScore.toFixed(2)} | Prompt: ${result.promptScore.toFixed(2)} | Output: ${result.outputScore.toFixed(2)} | Normalized: ${(result.finalScore/10).toFixed(3)}`);
   
   // Get the final 50/50 score (0-10 scale) and convert to 0-1 scale
   const normalizedScore = result.finalScore / 10;

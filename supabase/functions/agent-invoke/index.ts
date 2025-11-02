@@ -1,12 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-import { 
-  callLovableGateway,
-  callWithRetry,
-  API_TIMEOUTS,
-  logAPICall
-} from '../shared/api-reliability.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,7 +16,184 @@ const mistralApiKey = Deno.env.get('MISTRAL_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-// REMOVED: callAIProvider - now using unified callLovableGateway from api-reliability.ts
+// Call AI provider
+async function callAIProvider(
+  provider: string,
+  model: string,
+  systemPrompt: string,
+  userInput: string,
+  maxTokens: number,
+  temperature: number
+): Promise<string> {
+  console.log(`Calling ${provider} with model ${model}`);
+  
+  // Validate API keys before attempting to call
+  const apiKeyMap: Record<string, string | undefined> = {
+    'openai': openAIApiKey,
+    'anthropic': anthropicApiKey,
+    'google': googleApiKey,
+    'groq': groqApiKey,
+    'mistral': mistralApiKey
+  };
+
+  const requiredApiKey = apiKeyMap[provider];
+  if (!requiredApiKey) {
+    throw new Error(`API key for ${provider} is not configured. Please add the ${provider.toUpperCase()}_API_KEY secret in Supabase.`);
+  }
+  
+  try {
+    switch (provider) {
+      case 'openai': {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userInput }
+            ],
+            max_tokens: maxTokens,
+            temperature: temperature,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('OpenAI API error:', error);
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+      }
+
+      case 'anthropic': {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': anthropicApiKey!,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: model,
+            max_tokens: maxTokens,
+            temperature: temperature,
+            system: systemPrompt,
+            messages: [
+              { role: 'user', content: userInput }
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Anthropic API error:', error);
+          throw new Error(`Anthropic API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.content[0].text;
+      }
+
+      case 'google': {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: `${systemPrompt}\n\nUser: ${userInput}`
+                }]
+              }],
+              generationConfig: {
+                maxOutputTokens: maxTokens,
+                temperature: temperature,
+              },
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Google API error:', error);
+          throw new Error(`Google API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+      }
+
+      case 'groq': {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userInput }
+            ],
+            max_tokens: maxTokens,
+            temperature: temperature,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Groq API error:', error);
+          throw new Error(`Groq API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+      }
+
+      case 'mistral': {
+        const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${mistralApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userInput }
+            ],
+            max_tokens: maxTokens,
+            temperature: temperature,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Mistral API error:', error);
+          throw new Error(`Mistral API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+      }
+
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  } catch (error) {
+    console.error(`Error calling ${provider}:`, error);
+    throw error;
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -194,18 +365,17 @@ serve(async (req) => {
       );
     }
 
-    // For chat mode, use custom system prompt and call Lovable AI Gateway with retry logic
+    // For chat mode, use custom system prompt and call AI provider
     const systemPrompt = agent.user_prompt || 'You are a helpful AI assistant.';
     
-    const output = await callLovableGateway({
-      provider: agent.provider,
-      model: agent.model,
+    const output = await callAIProvider(
+      agent.provider,
+      agent.model,
       systemPrompt,
-      userPrompt: input,
-      maxTokens: agent.max_tokens || 2048,
-      temperature: agent.temperature || 0.7,
-      context: `Agent-${agent.name}`
-    });
+      input,
+      agent.max_tokens || 2048,
+      agent.temperature || 0.7
+    );
 
     const processingTime = Date.now() - startTime;
 

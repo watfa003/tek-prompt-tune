@@ -83,16 +83,12 @@ const PromptLab = () => {
   const navigate = useNavigate();
 
   const handleRunTest = async () => {
-    console.log('🧪 Lab test started', { mode, promptA: promptA.substring(0, 50), selectedProvider, selectedLLM });
-    
     if (!promptA.trim()) {
-      console.log('❌ Validation failed: No prompt A');
       toast({ title: "Error", description: "Please enter a prompt", variant: "destructive" });
       return;
     }
 
     if (mode === 'compare' && !promptB.trim()) {
-      console.log('❌ Validation failed: No prompt B for compare mode');
       toast({ title: "Error", description: "Please enter both prompts for comparison", variant: "destructive" });
       return;
     }
@@ -102,41 +98,15 @@ const PromptLab = () => {
     setCompareResult(null);
 
     try {
-      // Use getUser with timeout to prevent auth stalls
-      const authTimeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Auth check timed out after 5 seconds')), 5000)
-      );
-      
-      const { data: authData, error: authError } = await Promise.race([
-        supabase.auth.getUser(),
-        authTimeout
-      ]) as any;
-
-      if (authError) throw authError;
-      const user = authData?.user;
-      console.log('✅ Auth check OK:', !!user);
-      
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         toast({ title: "Error", description: "Please sign in to use the lab", variant: "destructive" });
-        setIsLoading(false);
         return;
       }
 
-      // Always fetch fresh access token for functions auth
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
-      console.log('🚀 Calling edge function with targetLLM:', targetLLM);
       
-      // Create timeout promise (90 seconds)
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timed out after 90 seconds')), 90000);
-      });
-      
-      // Create edge function promise
-      const edgeFunctionPromise = supabase.functions.invoke('prompt-lab-analyze', {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      const { data, error } = await supabase.functions.invoke('prompt-lab-analyze', {
         body: {
           mode,
           target_llm: targetLLM,
@@ -145,28 +115,15 @@ const PromptLab = () => {
           test_task: testTask || undefined,
         },
       });
-      
-      console.log('⏳ Waiting for edge function response...');
-      
-      // Race between timeout and edge function
-      const { data, error } = await Promise.race([
-        edgeFunctionPromise,
-        timeoutPromise
-      ]) as any;
-
-      console.log('📥 Received response:', { hasData: !!data, hasError: !!error, preview: typeof data === 'string' ? data.slice(0, 120) : JSON.stringify(data)?.slice(0, 120) });
 
       if (error) throw error;
 
-      const payload = typeof data === 'string' ? JSON.parse(data) : data;
-      if (!payload) throw new Error('No data received from Lab function');
-
       if (mode === 'single') {
-        setSingleResult(payload);
+        setSingleResult(data);
         toast({ title: "Analysis Complete", description: "Your prompt has been scored!" });
       } else {
-        setCompareResult(payload);
-        toast({ title: "Battle Complete", description: `Prompt ${payload.winner} wins!` });
+        setCompareResult(data);
+        toast({ title: "Battle Complete", description: `Prompt ${data.winner} wins!` });
       }
     } catch (error) {
       console.error('Lab test error:', error);
@@ -176,7 +133,6 @@ const PromptLab = () => {
         variant: "destructive" 
       });
     } finally {
-      // Always reset loading state, even on timeout or error
       setIsLoading(false);
     }
   };

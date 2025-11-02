@@ -68,108 +68,101 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
   const [provider, model] = targetLLM.split('/');
   
   try {
-    // Route all model calls through Lovable AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
-
-    const mapToLovableModel = (prov: string, mdl?: string) => {
-      const m = mdl || '';
-      if (prov === 'openai') {
-        if (m.includes('gpt-5-nano')) return 'openai/gpt-5-nano';
-        if (m.includes('gpt-5-mini')) return 'openai/gpt-5-mini';
-        if (m.includes('gpt-5')) return 'openai/gpt-5';
-        // Map legacy OpenAI selections to a supported default
-        return 'openai/gpt-5-mini';
-      }
-      if (prov === 'google') {
-        if (m.includes('pro')) return 'google/gemini-2.5-pro';
-        if (m.includes('flash-lite')) return 'google/gemini-2.5-flash-lite';
-        return 'google/gemini-2.5-flash';
-      }
-      // Default
-      return 'google/gemini-2.5-flash';
-    };
-
-    const mappedModel = mapToLovableModel(provider, model);
-
-    const body: Record<string, unknown> = {
-      model: mappedModel,
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userMessage }
-      ],
-    };
-
-    // Token parameter differences - CRITICAL: GPT-5 uses reasoning tokens!
-    // For GPT-5 models, we need MUCH higher limits because reasoning_tokens consume most of the budget
-    if (mappedModel.startsWith('openai/gpt-5')) {
-      // GPT-5: Set to 16k to allow 4k reasoning + 12k output
-      body.max_completion_tokens = 16384;
-    } else {
-      body.max_tokens = 8192; // Others: increased from 2048 to prevent truncation
-      // Avoid temperature for GPT-5 models per spec
-      body.temperature = 0.2;
-    }
-
-    console.log('📦 Lovable AI request:', {
-      mappedModel,
-      provider,
-      originalModel: model,
-      systemPromptLength: systemMessage.length,
-      userPromptLength: userMessage.length,
-    });
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    console.log('📡 Lovable AI response status:', response.status, 'model:', mappedModel);
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('❌ Lovable AI error:', response.status, errText);
-      if (response.status === 429) throw new Error('Rate limits exceeded (429)');
-      if (response.status === 402) throw new Error('Payment required (402)');
-      throw new Error(`AI gateway error: ${errText}`);
-    }
-
-    const data = await response.json();
-
-    const content = data?.choices?.[0]?.message?.content as string | undefined;
-    
-    // CRITICAL: Check if content is empty due to token limit
-    if (!content || content.trim() === '') {
-      const finish = data?.choices?.[0]?.finish_reason;
-      const usage = data?.usage;
-      console.error('❌ Lovable AI returned empty content', JSON.stringify(data, null, 2));
+    if (provider === 'openai') {
+      const modelName = model || 'gpt-4o-mini';
+      const isNewModel = modelName.includes('gpt-5') || modelName.includes('o3') || modelName.includes('o4');
       
-      if (finish === 'length') {
-        throw new Error(`Token limit exceeded: ${usage?.completion_tokens || 'unknown'} completion tokens used (including ${usage?.completion_tokens_details?.reasoning_tokens || 0} reasoning tokens). Try increasing max_completion_tokens or using a simpler prompt.`);
+      const requestBody: any = {
+        model: modelName,
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage }
+        ],
+      };
+      
+      // New models use max_completion_tokens, old models use max_tokens
+      if (isNewModel) {
+        requestBody.max_completion_tokens = 500;
+      } else {
+        requestBody.max_tokens = 500;
       }
       
-      throw new Error(`AI returned no content. Finish reason: ${finish ?? 'unknown'}`);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      const data = await response.json();
+      
+      // Add error logging
+      if (!response.ok) {
+        console.error('OpenAI API error:', response.status, data);
+        throw new Error(`OpenAI API error: ${JSON.stringify(data)}`);
+      }
+      
+      if (!data.choices || !data.choices[0]) {
+        console.error('Unexpected OpenAI response:', data);
+        throw new Error('Invalid response from OpenAI API');
+      }
+      
+      return data.choices[0].message.content;
+    } else if (provider === 'anthropic') {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicApiKey!,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: model || 'claude-3-5-haiku-20241022',
+          max_tokens: 500,
+          messages: [
+            { role: 'user', content: `${systemMessage}\n\n${userMessage}` }
+          ],
+        }),
+      });
+      const data = await response.json();
+      return data.content[0].text;
+    } else if (provider === 'google') {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.5-flash'}:generateContent?key=${googleApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: `${systemMessage}\n\n${userMessage}` }]
+            }],
+            generationConfig: { maxOutputTokens: 500 }
+          }),
+        }
+      );
+      const data = await response.json();
+      
+      // Add error logging
+      if (!response.ok) {
+        console.error('Google API error:', response.status, data);
+        throw new Error(`Google API error: ${JSON.stringify(data)}`);
+      }
+      
+      if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+        console.error('Unexpected Google response:', data);
+        throw new Error('Invalid response from Google API');
+      }
+      
+      return data.candidates[0].content.parts[0].text;
     }
-
-    console.log('✅ Lovable AI success:', mappedModel, 'len:', content.length);
-    return content;
   } catch (error) {
-    console.error('❌ Error calling AI model:', {
-      provider,
-      model,
-      targetLLM,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error('Error calling AI model:', error);
     throw error;
   }
   
-  console.error('❌ Unsupported provider:', provider);
-  throw new Error(`Unsupported provider: ${provider}`);
+  return "Unable to generate response.";
 }
 
 // Removed - now using master-grader.ts
@@ -405,36 +398,11 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
 async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const startTime = Date.now();
   
-  console.log('🧪 Starting single test for model:', req.target_llm);
-  console.log('📝 Prompt length:', req.prompt_a.length, 'chars');
-  
   // Call AI model to get real output
-  let output: string;
-  try {
-    output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
-  } catch (error) {
-    console.error('❌ Failed to call AI model:', error);
-    throw new Error(`AI model call failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
-  
-  console.log('📤 AI output received:', {
-    outputLength: output?.length || 0,
-    outputPreview: output?.substring(0, 150) || 'NO OUTPUT',
-    isEmpty: !output || output.length === 0
-  });
-  
-  if (!output || output.length === 0) {
-    console.error('❌ ERROR: AI model returned empty output!');
-    throw new Error('AI model returned no output');
-  }
+  const output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
   
   // Score with 50/50 split (50% prompt quality + 50% output quality)
   const result = scorePromptAndOutput(req.prompt_a, output);
-  
-  console.log('📊 Scoring result:', {
-    finalScore: result.finalScore,
-    promptType: result.promptType
-  });
   
   // Generate AI analysis with output
   const analysis = await generateAnalysis(req.prompt_a, result.scores, output);
