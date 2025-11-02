@@ -102,9 +102,21 @@ const PromptLab = () => {
     setCompareResult(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('❌ No session found');
+      // Use getUser with timeout to prevent auth stalls
+      const authTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Auth check timed out after 5 seconds')), 5000)
+      );
+      
+      const { data: authData, error: authError } = await Promise.race([
+        supabase.auth.getUser(),
+        authTimeout
+      ]) as any;
+
+      if (authError) throw authError;
+      const user = authData?.user;
+      console.log('✅ Auth check OK:', !!user);
+      
+      if (!user) {
         toast({ title: "Error", description: "Please sign in to use the lab", variant: "destructive" });
         setIsLoading(false);
         return;
