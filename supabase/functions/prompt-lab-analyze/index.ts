@@ -172,11 +172,18 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
       return data.candidates[0].content.parts[0].text;
     }
   } catch (error) {
-    console.error('Error calling AI model:', error);
+    console.error('❌ Error calling AI model:', {
+      provider,
+      model,
+      targetLLM,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
   
-  return "Unable to generate response.";
+  console.error('❌ Unsupported provider:', provider);
+  throw new Error(`Unsupported provider: ${provider}`);
 }
 
 // Removed - now using master-grader.ts
@@ -412,11 +419,30 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
 async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const startTime = Date.now();
   
+  console.log('🧪 Starting single test for model:', req.target_llm);
+  console.log('📝 Prompt length:', req.prompt_a.length, 'chars');
+  
   // Call AI model to get real output
   const output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
   
+  console.log('📤 AI output received:', {
+    outputLength: output?.length || 0,
+    outputPreview: output?.substring(0, 100) || 'NO OUTPUT',
+    isEmpty: !output || output.length === 0
+  });
+  
+  if (!output || output.length === 0) {
+    console.error('❌ ERROR: AI model returned empty output!');
+    throw new Error('AI model returned no output');
+  }
+  
   // Score with 50/50 split (50% prompt quality + 50% output quality)
   const result = scorePromptAndOutput(req.prompt_a, output);
+  
+  console.log('📊 Scoring result:', {
+    finalScore: result.finalScore,
+    promptType: result.promptType
+  });
   
   // Generate AI analysis with output
   const analysis = await generateAnalysis(req.prompt_a, result.scores, output);
