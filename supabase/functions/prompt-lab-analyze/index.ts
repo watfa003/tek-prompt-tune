@@ -121,8 +121,18 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
         throw new Error('Invalid response from OpenAI API');
       }
       
-      const content = data.choices[0].message.content;
-      console.log('✅ OpenAI API success:', modelName, '- Response length:', content?.length || 0, 'chars');
+      const content = data.choices[0].message?.content;
+      
+      if (!content) {
+        console.error('❌ OpenAI returned null/empty content:', {
+          fullResponse: JSON.stringify(data, null, 2),
+          choice: data.choices[0],
+          finishReason: data.choices[0].finish_reason
+        });
+        throw new Error(`OpenAI returned no content. Finish reason: ${data.choices[0].finish_reason || 'unknown'}`);
+      }
+      
+      console.log('✅ OpenAI API success:', modelName, '- Response length:', content.length, 'chars');
       
       return content;
     } else if (provider === 'anthropic') {
@@ -424,11 +434,17 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   console.log('📝 Prompt length:', req.prompt_a.length, 'chars');
   
   // Call AI model to get real output
-  const output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
+  let output: string;
+  try {
+    output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
+  } catch (error) {
+    console.error('❌ Failed to call AI model:', error);
+    throw new Error(`AI model call failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
   
   console.log('📤 AI output received:', {
     outputLength: output?.length || 0,
-    outputPreview: output?.substring(0, 100) || 'NO OUTPUT',
+    outputPreview: output?.substring(0, 150) || 'NO OUTPUT',
     isEmpty: !output || output.length === 0
   });
   
