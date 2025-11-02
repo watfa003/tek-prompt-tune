@@ -87,6 +87,15 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
         requestBody.max_tokens = 500;
       }
       
+      console.log('📦 OpenAI request payload:', {
+        model: modelName,
+        isNewModel,
+        maxTokensField: isNewModel ? 'max_completion_tokens' : 'max_tokens',
+        maxTokensValue: 500,
+        systemPromptLength: systemMessage.length,
+        userPromptLength: userMessage.length
+      });
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -96,20 +105,25 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
         body: JSON.stringify(requestBody),
       });
       
+      console.log('📡 OpenAI response status:', response.status, 'for model:', modelName);
+      
       const data = await response.json();
       
       // Add error logging
       if (!response.ok) {
-        console.error('OpenAI API error:', response.status, data);
+        console.error('❌ OpenAI API error:', response.status, JSON.stringify(data, null, 2));
         throw new Error(`OpenAI API error: ${JSON.stringify(data)}`);
       }
       
       if (!data.choices || !data.choices[0]) {
-        console.error('Unexpected OpenAI response:', data);
+        console.error('❌ Unexpected OpenAI response structure:', JSON.stringify(data, null, 2));
         throw new Error('Invalid response from OpenAI API');
       }
       
-      return data.choices[0].message.content;
+      const content = data.choices[0].message.content;
+      console.log('✅ OpenAI API success:', modelName, '- Response length:', content?.length || 0, 'chars');
+      
+      return content;
     } else if (provider === 'anthropic') {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
