@@ -83,12 +83,16 @@ const PromptLab = () => {
   const navigate = useNavigate();
 
   const handleRunTest = async () => {
+    console.log('🧪 Lab test started', { mode, promptA: promptA.substring(0, 50), selectedProvider, selectedLLM });
+    
     if (!promptA.trim()) {
+      console.log('❌ Validation failed: No prompt A');
       toast({ title: "Error", description: "Please enter a prompt", variant: "destructive" });
       return;
     }
 
     if (mode === 'compare' && !promptB.trim()) {
+      console.log('❌ Validation failed: No prompt B for compare mode');
       toast({ title: "Error", description: "Please enter both prompts for comparison", variant: "destructive" });
       return;
     }
@@ -100,12 +104,14 @@ const PromptLab = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        console.log('❌ No session found');
         toast({ title: "Error", description: "Please sign in to use the lab", variant: "destructive" });
         setIsLoading(false);
         return;
       }
 
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
+      console.log('🚀 Calling edge function with targetLLM:', targetLLM);
       
       // Create timeout promise (90 seconds)
       const timeoutPromise = new Promise((_, reject) => {
@@ -123,11 +129,15 @@ const PromptLab = () => {
         },
       });
       
+      console.log('⏳ Waiting for edge function response...');
+      
       // Race between timeout and edge function
       const { data, error } = await Promise.race([
         edgeFunctionPromise,
         timeoutPromise
       ]) as any;
+
+      console.log('📥 Received response:', { data: !!data, error: !!error });
 
       if (error) throw error;
 
