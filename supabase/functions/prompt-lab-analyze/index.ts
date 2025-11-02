@@ -100,11 +100,11 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
       ],
     };
 
-    // Token parameter differences
+    // Token parameter differences - increased limits to prevent truncation
     if (mappedModel.startsWith('openai/gpt-5')) {
-      body.max_completion_tokens = 2048; // GPT-5 uses max_completion_tokens
+      body.max_completion_tokens = 4096; // GPT-5 uses max_completion_tokens, needs high limit for essays
     } else {
-      body.max_tokens = 1024; // Others accept max_tokens
+      body.max_tokens = 2048; // Others accept max_tokens
       // Avoid temperature for GPT-5 models per spec
       body.temperature = 0.2;
     }
