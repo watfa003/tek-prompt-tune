@@ -559,13 +559,13 @@ ${enhancedPrompt}`;
               console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
               actualScore = fastSkimEvaluation(testResponse, strategy.weight);
             } else {
-              actualScore = evaluateOutput(testResponse, strategy.weight, originalPrompt);
+              actualScore = evaluateOutput(testResponse, strategy.weight, optimizedPrompt);
              }
              console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
          } else {
             // If no response, re-score the optimized prompt but ensure it's actually optimized
             if (optimizedPrompt.length > originalPrompt.length * 0.8) {
-              actualScore = evaluateOutput(optimizedPrompt, strategy.weight, originalPrompt);
+              actualScore = evaluateOutput(optimizedPrompt, strategy.weight, optimizedPrompt);
               actualResponse = `Successfully optimized using ${strategy.name} strategy`;
             } else {
               // Prompt wasn't properly optimized, give low score
@@ -578,7 +578,7 @@ ${enhancedPrompt}`;
           console.error(`Error testing with user model ${modelName}:`, error);
           // Ensure we still have a properly optimized prompt even in error cases
           if (optimizedPrompt && optimizedPrompt.length > originalPrompt.length * 0.8) {
-            actualScore = evaluateOutput(optimizedPrompt, strategy.weight, originalPrompt);
+            actualScore = evaluateOutput(optimizedPrompt, strategy.weight, optimizedPrompt);
             actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
           } else {
             // If optimization failed completely, return a lower score
