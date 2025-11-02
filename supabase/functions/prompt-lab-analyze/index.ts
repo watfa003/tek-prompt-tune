@@ -81,17 +81,18 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
       };
       
       // New models use max_completion_tokens, old models use max_tokens
+      // GPT-5 and newer models need higher limits
       if (isNewModel) {
-        requestBody.max_completion_tokens = 500;
+        requestBody.max_completion_tokens = 2048;
       } else {
-        requestBody.max_tokens = 500;
+        requestBody.max_tokens = 1024;
       }
       
       console.log('📦 OpenAI request payload:', {
         model: modelName,
         isNewModel,
         maxTokensField: isNewModel ? 'max_completion_tokens' : 'max_tokens',
-        maxTokensValue: 500,
+        maxTokensValue: isNewModel ? 2048 : 1024,
         systemPromptLength: systemMessage.length,
         userPromptLength: userMessage.length
       });
