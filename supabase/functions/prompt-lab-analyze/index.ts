@@ -100,11 +100,13 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
       ],
     };
 
-    // Token parameter differences - increased limits to prevent truncation
+    // Token parameter differences - CRITICAL: GPT-5 uses reasoning tokens!
+    // For GPT-5 models, we need MUCH higher limits because reasoning_tokens consume most of the budget
     if (mappedModel.startsWith('openai/gpt-5')) {
-      body.max_completion_tokens = 4096; // GPT-5 uses max_completion_tokens, needs high limit for essays
+      // GPT-5: Set to 16k to allow 4k reasoning + 12k output
+      body.max_completion_tokens = 16384;
     } else {
-      body.max_tokens = 2048; // Others accept max_tokens
+      body.max_tokens = 8192; // Others: increased from 2048 to prevent truncation
       // Avoid temperature for GPT-5 models per spec
       body.temperature = 0.2;
     }
@@ -139,9 +141,17 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
     const data = await response.json();
 
     const content = data?.choices?.[0]?.message?.content as string | undefined;
-    if (!content) {
-      console.error('❌ Lovable AI returned empty content', JSON.stringify(data, null, 2));
+    
+    // CRITICAL: Check if content is empty due to token limit
+    if (!content || content.trim() === '') {
       const finish = data?.choices?.[0]?.finish_reason;
+      const usage = data?.usage;
+      console.error('❌ Lovable AI returned empty content', JSON.stringify(data, null, 2));
+      
+      if (finish === 'length') {
+        throw new Error(`Token limit exceeded: ${usage?.completion_tokens || 'unknown'} completion tokens used (including ${usage?.completion_tokens_details?.reasoning_tokens || 0} reasoning tokens). Try increasing max_completion_tokens or using a simpler prompt.`);
+      }
+      
       throw new Error(`AI returned no content. Finish reason: ${finish ?? 'unknown'}`);
     }
 
