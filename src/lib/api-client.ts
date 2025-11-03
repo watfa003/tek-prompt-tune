@@ -26,7 +26,7 @@ export const safeFetch = async <T = any>(
 ): Promise<T> => {
   const url = `${BASE_URL}/${endpoint}`;
   
-  console.log("API called:", url, {
+  console.log("🌐 API called:", url, {
     method: options.method || "GET",
     body: options.body ? "present" : "none",
   });
@@ -46,7 +46,7 @@ export const safeFetch = async <T = any>(
 
       if (res.ok) {
         const data = await res.json().catch(() => ({} as T));
-        console.log("API success:", url, {
+        console.log("✅ API success:", url, {
           status: res.status,
           hasData: !!data,
         });
@@ -54,7 +54,7 @@ export const safeFetch = async <T = any>(
       }
 
       const errorData = await res.json().catch(() => ({}));
-      console.warn("API error:", url, {
+      console.warn("⚠️ API error:", url, {
         status: res.status,
         statusText: res.statusText,
         body: errorData,
@@ -77,7 +77,7 @@ export const safeFetch = async <T = any>(
     } catch (err) {
       // Network or thrown apiError above
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("Fetch failed:", url, {
+      console.error("🚨 Fetch failed:", url, {
         error: msg,
         attempt: i + 1,
       });
@@ -91,16 +91,17 @@ export const safeFetch = async <T = any>(
     await new Promise((r) => setTimeout(r, 300 * (i + 1)));
   }
 
-  throw new Error(`Failed after ${retries + 1} attempts`);
+  throw new Error(`❌ Failed after ${retries + 1} attempts`);
 };
 
 /** Test API connection */
 export const testConnection = async (): Promise<boolean> => {
   try {
     await safeFetch("ping", { method: "GET" }, 0);
+    console.log("✅ Connected to Supabase Functions");
     return true;
   } catch (err) {
-    console.error("Connection test failed:", err);
+    console.error("⚠️ API connection unstable, retrying...", err);
     return false;
   }
 };
