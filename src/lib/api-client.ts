@@ -10,8 +10,11 @@ const BASE_URL = (() => {
     window.location.hostname.includes("lovable.app");
   return devMode
     ? "https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1"
-    : "https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1"; // Keep same for production
+    : "https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1"; // Using Supabase Functions in all envs for consistency
 })();
+
+// Public anon key required by Supabase Functions gateway
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRubHRoenpqdGp2bmFxYWZkZG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzUzOTMsImV4cCI6MjA3MzcxMTM5M30.nJQLtEIJOG-5XKAIHH1LH4P7bAQR1ZbYwg8cBUeXNvA";
 
 /**
  * Safe fetch with automatic retry logic
@@ -35,34 +38,47 @@ export const safeFetch = async <T = any>(
         headers: {
           "Content-Type": "application/json",
           "Cache-Control": "no-store",
-          ...options.headers,
+          apikey: SUPABASE_ANON_KEY,
+          ...(options.headers || {}),
         },
         cache: "no-store",
       });
 
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({} as T));
         console.log("API success:", url, {
           status: res.status,
           hasData: !!data,
         });
-        return data;
+        return data as T;
       }
 
+      const errorData = await res.json().catch(() => ({}));
       console.warn("API error:", url, {
         status: res.status,
         statusText: res.statusText,
+        body: errorData,
         attempt: i + 1,
       });
 
+      // Build error with status for callers that need branching
+      const apiError: any = new Error(
+        errorData?.error || errorData?.message || `API error: ${res.status} ${res.statusText}`
+      );
+      apiError.status = res.status;
+      apiError.body = errorData;
+
       // If it's a client error (4xx), don't retry
       if (res.status >= 400 && res.status < 500) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `API error: ${res.status} ${res.statusText}`);
+        throw apiError;
       }
+
+      // Otherwise fall through to retry
     } catch (err) {
+      // Network or thrown apiError above
+      const msg = err instanceof Error ? err.message : String(err);
       console.error("Fetch failed:", url, {
-        error: err instanceof Error ? err.message : String(err),
+        error: msg,
         attempt: i + 1,
       });
 
@@ -71,19 +87,16 @@ export const safeFetch = async <T = any>(
       }
     }
 
-    // Exponential backoff
+    // Backoff between retries
     await new Promise((r) => setTimeout(r, 300 * (i + 1)));
   }
 
   throw new Error(`Failed after ${retries + 1} attempts`);
 };
 
-/**
- * Test API connection
- */
+/** Test API connection */
 export const testConnection = async (): Promise<boolean> => {
   try {
-    // Use a lightweight function to test connection
     await safeFetch("ping", { method: "GET" }, 0);
     return true;
   } catch (err) {
@@ -92,9 +105,7 @@ export const testConnection = async (): Promise<boolean> => {
   }
 };
 
-/**
- * Lab API - Analyze prompts
- */
+/** Lab API */
 export interface LabAnalyzeRequest {
   mode: "single" | "compare";
   target_llm: string;
@@ -121,9 +132,7 @@ export const labAnalyze = async (
   return result;
 };
 
-/**
- * Optimizer API - Optimize prompts
- */
+/** Optimizer API */
 export interface OptimizerRequest {
   originalPrompt: string;
   taskDescription: string;
@@ -165,20 +174,29 @@ export const optimizePrompt = async (
   return result;
 };
 
-/**
- * Sequential API calls helper
- * Ensures Lab and Optimizer never run simultaneously
- */
+/** Generic function invoker for other endpoints */
+export const invokeFunction = async (
+  name: string,
+  body?: any,
+  authToken?: string,
+  method: "POST" | "GET" = "POST"
+): Promise<any> => {
+  return safeFetch(name, {
+    method,
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+    body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
+  });
+};
+
+/** Sequential helper (optional) */
 export const sequentialCalls = async <T1, T2>(
   call1: () => Promise<T1>,
   call2: () => Promise<T2>
 ): Promise<[T1, T2]> => {
   console.log("📡 Sequential calls - Starting first call");
   const result1 = await call1();
-  
   console.log("📡 Sequential calls - First complete, starting second");
   const result2 = await call2();
-  
   console.log("📡 Sequential calls - Both complete");
   return [result1, result2];
 };

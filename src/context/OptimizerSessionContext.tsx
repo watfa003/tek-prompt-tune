@@ -312,7 +312,12 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       if (!session) throw new Error('No active session');
 
       // Use unified API client for consistent behavior
-      const { optimizePrompt } = await import('@/lib/api-client');
+      const { optimizePrompt, testConnection } = await import('@/lib/api-client');
+      const ok = await testConnection();
+      if (!ok) {
+        toast({ title: 'Connection unstable — retrying automatically.', description: 'Stabilizing network...' });
+      }
+
       const data = await optimizePrompt(
         {
           originalPrompt: p.originalPrompt,

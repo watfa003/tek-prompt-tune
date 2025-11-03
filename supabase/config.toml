@@ -56,6 +56,9 @@ verify_jwt = false
 [functions.prompt-lab-analyze]
 verify_jwt = true
 
+[functions.ping]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083

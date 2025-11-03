@@ -104,10 +104,15 @@ const PromptLab = () => {
         return;
       }
 
+      const { testConnection, labAnalyze } = await import('@/lib/api-client');
+      const ok = await testConnection();
+      if (!ok) {
+        toast({ title: "Connection unstable — retrying automatically.", description: "Stabilizing network..." });
+      }
+
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
       
       // Use unified API client for consistent behavior
-      const { labAnalyze } = await import('@/lib/api-client');
       const data = await labAnalyze(
         {
           mode,
