@@ -83,9 +83,9 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
       
       // New models use max_completion_tokens, old models use max_tokens
       if (isNewModel) {
-        requestBody.max_completion_tokens = 500;
+        requestBody.max_completion_tokens = 4000;
       } else {
-        requestBody.max_tokens = 500;
+        requestBody.max_tokens = 4000;
       }
       
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -121,7 +121,7 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
         },
         body: JSON.stringify({
           model: model || 'claude-3-5-haiku-20241022',
-          max_tokens: 500,
+          max_tokens: 4000,
           messages: [
             { role: 'user', content: `${systemMessage}\n\n${userMessage}` }
           ],
@@ -139,7 +139,7 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
             contents: [{
               parts: [{ text: `${systemMessage}\n\n${userMessage}` }]
             }],
-            generationConfig: { maxOutputTokens: 500 }
+            generationConfig: { maxOutputTokens: 4000 }
           }),
         }
       );
@@ -383,7 +383,7 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
         ],
         response_format: { type: 'json_object' },
         temperature: 0.2,
-        max_tokens: 1000,
+        max_tokens: 3000,
       }),
     });
     
@@ -502,7 +502,7 @@ Provide a brief explanation (2-3 sentences) of why one prompt performed better, 
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: comparisonPrompt }],
-        max_tokens: 200,
+        max_tokens: 2000,
       }),
     });
     
