@@ -8,6 +8,7 @@ import {
   calculateTotalScore, 
   type CategoryScores 
 } from '../shared/master-grader.ts';
+import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -168,7 +169,12 @@ async function callAIModel(prompt: string, targetLLM: string, testTask?: string)
 // Removed - now using master-grader.ts
 
 // Generate AI-powered analysis with output-based diagnostic
-async function generateAnalysis(prompt: string, scores: CategoryScores, output?: string): Promise<any> {
+async function generateAnalysis(
+  prompt: string, 
+  scores: CategoryScores, 
+  output?: string,
+  aiReasoning?: Record<keyof CategoryScores, string>
+): Promise<any> {
   const systemPrompt = `You are the PromptTek Lab Calibration Model, an expert evaluator of AI prompt quality.
 Your purpose is to synchronize scoring behavior across all categories so that excellent prompts score near 10 and weak ones score near 0.
 
@@ -394,28 +400,43 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
   }
 }
 
-// Handle single prompt test - Using 50/50 scoring with real AI output
+// Handle single prompt test - Using AI-powered scoring
 async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const startTime = Date.now();
   
   // Call AI model to get real output
   const output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
   
-  // Score with 50/50 split (50% prompt quality + 50% output quality)
-  const result = scorePromptAndOutput(req.prompt_a, output);
+  // Use AI-powered scoring with fallback to rule-based
+  let scores: CategoryScores;
+  let aiReasoning: Record<keyof CategoryScores, string> | undefined;
+  let finalScore: number;
   
-  // Generate AI analysis with output
-  const analysis = await generateAnalysis(req.prompt_a, result.scores, output);
+  try {
+    const aiResult = await scorePromptWithAI(req.prompt_a, output, openAIApiKey);
+    scores = aiResult.scores;
+    aiReasoning = aiResult.reasoning;
+    finalScore = calculateOverallScore(scores);
+    console.log('✅ Using AI-powered scoring for Lab analysis');
+  } catch (error) {
+    console.error('AI grading failed, using fallback:', error);
+    const result = scorePromptAndOutput(req.prompt_a, output);
+    scores = result.scores;
+    finalScore = result.finalScore;
+    console.log('⚠️ Using fallback rule-based scoring');
+  }
+  
+  // Generate AI analysis with output and reasoning
+  const analysis = await generateAnalysis(req.prompt_a, scores, output, aiReasoning);
   
   return {
-    total_score: result.finalScore,
-    category_breakdown: result.scores,
+    total_score: finalScore,
+    category_breakdown: scores,
     ai_analysis: analysis,
-    prompt_type: result.promptType,
   };
 }
 
-// Handle comparison test - Using 50/50 scoring with real AI outputs
+// Handle comparison test - Using AI-powered scoring
 async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
   if (!req.prompt_b) {
     throw new Error('Prompt B is required for comparison mode');
@@ -427,12 +448,30 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
     callAIModel(req.prompt_b, req.target_llm, req.test_task),
   ]);
   
-  // Score both with 50/50 split (50% prompt quality + 50% output quality)
-  const resultA = scorePromptAndOutput(req.prompt_a, outputA);
-  const resultB = scorePromptAndOutput(req.prompt_b, outputB);
+  // Score both with AI-powered grading (with fallback)
+  let totalA: number, totalB: number;
+  let scoresA: CategoryScores, scoresB: CategoryScores;
   
-  const totalA = resultA.finalScore;
-  const totalB = resultB.finalScore;
+  try {
+    const [aiResultA, aiResultB] = await Promise.all([
+      scorePromptWithAI(req.prompt_a, outputA, openAIApiKey),
+      scorePromptWithAI(req.prompt_b, outputB, openAIApiKey),
+    ]);
+    scoresA = aiResultA.scores;
+    scoresB = aiResultB.scores;
+    totalA = calculateOverallScore(scoresA);
+    totalB = calculateOverallScore(scoresB);
+    console.log('✅ Using AI-powered scoring for battle comparison');
+  } catch (error) {
+    console.error('AI grading failed in battle, using fallback:', error);
+    const resultA = scorePromptAndOutput(req.prompt_a, outputA);
+    const resultB = scorePromptAndOutput(req.prompt_b, outputB);
+    scoresA = resultA.scores;
+    scoresB = resultB.scores;
+    totalA = resultA.finalScore;
+    totalB = resultB.finalScore;
+    console.log('⚠️ Using fallback rule-based scoring for battle');
+  }
   
   // Determine winner - higher score always wins
   let winner: 'A' | 'B' | 'Tie' = 'Tie';

@@ -11,6 +11,7 @@ import {
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
+import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -546,14 +547,22 @@ ${enhancedPrompt}`;
               console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
               actualScore = fastSkimEvaluation(testResponse, strategy.weight);
             } else {
-              actualScore = evaluateOutput(testResponse, strategy.weight, originalPrompt);
+              const evalResult = await evaluateOutput(optimizedPrompt, testResponse, openAIApiKey);
+              actualScore = evalResult.score / 10; // Convert 0-10 to 0-1 scale
              }
              console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
-         } else {
+          } else {
             // If no response, re-score the optimized prompt but ensure it's actually optimized
             if (optimizedPrompt.length > originalPrompt.length * 0.8) {
-              actualScore = evaluateOutput(optimizedPrompt, strategy.weight, originalPrompt);
-              actualResponse = `Successfully optimized using ${strategy.name} strategy`;
+              try {
+                const evalResult = await evaluateOutput(optimizedPrompt, `Optimized using ${strategy.name} strategy`, openAIApiKey);
+                actualScore = evalResult.score / 10; // Convert 0-10 to 0-1 scale
+                actualResponse = `Successfully optimized using ${strategy.name} strategy`;
+              } catch (evalError) {
+                console.error('Evaluation error, using fallback:', evalError);
+                actualScore = strategy.weight * 0.7;
+                actualResponse = `Successfully optimized using ${strategy.name} strategy`;
+              }
             } else {
               // Prompt wasn't properly optimized, give low score
               actualScore = strategy.weight * 0.3;
@@ -565,8 +574,15 @@ ${enhancedPrompt}`;
           console.error(`Error testing with user model ${modelName}:`, error);
           // Ensure we still have a properly optimized prompt even in error cases
           if (optimizedPrompt && optimizedPrompt.length > originalPrompt.length * 0.8) {
-            actualScore = evaluateOutput(optimizedPrompt, strategy.weight, originalPrompt);
-            actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
+            try {
+              const evalResult = await evaluateOutput(optimizedPrompt, `Optimization completed (fallback)`, openAIApiKey);
+              actualScore = evalResult.score / 10;
+              actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
+            } catch (evalError) {
+              console.error('Evaluation error in catch block:', evalError);
+              actualScore = strategy.weight * 0.6;
+              actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
+            }
           } else {
             // If optimization failed completely, return a lower score
             actualScore = strategy.weight * 0.2;
@@ -948,20 +964,33 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
   return data.candidates[0].content.parts[0].text;
 }
 
-// Removed - grading mode detection no longer needed with unified master grader
+// AI-powered evaluation for optimizer
+async function evaluateOutput(
+  prompt: string,
+  output: string,
+  openAIKey?: string
+): Promise<{ score: number; categoryScores: CategoryScores }> {
+  
+  // Use AI-powered scoring with fallback to rule-based
+  let scores: CategoryScores;
+  
+  try {
+    const aiResult = await scorePromptWithAI(prompt, output, openAIKey);
+    scores = aiResult.scores;
+    console.log('✅ Using AI-powered scoring for optimizer evaluation');
+  } catch (error) {
+    console.error('AI grading failed in optimizer, using fallback:', error);
+    const result = scorePromptAndOutput(prompt, output);
+    scores = result.scores;
+    console.log('⚠️ Using fallback rule-based scoring in optimizer');
+  }
 
-// NEW: Unified 50/50 evaluation using Master Grader
-function evaluateOutput(output: string, strategyWeight: number, originalPrompt: string = ''): number {
-  // Use 50/50 split scoring: 50% prompt quality + 50% output quality
-  const result = scorePromptAndOutput(originalPrompt, output);
-  
-  console.log(`[Opt Score] Strategy: ${strategyWeight.toFixed(2)} | Final: ${result.finalScore.toFixed(2)} | Prompt: ${result.promptScore.toFixed(2)} | Output: ${result.outputScore.toFixed(2)} | Normalized: ${(result.finalScore/10).toFixed(3)}`);
-  
-  // Get the final 50/50 score (0-10 scale) and convert to 0-1 scale
-  const normalizedScore = result.finalScore / 10;
-  
-  // Keep in valid range (0.15-0.95 = 1.5-9.5 on 0-10 scale)
-  return Math.min(0.95, Math.max(0.15, normalizedScore));
+  const overallScore = calculateOverallScore(scores);
+
+  return {
+    score: overallScore,
+    categoryScores: scores
+  };
 }
 
 // Removed old evaluation functions - now using master-grader.ts unified scoring
