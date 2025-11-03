@@ -308,18 +308,8 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No active session');
-
-      // Use unified API client for consistent behavior
-      const { optimizePrompt, testConnection } = await import('@/lib/api-client');
-      const ok = await testConnection();
-      if (!ok) {
-        toast({ title: 'Connection unstable — retrying automatically.', description: 'Stabilizing network...' });
-      }
-
-      const data = await optimizePrompt(
-        {
+      const { data, error } = await supabase.functions.invoke('prompt-optimizer', {
+        body: {
           originalPrompt: p.originalPrompt,
           taskDescription: p.taskDescription,
           aiProvider: p.aiProvider,
@@ -333,9 +323,10 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           influenceWeight: p.influenceWeight,
           mode: p.mode,
           autoSave: settings.autoSave,
-        },
-        session.access_token
-      );
+        }
+      });
+
+      if (error) throw error;
 
       if (p.mode === 'speed') {
         console.log('Speed optimization completed:', data);

@@ -63,37 +63,44 @@ const Auth = () => {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setSentCode(code);
 
-      const { invokeFunction } = await import('@/lib/api-client');
-      try {
-        await invokeFunction('send-verification-email', {
+      // Send the code via email (server will block if email already exists)
+      const { error } = await supabase.functions.invoke('send-verification-email', {
+        body: {
           email: formData.email,
           code: code,
           type: 'signup'
-        });
-      } catch (error: any) {
-        const status = error?.status;
-        const msg = String(error?.body?.error || error?.message || '').toLowerCase();
-        if (status === 409 || msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
-          setEmailError("This email is already registered.");
-          setVerificationStep('credentials');
-          setIsSignUp(true);
-          emailInputRef.current?.focus();
+        }
+      });
+
+        if (error) {
+          const anyErr = error as any;
+          const status = anyErr?.status ?? anyErr?.context?.status ?? anyErr?.context?.response?.status;
+          const contextMsg = anyErr?.context?.error || anyErr?.context?.message || anyErr?.context?.body || '';
+          const rawMsg = anyErr?.message?.toString?.() || '';
+          const msg = String(contextMsg || rawMsg).toLowerCase();
+
+          if (status === 409 || msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
+            setEmailError("This email is already registered.");
+            setVerificationStep('credentials');
+            setIsSignUp(true);
+            emailInputRef.current?.focus();
+            toast({
+              title: "Email already used",
+              description: "This email is registered. Please sign in or use a different email.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+
           toast({
-            title: "Email already used",
-            description: "This email is registered. Please sign in or use a different email.",
+            title: "Error",
+            description: "Failed to send verification code. Please try again.",
             variant: "destructive",
           });
           setLoading(false);
           return;
         }
-        toast({
-          title: "Error",
-          description: "Failed to send verification code. Please try again.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
 
       toast({
         title: "Verification code sent!",
@@ -128,17 +135,48 @@ const Auth = () => {
         return;
       }
 
-      const { invokeFunction } = await import('@/lib/api-client');
-      let createData: any = null;
-      try {
-        createData = await invokeFunction('create-verified-user', {
+      // Email verified via our code - now create the account with confirmed email
+      const { data: createData, error: createError } = await supabase.functions.invoke('create-verified-user', {
+        body: {
           email: formData.email,
           password: formData.password,
           username: formData.username,
-        });
-      } catch (createError: any) {
-        const errorMessage = createError?.body?.error || createError?.message || 'Failed to create account';
+        }
+      });
+
+      // Handle errors - the error is in FunctionInvokeError when status is non-2xx
+      if (createError) {
+        // Extract the actual error message from the FunctionInvokeError context
+        const errorContext = (createError as any)?.context;
+        let errorMessage = 'Failed to create account';
+        
+        // The error body is in the context
+        if (errorContext?.error) {
+          errorMessage = errorContext.error;
+        } else if ((createError as any)?.message) {
+          errorMessage = (createError as any).message;
+        }
+        
         console.error('Account creation error:', errorMessage);
+        
+        // Check if user already exists
+        if (errorMessage.toLowerCase().includes('already') || 
+            errorMessage.toLowerCase().includes('exists') || 
+            errorMessage.toLowerCase().includes('registered') ||
+            errorMessage.toLowerCase().includes('email')) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+          setIsSignUp(false);
+          setVerificationStep('credentials');
+          setVerificationCode('');
+          setSentCode('');
+          setLoading(false);
+          return;
+        }
+        
         toast({
           title: "Error",
           description: errorMessage,

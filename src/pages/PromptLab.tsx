@@ -104,25 +104,19 @@ const PromptLab = () => {
         return;
       }
 
-      const { testConnection, labAnalyze } = await import('@/lib/api-client');
-      const ok = await testConnection();
-      if (!ok) {
-        toast({ title: "Connection unstable — retrying automatically.", description: "Stabilizing network..." });
-      }
-
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
       
-      // Use unified API client for consistent behavior
-      const data = await labAnalyze(
-        {
+      const { data, error } = await supabase.functions.invoke('prompt-lab-analyze', {
+        body: {
           mode,
           target_llm: targetLLM,
           prompt_a: promptA,
           prompt_b: mode === 'compare' ? promptB : undefined,
           test_task: testTask || undefined,
         },
-        session.access_token
-      );
+      });
+
+      if (error) throw error;
 
       if (mode === 'single') {
         setSingleResult(data);

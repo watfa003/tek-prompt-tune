@@ -89,13 +89,8 @@ export const PromptResults = ({
       // Create a comprehensive prompt based on the task description
       const originalPrompt = `Create a ${outputType} that ${taskDescription}. Make it comprehensive, well-structured, and professional.`;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No active session');
-
-      const { invokeFunction } = await import('@/lib/api-client');
-      const data = await invokeFunction(
-        'prompt-optimizer',
-        {
+      const { data, error } = await supabase.functions.invoke('prompt-optimizer', {
+        body: {
           originalPrompt,
           taskDescription,
           aiProvider: aiProvider.toLowerCase(),
@@ -108,9 +103,13 @@ export const PromptResults = ({
           influence: influence || '',
           influenceWeight: influenceWeight || 0,
           mode: optimizationMode
-        },
-        session.access_token
-      );
+        }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to generate optimized prompts');
+      }
 
       if (!data) {
         throw new Error('No data returned from optimization');
