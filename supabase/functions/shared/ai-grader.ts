@@ -12,7 +12,7 @@ export interface CategoryScores {
   elaboration: number;
   efficiency: number;
   structure: number;
-  intentAlignment: number;
+  intent_alignment: number;
   adaptability: number;
 }
 
@@ -180,7 +180,7 @@ ${prompt}`;
       elaboration: Math.round(evaluation.elaboration.score),
       efficiency: Math.round(evaluation.efficiency.score),
       structure: Math.round(evaluation.structure.score),
-      intentAlignment: Math.round(evaluation.intentAlignment.score),
+      intent_alignment: Math.round(evaluation.intentAlignment.score),
       adaptability: Math.round(evaluation.adaptability.score),
     };
 
@@ -191,7 +191,7 @@ ${prompt}`;
       elaboration: evaluation.elaboration.reasoning,
       efficiency: evaluation.efficiency.reasoning,
       structure: evaluation.structure.reasoning,
-      intentAlignment: evaluation.intentAlignment.reasoning,
+      intent_alignment: evaluation.intentAlignment.reasoning,
       adaptability: evaluation.adaptability.reasoning,
     };
 
@@ -216,7 +216,7 @@ export function calculateOverallScore(scores: CategoryScores): number {
     elaboration: 0.8,
     efficiency: 1.0,
     structure: 0.9,
-    intentAlignment: 1.3,
+    intent_alignment: 1.3,
     adaptability: 0.6,
   };
 
