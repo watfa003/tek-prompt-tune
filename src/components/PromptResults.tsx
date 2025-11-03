@@ -81,35 +81,26 @@ export const PromptResults = ({
     setError(null);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
+      const { invokeWithAuth, getValidAuth } = await import('@/lib/auth-helpers');
+      const auth = await getValidAuth();
 
       // Create a comprehensive prompt based on the task description
       const originalPrompt = `Create a ${outputType} that ${taskDescription}. Make it comprehensive, well-structured, and professional.`;
 
-      const { data, error } = await supabase.functions.invoke('prompt-optimizer', {
-        body: {
-          originalPrompt,
-          taskDescription,
-          aiProvider: aiProvider.toLowerCase(),
-          modelName: llmModel,
-          outputType,
-          variants,
-          userId: user.id,
-          maxTokens,
-          temperature,
-          influence: influence || '',
-          influenceWeight: influenceWeight || 0,
-          mode: optimizationMode
-        }
+      const data = await invokeWithAuth('prompt-optimizer', {
+        originalPrompt,
+        taskDescription,
+        aiProvider: aiProvider.toLowerCase(),
+        modelName: llmModel,
+        outputType,
+        variants,
+        userId: auth.userId,
+        maxTokens,
+        temperature,
+        influence: influence || '',
+        influenceWeight: influenceWeight || 0,
+        mode: optimizationMode
       });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to generate optimized prompts');
-      }
 
       if (!data) {
         throw new Error('No data returned from optimization');

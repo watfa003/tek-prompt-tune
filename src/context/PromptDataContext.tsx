@@ -151,13 +151,12 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const aiGenerateTitle = useCallback(async (text: string): Promise<string | null> => {
     try {
       if (!text) return null;
-      const { data, error } = await supabase.functions.invoke('generate-title', {
-        body: { prompt: text },
+      const { invokeWithAuth } = await import('@/lib/auth-helpers');
+      
+      const data = await invokeWithAuth('generate-title', {
+        prompt: text,
       });
-      if (error) {
-        console.error('AI title error:', error);
-        return null;
-      }
+      
       let title = (data as any)?.title ? String((data as any).title) : '';
       if (!title) return null;
       // Ignore placeholder-like titles

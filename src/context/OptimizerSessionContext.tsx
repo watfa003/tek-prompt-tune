@@ -305,28 +305,24 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     setIsOptimizing(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { invokeWithAuth, getValidAuth } = await import('@/lib/auth-helpers');
+      const auth = await getValidAuth();
 
-      const { data, error } = await supabase.functions.invoke('prompt-optimizer', {
-        body: {
-          originalPrompt: p.originalPrompt,
-          taskDescription: p.taskDescription,
-          aiProvider: p.aiProvider,
-          modelName: p.modelName,
-          outputType: p.outputType,
-          variants: p.variants,
-          userId: user.id,
-          maxTokens: p.maxTokens,
-          temperature: p.temperature,
-          influence: p.influence,
-          influenceWeight: p.influenceWeight,
-          mode: p.mode,
-          autoSave: settings.autoSave,
-        }
+      const data = await invokeWithAuth('prompt-optimizer', {
+        originalPrompt: p.originalPrompt,
+        taskDescription: p.taskDescription,
+        aiProvider: p.aiProvider,
+        modelName: p.modelName,
+        outputType: p.outputType,
+        variants: p.variants,
+        userId: auth.userId,
+        maxTokens: p.maxTokens,
+        temperature: p.temperature,
+        influence: p.influence,
+        influenceWeight: p.influenceWeight,
+        mode: p.mode,
+        autoSave: settings.autoSave,
       });
-
-      if (error) throw error;
 
       if (p.mode === 'speed') {
         console.log('Speed optimization completed:', data);

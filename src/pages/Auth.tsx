@@ -64,7 +64,8 @@ const Auth = () => {
       setSentCode(code);
 
       // Send the code via email (server will block if email already exists)
-      const { error } = await supabase.functions.invoke('send-verification-email', {
+      // Note: This function is public (no auth required) since user hasn't signed up yet
+      const { data: emailData, error } = await supabase.functions.invoke('send-verification-email', {
         body: {
           email: formData.email,
           code: code,
@@ -136,6 +137,7 @@ const Auth = () => {
       }
 
       // Email verified via our code - now create the account with confirmed email
+      // Note: This function is public (no auth required) since user hasn't signed up yet
       const { data: createData, error: createError } = await supabase.functions.invoke('create-verified-user', {
         body: {
           email: formData.email,

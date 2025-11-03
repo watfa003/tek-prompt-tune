@@ -10,20 +10,11 @@ export const useDataCleanup = () => {
   const previewCleanup = async () => {
     setIsPreviewLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { invokeWithAuth } = await import('@/lib/auth-helpers');
       
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
-      const { data, error } = await supabase.functions.invoke('cleanup-old-data', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: { preview: true },
+      const data = await invokeWithAuth('cleanup-old-data', {
+        preview: true,
       });
-
-      if (error) throw error;
 
       const willDelete = data.willDelete;
       const totalToDelete = 
@@ -55,20 +46,11 @@ export const useDataCleanup = () => {
   const cleanupOldData = async () => {
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { invokeWithAuth } = await import('@/lib/auth-helpers');
       
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
-      const { data, error } = await supabase.functions.invoke('cleanup-old-data', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: { preview: false },
+      const data = await invokeWithAuth('cleanup-old-data', {
+        preview: false,
       });
-
-      if (error) throw error;
 
       const deleted = data.deleted;
       const totalDeleted = 

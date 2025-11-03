@@ -98,25 +98,17 @@ const PromptLab = () => {
     setCompareResult(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({ title: "Error", description: "Please sign in to use the lab", variant: "destructive" });
-        return;
-      }
-
+      const { invokeWithAuth } = await import('@/lib/auth-helpers');
+      
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
       
-      const { data, error } = await supabase.functions.invoke('prompt-lab-analyze', {
-        body: {
-          mode,
-          target_llm: targetLLM,
-          prompt_a: promptA,
-          prompt_b: mode === 'compare' ? promptB : undefined,
-          test_task: testTask || undefined,
-        },
+      const data = await invokeWithAuth('prompt-lab-analyze', {
+        mode,
+        target_llm: targetLLM,
+        prompt_a: promptA,
+        prompt_b: mode === 'compare' ? promptB : undefined,
+        test_task: testTask || undefined,
       });
-
-      if (error) throw error;
 
       if (mode === 'single') {
         setSingleResult(data);
