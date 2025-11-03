@@ -106,17 +106,18 @@ const PromptLab = () => {
 
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
       
-      const { data, error } = await supabase.functions.invoke('prompt-lab-analyze', {
-        body: {
+      // Use unified API client for consistent behavior
+      const { labAnalyze } = await import('@/lib/api-client');
+      const data = await labAnalyze(
+        {
           mode,
           target_llm: targetLLM,
           prompt_a: promptA,
           prompt_b: mode === 'compare' ? promptB : undefined,
           test_task: testTask || undefined,
         },
-      });
-
-      if (error) throw error;
+        session.access_token
+      );
 
       if (mode === 'single') {
         setSingleResult(data);

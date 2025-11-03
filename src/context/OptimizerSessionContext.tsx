@@ -308,8 +308,13 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('prompt-optimizer', {
-        body: {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      // Use unified API client for consistent behavior
+      const { optimizePrompt } = await import('@/lib/api-client');
+      const data = await optimizePrompt(
+        {
           originalPrompt: p.originalPrompt,
           taskDescription: p.taskDescription,
           aiProvider: p.aiProvider,
@@ -323,10 +328,9 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           influenceWeight: p.influenceWeight,
           mode: p.mode,
           autoSave: settings.autoSave,
-        }
-      });
-
-      if (error) throw error;
+        },
+        session.access_token
+      );
 
       if (p.mode === 'speed') {
         console.log('Speed optimization completed:', data);
