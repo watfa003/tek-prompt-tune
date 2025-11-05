@@ -75,6 +75,7 @@ const PromptLab = () => {
   const [selectedProvider, setSelectedProvider] = useState('google');
   const [selectedLLM, setSelectedLLM] = useState('gemini-2.5-flash');
   const [isLoading, setIsLoading] = useState(false);
+  const [testingMode, setTestingMode] = useState<'single' | 'compare' | null>(null);
   const [singleResult, setSingleResult] = useState<SingleTestResult | null>(null);
   const [compareResult, setCompareResult] = useState<CompareTestResult | null>(null);
   
@@ -86,7 +87,7 @@ const PromptLab = () => {
   const PENDING_START_KEY = 'lab:pendingStart';
   const PENDING_MODE_KEY = 'lab:pendingMode';
 
-  // Load last result on mount
+  // Load last result and pending test state on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(LAST_RESULT_KEY);
@@ -99,6 +100,15 @@ const PromptLab = () => {
           setCompareResult(parsed.result as CompareTestResult);
           setSingleResult(null);
         }
+      }
+      
+      // Check if there's a pending test
+      const pendingStart = localStorage.getItem(PENDING_START_KEY);
+      const pendingMode = localStorage.getItem(PENDING_MODE_KEY);
+      
+      if (pendingStart && pendingMode) {
+        setIsLoading(true);
+        setTestingMode(pendingMode as 'single' | 'compare');
       }
     } catch (e) {
       console.warn('Failed to load last lab result from storage', e);
@@ -156,6 +166,8 @@ const PromptLab = () => {
             localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'compare', result }));
           }
           // Clear pending when we pick up a result
+          setIsLoading(false);
+          setTestingMode(null);
           localStorage.removeItem(PENDING_START_KEY);
           localStorage.removeItem(PENDING_MODE_KEY);
           if (interval) window.clearInterval(interval);
@@ -188,6 +200,7 @@ const PromptLab = () => {
     }
 
     setIsLoading(true);
+    setTestingMode(mode);
     setSingleResult(null);
     setCompareResult(null);
 
@@ -211,12 +224,14 @@ const PromptLab = () => {
       if (mode === 'single') {
         setSingleResult(data);
         localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'single', result: data }));
+        setTestingMode(null);
         localStorage.removeItem(PENDING_START_KEY);
         localStorage.removeItem(PENDING_MODE_KEY);
         toast({ title: "Analysis Complete", description: "Your prompt has been scored!" });
       } else {
         setCompareResult(data);
         localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'compare', result: data }));
+        setTestingMode(null);
         localStorage.removeItem(PENDING_START_KEY);
         localStorage.removeItem(PENDING_MODE_KEY);
         toast({ title: "Battle Complete", description: `Prompt ${data.winner} wins!` });
@@ -230,6 +245,7 @@ const PromptLab = () => {
       });
     } finally {
       setIsLoading(false);
+      setTestingMode(null);
     }
   };
 
@@ -434,7 +450,7 @@ const PromptLab = () => {
                       <Label className="text-sm font-medium flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-primary" />
                         Your Prompt
-                        {isLoading && (
+                        {testingMode === 'single' && (
                           <Badge variant="outline" className="ml-auto bg-primary/10 border-primary/30 text-primary animate-pulse">
                             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                             Testing...
@@ -446,7 +462,7 @@ const PromptLab = () => {
                         value={promptA}
                         onChange={(e) => setPromptA(e.target.value)}
                         rows={8}
-                        disabled={isLoading}
+                        disabled={testingMode === 'single'}
                         className="resize-none font-mono text-sm border-primary/20 focus:border-primary/40 focus:ring-primary/20 transition-all bg-background/50 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
@@ -454,7 +470,7 @@ const PromptLab = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">AI Provider</Label>
-                        <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={isLoading}>
+                        <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={testingMode === 'single'}>
                           <SelectTrigger className="border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <SelectValue />
                           </SelectTrigger>
@@ -470,7 +486,7 @@ const PromptLab = () => {
 
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">LLM Model</Label>
-                        <Select value={selectedLLM} onValueChange={setSelectedLLM} disabled={isLoading}>
+                        <Select value={selectedLLM} onValueChange={setSelectedLLM} disabled={testingMode === 'single'}>
                           <SelectTrigger className="border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <SelectValue />
                           </SelectTrigger>
@@ -553,7 +569,7 @@ const PromptLab = () => {
                         <Label className="text-sm font-medium flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">A</span>
                           Prompt A
-                          {isLoading && (
+                          {testingMode === 'compare' && (
                             <Badge variant="outline" className="ml-auto bg-primary/10 border-primary/30 text-primary animate-pulse">
                               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                               Testing...
@@ -565,7 +581,7 @@ const PromptLab = () => {
                           value={promptA}
                           onChange={(e) => setPromptA(e.target.value)}
                           rows={8}
-                          disabled={isLoading}
+                          disabled={testingMode === 'compare'}
                           className="resize-none font-mono text-sm border-primary/20 focus:border-primary/40 bg-background/50 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
@@ -573,7 +589,7 @@ const PromptLab = () => {
                         <Label className="text-sm font-medium flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">B</span>
                           Prompt B
-                          {isLoading && (
+                          {testingMode === 'compare' && (
                             <Badge variant="outline" className="ml-auto bg-accent/10 border-accent/30 text-accent animate-pulse">
                               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                               Testing...
@@ -585,7 +601,7 @@ const PromptLab = () => {
                           value={promptB}
                           onChange={(e) => setPromptB(e.target.value)}
                           rows={8}
-                          disabled={isLoading}
+                          disabled={testingMode === 'compare'}
                           className="resize-none font-mono text-sm border-accent/20 focus:border-accent/40 bg-background/50 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
@@ -594,7 +610,7 @@ const PromptLab = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">AI Provider</Label>
-                        <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={isLoading}>
+                        <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={testingMode === 'compare'}>
                           <SelectTrigger className="border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <SelectValue />
                           </SelectTrigger>
@@ -610,7 +626,7 @@ const PromptLab = () => {
 
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">LLM Model</Label>
-                        <Select value={selectedLLM} onValueChange={setSelectedLLM} disabled={isLoading}>
+                        <Select value={selectedLLM} onValueChange={setSelectedLLM} disabled={testingMode === 'compare'}>
                           <SelectTrigger className="border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <SelectValue />
                           </SelectTrigger>
