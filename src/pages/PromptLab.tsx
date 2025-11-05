@@ -292,22 +292,17 @@ const PromptLab = () => {
       <AmbientParticles />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Cinematic Header */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center space-y-4"
+          className="space-y-2"
         >
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <FlaskIcon className="h-6 w-6 text-white" />
-            </div>
-          </div>
           <h1 className="text-4xl md:text-5xl font-bold font-heading tracking-tight">
             <span className="gradient-text">PromptTek Lab</span>
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg">
             Test and analyze your prompts with precision AI scoring
           </p>
         </motion.div>
