@@ -13,21 +13,22 @@ import { AmbientParticles } from '@/components/ui/ambient-particles';
 import { ScoreGauge } from '@/components/ui/score-gauge';
 import { FeedbackCard } from '@/components/ui/feedback-card';
 import { 
-  FlaskConical,
   Loader2,
-  Sparkles,
-  TrendingUp,
   AlertCircle,
   CheckCircle,
-  Trophy,
-  Zap,
-  Target,
   Copy,
-  BarChart3,
-  ArrowRight,
-  Activity,
-  Cpu
+  ArrowRight
 } from 'lucide-react';
+import { 
+  FlaskIcon, 
+  TargetIcon, 
+  ZapIcon, 
+  TrophyIcon, 
+  SparklesIcon, 
+  ChartIcon, 
+  TrendingIcon,
+  ActivityIcon
+} from '@/components/lab/LabIcons';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -300,7 +301,7 @@ const PromptLab = () => {
         >
           <div className="flex items-center justify-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <FlaskConical className="h-6 w-6 text-white" />
+              <FlaskIcon className="h-6 w-6 text-white" />
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold font-heading tracking-tight">
@@ -320,7 +321,7 @@ const PromptLab = () => {
           <Card className="glass-card border-primary/20 rounded-[24px] overflow-hidden">
             <CardHeader className="border-b border-primary/10 bg-gradient-to-r from-primary/5 to-accent/5">
               <CardTitle className="flex items-center gap-2 text-xl">
-                <Target className="h-5 w-5 text-primary" />
+                <TargetIcon className="h-5 w-5 text-primary" />
                 Prompt Testing Zone
               </CardTitle>
               <CardDescription>
@@ -340,7 +341,7 @@ const PromptLab = () => {
                     disabled={isLoading && testingMode === 'compare'}
                     className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Zap className="h-4 w-4 mr-2" />
+                    <ZapIcon className="h-4 w-4 mr-2" />
                     Single Test
                     {testingMode === 'single' && isLoading && (
                       <Badge variant="outline" className="ml-2 bg-primary/10 border-primary/30 text-primary animate-pulse">
@@ -353,7 +354,7 @@ const PromptLab = () => {
                     disabled={isLoading && testingMode === 'single'}
                     className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-accent data-[state=active]:to-accent/80 data-[state=active]:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Trophy className="h-4 w-4 mr-2" />
+                    <TrophyIcon className="h-4 w-4 mr-2" />
                     Battle Mode
                     {testingMode === 'compare' && isLoading && (
                       <Badge variant="outline" className="ml-2 bg-accent/10 border-accent/30 text-accent animate-pulse">
@@ -372,7 +373,7 @@ const PromptLab = () => {
                   >
                      <div className="space-y-2">
                       <Label className="text-sm font-medium flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-primary" />
+                        <SparklesIcon className="h-4 w-4 text-primary" />
                         Your Prompt
                         {testingMode === 'single' && (
                           <Badge variant="outline" className="ml-auto bg-primary/10 border-primary/30 text-primary animate-pulse">
@@ -471,7 +472,7 @@ const PromptLab = () => {
                           </>
                         ) : (
                           <>
-                            <Zap className="h-5 w-5 mr-2" />
+                            <ZapIcon className="h-5 w-5 mr-2" />
                             Run Test & Score
                             <ArrowRight className="h-5 w-5 ml-2" />
                           </>
@@ -611,7 +612,7 @@ const PromptLab = () => {
                           </>
                         ) : (
                           <>
-                            <Trophy className="h-5 w-5 mr-2" />
+                            <TrophyIcon className="h-5 w-5 mr-2" />
                             Start Battle
                             <ArrowRight className="h-5 w-5 ml-2" />
                           </>
@@ -637,7 +638,7 @@ const PromptLab = () => {
               <Card className="glass-card border-primary/30 rounded-[24px] overflow-hidden shadow-[0_0_60px_rgba(110,231,255,0.2)]">
                 <CardHeader className="border-b border-primary/10 bg-gradient-to-r from-primary/10 to-accent/10">
                   <CardTitle className="flex items-center gap-2 text-xl">
-                    <BarChart3 className="h-5 w-5 text-primary" />
+                    <ChartIcon className="h-5 w-5 text-primary" />
                     Diagnostic Results
                   </CardTitle>
                 </CardHeader>
@@ -734,7 +735,7 @@ const PromptLab = () => {
                     className="space-y-4"
                   >
                     <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
+                      <TrendingIcon className="h-5 w-5 text-primary" />
                       Category Breakdown
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -768,7 +769,7 @@ const PromptLab = () => {
                     className="space-y-4"
                   >
                     <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
+                      <SparklesIcon className="h-5 w-5 text-primary" />
                       AI-Powered Analysis
                     </h3>
 
@@ -791,12 +792,12 @@ const PromptLab = () => {
                         />
                       )}
 
-                      <FeedbackCard
-                        type="info"
-                        title="Suggested Fixes"
-                        icon={<Zap className="h-4 w-4" />}
-                        items={singleResult.ai_analysis.suggested_fixes}
-                      />
+                        <FeedbackCard
+                          type="info"
+                          title="Suggested Fixes"
+                          icon={<ZapIcon className="h-4 w-4" />}
+                          items={singleResult.ai_analysis.suggested_fixes}
+                        />
                     </div>
 
                     {/* Per-Category Explanations */}
@@ -808,7 +809,7 @@ const PromptLab = () => {
                         className="glass-panel p-6 mt-4"
                       >
                         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                          <Activity className="h-5 w-5 text-primary" />
+                          <ActivityIcon className="h-5 w-5 text-primary" />
                           Score Explanations
                         </h3>
                         <div className="space-y-3">
@@ -846,7 +847,7 @@ const PromptLab = () => {
                       onClick={() => navigate('/app/ai-agent', { state: { prompt: promptA } })}
                       className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                     >
-                      <Sparkles className="h-4 w-4 mr-2" />
+                      <SparklesIcon className="h-4 w-4 mr-2" />
                       Auto-Optimize
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
@@ -869,7 +870,7 @@ const PromptLab = () => {
               <Card className="glass-card border-primary/30 rounded-[24px] overflow-hidden shadow-[0_0_60px_rgba(124,92,255,0.2)]">
                 <CardHeader className="border-b border-accent/10 bg-gradient-to-r from-accent/10 to-primary/10">
                   <CardTitle className="flex items-center gap-2 text-xl">
-                    <Trophy className="h-5 w-5 text-accent" />
+                    <TrophyIcon className="h-5 w-5 text-accent" />
                     Battle Results
                   </CardTitle>
                 </CardHeader>
@@ -968,7 +969,7 @@ const PromptLab = () => {
                       <div className="flex items-center gap-2 mb-4">
                         <span className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">A</span>
                         <h4 className="font-semibold text-lg">Prompt A</h4>
-                        {compareResult.winner === 'A' && <Trophy className="h-5 w-5 text-primary ml-auto" />}
+                        {compareResult.winner === 'A' && <TrophyIcon className="h-5 w-5 text-primary ml-auto" />}
                       </div>
                       <ScoreGauge score={compareResult.prompt_a_score} size="md" />
                     </motion.div>
@@ -982,7 +983,7 @@ const PromptLab = () => {
                       <div className="flex items-center gap-2 mb-4">
                         <span className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center font-bold">B</span>
                         <h4 className="font-semibold text-lg">Prompt B</h4>
-                        {compareResult.winner === 'B' && <Trophy className="h-5 w-5 text-accent ml-auto" />}
+                        {compareResult.winner === 'B' && <TrophyIcon className="h-5 w-5 text-accent ml-auto" />}
                       </div>
                       <ScoreGauge score={compareResult.prompt_b_score} size="md" />
                     </motion.div>
@@ -996,7 +997,7 @@ const PromptLab = () => {
                     className="space-y-4"
                   >
                     <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-primary" />
+                      <ChartIcon className="h-5 w-5 text-primary" />
                       Category-by-Category Comparison
                     </h3>
                     <div className="space-y-3">
