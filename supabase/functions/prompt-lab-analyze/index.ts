@@ -29,7 +29,6 @@ interface LabRequest {
   target_llm: string;
   prompt_a: string;
   prompt_b?: string;
-  test_task?: string;
 }
 
 // CategoryScores imported from master-grader.ts
@@ -58,10 +57,8 @@ interface BattleResult {
 // Removed - now using master-grader.ts
 
 // Helper to call AI models
-async function callAIModel(prompt: string, targetLLM: string, testTask?: string): Promise<string> {
-  const systemMessage = testTask 
-    ? `You are a helpful AI assistant. ${testTask}` 
-    : "You are a helpful AI assistant.";
+async function callAIModel(prompt: string, targetLLM: string): Promise<string> {
+  const systemMessage = "You are a helpful AI assistant.";
   
   const userMessage = prompt;
   
@@ -405,7 +402,7 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const startTime = Date.now();
   
   // Call AI model to get real output
-  const output = await callAIModel(req.prompt_a, req.target_llm, req.test_task);
+  const output = await callAIModel(req.prompt_a, req.target_llm);
   
   // Use AI-powered scoring with fallback to rule-based
   let scores: CategoryScores;
@@ -444,8 +441,8 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
   
   // Call AI models for both prompts in parallel
   const [outputA, outputB] = await Promise.all([
-    callAIModel(req.prompt_a, req.target_llm, req.test_task),
-    callAIModel(req.prompt_b, req.target_llm, req.test_task),
+    callAIModel(req.prompt_a, req.target_llm),
+    callAIModel(req.prompt_b, req.target_llm),
   ]);
   
   // Score both with AI-powered grading (with fallback)
@@ -566,7 +563,6 @@ serve(async (req) => {
         mode: 'single',
         target_llm: request.target_llm,
         prompt_a: request.prompt_a,
-        test_task: request.test_task,
         total_score_a: diagnoseResult.total_score,
         category_breakdown_a: diagnoseResult.category_breakdown,
         ai_analysis: diagnoseResult.ai_analysis,
@@ -584,7 +580,6 @@ serve(async (req) => {
         target_llm: request.target_llm,
         prompt_a: request.prompt_a,
         prompt_b: request.prompt_b,
-        test_task: request.test_task,
         total_score_a: battleResult.prompt_a_score,
         total_score_b: battleResult.prompt_b_score,
         category_breakdown_a: battleResult.prompt_a_breakdown,

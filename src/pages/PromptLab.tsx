@@ -72,7 +72,6 @@ const PromptLab = () => {
   const [mode, setMode] = useState<'single' | 'compare'>('single');
   const [promptA, setPromptA] = useState('');
   const [promptB, setPromptB] = useState('');
-  const [testTask, setTestTask] = useState('');
   const [selectedProvider, setSelectedProvider] = useState('google');
   const [selectedLLM, setSelectedLLM] = useState('gemini-2.5-flash');
   const [isLoading, setIsLoading] = useState(false);
@@ -107,7 +106,6 @@ const PromptLab = () => {
         target_llm: targetLLM,
         prompt_a: promptA,
         prompt_b: mode === 'compare' ? promptB : undefined,
-        test_task: testTask || undefined,
       });
 
       if (mode === 'single') {
@@ -340,7 +338,7 @@ const PromptLab = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">AI Provider</Label>
                         <Select value={selectedProvider} onValueChange={setSelectedProvider}>
@@ -403,17 +401,6 @@ const PromptLab = () => {
                             )}
                           </SelectContent>
                         </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Test Task (Optional)</Label>
-                        <Textarea
-                          placeholder="e.g., 'Summarize the article'"
-                          value={testTask}
-                          onChange={(e) => setTestTask(e.target.value)}
-                          rows={1}
-                          className="border-primary/20 bg-background/50"
-                        />
                       </div>
                     </div>
 
@@ -477,7 +464,7 @@ const PromptLab = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">AI Provider</Label>
                         <Select value={selectedProvider} onValueChange={setSelectedProvider}>
@@ -540,17 +527,6 @@ const PromptLab = () => {
                             )}
                           </SelectContent>
                         </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Test Task (Optional)</Label>
-                        <Textarea
-                          placeholder="e.g., 'Summarize the article'"
-                          value={testTask}
-                          onChange={(e) => setTestTask(e.target.value)}
-                          rows={1}
-                          className="border-primary/20 bg-background/50"
-                        />
                       </div>
                     </div>
 
