@@ -157,6 +157,7 @@ const PromptLab = () => {
               category_breakdown: row.category_breakdown_a,
               ai_analysis: row.ai_analysis,
               prompt_type: row.prompt_type_a ?? undefined,
+              tested_prompt: row.prompt_a, // Add the tested prompt from database
             };
             setSingleResult(result);
             setCompareResult(null);
