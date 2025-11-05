@@ -109,6 +109,8 @@ const PromptLab = () => {
       if (pendingStart && pendingMode) {
         setIsLoading(true);
         setTestingMode(pendingMode as 'single' | 'compare');
+        // Set the mode to match what's being tested
+        setMode(pendingMode as 'single' | 'compare');
       }
     } catch (e) {
       console.warn('Failed to load last lab result from storage', e);
@@ -421,21 +423,38 @@ const PromptLab = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 p-6 md:p-8">
-              <Tabs value={mode} onValueChange={(v) => setMode(v as 'single' | 'compare')}>
+              <Tabs value={mode} onValueChange={(v) => {
+                // Prevent switching modes while a test is running
+                if (!isLoading) {
+                  setMode(v as 'single' | 'compare');
+                }
+              }}>
                 <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
                   <TabsTrigger 
-                    value="single" 
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground"
+                    value="single"
+                    disabled={isLoading && testingMode === 'compare'}
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Zap className="h-4 w-4 mr-2" />
                     Single Test
+                    {testingMode === 'single' && isLoading && (
+                      <Badge variant="outline" className="ml-2 bg-primary/10 border-primary/30 text-primary animate-pulse">
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      </Badge>
+                    )}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="compare"
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-accent data-[state=active]:to-accent/80 data-[state=active]:text-accent-foreground"
+                    disabled={isLoading && testingMode === 'single'}
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-accent data-[state=active]:to-accent/80 data-[state=active]:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Trophy className="h-4 w-4 mr-2" />
                     Battle Mode
+                    {testingMode === 'compare' && isLoading && (
+                      <Badge variant="outline" className="ml-2 bg-accent/10 border-accent/30 text-accent animate-pulse">
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 </TabsList>
 
