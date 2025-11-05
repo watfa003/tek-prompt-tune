@@ -192,12 +192,16 @@ const PromptLab = () => {
 
 
   const handleRunTest = async () => {
+    console.log('🧪 [PromptLab] Starting test:', { mode, selectedProvider, selectedLLM });
+    
     if (!promptA.trim()) {
+      console.error('❌ [PromptLab] Validation failed: No prompt A');
       toast({ title: "Error", description: "Please enter a prompt", variant: "destructive" });
       return;
     }
 
     if (mode === 'compare' && !promptB.trim()) {
+      console.error('❌ [PromptLab] Validation failed: No prompt B for battle mode');
       toast({ title: "Error", description: "Please enter both prompts for comparison", variant: "destructive" });
       return;
     }
@@ -211,20 +215,32 @@ const PromptLab = () => {
       const { invokeWithAuth } = await import('@/lib/auth-helpers');
       
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
+      const requestPayload = {
+        mode,
+        target_llm: targetLLM,
+        prompt_a: promptA,
+        prompt_b: mode === 'compare' ? promptB : undefined,
+      };
+
+      console.log('📡 [PromptLab] Sending request to edge function:', requestPayload);
 
       // Mark this run as pending so it can complete in the background
       const startIso = new Date().toISOString();
       localStorage.setItem(PENDING_START_KEY, startIso);
       localStorage.setItem(PENDING_MODE_KEY, mode);
       
-      const data = await invokeWithAuth('prompt-lab-analyze', {
-        mode,
-        target_llm: targetLLM,
-        prompt_a: promptA,
-        prompt_b: mode === 'compare' ? promptB : undefined,
+      console.log('⏳ [PromptLab] Calling invokeWithAuth...');
+      const startTime = Date.now();
+      
+      const data = await invokeWithAuth('prompt-lab-analyze', requestPayload, {
+        retries: mode === 'compare' ? 1 : 2, // Less retries for battle mode since it's slow
       });
 
+      const duration = Date.now() - startTime;
+      console.log(`✅ [PromptLab] Request completed in ${duration}ms:`, data);
+
       if (mode === 'single') {
+        console.log('📊 [PromptLab] Setting single test result');
         setSingleResult(data);
         localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'single', result: data }));
         setTestingMode(null);
@@ -232,6 +248,7 @@ const PromptLab = () => {
         localStorage.removeItem(PENDING_MODE_KEY);
         toast({ title: "Analysis Complete", description: "Your prompt has been scored!" });
       } else {
+        console.log('⚔️ [PromptLab] Setting battle result, winner:', data.winner);
         setCompareResult(data);
         localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'compare', result: data }));
         setTestingMode(null);
@@ -240,15 +257,32 @@ const PromptLab = () => {
         toast({ title: "Battle Complete", description: `Prompt ${data.winner} wins!` });
       }
     } catch (error) {
-      console.error('Lab test error:', error);
+      const duration = Date.now();
+      console.error('❌ [PromptLab] Test failed after ~' + duration + 'ms:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        name: error instanceof Error ? error.name : 'N/A',
+        stack: error instanceof Error ? error.stack : 'N/A',
+      });
+      
+      const isTimeout = error instanceof Error && 
+        (error.message.includes('timeout') || error.message.includes('aborted'));
+      
+      let errorMessage = error instanceof Error ? error.message : "Failed to analyze prompt";
+      
+      if (isTimeout && mode === 'compare') {
+        errorMessage = "Battle mode timed out. This can happen with complex prompts. Try again or use single test mode.";
+      }
+      
       toast({ 
         title: "Test Failed", 
-        description: error instanceof Error ? error.message : "Failed to analyze prompt",
+        description: errorMessage,
         variant: "destructive" 
       });
     } finally {
       setIsLoading(false);
       setTestingMode(null);
+      console.log('🏁 [PromptLab] Test flow complete');
     }
   };
 
