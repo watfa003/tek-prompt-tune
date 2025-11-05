@@ -173,7 +173,7 @@ const PromptOptimizerForm = ({
             placeholder="Describe the context or goal for this prompt..."
             value={taskDescription}
             onChange={(e) => setTaskDescription(e.target.value)}
-            className="min-h-[120px] resize-none"
+            className="min-h-[120px] resize-none optimizer-task-input"
           />
         </div>
 
@@ -182,7 +182,7 @@ const PromptOptimizerForm = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">AI Provider</Label>
             <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-              <SelectTrigger>
+              <SelectTrigger className="optimizer-provider-select">
                 <SelectValue placeholder="Select AI provider" />
               </SelectTrigger>
               <SelectContent>
@@ -198,7 +198,7 @@ const PromptOptimizerForm = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">LLM Model</Label>
             <Select value={selectedLLM} onValueChange={setSelectedLLM}>
-              <SelectTrigger>
+              <SelectTrigger className="optimizer-model-select">
                 <SelectValue placeholder="Select LLM model" />
               </SelectTrigger>
               <SelectContent>
@@ -245,15 +245,17 @@ const PromptOptimizerForm = ({
 
           <div className="space-y-3">
             <Label className="text-sm font-medium">Output Type</Label>
-            <OutputTypeSelector 
-              value={selectedOutputType as any} 
-              onChange={(type) => setSelectedOutputType(type)}
-            />
+            <div className="optimizer-output-select">
+              <OutputTypeSelector 
+                value={selectedOutputType as any} 
+                onChange={(type) => setSelectedOutputType(type)}
+              />
+            </div>
           </div>
         </div>
 
         {/* Variants Selection */}
-        <div className="space-y-2">
+        <div className="space-y-2 optimizer-variants-slider">
           <Label className="text-sm font-medium">Variants to Generate</Label>
           <Select value={variants.toString()} onValueChange={(value) => setVariants(parseInt(value))}>
             <SelectTrigger>

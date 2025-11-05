@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Joyride, { CallBackProps, STATUS, Step, Styles } from 'react-joyride';
+import Joyride, { CallBackProps, STATUS, Step, Styles, ACTIONS, EVENTS } from 'react-joyride';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -10,6 +11,7 @@ interface OnboardingTutorialProps {
 export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComplete }) => {
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,17 +45,42 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
   };
 
   const handleJoyrideCallback = async (data: CallBackProps) => {
-    const { status, action, index, type } = data;
+    const { status, action, index, type, lifecycle } = data;
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
-      // Mark tutorial as completed
       await completeTutorial();
       setRun(false);
+      return;
     }
 
-    // Handle step changes
-    if (type === 'step:after') {
-      setStepIndex(index + (action === 'prev' ? -1 : 1));
+    // Handle step navigation
+    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+      const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
+      
+      // Navigate to correct page based on step
+      if (nextStepIndex === 1) {
+        // Going to Lab tab step
+        navigate('/app/lab');
+        setTimeout(() => setStepIndex(nextStepIndex), 300);
+      } else if (nextStepIndex === 5) {
+        // Going to Optimizer dashboard step
+        navigate('/app');
+        setTimeout(() => setStepIndex(nextStepIndex), 300);
+      } else if (nextStepIndex === 11) {
+        // Going to History tab step
+        navigate('/app/history');
+        setTimeout(() => setStepIndex(nextStepIndex), 300);
+      } else if (nextStepIndex === 12) {
+        // Going to Templates tab step
+        navigate('/app/templates');
+        setTimeout(() => setStepIndex(nextStepIndex), 300);
+      } else if (nextStepIndex === 13) {
+        // Going to Settings tab step
+        navigate('/app/settings');
+        setTimeout(() => setStepIndex(nextStepIndex), 300);
+      } else {
+        setStepIndex(nextStepIndex);
+      }
     }
   };
 
@@ -81,9 +108,14 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       target: 'body',
       content: (
         <div className="text-center space-y-3">
-          <h2 className="text-2xl font-bold">Welcome to PrompTek 👋</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Welcome to PrompTek 👋
+          </h2>
           <p className="text-muted-foreground">
-            Let's walk you through the core features. You can skip, but we recommend following along for 60 seconds.
+            Let's walk you through the core features in just 90 seconds. We'll show you how to optimize prompts, test them, and track your results.
+          </p>
+          <p className="text-sm text-primary">
+            Press Next to begin your guided tour!
           </p>
         </div>
       ),
@@ -94,9 +126,17 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       target: '#lab-tab',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">Lab 🧪</h3>
+          <h3 className="font-bold text-lg">🧪 PromptTek Lab</h3>
           <p className="text-sm">
-            This is where you test your prompts and get graded across the 8-Pillar Framework.
+            This is your testing ground. The Lab evaluates your prompts using our <strong>8-Pillar Framework</strong>:
+          </p>
+          <ul className="text-xs space-y-1 ml-4 list-disc text-muted-foreground">
+            <li>Clarity, Specificity, Context</li>
+            <li>Structure, Examples, Constraints</li>
+            <li>Tone, Adaptability</li>
+          </ul>
+          <p className="text-sm mt-2">
+            Get instant scores and AI-powered feedback to improve your prompts.
           </p>
         </div>
       ),
@@ -104,61 +144,222 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       spotlightClicks: true,
     },
     {
+      target: 'body',
+      content: (
+        <div className="space-y-3">
+          <h3 className="font-bold text-lg">Lab Features</h3>
+          <p className="text-sm">The Lab has two modes:</p>
+          <div className="space-y-2 text-sm">
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <strong className="text-primary">Single Test:</strong> Test one prompt and get detailed breakdown scores
+            </div>
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <strong className="text-accent">Battle Mode:</strong> Compare two prompts head-to-head to see which performs better
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Perfect for A/B testing and iterative improvements!
+          </p>
+        </div>
+      ),
+      placement: 'center',
+    },
+    {
+      target: 'body',
+      content: (
+        <div className="space-y-3">
+          <h3 className="font-bold text-lg">Auto-Optimize Feature</h3>
+          <p className="text-sm">
+            After testing a prompt in the Lab, you can click <strong className="text-primary">"Auto-Optimize"</strong> to get AI-powered suggestions.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            The Lab will automatically re-test the optimized version and show you before/after comparisons with score improvements!
+          </p>
+        </div>
+      ),
+      placement: 'center',
+    },
+    {
       target: '#optimizer-tab',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">Optimizer ⚡</h3>
+          <h3 className="font-bold text-lg">⚡ AI Agent (Optimizer)</h3>
           <p className="text-sm">
-            Here you refine and improve your prompts automatically using AI-driven optimization.
+            This is your main dashboard for <strong>generating optimized prompts</strong> from scratch.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Unlike the Lab (which tests existing prompts), the Optimizer creates comprehensive, production-ready prompts from simple ideas.
           </p>
         </div>
       ),
       placement: 'right',
+      spotlightClicks: true,
+    },
+    {
+      target: '.optimizer-task-input',
+      content: (
+        <div className="space-y-2">
+          <h3 className="font-bold text-lg">Task Description</h3>
+          <p className="text-sm">
+            Describe what you want the AI to do. Be as specific as possible!
+          </p>
+          <div className="p-2 bg-muted/50 rounded text-xs mt-2">
+            <strong>Example:</strong> "Create a marketing email for a SaaS product launch"
+          </div>
+        </div>
+      ),
+      placement: 'bottom',
+    },
+    {
+      target: '.optimizer-provider-select',
+      content: (
+        <div className="space-y-2">
+          <h3 className="font-bold text-lg">AI Provider</h3>
+          <p className="text-sm">
+            Choose which AI company's models to use:
+          </p>
+          <ul className="text-xs space-y-1 ml-4 text-muted-foreground">
+            <li><strong>OpenAI:</strong> GPT-5, GPT-4o (best for reasoning)</li>
+            <li><strong>Anthropic:</strong> Claude models (creative & nuanced)</li>
+            <li><strong>Google:</strong> Gemini (fast & cost-effective)</li>
+            <li><strong>Groq:</strong> Ultra-fast inference</li>
+          </ul>
+        </div>
+      ),
+      placement: 'bottom',
+    },
+    {
+      target: '.optimizer-model-select',
+      content: (
+        <div className="space-y-2">
+          <h3 className="font-bold text-lg">LLM Model</h3>
+          <p className="text-sm">
+            Select the specific model version. Different models have different:
+          </p>
+          <ul className="text-xs space-y-1 ml-4 text-muted-foreground">
+            <li><strong>Speed:</strong> Smaller models respond faster</li>
+            <li><strong>Intelligence:</strong> Larger models reason better</li>
+            <li><strong>Cost:</strong> Premium models cost more per request</li>
+          </ul>
+          <p className="text-xs text-primary mt-2">
+            We recommend starting with GPT-4o-mini or Gemini Flash for best balance!
+          </p>
+        </div>
+      ),
+      placement: 'bottom',
+    },
+    {
+      target: '.optimizer-output-select',
+      content: (
+        <div className="space-y-2">
+          <h3 className="font-bold text-lg">Output Type</h3>
+          <p className="text-sm">
+            Tell us what format you want the AI to produce:
+          </p>
+          <ul className="text-xs space-y-1 ml-4 text-muted-foreground">
+            <li><strong>Text:</strong> General writing, articles, responses</li>
+            <li><strong>Code:</strong> Programming, scripts, technical</li>
+            <li><strong>JSON:</strong> Structured data, APIs</li>
+            <li><strong>List:</strong> Bullet points, action items</li>
+            <li><strong>Essay:</strong> Long-form, academic writing</li>
+          </ul>
+          <p className="text-xs text-primary mt-2">
+            This optimizes the prompt strategy for your specific use case!
+          </p>
+        </div>
+      ),
+      placement: 'bottom',
+    },
+    {
+      target: '.optimizer-variants-slider',
+      content: (
+        <div className="space-y-2">
+          <h3 className="font-bold text-lg">Variants</h3>
+          <p className="text-sm">
+            How many different prompt versions to generate (1-10).
+          </p>
+          <p className="text-xs text-muted-foreground">
+            More variants = more options to choose from, but takes longer to process.
+          </p>
+          <p className="text-xs text-primary mt-2">
+            💡 Tip: Start with 3-5 variants for best results!
+          </p>
+        </div>
+      ),
+      placement: 'bottom',
     },
     {
       target: '#history-tab',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">History 📚</h3>
+          <h3 className="font-bold text-lg">📚 History</h3>
           <p className="text-sm">
-            All your optimized prompts and test results are saved here for later use.
+            Every optimized prompt and test result is automatically saved here.
           </p>
+          <ul className="text-xs space-y-1 ml-4 text-muted-foreground">
+            <li>Search and filter past prompts</li>
+            <li>Mark favorites with a star</li>
+            <li>Reuse prompts as templates</li>
+            <li>Track performance over time</li>
+          </ul>
         </div>
       ),
       placement: 'right',
+      spotlightClicks: true,
     },
     {
       target: '#templates-tab',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">Templates 📋</h3>
+          <h3 className="font-bold text-lg">📋 Templates</h3>
           <p className="text-sm">
-            Browse and use pre-made prompt templates to jumpstart your work.
+            Browse pre-made prompt templates by category:
+          </p>
+          <ul className="text-xs space-y-1 ml-4 text-muted-foreground">
+            <li>Marketing, Writing, Code, Analytics</li>
+            <li>Business, Education, Support</li>
+            <li>Create your own custom templates</li>
+          </ul>
+          <p className="text-xs text-primary mt-2">
+            Use templates as starting points to save time!
           </p>
         </div>
       ),
       placement: 'right',
+      spotlightClicks: true,
     },
     {
       target: '#settings-tab',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">Settings ⚙️</h3>
+          <h3 className="font-bold text-lg">⚙️ Settings</h3>
           <p className="text-sm">
-            Manage your account, API connections, and restart this tutorial anytime from here.
+            Customize your PrompTek experience:
           </p>
+          <ul className="text-xs space-y-1 ml-4 text-muted-foreground">
+            <li>Set default AI provider & model</li>
+            <li>Configure notification preferences</li>
+            <li>Manage data retention & privacy</li>
+            <li>Restart this tutorial anytime</li>
+          </ul>
         </div>
       ),
       placement: 'right',
+      spotlightClicks: true,
     },
     {
       target: 'body',
       content: (
-        <div className="text-center space-y-3">
-          <h2 className="text-2xl font-bold">You're ready to explore! 🎉</h2>
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            You're ready to explore! 🎉
+          </h2>
           <p className="text-muted-foreground">
-            Start by testing your first prompt in the Lab.
+            Start by creating your first optimized prompt in the AI Agent dashboard, or test an existing prompt in the Lab.
           </p>
+          <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 text-sm">
+            <strong className="text-primary">Pro Tip:</strong> Use the Lab to perfect your prompts, then save the best ones as templates for future use!
+          </div>
         </div>
       ),
       placement: 'center',
