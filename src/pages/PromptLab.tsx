@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { LabParticles } from '@/components/ui/lab-particles';
+import { AmbientParticles } from '@/components/ui/ambient-particles';
 import { ScoreGauge } from '@/components/ui/score-gauge';
 import { FeedbackCard } from '@/components/ui/feedback-card';
 import { 
@@ -288,7 +288,7 @@ const PromptLab = () => {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Ambient Background */}
-      <LabParticles />
+      <AmbientParticles />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Cinematic Header */}
@@ -296,114 +296,19 @@ const PromptLab = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="relative"
+          className="text-center space-y-4"
         >
-          <div className="glass-card rounded-[28px] p-8 md:p-12 overflow-hidden group hover:shadow-[0_0_80px_rgba(110,231,255,0.3)] transition-shadow duration-500">
-            {/* Animated gradient border */}
-            <motion.div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{
-                background: "linear-gradient(90deg, transparent, rgba(110,231,255,0.1), transparent)",
-              }}
-              animate={{
-                x: ['-100%', '100%'],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            />
-            
-            <div className="relative z-10">
-              <div className="flex items-start gap-4 mb-4">
-                <motion.div
-                  className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-accent to-[hsl(330,100%,69%)] flex items-center justify-center relative"
-                  whileHover={{ scale: 1.05, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                >
-                  <FlaskConical className="h-8 w-8 text-white" />
-                  <motion.div
-                    className="absolute inset-0 rounded-2xl"
-                    style={{
-                      background: "radial-gradient(circle, rgba(110,231,255,0.4), transparent 70%)",
-                      filter: "blur(15px)",
-                    }}
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [0.5, 0.8, 0.5],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  />
-                </motion.div>
-                
-                <div className="flex-1">
-                  <motion.h1
-                    className="text-4xl md:text-5xl lg:text-6xl font-bold font-heading tracking-tight mb-2"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <span className="gradient-text">PromptTek Lab</span>
-                    <motion.span
-                      className="inline-block ml-3"
-                      animate={{
-                        rotate: [0, 10, -10, 0],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        repeatDelay: 3,
-                      }}
-                    >
-                      🔬
-                    </motion.span>
-                  </motion.h1>
-                  
-                  <motion.p
-                    className="text-muted-foreground text-lg max-w-2xl"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    Enter the AI laboratory. Test prompts in real-time, get precision scores across 8 metrics, 
-                    and watch your prompts battle head-to-head with cinematic analysis.
-                  </motion.p>
-                </div>
-              </div>
-              
-              {/* Feature Pills */}
-              <motion.div
-                className="flex flex-wrap gap-2 mt-6"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                {[
-                  { icon: Activity, text: "Real-time Testing" },
-                  { icon: BarChart3, text: "8D Scoring" },
-                  { icon: Cpu, text: "AI Analysis" },
-                  { icon: Trophy, text: "Battle Mode" },
-                ].map((feature, idx) => (
-                  <motion.div
-                    key={feature.text}
-                    className="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 flex items-center gap-2 text-sm hover:bg-primary/20 transition-colors cursor-default"
-                    whileHover={{ scale: 1.05, borderColor: "rgba(110,231,255,0.4)" }}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.7 + idx * 0.1 }}
-                  >
-                    <feature.icon className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-foreground/80">{feature.text}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <FlaskConical className="h-6 w-6 text-white" />
             </div>
           </div>
+          <h1 className="text-4xl md:text-5xl font-bold font-heading tracking-tight">
+            <span className="gradient-text">PromptTek Lab</span>
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Test and analyze your prompts with precision AI scoring
+          </p>
         </motion.div>
 
         {/* Main Lab Interface */}
