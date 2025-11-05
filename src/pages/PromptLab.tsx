@@ -17,7 +17,9 @@ import {
   AlertCircle,
   CheckCircle,
   Copy,
-  ArrowRight
+  ArrowRight,
+  X,
+  FileText
 } from 'lucide-react';
 import { 
   FlaskIcon, 
@@ -79,6 +81,8 @@ const PromptLab = () => {
   const [testingMode, setTestingMode] = useState<'single' | 'compare' | null>(null);
   const [singleResult, setSingleResult] = useState<SingleTestResult | null>(null);
   const [compareResult, setCompareResult] = useState<CompareTestResult | null>(null);
+  const [isAutoOptimizing, setIsAutoOptimizing] = useState(false);
+  const [autoOptimizeResult, setAutoOptimizeResult] = useState<any>(null);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -283,6 +287,53 @@ const PromptLab = () => {
       setIsLoading(false);
       setTestingMode(null);
       console.log('🏁 [PromptLab] Test flow complete');
+    }
+  };
+
+  const handleAutoOptimize = async (result: any) => {
+    if (!result) return;
+
+    console.log('[Auto-Optimize] Starting auto-optimization...', {
+      hasScores: !!result.scores,
+      hasRecommendations: !!result.ai_analysis?.suggested_fixes
+    });
+
+    setIsAutoOptimizing(true);
+    setAutoOptimizeResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('lab-auto-optimize', {
+        body: {
+          prompt: promptA,
+          scores: result.scores,
+          aiRecommendations: result.ai_analysis?.suggested_fixes,
+          outputType: 'text',
+        }
+      });
+
+      console.log('[Auto-Optimize] Response received:', { data, error });
+
+      if (error) throw error;
+
+      if (!data.success || !data.optimizedPrompt) {
+        throw new Error('Failed to generate optimized prompt');
+      }
+
+      setAutoOptimizeResult(data);
+      toast({
+        title: "Auto-Optimization Complete!",
+        description: "Your prompt has been optimized based on AI analysis and scoring.",
+      });
+
+    } catch (error: any) {
+      console.error('[Auto-Optimize] Error:', error);
+      toast({
+        title: "Optimization Failed",
+        description: error.message || "Failed to auto-optimize the prompt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAutoOptimizing(false);
     }
   };
 
@@ -873,22 +924,119 @@ const PromptLab = () => {
                       Copy Prompt
                     </Button>
                     <Button 
-                      onClick={() => {
-                        const recommendations = singleResult?.ai_analysis?.suggested_fixes?.join('\n') || '';
-                        navigate('/app/ai-agent', { 
-                          state: { 
-                            prompt: promptA,
-                            labRecommendations: recommendations
-                          } 
-                        });
-                      }}
-                      className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                      onClick={() => handleAutoOptimize(singleResult)}
+                      disabled={isAutoOptimizing}
+                      className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90 disabled:opacity-50"
                     >
-                      <SparklesIcon className="h-4 w-4 mr-2" />
-                      Auto-Optimize
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                      {isAutoOptimizing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Optimizing...
+                        </>
+                      ) : (
+                        <>
+                          <SparklesIcon className="h-4 w-4 mr-2" />
+                          Auto-Optimize
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </motion.div>
+
+                  {/* Auto-Optimize Result */}
+                  <AnimatePresence>
+                    {autoOptimizeResult && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-primary/5 via-accent/5 to-[hsl(330,100%,69%)/5] border-2 border-primary/30 relative overflow-hidden"
+                      >
+                        {/* Animated background effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 animate-pulse opacity-30" />
+                        
+                        <div className="relative z-10 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                              <SparklesIcon className="h-5 w-5 text-accent" />
+                              Auto-Optimized Prompt
+                            </h3>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setAutoOptimizeResult(null)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {autoOptimizeResult.improvementAreas && autoOptimizeResult.improvementAreas.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              <span className="text-xs text-muted-foreground">Improved:</span>
+                              {autoOptimizeResult.improvementAreas.map((area, idx) => (
+                                <Badge key={idx} variant="secondary" className="text-xs">
+                                  {area}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            {/* Original Prompt */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                <FileText className="h-4 w-4" />
+                                Original
+                              </div>
+                              <div className="p-4 rounded-lg bg-background/50 border border-border/50 text-sm leading-relaxed max-h-[300px] overflow-y-auto">
+                                {autoOptimizeResult.originalPrompt}
+                              </div>
+                            </div>
+
+                            {/* Optimized Prompt */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                                <SparklesIcon className="h-4 w-4" />
+                                Optimized
+                              </div>
+                              <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30 text-sm leading-relaxed max-h-[300px] overflow-y-auto">
+                                {autoOptimizeResult.optimizedPrompt}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(autoOptimizeResult.optimizedPrompt)}
+                              className="flex-1"
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy Optimized
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setPromptA(autoOptimizeResult.optimizedPrompt);
+                                setAutoOptimizeResult(null);
+                                toast({
+                                  title: "Prompt Updated",
+                                  description: "Optimized prompt has been loaded into Prompt A",
+                                });
+                              }}
+                              className="flex-1 bg-gradient-to-r from-primary to-accent"
+                            >
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                              Use This Prompt
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </CardContent>
               </Card>
             </motion.div>
