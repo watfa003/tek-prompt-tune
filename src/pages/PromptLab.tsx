@@ -430,25 +430,32 @@ const PromptLab = () => {
                     animate={{ opacity: 1 }}
                     className="space-y-4"
                   >
-                    <div className="space-y-2">
+                     <div className="space-y-2">
                       <Label className="text-sm font-medium flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-primary" />
                         Your Prompt
+                        {isLoading && (
+                          <Badge variant="outline" className="ml-auto bg-primary/10 border-primary/30 text-primary animate-pulse">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Testing...
+                          </Badge>
+                        )}
                       </Label>
                       <Textarea
                         placeholder="Enter your prompt to test and score..."
                         value={promptA}
                         onChange={(e) => setPromptA(e.target.value)}
                         rows={8}
-                        className="resize-none font-mono text-sm border-primary/20 focus:border-primary/40 focus:ring-primary/20 transition-all bg-background/50"
+                        disabled={isLoading}
+                        className="resize-none font-mono text-sm border-primary/20 focus:border-primary/40 focus:ring-primary/20 transition-all bg-background/50 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">AI Provider</Label>
-                        <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                          <SelectTrigger className="border-primary/20">
+                        <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={isLoading}>
+                          <SelectTrigger className="border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -463,8 +470,8 @@ const PromptLab = () => {
 
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">LLM Model</Label>
-                        <Select value={selectedLLM} onValueChange={setSelectedLLM}>
-                          <SelectTrigger className="border-primary/20">
+                        <Select value={selectedLLM} onValueChange={setSelectedLLM} disabled={isLoading}>
+                          <SelectTrigger className="border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -546,26 +553,40 @@ const PromptLab = () => {
                         <Label className="text-sm font-medium flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">A</span>
                           Prompt A
+                          {isLoading && (
+                            <Badge variant="outline" className="ml-auto bg-primary/10 border-primary/30 text-primary animate-pulse">
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              Testing...
+                            </Badge>
+                          )}
                         </Label>
                         <Textarea
                           placeholder="Enter first prompt..."
                           value={promptA}
                           onChange={(e) => setPromptA(e.target.value)}
                           rows={8}
-                          className="resize-none font-mono text-sm border-primary/20 focus:border-primary/40 bg-background/50"
+                          disabled={isLoading}
+                          className="resize-none font-mono text-sm border-primary/20 focus:border-primary/40 bg-background/50 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">B</span>
                           Prompt B
+                          {isLoading && (
+                            <Badge variant="outline" className="ml-auto bg-accent/10 border-accent/30 text-accent animate-pulse">
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              Testing...
+                            </Badge>
+                          )}
                         </Label>
                         <Textarea
                           placeholder="Enter second prompt..."
                           value={promptB}
                           onChange={(e) => setPromptB(e.target.value)}
                           rows={8}
-                          className="resize-none font-mono text-sm border-accent/20 focus:border-accent/40 bg-background/50"
+                          disabled={isLoading}
+                          className="resize-none font-mono text-sm border-accent/20 focus:border-accent/40 bg-background/50 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -573,8 +594,8 @@ const PromptLab = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">AI Provider</Label>
-                        <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                          <SelectTrigger className="border-primary/20">
+                        <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={isLoading}>
+                          <SelectTrigger className="border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -589,8 +610,8 @@ const PromptLab = () => {
 
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">LLM Model</Label>
-                        <Select value={selectedLLM} onValueChange={setSelectedLLM}>
-                          <SelectTrigger className="border-primary/20">
+                        <Select value={selectedLLM} onValueChange={setSelectedLLM} disabled={isLoading}>
+                          <SelectTrigger className="border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
