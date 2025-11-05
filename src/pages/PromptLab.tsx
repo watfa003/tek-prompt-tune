@@ -294,8 +294,9 @@ const PromptLab = () => {
     if (!result) return;
 
     console.log('[Auto-Optimize] Starting auto-optimization...', {
-      hasScores: !!result.scores,
-      hasRecommendations: !!result.ai_analysis?.suggested_fixes
+      hasScores: !!result.category_breakdown,
+      hasRecommendations: !!result.ai_analysis?.suggested_fixes,
+      categoryBreakdown: result.category_breakdown
     });
 
     setIsAutoOptimizing(true);
@@ -305,7 +306,7 @@ const PromptLab = () => {
       const { data, error } = await supabase.functions.invoke('lab-auto-optimize', {
         body: {
           prompt: promptA,
-          scores: result.scores,
+          scores: result.category_breakdown,
           aiRecommendations: result.ai_analysis?.suggested_fixes,
           outputType: 'text',
         }
@@ -315,7 +316,7 @@ const PromptLab = () => {
 
       if (error) throw error;
 
-      if (!data.success || !data.optimizedPrompt) {
+      if (!data?.success || !data?.optimizedPrompt) {
         throw new Error('Failed to generate optimized prompt');
       }
 
