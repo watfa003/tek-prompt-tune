@@ -1,9 +1,14 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { AIPromptOptimizer } from '@/components/AIPromptOptimizer';
 import { OptimizerSessionProvider } from '@/context/OptimizerSessionContext';
 import { BackgroundPaths } from '@/components/ui/background-paths';
 import { Particles } from '@/components/ui/particles';
+
 const AIAgent = () => {
+  const location = useLocation();
+  const labRecommendations = (location.state as any)?.labRecommendations;
+
   return (
     <div className="min-h-screen bg-background relative isolate ai-optimizer-theme" style={{ overflow: "hidden" }}>
       <Particles />
@@ -20,7 +25,7 @@ const AIAgent = () => {
             </div>
 
             <OptimizerSessionProvider>
-              <AIPromptOptimizer />
+              <AIPromptOptimizer labRecommendations={labRecommendations} />
             </OptimizerSessionProvider>
           </div>
         </main>

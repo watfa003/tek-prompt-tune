@@ -519,7 +519,7 @@ const PromptOptimizerForm = ({
   );
 };
 
-export const AIPromptOptimizer: React.FC = () => {
+export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ labRecommendations }) => {
   const { settings } = useSettings();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -640,6 +640,17 @@ export const AIPromptOptimizer: React.FC = () => {
       navigate('/app/ai-agent', { replace: true });
     }
   }, [searchParams, navigate, toast]);
+
+  // Handle lab recommendations
+  React.useEffect(() => {
+    if (labRecommendations) {
+      setOptimizerTaskDescription(labRecommendations);
+      toast({
+        title: "Lab Recommendations Applied",
+        description: "AI analysis recommendations have been added to optimize your prompt.",
+      });
+    }
+  }, [labRecommendations, toast]);
 
   // Load default values from settings
   React.useEffect(() => {

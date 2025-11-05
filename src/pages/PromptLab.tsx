@@ -873,7 +873,15 @@ const PromptLab = () => {
                       Copy Prompt
                     </Button>
                     <Button 
-                      onClick={() => navigate('/app/ai-agent', { state: { prompt: promptA } })}
+                      onClick={() => {
+                        const recommendations = singleResult?.ai_analysis?.suggested_fixes?.join('\n') || '';
+                        navigate('/app/ai-agent', { 
+                          state: { 
+                            prompt: promptA,
+                            labRecommendations: recommendations
+                          } 
+                        });
+                      }}
                       className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                     >
                       <SparklesIcon className="h-4 w-4 mr-2" />
