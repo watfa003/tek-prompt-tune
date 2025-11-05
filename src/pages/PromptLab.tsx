@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,6 +81,101 @@ const PromptLab = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Persistence keys
+  const LAST_RESULT_KEY = 'lab:lastResult';
+  const PENDING_START_KEY = 'lab:pendingStart';
+  const PENDING_MODE_KEY = 'lab:pendingMode';
+
+  // Load last result on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LAST_RESULT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.mode === 'single' && parsed.result) {
+          setSingleResult(parsed.result as SingleTestResult);
+          setCompareResult(null);
+        } else if (parsed?.mode === 'compare' && parsed.result) {
+          setCompareResult(parsed.result as CompareTestResult);
+          setSingleResult(null);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load last lab result from storage', e);
+    }
+  }, []);
+
+  // Background polling for pending runs
+  useEffect(() => {
+    let interval: number | undefined;
+    const pendingStart = localStorage.getItem(PENDING_START_KEY);
+    if (!pendingStart) return;
+
+    const checkForResult = async () => {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const userId = authData.user?.id;
+        if (!userId) return;
+        const { data, error } = await supabase
+          .from('prompt_lab_results')
+          .select('*')
+          .eq('user_id', userId)
+          .gt('created_at', pendingStart)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (error) {
+          console.warn('Polling error', error);
+          return;
+        }
+        if (data && data.length > 0) {
+          const row = data[0] as any;
+          if (row.mode === 'single') {
+            const result: SingleTestResult = {
+              total_score: row.total_score_a,
+              category_breakdown: row.category_breakdown_a,
+              ai_analysis: row.ai_analysis,
+              prompt_type: row.prompt_type_a ?? undefined,
+            };
+            setSingleResult(result);
+            setCompareResult(null);
+            localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'single', result }));
+          } else if (row.mode === 'compare') {
+            const result: CompareTestResult = {
+              prompt_a_score: row.total_score_a,
+              prompt_b_score: row.total_score_b,
+              prompt_a_breakdown: row.category_breakdown_a,
+              prompt_b_breakdown: row.category_breakdown_b,
+              winner: row.winner,
+              reasoning: row.ai_analysis?.reasoning ?? '',
+              comparison: row.ai_analysis?.comparison ?? {},
+              prompt_a_type: row.prompt_a_type ?? undefined,
+              prompt_b_type: row.prompt_b_type ?? undefined,
+            };
+            setCompareResult(result);
+            setSingleResult(null);
+            localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'compare', result }));
+          }
+          // Clear pending when we pick up a result
+          localStorage.removeItem(PENDING_START_KEY);
+          localStorage.removeItem(PENDING_MODE_KEY);
+          if (interval) window.clearInterval(interval);
+          toast({ title: 'Background test complete', description: 'Your lab analysis finished while you were away.' });
+        }
+      } catch (e) {
+        console.warn('Error while polling lab results', e);
+      }
+    };
+
+    // Initial check and start polling
+    checkForResult();
+    interval = window.setInterval(checkForResult, 3000);
+
+    return () => {
+      if (interval) window.clearInterval(interval);
+    };
+  }, []);
+
+
   const handleRunTest = async () => {
     if (!promptA.trim()) {
       toast({ title: "Error", description: "Please enter a prompt", variant: "destructive" });
@@ -100,6 +195,11 @@ const PromptLab = () => {
       const { invokeWithAuth } = await import('@/lib/auth-helpers');
       
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
+
+      // Mark this run as pending so it can complete in the background
+      const startIso = new Date().toISOString();
+      localStorage.setItem(PENDING_START_KEY, startIso);
+      localStorage.setItem(PENDING_MODE_KEY, mode);
       
       const data = await invokeWithAuth('prompt-lab-analyze', {
         mode,
@@ -110,9 +210,15 @@ const PromptLab = () => {
 
       if (mode === 'single') {
         setSingleResult(data);
+        localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'single', result: data }));
+        localStorage.removeItem(PENDING_START_KEY);
+        localStorage.removeItem(PENDING_MODE_KEY);
         toast({ title: "Analysis Complete", description: "Your prompt has been scored!" });
       } else {
         setCompareResult(data);
+        localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'compare', result: data }));
+        localStorage.removeItem(PENDING_START_KEY);
+        localStorage.removeItem(PENDING_MODE_KEY);
         toast({ title: "Battle Complete", description: `Prompt ${data.winner} wins!` });
       }
     } catch (error) {
