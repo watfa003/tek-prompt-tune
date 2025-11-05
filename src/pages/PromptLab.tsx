@@ -57,6 +57,7 @@ interface SingleTestResult {
     explanation?: Record<string, string>;
   };
   prompt_type?: 'simple' | 'complex' | 'creative';
+  tested_prompt?: string; // Add the prompt that was tested
 }
 
 interface CompareTestResult {
@@ -101,6 +102,10 @@ const PromptLab = () => {
         if (parsed?.mode === 'single' && parsed.result) {
           setSingleResult(parsed.result as SingleTestResult);
           setCompareResult(null);
+          // Restore the tested prompt if available
+          if (parsed.result.tested_prompt) {
+            setPromptA(parsed.result.tested_prompt);
+          }
         } else if (parsed?.mode === 'compare' && parsed.result) {
           setCompareResult(parsed.result as CompareTestResult);
           setSingleResult(null);
@@ -245,8 +250,10 @@ const PromptLab = () => {
 
       if (mode === 'single') {
         console.log('📊 [PromptLab] Setting single test result');
-        setSingleResult(data);
-        localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'single', result: data }));
+        // Add the tested prompt to the result
+        const resultWithPrompt = { ...data, tested_prompt: promptA };
+        setSingleResult(resultWithPrompt);
+        localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ mode: 'single', result: resultWithPrompt }));
         setTestingMode(null);
         localStorage.removeItem(PENDING_START_KEY);
         localStorage.removeItem(PENDING_MODE_KEY);
@@ -293,9 +300,22 @@ const PromptLab = () => {
   const handleAutoOptimize = async (result: any) => {
     if (!result) return;
 
+    // Get the prompt from the result or fallback to promptA state
+    const promptToOptimize = result.tested_prompt || promptA;
+
+    if (!promptToOptimize?.trim()) {
+      toast({
+        title: "Error",
+        description: "No prompt available to optimize. Please run a test first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     console.log('[Auto-Optimize] Starting auto-optimization...', {
       hasScores: !!result.category_breakdown,
       hasRecommendations: !!result.ai_analysis?.suggested_fixes,
+      promptLength: promptToOptimize.length,
       categoryBreakdown: result.category_breakdown
     });
 
@@ -305,7 +325,7 @@ const PromptLab = () => {
     try {
       const { data, error } = await supabase.functions.invoke('lab-auto-optimize', {
         body: {
-          prompt: promptA,
+          prompt: promptToOptimize,
           scores: result.category_breakdown,
           aiRecommendations: result.ai_analysis?.suggested_fixes,
           outputType: 'text',
