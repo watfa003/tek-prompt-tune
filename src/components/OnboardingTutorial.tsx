@@ -28,11 +28,11 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('tutorial_completed')
+        .select('*')
         .eq('id', user.id)
         .single();
 
-      if (profile?.tutorial_completed) {
+      if (profile && (profile as any).tutorial_completed) {
         localStorage.setItem('promptek_tutorial_completed', 'true');
         return;
       }
@@ -64,7 +64,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     if (user) {
       await supabase
         .from('profiles')
-        .update({ tutorial_completed: true })
+        .update({ tutorial_completed: true } as any)
         .eq('id', user.id);
     }
 
@@ -165,7 +165,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     },
   ];
 
-  const styles: Styles = {
+  const styles: Partial<Styles> = {
     options: {
       arrowColor: 'hsl(var(--popover))',
       backgroundColor: 'hsl(var(--popover))',

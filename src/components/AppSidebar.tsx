@@ -40,12 +40,12 @@ import { useSettings } from "@/hooks/use-settings";
 import { useAppMode } from "@/context/AppModeContext";
 
 const optimizerNavigationItems = [
-  { title: "Dashboard", url: "/app", icon: Home },
-  { title: "AI Agent", url: "/app/ai-agent", icon: Bot },
-  { title: "PromptTek Lab", url: "/app/lab", icon: FlaskConical },
-  { title: "History", url: "/app/history", icon: History },
-  { title: "Templates", url: "/app/templates", icon: FileText },
-  { title: "Settings", url: "/app/settings", icon: Settings },
+  { title: "Dashboard", url: "/app", icon: Home, id: "dashboard-tab" },
+  { title: "AI Agent", url: "/app/ai-agent", icon: Bot, id: "optimizer-tab" },
+  { title: "PromptTek Lab", url: "/app/lab", icon: FlaskConical, id: "lab-tab" },
+  { title: "History", url: "/app/history", icon: History, id: "history-tab" },
+  { title: "Templates", url: "/app/templates", icon: FileText, id: "templates-tab" },
+  { title: "Settings", url: "/app/settings", icon: Settings, id: "settings-tab" },
 ];
 
 const apiNavigationItems = [
@@ -187,6 +187,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Button
+                      id={'id' in item ? item.id : undefined}
                       variant="ghost"
                       onClick={() => {
                         if (mode === 'api' && 'section' in item) {

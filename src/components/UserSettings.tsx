@@ -18,8 +18,10 @@ import {
   RefreshCw,
   Trash2,
   Download,
-  Upload
+  Upload,
+  Compass
 } from "lucide-react";
+import { restartTutorial } from "@/components/OnboardingTutorial";
 import { useSettings } from "@/hooks/use-settings";
 import { useThemeSettings } from "@/hooks/use-theme-settings";
 import { useTheme } from "next-themes";
@@ -496,6 +498,17 @@ export const UserSettings = () => {
         </div>
         
         <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 border border-primary/20 rounded-md bg-primary/5">
+            <div>
+              <p className="font-medium">Restart Tutorial</p>
+              <p className="text-sm text-muted-foreground">Replay the onboarding tutorial to learn PrompTek features again</p>
+            </div>
+            <Button variant="outline" onClick={restartTutorial}>
+              <Compass className="h-4 w-4 mr-2" />
+              🧭 Restart Tutorial
+            </Button>
+          </div>
+          
           <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-md bg-destructive/5">
             <div>
               <p className="font-medium">Reset All Settings</p>

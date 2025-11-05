@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
+import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -153,6 +154,7 @@ const AppPageContent = () => {
       "--sidebar-width": "16rem",
       "--sidebar-width-mobile": "16rem" 
     } as React.CSSProperties}>
+        <OnboardingTutorial />
         <div className="min-h-screen flex w-full max-w-full bg-background relative isolate box-border" style={{ overflow: "hidden" }}>
           {/* Ambient Background Effects */}
           <div className="fixed inset-0 pointer-events-none overflow-hidden">
