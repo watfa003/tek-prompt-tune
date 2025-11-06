@@ -19,7 +19,8 @@ serve(async (req) => {
       prompt, 
       scores, 
       aiRecommendations,
-      outputType = 'text'
+      outputType = 'text',
+      promptType = 'simple' // Add promptType parameter
     } = await req.json();
 
     if (!prompt) {
@@ -32,11 +33,13 @@ serve(async (req) => {
     console.log('[lab-auto-optimize] Processing:', { 
       promptLength: prompt.length,
       hasScores: !!scores,
-      hasRecommendations: !!aiRecommendations
+      hasRecommendations: !!aiRecommendations,
+      outputType,
+      promptType
     });
 
     // Build comprehensive optimization instructions
-    const optimizationInstructions = buildOptimizationInstructions(scores, aiRecommendations);
+    const optimizationInstructions = buildOptimizationInstructions(scores, aiRecommendations, outputType, promptType);
 
     const systemPrompt = `You are PrompTek Auto-Optimizer, an advanced prompt engineering AI specialized in the 8-Pillar Framework.
 
@@ -136,8 +139,66 @@ Return ONLY the optimized prompt text. No explanations, no meta-commentary.`;
   }
 });
 
-function buildOptimizationInstructions(scores: any, aiRecommendations: string[] | undefined): string {
+function buildOptimizationInstructions(
+  scores: any, 
+  aiRecommendations: string[] | undefined,
+  outputType: string = 'text',
+  promptType: string = 'simple'
+): string {
   let instructions = '\nOPTIMIZATION TARGETS:\n';
+  
+  // Prompt type-specific optimization guidance
+  if (promptType === 'simple') {
+    instructions += `\n📌 PROMPT TYPE: Simple/Direct Request
+- Focus on CLARITY and SPECIFICITY above all else
+- Don't over-engineer with unnecessary structure
+- Keep it concise but specific
+- Don't add elaboration unless critically needed\n`;
+  } else if (promptType === 'creative') {
+    instructions += `\n📌 PROMPT TYPE: Creative Task
+- Emphasize ADAPTABILITY and INTENT ALIGNMENT
+- Allow room for creative freedom
+- Focus on tone, style, and emotional impact
+- Don't over-constrain the creative process\n`;
+  } else if (promptType === 'complex') {
+    instructions += `\n📌 PROMPT TYPE: Complex/Multi-Step Task
+- Emphasize STRUCTURE, ELABORATION, and CONSTRAINTS
+- Break down into clear steps or sections
+- Provide examples and context where helpful
+- Use numbered steps or bullet points for clarity\n`;
+  }
+  
+  // Output type-specific optimization guidance
+  if (outputType === 'code') {
+    instructions += `\n💻 OUTPUT TYPE: Code
+- Include specific language/framework requirements
+- Mention error handling patterns
+- Specify syntax style (e.g., ES6, TypeScript, etc.)
+- Add requirements for comments and documentation\n`;
+  } else if (outputType === 'creative') {
+    instructions += `\n🎨 OUTPUT TYPE: Creative Content
+- Encourage descriptive language and vivid imagery
+- Specify emotional tone and mood
+- Allow for metaphors, analogies, creative freedom
+- Don't over-constrain word choice\n`;
+  } else if (outputType === 'essay' || outputType === 'research') {
+    instructions += `\n📝 OUTPUT TYPE: Essay/Research
+- Require clear thesis statement
+- Specify structure (intro, body, conclusion)
+- Request evidence and citations
+- Emphasize logical flow and argumentation\n`;
+  } else if (outputType === 'list' || outputType === 'steps') {
+    instructions += `\n📋 OUTPUT TYPE: List/Steps
+- Require numbered or bulleted format
+- Specify order (chronological, priority, etc.)
+- Add criteria for what to include/exclude\n`;
+  } else if (outputType === 'json' || outputType === 'structured') {
+    instructions += `\n📊 OUTPUT TYPE: Structured Data (JSON/etc.)
+- Define exact schema or format
+- Specify required fields and data types
+- Include validation rules
+- Provide example structure\n`;
+  }
   
   if (scores) {
     const pillars = [

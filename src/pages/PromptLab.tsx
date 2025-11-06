@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { AmbientParticles } from '@/components/ui/ambient-particles';
 import { ScoreGauge } from '@/components/ui/score-gauge';
 import { FeedbackCard } from '@/components/ui/feedback-card';
+import { OutputTypeSelector } from '@/components/ui/output-type-selector';
+import { OptimizationComparison } from '@/components/lab/OptimizationComparison';
 import { 
   Loader2,
   AlertCircle,
@@ -35,6 +37,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
+import type { OutputType } from '@/lib/output-formatters';
 
 interface CategoryScores {
   clarity: number;
@@ -78,12 +81,15 @@ const PromptLab = () => {
   const [promptB, setPromptB] = useState('');
   const [selectedProvider, setSelectedProvider] = useState('google');
   const [selectedLLM, setSelectedLLM] = useState('gemini-2.5-flash');
+  const [outputType, setOutputType] = useState<OutputType>('text'); // NEW: Track output type
   const [isLoading, setIsLoading] = useState(false);
   const [testingMode, setTestingMode] = useState<'single' | 'compare' | null>(null);
   const [singleResult, setSingleResult] = useState<SingleTestResult | null>(null);
   const [compareResult, setCompareResult] = useState<CompareTestResult | null>(null);
   const [isAutoOptimizing, setIsAutoOptimizing] = useState(false);
   const [autoOptimizeResult, setAutoOptimizeResult] = useState<any>(null);
+  const [isRetesting, setIsRetesting] = useState(false); // NEW: Track re-testing state
+  const [optimizationComparison, setOptimizationComparison] = useState<{ before: SingleTestResult; after: SingleTestResult } | null>(null); // NEW: Comparison data
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -313,23 +319,29 @@ const PromptLab = () => {
       return;
     }
 
-    console.log('[Auto-Optimize] Starting auto-optimization...', {
+    console.log('[Auto-Optimize] Starting auto-optimization with re-testing...', {
       hasScores: !!result.category_breakdown,
       hasRecommendations: !!result.ai_analysis?.suggested_fixes,
       promptLength: promptToOptimize.length,
+      outputType,
+      promptType: result.prompt_type,
       categoryBreakdown: result.category_breakdown
     });
 
     setIsAutoOptimizing(true);
     setAutoOptimizeResult(null);
+    setOptimizationComparison(null);
 
     try {
+      // Step 1: Optimize the prompt
+      console.log('[Auto-Optimize] Step 1: Calling lab-auto-optimize edge function...');
       const { data, error } = await supabase.functions.invoke('lab-auto-optimize', {
         body: {
           prompt: promptToOptimize,
           scores: result.category_breakdown,
           aiRecommendations: result.ai_analysis?.suggested_fixes,
-          outputType: 'text',
+          outputType: outputType, // Pass the actual output type
+          promptType: result.prompt_type || 'simple', // Pass the detected prompt type
         }
       });
 
@@ -342,9 +354,39 @@ const PromptLab = () => {
       }
 
       setAutoOptimizeResult(data);
+      
+      // Step 2: Automatically re-test the optimized prompt
+      console.log('[Auto-Optimize] Step 2: Re-testing optimized prompt...');
+      setIsRetesting(true);
+
+      const { invokeWithAuth } = await import('@/lib/auth-helpers');
+      const targetLLM = `${selectedProvider}/${selectedLLM}`;
+
+      const retestData = await invokeWithAuth('prompt-lab-analyze', {
+        mode: 'single',
+        target_llm: targetLLM,
+        prompt_a: data.optimizedPrompt,
+      }, {
+        retries: 2,
+      });
+
+      console.log('[Auto-Optimize] Step 3: Re-test complete, building comparison...');
+      
+      // Step 3: Build the before/after comparison
+      const beforeResult = result;
+      const afterResult = { 
+        ...retestData, 
+        tested_prompt: data.optimizedPrompt 
+      };
+
+      setOptimizationComparison({
+        before: beforeResult,
+        after: afterResult
+      });
+
       toast({
         title: "Auto-Optimization Complete!",
-        description: "Your prompt has been optimized based on AI analysis and scoring.",
+        description: `Score improved from ${beforeResult.total_score.toFixed(2)} to ${afterResult.total_score.toFixed(2)}`,
       });
 
     } catch (error: any) {
@@ -356,7 +398,39 @@ const PromptLab = () => {
       });
     } finally {
       setIsAutoOptimizing(false);
+      setIsRetesting(false);
     }
+  };
+
+  // Handle accepting the optimized prompt
+  const handleAcceptOptimization = () => {
+    if (!optimizationComparison || !autoOptimizeResult) return;
+
+    // Replace promptA with the optimized version
+    setPromptA(autoOptimizeResult.optimizedPrompt);
+    
+    // Update the single result to show the new optimized scores
+    setSingleResult(optimizationComparison.after);
+    
+    // Clear the comparison view
+    setOptimizationComparison(null);
+    setAutoOptimizeResult(null);
+
+    toast({
+      title: "Optimized Prompt Accepted",
+      description: "Your prompt has been updated with the optimized version.",
+    });
+  };
+
+  // Handle rejecting the optimized prompt
+  const handleRejectOptimization = () => {
+    setOptimizationComparison(null);
+    setAutoOptimizeResult(null);
+
+    toast({
+      title: "Optimization Rejected",
+      description: "Keeping your original prompt.",
+    });
   };
 
   const copyToClipboard = (text: string) => {
@@ -494,7 +568,7 @@ const PromptLab = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">AI Provider</Label>
                         <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={testingMode === 'single'}>
@@ -557,6 +631,15 @@ const PromptLab = () => {
                             )}
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Output Type</Label>
+                        <OutputTypeSelector
+                          value={outputType}
+                          onChange={setOutputType}
+                          className="border-primary/20"
+                        />
                       </div>
                     </div>
 
@@ -947,27 +1030,40 @@ const PromptLab = () => {
                     </Button>
                     <Button 
                       onClick={() => handleAutoOptimize(singleResult)}
-                      disabled={isAutoOptimizing}
+                      disabled={isAutoOptimizing || isRetesting}
                       className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90 disabled:opacity-50"
                     >
-                      {isAutoOptimizing ? (
+                      {isAutoOptimizing || isRetesting ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Optimizing...
+                          {isRetesting ? 'Re-testing optimized prompt...' : 'Optimizing...'}
                         </>
                       ) : (
                         <>
                           <SparklesIcon className="h-4 w-4 mr-2" />
-                          Auto-Optimize
+                          Auto-Optimize & Re-Test
                           <ArrowRight className="h-4 w-4 ml-2" />
                         </>
                       )}
                     </Button>
                   </motion.div>
 
-                  {/* Auto-Optimize Result */}
+                  {/* Optimization Comparison Results - NEW */}
                   <AnimatePresence>
-                    {autoOptimizeResult && (
+                    {optimizationComparison && autoOptimizeResult && !isRetesting && (
+                      <OptimizationComparison
+                        comparison={optimizationComparison}
+                        optimizedPrompt={autoOptimizeResult.optimizedPrompt}
+                        onAccept={handleAcceptOptimization}
+                        onReject={handleRejectOptimization}
+                        isLoading={false}
+                      />
+                    )}
+                  </AnimatePresence>
+
+                  {/* Auto-Optimize Result (Legacy - keep for backwards compatibility) */}
+                  <AnimatePresence>
+                    {autoOptimizeResult && !optimizationComparison && (
                       <motion.div
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}

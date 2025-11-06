@@ -6,7 +6,10 @@ import {
   scorePromptTested,
   scorePromptAndOutput,
   calculateTotalScore, 
-  type CategoryScores 
+  getContextualWeights,
+  detectPromptType,
+  type CategoryScores,
+  type PromptType
 } from '../shared/master-grader.ts';
 import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
 
@@ -36,6 +39,7 @@ interface LabRequest {
 interface DiagnoseResult {
   total_score: number;
   category_breakdown: CategoryScores;
+  prompt_type: PromptType;
   ai_analysis: {
     strengths?: string[];
     weaknesses?: string[];
@@ -49,6 +53,8 @@ interface BattleResult {
   prompt_b_score: number;
   prompt_a_breakdown: CategoryScores;
   prompt_b_breakdown: CategoryScores;
+  prompt_a_type: PromptType;
+  prompt_b_type: PromptType;
   winner: 'A' | 'B' | 'Tie';
   reasoning: string;
   comparison: Record<string, string>;
@@ -397,9 +403,13 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
   }
 }
 
-// Handle single prompt test - Using AI-powered scoring
+// Handle single prompt test - Using AI-powered scoring with prompt type detection
 async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const startTime = Date.now();
+  
+  // Detect prompt type first
+  const promptType = detectPromptType(req.prompt_a);
+  console.log(`✅ Detected prompt type: ${promptType}`);
   
   // Call AI model to get real output
   const output = await callAIModel(req.prompt_a, req.target_llm);
@@ -413,8 +423,21 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     const aiResult = await scorePromptWithAI(req.prompt_a, output, openAIApiKey);
     scores = aiResult.scores;
     aiReasoning = aiResult.reasoning;
-    finalScore = calculateOverallScore(scores);
-    console.log('✅ Using AI-powered scoring for Lab analysis');
+    
+    // Apply contextual weights based on prompt type
+    const weights = getContextualWeights(promptType);
+    const weightedScores = { ...scores };
+    let weightSum = 0;
+    let weightedSum = 0;
+    
+    for (const [key, value] of Object.entries(scores)) {
+      const weight = weights[key as keyof CategoryScores];
+      weightedSum += value * weight;
+      weightSum += weight;
+    }
+    
+    finalScore = weightSum > 0 ? weightedSum / weightSum : calculateOverallScore(scores);
+    console.log(`✅ Using AI-powered scoring with contextual weights (${promptType}): ${finalScore.toFixed(2)}`);
   } catch (error) {
     console.error('AI grading failed, using fallback:', error);
     const result = scorePromptAndOutput(req.prompt_a, output);
@@ -429,15 +452,21 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   return {
     total_score: finalScore,
     category_breakdown: scores,
+    prompt_type: promptType,
     ai_analysis: analysis,
   };
 }
 
-// Handle comparison test - Using AI-powered scoring
+// Handle comparison test - Using AI-powered scoring with prompt type detection
 async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
   if (!req.prompt_b) {
     throw new Error('Prompt B is required for comparison mode');
   }
+  
+  // Detect prompt types for both prompts
+  const promptTypeA = detectPromptType(req.prompt_a);
+  const promptTypeB = detectPromptType(req.prompt_b);
+  console.log(`✅ Detected prompt types: A=${promptTypeA}, B=${promptTypeB}`);
   
   // Call AI models for both prompts in parallel
   const [outputA, outputB] = await Promise.all([
@@ -456,9 +485,29 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
     ]);
     scoresA = aiResultA.scores;
     scoresB = aiResultB.scores;
-    totalA = calculateOverallScore(scoresA);
-    totalB = calculateOverallScore(scoresB);
-    console.log('✅ Using AI-powered scoring for battle comparison');
+    
+    // Apply contextual weights based on prompt types
+    const weightsA = getContextualWeights(promptTypeA);
+    const weightsB = getContextualWeights(promptTypeB);
+    
+    let weightSumA = 0, weightedSumA = 0;
+    let weightSumB = 0, weightedSumB = 0;
+    
+    for (const [key, value] of Object.entries(scoresA)) {
+      const weight = weightsA[key as keyof CategoryScores];
+      weightedSumA += value * weight;
+      weightSumA += weight;
+    }
+    
+    for (const [key, value] of Object.entries(scoresB)) {
+      const weight = weightsB[key as keyof CategoryScores];
+      weightedSumB += value * weight;
+      weightSumB += weight;
+    }
+    
+    totalA = weightSumA > 0 ? weightedSumA / weightSumA : calculateOverallScore(scoresA);
+    totalB = weightSumB > 0 ? weightedSumB / weightSumB : calculateOverallScore(scoresB);
+    console.log(`✅ Using AI-powered scoring for battle comparison with contextual weights`);
   } catch (error) {
     console.error('AI grading failed in battle, using fallback:', error);
     const resultA = scorePromptAndOutput(req.prompt_a, outputA);
@@ -514,6 +563,8 @@ Provide a brief explanation (2-3 sentences) of why one prompt performed better, 
     prompt_b_score: totalB,
     prompt_a_breakdown: scoresA,
     prompt_b_breakdown: scoresB,
+    prompt_a_type: promptTypeA,
+    prompt_b_type: promptTypeB,
     winner,
     reasoning,
     comparison: {
@@ -565,6 +616,7 @@ serve(async (req) => {
         prompt_a: request.prompt_a,
         total_score_a: diagnoseResult.total_score,
         category_breakdown_a: diagnoseResult.category_breakdown,
+        prompt_type_a: diagnoseResult.prompt_type,
         ai_analysis: diagnoseResult.ai_analysis,
         response_latency_ms: Date.now() - startTime,
       });
@@ -584,9 +636,15 @@ serve(async (req) => {
         total_score_b: battleResult.prompt_b_score,
         category_breakdown_a: battleResult.prompt_a_breakdown,
         category_breakdown_b: battleResult.prompt_b_breakdown,
+        prompt_type_a: battleResult.prompt_a_type,
+        prompt_type_b: battleResult.prompt_b_type,
+        winner: battleResult.winner,
         ai_analysis: { 
           reasoning: battleResult.reasoning,
           comparison: battleResult.comparison 
+        },
+        response_latency_ms: Date.now() - startTime,
+      });
         },
         winner: battleResult.winner,
         response_latency_ms: Date.now() - startTime,
