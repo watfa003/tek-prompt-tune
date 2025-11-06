@@ -103,26 +103,29 @@ export type Database = {
       }
       api_keys: {
         Row: {
-          agent_id: string
+          agent_id: string | null
           created_at: string
           id: string
           key: string
+          key_type: string
           name: string | null
           user_id: string
         }
         Insert: {
-          agent_id: string
+          agent_id?: string | null
           created_at?: string
           id?: string
           key: string
+          key_type?: string
           name?: string | null
           user_id: string
         }
         Update: {
-          agent_id?: string
+          agent_id?: string | null
           created_at?: string
           id?: string
           key?: string
+          key_type?: string
           name?: string | null
           user_id?: string
         }

@@ -30,6 +30,7 @@ const docsSections = [
     items: [
       { title: 'Documentation', href: '/docs/documentation', icon: BookOpen },
       { title: 'API Reference', href: '/docs/api', icon: FileCode },
+      { title: 'API Examples', href: '/docs/api-examples', icon: Code },
       { title: 'Prompt Templates', href: '/docs/templates', icon: FileText },
       { title: 'Blog', href: '/docs/blog', icon: PenTool },
     ],

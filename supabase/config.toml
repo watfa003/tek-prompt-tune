@@ -59,6 +59,18 @@ verify_jwt = true
 [functions.lab-auto-optimize]
 verify_jwt = true
 
+[functions.api-history]
+verify_jwt = false
+
+[functions.api-favorites]
+verify_jwt = false
+
+[functions.api-lab-test]
+verify_jwt = false
+
+[functions.api-lab-battle]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083

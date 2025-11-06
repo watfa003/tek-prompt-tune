@@ -277,32 +277,45 @@ serve(async (req) => {
       );
     }
 
-    console.log('Invoking agent:', {
-      agent_id,
+    // Apply overrides if provided
+    const overrides = body.overrides || {};
+    const finalConfig = {
       provider: agent.provider,
       model: agent.model,
-      mode: agent.mode
+      mode: overrides.mode || agent.mode,
+      max_tokens: overrides.max_tokens ?? agent.max_tokens ?? 2048,
+      temperature: overrides.temperature ?? agent.temperature ?? 0.7,
+      output_type: overrides.output_type || agent.output_type || 'text',
+      variants: overrides.variants ?? agent.variants ?? 3,
+      user_prompt: overrides.system_prompt || agent.user_prompt || 'You are a helpful AI assistant.'
+    };
+
+    console.log('Invoking agent:', {
+      agent_id,
+      base_config: { provider: agent.provider, model: agent.model, mode: agent.mode },
+      overrides: overrides,
+      final_config: finalConfig
     });
 
     const startTime = Date.now();
 
     // For optimization modes (speed/deep), call the prompt optimizer
-    if (agent.mode === 'speed' || agent.mode === 'deep') {
+    if (finalConfig.mode === 'speed' || finalConfig.mode === 'deep') {
       console.log('Calling prompt-optimizer for optimization mode');
       
-      // Call the prompt-optimizer function with exact same parameters as normal optimizer
+      // Call the prompt-optimizer function with final config
       const { data: optimizerData, error: optimizerError } = await supabase.functions.invoke('prompt-optimizer', {
         body: {
           originalPrompt: input,
           taskDescription: '', // API mode doesn't use task description
           userId: keyData.user_id,
-          aiProvider: agent.provider,
-          modelName: agent.model,
-          outputType: agent.output_type || 'text',
-          variants: agent.variants || 3,
-          maxTokens: agent.max_tokens || 2048,
-          temperature: agent.temperature || 0.7,
-          mode: agent.mode,
+          aiProvider: finalConfig.provider,
+          modelName: finalConfig.model,
+          outputType: finalConfig.output_type,
+          variants: finalConfig.variants,
+          maxTokens: finalConfig.max_tokens,
+          temperature: finalConfig.temperature,
+          mode: finalConfig.mode,
           influence: '', // API mode doesn't use influence
           influenceWeight: 0 // API mode doesn't use influence
         }
@@ -329,9 +342,10 @@ serve(async (req) => {
           strategy: optimizerData.summary.bestStrategy,
           variants_count: optimizerData.summary.totalVariants,
           improvement_score: optimizerData.summary.improvementScore,
-          model: agent.model,
-          provider: agent.provider,
-          processing_time_ms: processingTime
+          model: finalConfig.model,
+          provider: finalConfig.provider,
+          processing_time_ms: processingTime,
+          config_overrides: Object.keys(overrides).length > 0 ? overrides : null
         }
       };
 
@@ -353,9 +367,10 @@ serve(async (req) => {
           strategy: optimizerData.summary.bestStrategy,
           variants_count: optimizerData.summary.totalVariants,
           improvement_score: optimizerData.summary.improvementScore,
-          model: agent.model,
-          provider: agent.provider,
+          model: finalConfig.model,
+          provider: finalConfig.provider,
           processing_time_ms: processingTime,
+          config_used: finalConfig,
           timestamp: new Date().toISOString()
         }),
         { 
@@ -366,15 +381,15 @@ serve(async (req) => {
     }
 
     // For chat mode, use custom system prompt and call AI provider
-    const systemPrompt = agent.user_prompt || 'You are a helpful AI assistant.';
+    const systemPrompt = finalConfig.user_prompt;
     
     const output = await callAIProvider(
-      agent.provider,
-      agent.model,
+      finalConfig.provider,
+      finalConfig.model,
       systemPrompt,
       input,
-      agent.max_tokens || 2048,
-      agent.temperature || 0.7
+      finalConfig.max_tokens,
+      finalConfig.temperature
     );
 
     const processingTime = Date.now() - startTime;
@@ -389,10 +404,11 @@ serve(async (req) => {
       original_prompt: input,
       metadata: {
         tokens_used: output.length,
-        model: agent.model,
-        provider: agent.provider,
+        model: finalConfig.model,
+        provider: finalConfig.provider,
         processing_time_ms: processingTime,
-        output_preview: output.substring(0, 200) + (output.length > 200 ? '...' : '')
+        output_preview: output.substring(0, 200) + (output.length > 200 ? '...' : ''),
+        config_overrides: Object.keys(overrides).length > 0 ? overrides : null
       }
     };
 
@@ -410,9 +426,10 @@ serve(async (req) => {
         agentId: agent_id,
         output,
         tokens_used: output.length,
-        model: agent.model,
-        provider: agent.provider,
+        model: finalConfig.model,
+        provider: finalConfig.provider,
         processing_time_ms: processingTime,
+        config_used: finalConfig,
         timestamp: new Date().toISOString()
       }),
       { 

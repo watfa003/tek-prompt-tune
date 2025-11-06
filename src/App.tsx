@@ -24,6 +24,7 @@ import About from "./pages/docs/About";
 import Contact from "./pages/docs/Contact";
 import Privacy from "./pages/docs/Privacy";
 import Terms from "./pages/docs/Terms";
+import APIExamples from "./pages/docs/APIExamples";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => (
           <Route path="/docs/pricing" element={<Pricing />} />
           <Route path="/docs/documentation" element={<Documentation />} />
           <Route path="/docs/api" element={<APIReference />} />
+          <Route path="/docs/api-examples" element={<APIExamples />} />
           <Route path="/docs/templates" element={<PromptTemplates />} />
           <Route path="/docs/blog" element={<Blog />} />
           <Route path="/docs/about" element={<About />} />
