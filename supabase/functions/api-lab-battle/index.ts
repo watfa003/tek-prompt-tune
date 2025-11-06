@@ -42,6 +42,9 @@ serve(async (req) => {
         output_type,
         test_task: test_task || '',
         user_id: userId
+      },
+      headers: {
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
       }
     });
 
