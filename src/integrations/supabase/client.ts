@@ -8,12 +8,36 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Create a safe storage adapter that works in both iframe and normal contexts
+const createSafeStorage = () => {
+  try {
+    // Test if localStorage is accessible
+    const test = '__storage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return localStorage;
+  } catch (e) {
+    // Fallback to in-memory storage if localStorage is blocked (e.g., in iframe)
+    console.warn('localStorage not available, using in-memory storage');
+    const memoryStorage: Storage = {
+      length: 0,
+      clear: () => { Object.keys(memoryStorage).forEach(key => delete (memoryStorage as any)[key]); },
+      getItem: (key: string) => (memoryStorage as any)[key] || null,
+      setItem: (key: string, value: string) => { (memoryStorage as any)[key] = value; },
+      removeItem: (key: string) => { delete (memoryStorage as any)[key]; },
+      key: (index: number) => Object.keys(memoryStorage)[index] || null,
+    };
+    return memoryStorage;
+  }
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: createSafeStorage(),
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'promptek-auth-token',
+    flowType: 'pkce',
   }
 });
