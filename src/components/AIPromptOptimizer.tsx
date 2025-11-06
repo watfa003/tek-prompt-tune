@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -564,6 +565,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   const [optimizationMode, setOptimizationMode] = useState<'speed' | 'deep'>('deep');
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [optimizationProgress, setOptimizationProgress] = useState<{ step: number; message: string; progress: number } | null>(null);
 
   // Memoized handler to prevent slider jank
   const handleInfluenceWeightChange = React.useCallback((value: number[]) => {
@@ -684,20 +686,45 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       setSpeedResult(null); // Clear speed mode results
     }
 
+    // Set initial progress
+    setOptimizationProgress({ step: 1, message: 'Initializing optimization...', progress: 10 });
+
     // Use the global session to start optimization
-    await startOptimization({
-      originalPrompt,
-      taskDescription: optimizerTaskDescription,
-      aiProvider,
-      modelName,
-      outputType,
-      variants,
-      maxTokens: maxTokens[0] === 0 ? null : maxTokens[0],
-      temperature: temperature[0],
-      influence: selectedInfluence,
-      influenceWeight: influenceWeight[0],
-      mode: optimizationMode,
-    });
+    try {
+      // Update progress for generating variants
+      setTimeout(() => {
+        if (optimizationMode === 'speed') {
+          setOptimizationProgress({ step: 2, message: 'Applying speed optimization patterns...', progress: 40 });
+        } else {
+          setOptimizationProgress({ step: 2, message: 'Generating optimized variants...', progress: 30 });
+        }
+      }, 500);
+
+      await startOptimization({
+        originalPrompt,
+        taskDescription: optimizerTaskDescription,
+        aiProvider,
+        modelName,
+        outputType,
+        variants,
+        maxTokens: maxTokens[0] === 0 ? null : maxTokens[0],
+        temperature: temperature[0],
+        influence: selectedInfluence,
+        influenceWeight: influenceWeight[0],
+        mode: optimizationMode,
+      });
+
+      // Final progress update
+      setOptimizationProgress({ step: 4, message: 'Complete!', progress: 100 });
+      
+      // Clear progress after a short delay
+      setTimeout(() => {
+        setOptimizationProgress(null);
+      }, 1000);
+    } catch (error) {
+      setOptimizationProgress(null);
+      throw error;
+    }
   };
 
   // Start new session function - clear all state
@@ -807,8 +834,37 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         toast={toast}
       />
 
+      {/* Optimization Progress Bar */}
+      <AnimatePresence>
+        {optimizationProgress && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="p-4 bg-primary/5 border-primary/20">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="font-medium text-sm">
+                      Step {optimizationProgress.step}/4: {optimizationProgress.message}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {optimizationProgress.progress}%
+                  </span>
+                </div>
+                <Progress value={optimizationProgress.progress} className="h-2" />
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Optimization Recovery Banner */}
-      {isOptimizing && optimizationStartTime && (
+      {isOptimizing && optimizationStartTime && !optimizationProgress && (
         <Card className="p-4 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
           <div className="flex items-center space-x-2">
             <Loader2 className="h-4 w-4 animate-spin text-blue-600" />

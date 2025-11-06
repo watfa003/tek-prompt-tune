@@ -237,6 +237,7 @@ const PromptLab = () => {
         target_llm: targetLLM,
         prompt_a: promptA,
         prompt_b: mode === 'compare' ? promptB : undefined,
+        output_type: outputType, // NEW: Pass output type to backend
       };
 
       console.log('📡 [PromptLab] Sending request to edge function:', requestPayload);

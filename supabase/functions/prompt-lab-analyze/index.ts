@@ -32,6 +32,7 @@ interface LabRequest {
   target_llm: string;
   prompt_a: string;
   prompt_b?: string;
+  output_type?: string;
 }
 
 // CategoryScores imported from master-grader.ts
@@ -63,10 +64,23 @@ interface BattleResult {
 // Removed - now using master-grader.ts
 
 // Helper to call AI models
-async function callAIModel(prompt: string, targetLLM: string): Promise<string> {
-  const systemMessage = "You are a helpful AI assistant.";
+async function callAIModel(prompt: string, targetLLM: string, outputType?: string): Promise<string> {
+  const systemMessage = outputType && outputType !== 'text' 
+    ? `You are a helpful AI assistant. IMPORTANT: Format your response as ${outputType.toUpperCase()}. ${getOutputTypeInstruction(outputType)}`
+    : "You are a helpful AI assistant.";
   
   const userMessage = prompt;
+  
+  // Helper to get output type instructions
+  function getOutputTypeInstruction(type: string): string {
+    switch(type) {
+      case 'essay': return 'Provide a well-structured essay with clear introduction, body paragraphs, and conclusion.';
+      case 'list': return 'Provide your response as a numbered or bulleted list.';
+      case 'code': return 'Provide your response as code with proper syntax and formatting.';
+      case 'json': return 'Provide your response as valid JSON only, no additional text.';
+      default: return '';
+    }
+  }
   
   // Parse LLM selection
   const [provider, model] = targetLLM.split('/');
@@ -411,8 +425,8 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   const promptType = detectPromptType(req.prompt_a);
   console.log(`✅ Detected prompt type: ${promptType}`);
   
-  // Call AI model to get real output
-  const output = await callAIModel(req.prompt_a, req.target_llm);
+  // Call AI model to get real output with output type guidance
+  const output = await callAIModel(req.prompt_a, req.target_llm, req.output_type);
   
   // Use AI-powered scoring with fallback to rule-based
   let scores: CategoryScores;
@@ -468,10 +482,10 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
   const promptTypeB = detectPromptType(req.prompt_b);
   console.log(`✅ Detected prompt types: A=${promptTypeA}, B=${promptTypeB}`);
   
-  // Call AI models for both prompts in parallel
+  // Call AI models for both prompts in parallel with output type guidance
   const [outputA, outputB] = await Promise.all([
-    callAIModel(req.prompt_a, req.target_llm),
-    callAIModel(req.prompt_b, req.target_llm),
+    callAIModel(req.prompt_a, req.target_llm, req.output_type),
+    callAIModel(req.prompt_b, req.target_llm, req.output_type),
   ]);
   
   // Score both with AI-powered grading (with fallback)
