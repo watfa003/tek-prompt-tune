@@ -71,7 +71,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
   };
 
   const handleJoyrideCallback = async (data: CallBackProps) => {
-    const { status, action, index, type } = data;
+    const { status, action, index, type, lifecycle } = data;
+
+    console.log('Joyride callback:', { status, action, index, type, lifecycle });
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       await completeTutorial();
@@ -80,20 +82,24 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       return;
     }
 
-    // Handle TARGET_NOT_FOUND gracefully
+    // Handle TARGET_NOT_FOUND - try to continue anyway
     if (type === EVENTS.TARGET_NOT_FOUND) {
-      console.warn('Tutorial target not found, continuing...');
+      console.warn('Tutorial target not found at step', index);
+      // Don't stop the tour, just skip this highlight
       return;
     }
 
     // Prevent rapid clicking during navigation
     if (navigationInProgress.current) {
+      console.log('Navigation in progress, ignoring action');
       return;
     }
 
     // Handle step navigation - only on STEP_AFTER to prevent double triggers
-    if (type === EVENTS.STEP_AFTER) {
-      const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
+    if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT) {
+      const nextStepIndex = index + 1;
+      
+      console.log('Moving to step', nextStepIndex);
       
       // Navigation logic
       if (nextStepIndex === 1) {
@@ -101,54 +107,79 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         setRun(false);
         navigate('/app/lab');
         setTimeout(async () => {
-          await waitForElement('main, .lab-container', 2000);
+          await waitForElement('main', 3000);
           setStepIndex(nextStepIndex);
-          setRun(true);
-          navigationInProgress.current = false;
-        }, 1200);
+          setTimeout(() => {
+            setRun(true);
+            navigationInProgress.current = false;
+          }, 300);
+        }, 1500);
       } else if (nextStepIndex === 5) {
         navigationInProgress.current = true;
         setRun(false);
         navigate('/app');
         setTimeout(async () => {
-          await waitForElement('textarea, .optimizer-container', 2000);
+          await waitForElement('textarea', 3000);
           setStepIndex(nextStepIndex);
-          setRun(true);
-          navigationInProgress.current = false;
-        }, 1200);
+          setTimeout(() => {
+            setRun(true);
+            navigationInProgress.current = false;
+          }, 300);
+        }, 1500);
       } else if (nextStepIndex === 11) {
         navigationInProgress.current = true;
         setRun(false);
         navigate('/app/history');
         setTimeout(async () => {
-          await waitForElement('.history-container, main', 2000);
+          await waitForElement('main', 3000);
           setStepIndex(nextStepIndex);
-          setRun(true);
-          navigationInProgress.current = false;
-        }, 1200);
+          setTimeout(() => {
+            setRun(true);
+            navigationInProgress.current = false;
+          }, 300);
+        }, 1500);
       } else if (nextStepIndex === 12) {
         navigationInProgress.current = true;
         setRun(false);
         navigate('/app/templates');
         setTimeout(async () => {
-          await waitForElement('.templates-container, main', 2000);
+          await waitForElement('main', 3000);
           setStepIndex(nextStepIndex);
-          setRun(true);
-          navigationInProgress.current = false;
-        }, 1200);
+          setTimeout(() => {
+            setRun(true);
+            navigationInProgress.current = false;
+          }, 300);
+        }, 1500);
       } else if (nextStepIndex === 13) {
         navigationInProgress.current = true;
         setRun(false);
         navigate('/app/settings');
         setTimeout(async () => {
-          await waitForElement('.settings-container, main', 2000);
+          await waitForElement('main', 3000);
           setStepIndex(nextStepIndex);
-          setRun(true);
-          navigationInProgress.current = false;
-        }, 1200);
+          setTimeout(() => {
+            setRun(true);
+            navigationInProgress.current = false;
+          }, 300);
+        }, 1500);
+      } else if (nextStepIndex === 14 || nextStepIndex === 15) {
+        // Return to main app for final steps
+        navigationInProgress.current = true;
+        setRun(false);
+        navigate('/app');
+        setTimeout(() => {
+          setStepIndex(nextStepIndex);
+          setTimeout(() => {
+            setRun(true);
+            navigationInProgress.current = false;
+          }, 300);
+        }, 1500);
       } else {
         setStepIndex(nextStepIndex);
       }
+    } else if (type === EVENTS.STEP_AFTER && action === ACTIONS.PREV) {
+      const prevStepIndex = index - 1;
+      setStepIndex(prevStepIndex);
     }
   };
 
@@ -487,7 +518,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       textColor: 'hsl(var(--foreground))',
       backgroundColor: 'hsl(var(--background))',
       arrowColor: 'hsl(var(--background))',
-      overlayColor: 'rgba(0, 0, 0, 0.5)',
+      overlayColor: 'rgba(0, 0, 0, 0.7)',
     },
     tooltip: {
       borderRadius: '12px',
@@ -532,8 +563,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     },
     spotlight: {
       borderRadius: '8px',
-      border: '2px solid hsl(var(--primary))',
-      boxShadow: 'none',
+      backgroundColor: 'transparent',
+      border: 'none',
+      boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 0 3px hsl(var(--primary))',
       transition: 'none',
       animation: 'none',
     },
