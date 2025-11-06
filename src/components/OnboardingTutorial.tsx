@@ -53,8 +53,8 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       return;
     }
 
-    // Handle step navigation
-    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+    // Handle step navigation - only on STEP_AFTER to prevent double triggers
+    if (type === EVENTS.STEP_AFTER) {
       const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
       
       // Pre-navigate to correct page BEFORE showing the step
@@ -65,7 +65,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         setTimeout(() => {
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 500);
+        }, 800);
       } else if (nextStepIndex === 5) {
         // Navigate to Optimizer dashboard, then show step
         setRun(false);
@@ -73,7 +73,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         setTimeout(() => {
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 500);
+        }, 800);
       } else if (nextStepIndex === 11) {
         // Navigate to History tab, then show step
         setRun(false);
@@ -81,7 +81,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         setTimeout(() => {
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 500);
+        }, 800);
       } else if (nextStepIndex === 12) {
         // Navigate to Templates tab, then show step
         setRun(false);
@@ -89,7 +89,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         setTimeout(() => {
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 500);
+        }, 800);
       } else if (nextStepIndex === 13) {
         // Navigate to Settings tab, then show step
         setRun(false);
@@ -97,7 +97,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         setTimeout(() => {
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 500);
+        }, 800);
       } else {
         setStepIndex(nextStepIndex);
       }
@@ -585,7 +585,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     },
     spotlight: {
       borderRadius: '8px',
-      boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 40px hsl(var(--primary) / 0.4)',
+    },
+    overlay: {
+      mixBlendMode: 'normal',
     },
   };
 
@@ -607,7 +609,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         skip: 'Skip (Not Recommended)',
       }}
       floaterProps={{
-        disableAnimation: false,
+        disableAnimation: true,
         styles: {
           arrow: {
             length: 8,
@@ -615,6 +617,10 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
           },
         },
       }}
+      disableScrolling={true}
+      disableScrollParentFix={true}
+      spotlightClicks={false}
+      disableOverlayClose={false}
     />
   );
 };
