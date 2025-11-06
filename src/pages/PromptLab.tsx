@@ -90,6 +90,7 @@ const PromptLab = () => {
   const [autoOptimizeResult, setAutoOptimizeResult] = useState<any>(null);
   const [isRetesting, setIsRetesting] = useState(false); // NEW: Track re-testing state
   const [optimizationComparison, setOptimizationComparison] = useState<{ before: SingleTestResult; after: SingleTestResult } | null>(null); // NEW: Comparison data
+  const [optimizationProgress, setOptimizationProgress] = useState<{ step: number; message: string; progress: number } | null>(null); // NEW: Progress tracking
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -331,6 +332,7 @@ const PromptLab = () => {
     setIsAutoOptimizing(true);
     setAutoOptimizeResult(null);
     setOptimizationComparison(null);
+    setOptimizationProgress({ step: 1, message: 'Analyzing your prompt...', progress: 25 });
 
     try {
       // Step 1: Optimize the prompt
@@ -354,10 +356,12 @@ const PromptLab = () => {
       }
 
       setAutoOptimizeResult(data);
+      setOptimizationProgress({ step: 2, message: 'Generated optimized version...', progress: 50 });
       
       // Step 2: Automatically re-test the optimized prompt
       console.log('[Auto-Optimize] Step 2: Re-testing optimized prompt...');
       setIsRetesting(true);
+      setOptimizationProgress({ step: 3, message: 'Re-testing optimized prompt...', progress: 75 });
 
       const { invokeWithAuth } = await import('@/lib/auth-helpers');
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
@@ -371,6 +375,7 @@ const PromptLab = () => {
       });
 
       console.log('[Auto-Optimize] Step 3: Re-test complete, building comparison...');
+      setOptimizationProgress({ step: 4, message: 'Comparing results...', progress: 90 });
       
       // Step 3: Build the before/after comparison
       const beforeResult = result;
@@ -383,6 +388,8 @@ const PromptLab = () => {
         before: beforeResult,
         after: afterResult
       });
+
+      setOptimizationProgress({ step: 4, message: 'Complete!', progress: 100 });
 
       toast({
         title: "Auto-Optimization Complete!",
@@ -398,6 +405,7 @@ const PromptLab = () => {
       });
     } finally {
       setIsAutoOptimizing(false);
+      setTimeout(() => setOptimizationProgress(null), 1000); // Clear progress after 1 second
       setIsRetesting(false);
     }
   };
@@ -1047,6 +1055,35 @@ const PromptLab = () => {
                       )}
                     </Button>
                   </motion.div>
+
+                  {/* Optimization Progress Bar */}
+                  <AnimatePresence>
+                    {optimizationProgress && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-4 p-6 rounded-xl glass-panel border border-primary/20"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium text-primary">
+                              Step {optimizationProgress.step} of 4
+                            </span>
+                            <span className="text-muted-foreground">
+                              {optimizationProgress.progress}%
+                            </span>
+                          </div>
+                          <Progress value={optimizationProgress.progress} className="h-2" />
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            {optimizationProgress.message}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Optimization Comparison Results - NEW */}
                   <AnimatePresence>
