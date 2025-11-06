@@ -645,10 +645,6 @@ serve(async (req) => {
         },
         response_latency_ms: Date.now() - startTime,
       });
-        },
-        winner: battleResult.winner,
-        response_latency_ms: Date.now() - startTime,
-      });
 
       result = battleResult;
     } else {
