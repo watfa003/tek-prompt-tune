@@ -341,7 +341,7 @@ const PromptLab = () => {
           scores: result.category_breakdown,
           aiRecommendations: result.ai_analysis?.suggested_fixes,
           outputType: outputType, // Pass the actual output type
-          promptType: result.prompt_type || 'simple', // Pass the detected prompt type
+          promptType: result.prompt_type, // Send detected prompt type if available
         }
       });
 

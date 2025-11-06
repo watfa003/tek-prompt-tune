@@ -267,6 +267,24 @@ export const OptimizationComparison: React.FC<OptimizationComparisonProps> = ({
             </div>
           </div>
 
+          {/* Optimized Prompt Preview */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg">Optimized Prompt</h3>
+            <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30 text-sm leading-relaxed max-h-[300px] overflow-y-auto">
+              {optimizedPrompt}
+            </div>
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigator.clipboard.writeText(optimizedPrompt)}
+                className="gap-2"
+              >
+                <Copy className="h-4 w-4" /> Copy Optimized Prompt
+              </Button>
+            </div>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-primary/10">
             <Button

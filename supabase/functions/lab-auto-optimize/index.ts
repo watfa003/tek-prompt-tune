@@ -20,7 +20,7 @@ serve(async (req) => {
       scores, 
       aiRecommendations,
       outputType = 'text',
-      promptType = 'simple' // Add promptType parameter
+      promptType
     } = await req.json();
 
     if (!prompt) {
@@ -143,18 +143,12 @@ function buildOptimizationInstructions(
   scores: any, 
   aiRecommendations: string[] | undefined,
   outputType: string = 'text',
-  promptType: string = 'simple'
+  promptType?: string
 ): string {
   let instructions = '\nOPTIMIZATION TARGETS:\n';
   
   // Prompt type-specific optimization guidance
-  if (promptType === 'simple') {
-    instructions += `\n📌 PROMPT TYPE: Simple/Direct Request
-- Focus on CLARITY and SPECIFICITY above all else
-- Don't over-engineer with unnecessary structure
-- Keep it concise but specific
-- Don't add elaboration unless critically needed\n`;
-  } else if (promptType === 'creative') {
+  if (promptType === 'creative') {
     instructions += `\n📌 PROMPT TYPE: Creative Task
 - Emphasize ADAPTABILITY and INTENT ALIGNMENT
 - Allow room for creative freedom
