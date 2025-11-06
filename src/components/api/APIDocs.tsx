@@ -255,11 +255,11 @@ export function APIDocs() {
                     size="sm"
                     className="absolute right-2 top-2 z-10"
                     onClick={() => copyToClipboard(`curl -X POST ${baseUrl}/api-lab-test \\
-  -H "Authorization: Bearer YOUR_USER_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
+    "apiKey": "YOUR_USER_API_KEY",
     "prompt": "Explain quantum computing",
-    "target_llm": "gpt-4o-mini",
+    "target_llm": "openai/gpt-4o-mini",
     "output_type": "text"
   }'`)}
                   >
@@ -267,11 +267,11 @@ export function APIDocs() {
                   </Button>
                   <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
 {`curl -X POST ${baseUrl}/api-lab-test \\
-  -H "Authorization: Bearer YOUR_USER_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
+    "apiKey": "YOUR_USER_API_KEY",
     "prompt": "Explain quantum computing",
-    "target_llm": "gpt-4o-mini",
+    "target_llm": "openai/gpt-4o-mini",
     "output_type": "text"
   }'`}
                   </pre>
@@ -327,22 +327,28 @@ export function APIDocs() {
                     variant="ghost"
                     size="sm"
                     className="absolute right-2 top-2 z-10"
-                    onClick={() => copyToClipboard(`{
-  "prompt_a": "Explain quantum computing",
-  "prompt_b": "Explain quantum computing in simple terms with examples",
-  "target_llm": "gpt-4o-mini",
-  "output_type": "text"
-}`)}
+                    onClick={() => copyToClipboard(`curl -X POST ${baseUrl}/api-lab-battle \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "apiKey": "YOUR_USER_API_KEY",
+    "prompt_a": "Explain quantum computing",
+    "prompt_b": "Explain quantum computing in simple terms with examples",
+    "target_llm": "openai/gpt-4o-mini",
+    "output_type": "text"
+  }'`)}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                   <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
-{`{
-  "prompt_a": "Explain quantum computing",
-  "prompt_b": "Explain quantum computing with examples",
-  "target_llm": "gpt-4o-mini",
-  "output_type": "text"
-}`}
+{`curl -X POST ${baseUrl}/api-lab-battle \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "apiKey": "YOUR_USER_API_KEY",
+    "prompt_a": "Explain quantum computing",
+    "prompt_b": "Explain quantum computing with examples",
+    "target_llm": "openai/gpt-4o-mini",
+    "output_type": "text"
+  }'`}
                   </pre>
                 </div>
               </div>

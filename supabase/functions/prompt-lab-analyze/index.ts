@@ -607,13 +607,25 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid user token');
-    }
-
+    
+    // Check if this is a service role call (from another edge function)
+    let userId: string;
     const request: LabRequest = await req.json();
+    
+    if (token === supabaseServiceKey) {
+      // Service role call - user_id must be provided in request body
+      if (!request.user_id) {
+        throw new Error('user_id required for service role calls');
+      }
+      userId = request.user_id;
+    } else {
+      // Regular user JWT call
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !user) {
+        throw new Error('Invalid user token');
+      }
+      userId = user.id;
+    }
     console.log('Lab analysis request:', { mode: request.mode, target_llm: request.target_llm });
 
     let result: any;
@@ -624,7 +636,7 @@ serve(async (req) => {
       
       // Store result
       await supabase.from('prompt_lab_results').insert({
-        user_id: user.id,
+        user_id: userId,
         mode: 'single',
         target_llm: request.target_llm,
         prompt_a: request.prompt_a,
@@ -641,7 +653,7 @@ serve(async (req) => {
       
       // Store result
       await supabase.from('prompt_lab_results').insert({
-        user_id: user.id,
+        user_id: userId,
         mode: 'compare',
         target_llm: request.target_llm,
         prompt_a: request.prompt_a,
