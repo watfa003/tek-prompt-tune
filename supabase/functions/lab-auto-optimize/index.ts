@@ -59,6 +59,8 @@ CRITICAL RULES:
 - PRESERVE the exact intent and action of the original prompt
 - DO NOT change what the user is asking for - only improve HOW they're asking for it
 - DO NOT answer the prompt - only optimize it
+- DO NOT add output format instructions to the prompt (like "return as JSON" or "format as a list")
+- Consider the output type for optimization strategy, but don't embed format requirements
 - Ensure every pillar ≥8.5/10 and overall average ≥9.0/10
 - Use professional, natural language; avoid filler
 - Function over form — readability and performance matter most
@@ -162,37 +164,39 @@ function buildOptimizationInstructions(
 - Use numbered steps or bullet points for clarity\n`;
   }
   
-  // Output type-specific optimization guidance
+  // Output type-specific optimization guidance (strategy only, don't add format instructions)
   if (outputType === 'code') {
-    instructions += `\n💻 OUTPUT TYPE: Code
-- Include specific language/framework requirements
-- Mention error handling patterns
-- Specify syntax style (e.g., ES6, TypeScript, etc.)
-- Add requirements for comments and documentation\n`;
+    instructions += `\n💻 OUTPUT TYPE CONSIDERATION: Code Generation
+- This prompt is intended to generate code, so optimize for technical clarity and precision
+- Focus on SPECIFICITY (what language, framework, patterns to use)
+- Emphasize STRUCTURE (logical code organization)
+- DO NOT add format instructions like "return as code" to the optimized prompt\n`;
   } else if (outputType === 'creative') {
-    instructions += `\n🎨 OUTPUT TYPE: Creative Content
-- Encourage descriptive language and vivid imagery
-- Specify emotional tone and mood
-- Allow for metaphors, analogies, creative freedom
-- Don't over-constrain word choice\n`;
-  } else if (outputType === 'essay' || outputType === 'research') {
-    instructions += `\n📝 OUTPUT TYPE: Essay/Research
-- Require clear thesis statement
-- Specify structure (intro, body, conclusion)
-- Request evidence and citations
-- Emphasize logical flow and argumentation\n`;
-  } else if (outputType === 'list' || outputType === 'steps') {
-    instructions += `\n📋 OUTPUT TYPE: List/Steps
-- Require numbered or bulleted format
-- Specify order (chronological, priority, etc.)
-- Add criteria for what to include/exclude\n`;
-  } else if (outputType === 'json' || outputType === 'structured') {
-    instructions += `\n📊 OUTPUT TYPE: Structured Data (JSON/etc.)
-- Define exact schema or format
-- Specify required fields and data types
-- Include validation rules
-- Provide example structure\n`;
+    instructions += `\n🎨 OUTPUT TYPE CONSIDERATION: Creative Content
+- This prompt is intended for creative output, so optimize for inspiration and guidance
+- Focus on INTENT ALIGNMENT (mood, tone, style)
+- Allow flexibility through ADAPTABILITY
+- DO NOT add format instructions - let creativity flow naturally\n`;
+  } else if (outputType === 'essay') {
+    instructions += `\n📝 OUTPUT TYPE CONSIDERATION: Essay/Long-form
+- This prompt expects essay-style output, so optimize for depth and structure
+- Focus on ELABORATION (sufficient context and detail)
+- Emphasize STRUCTURE (logical flow of ideas)
+- DO NOT add instructions like "write an essay" - the user already knows the format\n`;
+  } else if (outputType === 'list') {
+    instructions += `\n📋 OUTPUT TYPE CONSIDERATION: List/Enumeration
+- This prompt expects list-style output, so optimize for clarity and organization
+- Focus on SPECIFICITY (what items to include)
+- Emphasize STRUCTURE (logical ordering)
+- DO NOT add instructions like "format as a list" - optimize the content criteria instead\n`;
+  } else if (outputType === 'json') {
+    instructions += `\n📊 OUTPUT TYPE CONSIDERATION: Structured Data
+- This prompt expects JSON or structured output, so optimize for data clarity
+- Focus on SPECIFICITY (what fields and data to include)
+- Emphasize CONSTRAINTS (data types and validation)
+- DO NOT add schema definitions - optimize what data should be captured\n`;
   }
+  
   
   if (scores) {
     const pillars = [
