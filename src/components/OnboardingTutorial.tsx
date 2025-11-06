@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Joyride, { CallBackProps, STATUS, Step, Styles, ACTIONS, EVENTS } from 'react-joyride';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,19 +13,18 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
   const [stepIndex, setStepIndex] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const navigationInProgress = useRef(false);
 
   useEffect(() => {
     checkAndStartTutorial();
   }, []);
 
   const checkAndStartTutorial = async () => {
-    // Check localStorage first for quick response
     const localComplete = localStorage.getItem('promptek_tutorial_completed');
     if (localComplete === 'true') {
       return;
     }
 
-    // Check Supabase for logged-in users
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: profile } = await supabase
@@ -40,8 +39,35 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       }
     }
 
-    // Start tutorial for new users
     setRun(true);
+  };
+
+  // Helper function to wait for element to be present in DOM
+  const waitForElement = (selector: string, timeout = 3000): Promise<Element | null> => {
+    return new Promise((resolve) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        return resolve(element);
+      }
+      
+      const observer = new MutationObserver(() => {
+        const element = document.querySelector(selector);
+        if (element) {
+          observer.disconnect();
+          resolve(element);
+        }
+      });
+      
+      observer.observe(document.body, { 
+        childList: true, 
+        subtree: true 
+      });
+      
+      setTimeout(() => {
+        observer.disconnect();
+        resolve(null);
+      }, timeout);
+    });
   };
 
   const handleJoyrideCallback = async (data: CallBackProps) => {
@@ -50,6 +76,18 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       await completeTutorial();
       setRun(false);
+      navigationInProgress.current = false;
+      return;
+    }
+
+    // Handle TARGET_NOT_FOUND gracefully
+    if (type === EVENTS.TARGET_NOT_FOUND) {
+      console.warn('Tutorial target not found, continuing...');
+      return;
+    }
+
+    // Prevent rapid clicking during navigation
+    if (navigationInProgress.current) {
       return;
     }
 
@@ -57,47 +95,57 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     if (type === EVENTS.STEP_AFTER) {
       const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
       
-      // Pre-navigate to correct page BEFORE showing the step
+      // Navigation logic
       if (nextStepIndex === 1) {
-        // Navigate to Lab tab, then show step
+        navigationInProgress.current = true;
         setRun(false);
         navigate('/app/lab');
-        setTimeout(() => {
+        setTimeout(async () => {
+          await waitForElement('main, .lab-container', 2000);
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 800);
+          navigationInProgress.current = false;
+        }, 1200);
       } else if (nextStepIndex === 5) {
-        // Navigate to Optimizer dashboard, then show step
+        navigationInProgress.current = true;
         setRun(false);
         navigate('/app');
-        setTimeout(() => {
+        setTimeout(async () => {
+          await waitForElement('textarea, .optimizer-container', 2000);
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 800);
+          navigationInProgress.current = false;
+        }, 1200);
       } else if (nextStepIndex === 11) {
-        // Navigate to History tab, then show step
+        navigationInProgress.current = true;
         setRun(false);
         navigate('/app/history');
-        setTimeout(() => {
+        setTimeout(async () => {
+          await waitForElement('.history-container, main', 2000);
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 800);
+          navigationInProgress.current = false;
+        }, 1200);
       } else if (nextStepIndex === 12) {
-        // Navigate to Templates tab, then show step
+        navigationInProgress.current = true;
         setRun(false);
         navigate('/app/templates');
-        setTimeout(() => {
+        setTimeout(async () => {
+          await waitForElement('.templates-container, main', 2000);
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 800);
+          navigationInProgress.current = false;
+        }, 1200);
       } else if (nextStepIndex === 13) {
-        // Navigate to Settings tab, then show step
+        navigationInProgress.current = true;
         setRun(false);
         navigate('/app/settings');
-        setTimeout(() => {
+        setTimeout(async () => {
+          await waitForElement('.settings-container, main', 2000);
           setStepIndex(nextStepIndex);
           setRun(true);
-        }, 800);
+          navigationInProgress.current = false;
+        }, 1200);
       } else {
         setStepIndex(nextStepIndex);
       }
@@ -128,466 +176,375 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       target: 'body',
       content: (
         <div className="text-center space-y-3">
+          <div className="text-xs font-semibold text-primary mb-1">Step 1 of 16</div>
           <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Welcome to PrompTek 👋
           </h2>
-          <p className="text-muted-foreground">
-            Let's walk you through every feature in detail. This comprehensive tour takes about 2-3 minutes.
-          </p>
-          <p className="text-sm text-primary">
-            You'll see each tab and learn exactly how to use every tool!
+          <p className="text-sm text-muted-foreground">
+            Let's walk you through every feature. This tour takes about 2-3 minutes.
           </p>
         </div>
       ),
       placement: 'center',
       disableBeacon: true,
+      spotlightClicks: false,
     },
     // === LAB SECTION ===
     {
-      target: 'body',
+      target: 'main',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">🧪 Opening the Lab...</h3>
-          <p className="text-sm text-muted-foreground">
-            First, let's explore the testing environment where you evaluate prompt quality.
-          </p>
-        </div>
-      ),
-      placement: 'center',
-      disableBeacon: true,
-    },
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-3">
-          <h3 className="font-bold text-lg">🧪 PromptTek Lab Overview</h3>
+          <div className="text-xs font-semibold text-primary mb-1">Step 2 of 16 • Lab</div>
+          <h3 className="font-bold text-lg">🧪 PromptTek Lab</h3>
           <p className="text-sm">
             The Lab is your <strong className="text-primary">prompt testing ground</strong>. Here you can:
           </p>
-          <ul className="text-xs space-y-2 ml-4 list-disc">
-            <li><strong>Test single prompts</strong> and get detailed scores across 8 quality pillars</li>
+          <ul className="text-xs space-y-1.5 ml-4 list-disc">
+            <li><strong>Test single prompts</strong> with detailed scores</li>
             <li><strong>Battle Mode:</strong> Compare two prompts head-to-head</li>
-            <li><strong>Auto-Optimize:</strong> Get AI-powered improvements with before/after comparisons</li>
-            <li><strong>Real-time feedback:</strong> See exactly what makes a prompt effective</li>
+            <li><strong>Auto-Optimize:</strong> Get AI improvements</li>
           </ul>
-          <div className="mt-3 p-2 bg-primary/10 rounded text-xs">
-            💡 The 8 Pillars: Clarity, Specificity, Context, Structure, Examples, Constraints, Tone, Adaptability
-          </div>
         </div>
       ),
-      placement: 'left',
+      placement: 'bottom',
+      spotlightClicks: false,
     },
     {
-      target: 'body',
+      target: 'main',
       content: (
-        <div className="space-y-3">
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-primary mb-1">Step 3 of 16 • Lab</div>
           <h3 className="font-bold text-lg">Single Test Mode</h3>
           <p className="text-sm">
-            In Single Test mode, paste any prompt and click <strong className="text-primary">"Analyze Prompt"</strong>.
+            Paste any prompt and click <strong className="text-primary">"Analyze Prompt"</strong>.
           </p>
-          <p className="text-sm text-muted-foreground">
-            You'll get:
+          <p className="text-xs text-muted-foreground mt-2">
+            You'll get overall scores, pillar breakdowns, and improvement suggestions.
           </p>
-          <ul className="text-xs space-y-1 ml-4 list-disc text-muted-foreground">
-            <li>Overall quality score (0-100)</li>
-            <li>Breakdown scores for each of the 8 pillars</li>
-            <li>Specific improvement suggestions</li>
-            <li>Optimized version recommendations</li>
-          </ul>
         </div>
       ),
-      placement: 'left',
+      placement: 'bottom',
+      spotlightClicks: false,
     },
     {
-      target: 'body',
+      target: 'main',
       content: (
-        <div className="space-y-3">
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-primary mb-1">Step 4 of 16 • Lab</div>
           <h3 className="font-bold text-lg">Battle Mode</h3>
           <p className="text-sm">
-            Battle Mode lets you <strong className="text-accent">A/B test two prompts</strong> side-by-side.
+            <strong className="text-accent">A/B test two prompts</strong> side-by-side to see which performs better.
           </p>
-          <div className="space-y-2 text-xs mt-2">
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>Use Case:</strong> Testing different phrasings, comparing formal vs casual tone, or validating improvements
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>Result:</strong> See which prompt scores higher and why
-            </div>
-          </div>
         </div>
       ),
-      placement: 'left',
+      placement: 'bottom',
+      spotlightClicks: false,
     },
     // === OPTIMIZER SECTION ===
     {
       target: 'body',
       content: (
-        <div className="space-y-2">
-          <h3 className="font-bold text-lg">⚡ Opening AI Agent (Optimizer)...</h3>
+        <div className="space-y-2 text-center">
+          <div className="text-xs font-semibold text-primary mb-1">Step 5 of 16</div>
+          <h3 className="font-bold text-lg">⚡ AI Agent (Optimizer)</h3>
           <p className="text-sm text-muted-foreground">
-            Now let's see how to generate production-ready prompts from scratch.
+            Generate production-ready prompts from scratch.
           </p>
         </div>
       ),
       placement: 'center',
       disableBeacon: true,
+      spotlightClicks: false,
     },
     {
-      target: '.optimizer-task-input',
+      target: 'textarea',
       content: (
         <div className="space-y-2">
+          <div className="text-xs font-semibold text-primary mb-1">Step 6 of 16 • Optimizer</div>
           <h3 className="font-bold text-lg">📝 Task Description</h3>
           <p className="text-sm">
-            This is where you describe <strong>what you want the AI to do</strong>.
+            Describe <strong>what you want the AI to do</strong>.
           </p>
-          <div className="mt-2 space-y-2">
-            <div className="p-2 bg-primary/10 rounded text-xs">
-              <strong>Example:</strong> "Write a professional email to request a meeting with a potential client about our new SaaS product"
-            </div>
-            <div className="p-2 bg-muted/50 rounded text-xs">
-              <strong>Tip:</strong> Be specific! Include context like audience, tone, and desired outcome.
-            </div>
-          </div>
-        </div>
-      ),
-      placement: 'right',
-    },
-    {
-      target: '.optimizer-provider-select',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-bold text-lg">🏢 AI Provider Selection</h3>
-          <p className="text-sm">
-            Choose which company's AI models to use. Each has different strengths:
-          </p>
-          <div className="mt-2 space-y-2 text-xs">
-            <div className="p-2 bg-muted/50 rounded">
-              <strong className="text-primary">OpenAI:</strong> GPT-5, GPT-4o - Best for complex reasoning and technical tasks
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong className="text-accent">Anthropic:</strong> Claude 3.5 - Excellent for creative writing and nuanced understanding
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong className="text-blue-400">Google:</strong> Gemini - Fast, cost-effective, great for general tasks
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong className="text-orange-400">Groq:</strong> Ultra-fast inference for time-sensitive operations
-            </div>
-          </div>
-        </div>
-      ),
-      placement: 'right',
-    },
-    {
-      target: '.optimizer-model-select',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-bold text-lg">🤖 LLM Model Version</h3>
-          <p className="text-sm">
-            Select the specific model version. Consider these trade-offs:
-          </p>
-          <ul className="text-xs space-y-2 ml-4 mt-2">
-            <li>
-              <strong className="text-primary">⚡ Speed:</strong> Smaller models (like GPT-4o-mini, Gemini Flash) respond in 1-3 seconds
-            </li>
-            <li>
-              <strong className="text-accent">🧠 Intelligence:</strong> Larger models (GPT-5, Claude Opus) handle complex logic better
-            </li>
-            <li>
-              <strong className="text-orange-400">💰 Cost:</strong> Premium models cost more per request
-            </li>
-          </ul>
           <div className="mt-2 p-2 bg-primary/10 rounded text-xs">
-            <strong>Recommendation:</strong> Start with GPT-4o-mini or Gemini Flash for the best balance of speed, quality, and cost!
+            <strong>Example:</strong> "Write a professional email to request a meeting about our SaaS product"
           </div>
         </div>
       ),
       placement: 'right',
+      spotlightClicks: false,
     },
     {
-      target: '.optimizer-output-select',
+      target: 'select, [role="combobox"]',
       content: (
         <div className="space-y-2">
+          <div className="text-xs font-semibold text-primary mb-1">Step 7 of 16 • Optimizer</div>
+          <h3 className="font-bold text-lg">🏢 AI Provider</h3>
+          <p className="text-sm">
+            Choose which company's AI models to use:
+          </p>
+          <div className="mt-2 space-y-1 text-xs">
+            <div className="p-1.5 bg-muted/50 rounded">
+              <strong className="text-primary">OpenAI:</strong> GPT models - Complex reasoning
+            </div>
+            <div className="p-1.5 bg-muted/50 rounded">
+              <strong className="text-accent">Anthropic:</strong> Claude - Creative writing
+            </div>
+          </div>
+        </div>
+      ),
+      placement: 'right',
+      spotlightClicks: false,
+    },
+    {
+      target: 'select, [role="combobox"]',
+      content: (
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-primary mb-1">Step 8 of 16 • Optimizer</div>
+          <h3 className="font-bold text-lg">🤖 Model Version</h3>
+          <p className="text-sm">
+            Select the specific model. Consider:
+          </p>
+          <ul className="text-xs space-y-1 ml-4 mt-2 list-disc">
+            <li><strong className="text-primary">Speed:</strong> Smaller models = faster</li>
+            <li><strong className="text-accent">Quality:</strong> Larger models = smarter</li>
+          </ul>
+        </div>
+      ),
+      placement: 'right',
+      spotlightClicks: false,
+    },
+    {
+      target: 'select, [role="combobox"]',
+      content: (
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-primary mb-1">Step 9 of 16 • Optimizer</div>
           <h3 className="font-bold text-lg">📋 Output Type</h3>
           <p className="text-sm">
-            Tell PrompTek what format you need. This optimizes the prompt strategy:
+            Choose the format: Text, Code, JSON, List, or Essay.
           </p>
-          <div className="mt-2 space-y-1.5 text-xs">
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>Text:</strong> Articles, emails, general writing
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>Code:</strong> Programming, scripts, technical implementations
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>JSON:</strong> Structured data, API responses, databases
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>List:</strong> Bullet points, action items, summaries
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>Essay:</strong> Long-form content, academic writing, reports
-            </div>
-          </div>
           <p className="text-xs text-primary mt-2">
-            Each type uses different prompting techniques for optimal results!
+            Each type uses different prompting techniques!
           </p>
         </div>
       ),
       placement: 'right',
+      spotlightClicks: false,
     },
     {
-      target: '.optimizer-variants-slider',
+      target: '[role="slider"], input[type="range"]',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">🎲 Number of Variants</h3>
+          <div className="text-xs font-semibold text-primary mb-1">Step 10 of 16 • Optimizer</div>
+          <h3 className="font-bold text-lg">🎲 Variants</h3>
           <p className="text-sm">
-            Generate 1-10 different prompt versions to choose from.
+            Generate 1-10 different prompt versions.
           </p>
-          <div className="mt-2 space-y-2 text-xs">
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>1-3 variants:</strong> Quick results, good for simple tasks (15-30 seconds)
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>4-7 variants:</strong> Balanced variety, recommended for most use cases (30-60 seconds)
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>8-10 variants:</strong> Maximum options, best for critical prompts (60-90 seconds)
-            </div>
-          </div>
-          <p className="text-xs text-primary mt-2">
-            💡 Tip: Start with 3-5 variants - you can always generate more later!
+          <p className="text-xs text-muted-foreground mt-2">
+            💡 Tip: Start with 3-5 variants for the best balance!
           </p>
         </div>
       ),
       placement: 'right',
-    },
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-3">
-          <h3 className="font-bold text-lg">How It Works</h3>
-          <p className="text-sm">
-            When you click <strong className="text-primary">"Generate Optimized Prompts"</strong>:
-          </p>
-          <ol className="text-xs space-y-2 ml-4 list-decimal">
-            <li>PrompTek analyzes your task description and requirements</li>
-            <li>Applies best practices from the 8-Pillar Framework</li>
-            <li>Generates multiple prompt variants tailored to your output type</li>
-            <li>Tests each variant for quality and effectiveness</li>
-            <li>Ranks them by performance score</li>
-          </ol>
-          <div className="mt-3 p-2 bg-accent/10 rounded text-xs">
-            <strong>Result:</strong> You get production-ready prompts you can use immediately in your AI workflows!
-          </div>
-        </div>
-      ),
-      placement: 'left',
+      spotlightClicks: false,
     },
     // === HISTORY SECTION ===
     {
       target: 'body',
       content: (
-        <div className="space-y-2">
-          <h3 className="font-bold text-lg">📚 Opening History...</h3>
+        <div className="space-y-2 text-center">
+          <div className="text-xs font-semibold text-primary mb-1">Step 11 of 16</div>
+          <h3 className="font-bold text-lg">📚 History</h3>
           <p className="text-sm text-muted-foreground">
-            Let's explore your prompt library and past results.
+            Your prompt library and past results.
           </p>
         </div>
       ),
       placement: 'center',
       disableBeacon: true,
+      spotlightClicks: false,
     },
     {
-      target: 'body',
+      target: 'main',
       content: (
-        <div className="space-y-3">
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-primary mb-1">Step 12 of 16 • History</div>
           <h3 className="font-bold text-lg">📚 Prompt History</h3>
           <p className="text-sm">
-            Every optimized prompt and test result is <strong className="text-primary">automatically saved here</strong>.
+            Every optimized prompt is <strong className="text-primary">automatically saved</strong> here.
           </p>
-          <div className="mt-2 space-y-2 text-xs">
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>🔍 Search & Filter:</strong> Find prompts by keyword, date, or category
+          <div className="mt-2 space-y-1 text-xs">
+            <div className="flex items-center gap-2">
+              <span>🔍</span>
+              <span>Search & filter prompts</span>
             </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>⭐ Favorites:</strong> Star your best prompts for quick access
+            <div className="flex items-center gap-2">
+              <span>⭐</span>
+              <span>Star favorites for quick access</span>
             </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>♻️ Reuse:</strong> Click any prompt to use it as a template
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>📊 Analytics:</strong> Track performance trends over time
+            <div className="flex items-center gap-2">
+              <span>♻️</span>
+              <span>Reuse as templates</span>
             </div>
           </div>
-          <p className="text-xs text-primary mt-2">
-            Build your personal prompt library and never lose a great prompt again!
-          </p>
         </div>
       ),
-      placement: 'left',
+      placement: 'bottom',
+      spotlightClicks: false,
     },
     // === TEMPLATES SECTION ===
     {
-      target: 'body',
+      target: 'main',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">📋 Opening Templates...</h3>
-          <p className="text-sm text-muted-foreground">
-            Let's see the pre-made prompt templates library.
-          </p>
-        </div>
-      ),
-      placement: 'center',
-      disableBeacon: true,
-    },
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-3">
-          <h3 className="font-bold text-lg">📋 Prompt Templates Library</h3>
+          <div className="text-xs font-semibold text-primary mb-1">Step 13 of 16 • Templates</div>
+          <h3 className="font-bold text-lg">📋 Templates Library</h3>
           <p className="text-sm">
-            Browse <strong className="text-primary">professionally crafted templates</strong> organized by category:
+            Browse <strong className="text-primary">professionally crafted templates</strong> by category.
           </p>
-          <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>✍️ Writing:</strong> Articles, blogs, copywriting
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>💼 Business:</strong> Emails, proposals, reports
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>📊 Analytics:</strong> Data analysis, insights
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>💻 Code:</strong> Programming, debugging, docs
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>📈 Marketing:</strong> Ads, social media, SEO
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>🎓 Education:</strong> Lessons, quizzes, training
-            </div>
-          </div>
-          <div className="mt-3 p-2 bg-primary/10 rounded text-xs">
-            <strong>Create Custom Templates:</strong> Save your best prompts as reusable templates!
-          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Writing, Business, Analytics, Code, Marketing & more!
+          </p>
         </div>
       ),
-      placement: 'left',
+      placement: 'bottom',
+      spotlightClicks: false,
     },
     // === SETTINGS SECTION ===
     {
-      target: 'body',
+      target: 'main',
       content: (
         <div className="space-y-2">
-          <h3 className="font-bold text-lg">⚙️ Opening Settings...</h3>
-          <p className="text-sm text-muted-foreground">
-            Finally, let's customize your PrompTek experience.
-          </p>
-        </div>
-      ),
-      placement: 'center',
-      disableBeacon: true,
-    },
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-3">
-          <h3 className="font-bold text-lg">⚙️ Settings & Preferences</h3>
+          <div className="text-xs font-semibold text-primary mb-1">Step 14 of 16 • Settings</div>
+          <h3 className="font-bold text-lg">⚙️ Settings</h3>
           <p className="text-sm">
-            Customize PrompTek to match your workflow:
+            Customize your PrompTek experience:
           </p>
-          <div className="mt-2 space-y-2 text-xs">
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>🤖 Default AI Settings:</strong> Set your preferred provider and model
+          <div className="mt-2 space-y-1 text-xs">
+            <div className="flex items-center gap-2">
+              <span>👤</span>
+              <span>Profile settings</span>
             </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>🔔 Notifications:</strong> Configure email alerts and in-app notifications
+            <div className="flex items-center gap-2">
+              <span>🎨</span>
+              <span>Theme preferences</span>
             </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>🗄️ Data Management:</strong> Control retention periods and privacy settings
+            <div className="flex items-center gap-2">
+              <span>🔔</span>
+              <span>Notifications</span>
             </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>🎨 Theme:</strong> Switch between light and dark modes
-            </div>
-            <div className="p-2 bg-muted/50 rounded">
-              <strong>🧭 Tutorial:</strong> Restart this walkthrough anytime
+            <div className="flex items-center gap-2">
+              <span>🔒</span>
+              <span>Privacy & security</span>
             </div>
           </div>
         </div>
       ),
-      placement: 'left',
+      placement: 'bottom',
+      spotlightClicks: false,
     },
-    // === FINISH ===
     {
       target: 'body',
       content: (
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            🎉 You're All Set!
+        <div className="text-center space-y-3">
+          <div className="text-xs font-semibold text-primary mb-1">Step 15 of 16</div>
+          <h3 className="font-bold text-lg">💡 Pro Tips</h3>
+          <ul className="text-sm space-y-2 text-left">
+            <li>✨ Use favorites to build your prompt library</li>
+            <li>🔄 Iterate on prompts in the Lab</li>
+            <li>📊 Check history to track improvements</li>
+            <li>⚡ Start with templates for quick results</li>
+          </ul>
+        </div>
+      ),
+      placement: 'center',
+      spotlightClicks: false,
+    },
+    {
+      target: 'body',
+      content: (
+        <div className="text-center space-y-3">
+          <div className="text-xs font-semibold text-primary mb-1">Step 16 of 16</div>
+          <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            You're All Set! 🚀
           </h2>
-          <p className="text-muted-foreground">
-            You now know how to use every major feature in PrompTek.
+          <p className="text-sm text-muted-foreground">
+            Start creating amazing prompts with PrompTek!
           </p>
-          <div className="space-y-2 text-sm text-left">
-            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-              <strong className="text-primary">Quick Start:</strong> Head to the AI Agent to generate your first optimized prompt!
-            </div>
-            <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
-              <strong className="text-accent">Pro Workflow:</strong> Use the Lab to test and perfect prompts, then save the best ones as templates.
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            You can restart this tutorial anytime from Settings → Restart Tutorial
+          <p className="text-xs text-primary mt-2">
+            You can restart this tutorial anytime from Settings.
           </p>
         </div>
       ),
       placement: 'center',
+      spotlightClicks: false,
     },
   ];
 
   const styles: Partial<Styles> = {
     options: {
-      arrowColor: 'hsl(var(--popover))',
-      backgroundColor: 'hsl(var(--popover))',
-      overlayColor: 'rgba(0, 0, 0, 0.7)',
-      primaryColor: 'hsl(var(--primary))',
-      textColor: 'hsl(var(--popover-foreground))',
       zIndex: 10000,
+      primaryColor: 'hsl(var(--primary))',
+      textColor: 'hsl(var(--foreground))',
+      backgroundColor: 'hsl(var(--background))',
+      arrowColor: 'hsl(var(--background))',
+      overlayColor: 'rgba(0, 0, 0, 0.5)',
     },
     tooltip: {
       borderRadius: '12px',
       padding: '20px',
-      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3), 0 0 60px hsl(var(--primary) / 0.2)',
       border: '1px solid hsl(var(--border))',
+      fontSize: '14px',
+      maxWidth: '420px',
+      animation: 'none',
+      transition: 'none',
     },
     tooltipContainer: {
       textAlign: 'left',
+      animation: 'none',
+      transition: 'none',
+    },
+    tooltipContent: {
+      animation: 'none',
+      transition: 'none',
     },
     buttonNext: {
       backgroundColor: 'hsl(var(--primary))',
       color: 'hsl(var(--primary-foreground))',
-      borderRadius: '8px',
-      padding: '10px 20px',
-      fontWeight: 600,
-      transition: 'all 0.2s',
+      borderRadius: '6px',
+      padding: '8px 16px',
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: 'none',
+      animation: 'none',
     },
     buttonBack: {
       color: 'hsl(var(--muted-foreground))',
-      marginRight: '10px',
-      padding: '10px 20px',
-      borderRadius: '8px',
+      marginRight: '8px',
+      fontSize: '14px',
+      transition: 'none',
+      animation: 'none',
     },
     buttonSkip: {
       color: 'hsl(var(--muted-foreground))',
-      padding: '10px 20px',
+      fontSize: '14px',
+      transition: 'none',
+      animation: 'none',
     },
     spotlight: {
       borderRadius: '8px',
+      border: '2px solid hsl(var(--primary))',
+      boxShadow: 'none',
+      transition: 'none',
+      animation: 'none',
     },
     overlay: {
       mixBlendMode: 'normal',
+      transition: 'none',
+      animation: 'none',
+    },
+    beacon: {
+      animation: 'none',
+      transition: 'none',
     },
   };
 
@@ -595,10 +552,10 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     <Joyride
       steps={steps}
       run={run}
+      stepIndex={stepIndex}
       continuous
       showProgress
       showSkipButton
-      stepIndex={stepIndex}
       callback={handleJoyrideCallback}
       styles={styles}
       locale={{
@@ -606,14 +563,19 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         close: 'Close',
         last: 'Finish',
         next: 'Next',
-        skip: 'Skip (Not Recommended)',
+        skip: 'Skip',
       }}
       floaterProps={{
         disableAnimation: true,
+        disableFlip: false,
         styles: {
           arrow: {
             length: 8,
             spread: 16,
+          },
+          floater: {
+            transition: 'none',
+            animation: 'none',
           },
         },
       }}
@@ -621,6 +583,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       disableScrollParentFix={true}
       spotlightClicks={false}
       disableOverlayClose={false}
+      spotlightPadding={4}
+      scrollOffset={100}
+      scrollDuration={0}
     />
   );
 };
