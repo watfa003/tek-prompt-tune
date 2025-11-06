@@ -45,7 +45,7 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
   };
 
   const handleJoyrideCallback = async (data: CallBackProps) => {
-    const { status, action, index, type, lifecycle } = data;
+    const { status, action, index, type } = data;
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       await completeTutorial();
@@ -57,27 +57,47 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
       
-      // Navigate to correct page based on step
+      // Pre-navigate to correct page BEFORE showing the step
       if (nextStepIndex === 1) {
-        // Going to Lab tab step
+        // Navigate to Lab tab, then show step
+        setRun(false);
         navigate('/app/lab');
-        setTimeout(() => setStepIndex(nextStepIndex), 300);
+        setTimeout(() => {
+          setStepIndex(nextStepIndex);
+          setRun(true);
+        }, 500);
       } else if (nextStepIndex === 5) {
-        // Going to Optimizer dashboard step
+        // Navigate to Optimizer dashboard, then show step
+        setRun(false);
         navigate('/app');
-        setTimeout(() => setStepIndex(nextStepIndex), 300);
+        setTimeout(() => {
+          setStepIndex(nextStepIndex);
+          setRun(true);
+        }, 500);
       } else if (nextStepIndex === 11) {
-        // Going to History tab step
+        // Navigate to History tab, then show step
+        setRun(false);
         navigate('/app/history');
-        setTimeout(() => setStepIndex(nextStepIndex), 300);
+        setTimeout(() => {
+          setStepIndex(nextStepIndex);
+          setRun(true);
+        }, 500);
       } else if (nextStepIndex === 12) {
-        // Going to Templates tab step
+        // Navigate to Templates tab, then show step
+        setRun(false);
         navigate('/app/templates');
-        setTimeout(() => setStepIndex(nextStepIndex), 300);
+        setTimeout(() => {
+          setStepIndex(nextStepIndex);
+          setRun(true);
+        }, 500);
       } else if (nextStepIndex === 13) {
-        // Going to Settings tab step
+        // Navigate to Settings tab, then show step
+        setRun(false);
         navigate('/app/settings');
-        setTimeout(() => setStepIndex(nextStepIndex), 300);
+        setTimeout(() => {
+          setStepIndex(nextStepIndex);
+          setRun(true);
+        }, 500);
       } else {
         setStepIndex(nextStepIndex);
       }
@@ -123,42 +143,31 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       disableBeacon: true,
     },
     {
-      target: '#lab-tab',
+      target: 'body',
       content: (
-        <div className="space-y-2">
+        <div className="space-y-2 text-center">
           <h3 className="font-bold text-lg">🧪 PromptTek Lab</h3>
           <p className="text-sm">
-            This is your testing ground. The Lab evaluates your prompts using our <strong>8-Pillar Framework</strong>:
+            Opening the Lab now - this is where you test and grade your prompts...
           </p>
+        </div>
+      ),
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: 'body',
+      content: (
+        <div className="space-y-3">
+          <h3 className="font-bold text-lg">Lab Testing Interface</h3>
+          <p className="text-sm">The Lab evaluates your prompts using our <strong>8-Pillar Framework</strong>:</p>
           <ul className="text-xs space-y-1 ml-4 list-disc text-muted-foreground">
             <li>Clarity, Specificity, Context</li>
             <li>Structure, Examples, Constraints</li>
             <li>Tone, Adaptability</li>
           </ul>
           <p className="text-sm mt-2">
-            Get instant scores and AI-powered feedback to improve your prompts.
-          </p>
-        </div>
-      ),
-      placement: 'right',
-      spotlightClicks: true,
-    },
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-3">
-          <h3 className="font-bold text-lg">Lab Features</h3>
-          <p className="text-sm">The Lab has two modes:</p>
-          <div className="space-y-2 text-sm">
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <strong className="text-primary">Single Test:</strong> Test one prompt and get detailed breakdown scores
-            </div>
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <strong className="text-accent">Battle Mode:</strong> Compare two prompts head-to-head to see which performs better
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Perfect for A/B testing and iterative improvements!
+            You can test prompts in <strong className="text-primary">Single Mode</strong> or <strong className="text-accent">Battle Mode</strong> to compare two prompts head-to-head.
           </p>
         </div>
       ),
@@ -170,30 +179,24 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         <div className="space-y-3">
           <h3 className="font-bold text-lg">Auto-Optimize Feature</h3>
           <p className="text-sm">
-            After testing a prompt in the Lab, you can click <strong className="text-primary">"Auto-Optimize"</strong> to get AI-powered suggestions.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            The Lab will automatically re-test the optimized version and show you before/after comparisons with score improvements!
+            After testing a prompt, click <strong className="text-primary">"Auto-Optimize"</strong> to get AI-powered improvements and see before/after score comparisons!
           </p>
         </div>
       ),
       placement: 'center',
     },
     {
-      target: '#optimizer-tab',
+      target: 'body',
       content: (
-        <div className="space-y-2">
+        <div className="space-y-2 text-center">
           <h3 className="font-bold text-lg">⚡ AI Agent (Optimizer)</h3>
           <p className="text-sm">
-            This is your main dashboard for <strong>generating optimized prompts</strong> from scratch.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Unlike the Lab (which tests existing prompts), the Optimizer creates comprehensive, production-ready prompts from simple ideas.
+            Opening the Optimizer dashboard - this creates comprehensive prompts from your ideas...
           </p>
         </div>
       ),
-      placement: 'right',
-      spotlightClicks: true,
+      placement: 'center',
+      disableBeacon: true,
     },
     {
       target: '.optimizer-task-input',
