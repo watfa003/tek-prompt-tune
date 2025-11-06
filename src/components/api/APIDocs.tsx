@@ -1,7 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy } from 'lucide-react';
+import { Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function APIDocs() {
   const copyToClipboard = (text: string) => {
@@ -9,236 +11,400 @@ export function APIDocs() {
     toast.success('Copied to clipboard');
   };
 
-  const baseUrl = 'https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/agent-invoke';
-  
-  const curlExample = `curl -X POST ${baseUrl} \\
+  const baseUrl = 'https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1';
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle>PromptTek API Overview</CardTitle>
+          <CardDescription>
+            Two types of API access for different use cases
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge>Agent Keys</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Use pre-configured agents for consistent AI responses
+              </p>
+              <code className="text-xs bg-muted px-2 py-1 rounded block">POST /agent-invoke</code>
+            </div>
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="secondary">User Keys</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Access history, favorites, lab testing, and more
+              </p>
+              <div className="text-xs space-y-1">
+                <code className="bg-muted px-2 py-1 rounded block">GET /api-history</code>
+                <code className="bg-muted px-2 py-1 rounded block">POST /api-lab-test</code>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="agent" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="agent">Agent API</TabsTrigger>
+          <TabsTrigger value="user">User API</TabsTrigger>
+        </TabsList>
+
+        {/* Agent API Documentation */}
+        <TabsContent value="agent" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Agent Invocation</CardTitle>
+                  <CardDescription>Execute pre-configured AI agents</CardDescription>
+                </div>
+                <Badge>POST</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Endpoint</h4>
+                <code className="block bg-muted p-3 rounded text-xs">
+                  POST {baseUrl}/agent-invoke
+                </code>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Basic Request (Chat Mode)</h4>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2 z-10"
+                    onClick={() => copyToClipboard(`curl -X POST ${baseUrl}/agent-invoke \\
+  -H "Authorization: Bearer YOUR_AGENT_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "apiKey": "YOUR_API_KEY",
     "agent_id": "YOUR_AGENT_ID",
-    "input": "Write me a product description"
-  }'`;
-
-  const curlBearerExample = `curl -X POST ${baseUrl} \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+    "input": "Write a product description for eco-friendly water bottles"
+  }'`)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+{`curl -X POST ${baseUrl}/agent-invoke \\
+  -H "Authorization: Bearer YOUR_AGENT_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "agent_id": "YOUR_AGENT_ID",
-    "input": "Write me a product description"
-  }'`;
+    "input": "Write a product description"
+  }'`}
+                  </pre>
+                </div>
+              </div>
 
-  const requestExample = `{
-  "apiKey": "YOUR_API_KEY",
+              <div>
+                <h4 className="font-medium mb-2 text-sm">With Runtime Overrides</h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Perfect for n8n workflows - change agent behavior per request without creating new agents!
+                </p>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2 z-10"
+                    onClick={() => copyToClipboard(`{
   "agent_id": "YOUR_AGENT_ID",
-  "input": "Write me a product description"
-}`;
+  "input": "Generate a haiku about AI",
+  "overrides": {
+    "temperature": 0.9,
+    "max_tokens": 500,
+    "output_type": "creative",
+    "mode": "deep"
+  }
+}`)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+{`{
+  "agent_id": "YOUR_AGENT_ID",
+  "input": "Generate a haiku about AI",
+  "overrides": {
+    "temperature": 0.9,      // 0-1, higher = more creative
+    "max_tokens": 500,       // Max response length
+    "output_type": "creative", // text|code|json|list|essay|creative
+    "mode": "deep",          // chat|speed|deep
+    "variants": 5,           // For optimization modes
+    "system_prompt": "..."   // Override agent's system prompt
+  }
+}`}
+                  </pre>
+                </div>
+              </div>
 
-  const responseExample = `{
-  "agentId": "YOUR_AGENT_ID",
-  "output": "Introducing our premium product - crafted with precision and designed for excellence. This innovative solution combines cutting-edge technology with elegant design...",
-  "tokens_used": 187,
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Response Format</h4>
+                <div className="relative">
+                  <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+{`// Chat Mode Response:
+{
+  "agentId": "...",
+  "output": "The AI's response...",
+  "tokens_used": 245,
   "model": "gpt-4o-mini",
   "provider": "openai",
   "processing_time_ms": 1234,
-  "timestamp": "2024-01-20T12:00:00.000Z"
-}`;
+  "config_used": { ... }
+}
 
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Getting Started</CardTitle>
-          <CardDescription>Follow these steps to use your AI agents via API</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 text-sm">
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">1</div>
+// Optimization Mode Response:
+{
+  "agentId": "...",
+  "optimized_prompt": "Enhanced version...",
+  "original_prompt": "Your input",
+  "score": 8.7,
+  "strategy": "clarity",
+  "variants_count": 3
+}`}
+                  </pre>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* User API Documentation */}
+        <TabsContent value="user" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>History API</CardTitle>
+                  <CardDescription>Fetch your optimization and prompt history</CardDescription>
+                </div>
+                <Badge variant="secondary">GET</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <p className="font-medium">Create an Agent</p>
-                <p className="text-muted-foreground text-xs">Go to the "Create Agent" tab and configure your AI agent</p>
+                <h4 className="font-medium mb-2 text-sm">Endpoint</h4>
+                <code className="block bg-muted p-3 rounded text-xs">
+                  GET {baseUrl}/api-history
+                </code>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">2</div>
+
               <div>
-                <p className="font-medium">Generate an API Key</p>
-                <p className="text-muted-foreground text-xs">Go to "API Keys" tab and create a new key for your agent</p>
+                <h4 className="font-medium mb-2 text-sm">Query Parameters</h4>
+                <div className="bg-muted p-4 rounded text-xs space-y-2">
+                  <div><code>limit</code> - Results per page (default: 50, max: 200)</div>
+                  <div><code>offset</code> - Pagination offset (default: 0)</div>
+                  <div><code>provider</code> - Filter by AI provider (openai, anthropic, google)</div>
+                  <div><code>output_type</code> - Filter by type (text, code, json, etc.)</div>
+                  <div><code>favorites_only</code> - true/false</div>
+                  <div><code>order_by</code> - Sort by: created_at or score</div>
+                  <div><code>order</code> - asc or desc</div>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">3</div>
+
               <div>
-                <p className="font-medium">Get Your Agent ID</p>
-                <p className="text-muted-foreground text-xs">Copy your agent ID from the "Your Agents" tab</p>
+                <h4 className="font-medium mb-2 text-sm">Example Request</h4>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2 z-10"
+                    onClick={() => copyToClipboard(`curl -X GET "${baseUrl}/api-history?limit=20&provider=openai&order_by=score&order=desc" \\
+  -H "Authorization: Bearer YOUR_USER_API_KEY"`)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+{`curl -X GET "${baseUrl}/api-history?limit=20&provider=openai" \\
+  -H "Authorization: Bearer YOUR_USER_API_KEY"`}
+                  </pre>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">4</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Lab Test API</CardTitle>
+                  <CardDescription>Test prompts with 8-pillar analysis</CardDescription>
+                </div>
+                <Badge variant="secondary">POST</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <p className="font-medium">Make API Calls</p>
-                <p className="text-muted-foreground text-xs">Use the examples below to invoke your agent</p>
+                <h4 className="font-medium mb-2 text-sm">Endpoint</h4>
+                <code className="block bg-muted p-3 rounded text-xs">
+                  POST {baseUrl}/api-lab-test
+                </code>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>API Endpoint</CardTitle>
-          <CardDescription>Base URL for all agent invocations</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <code className="text-sm font-mono">POST /functions/v1/agent-invoke</code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(baseUrl)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Example Request</h4>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2 z-10"
+                    onClick={() => copyToClipboard(`curl -X POST ${baseUrl}/api-lab-test \\
+  -H "Authorization: Bearer YOUR_USER_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "prompt": "Explain quantum computing",
+    "target_llm": "gpt-4o-mini",
+    "output_type": "text"
+  }'`)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+{`curl -X POST ${baseUrl}/api-lab-test \\
+  -H "Authorization: Bearer YOUR_USER_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "prompt": "Explain quantum computing",
+    "target_llm": "gpt-4o-mini",
+    "output_type": "text"
+  }'`}
+                  </pre>
+                </div>
               </div>
-              <code className="block bg-muted p-3 rounded text-xs overflow-x-auto">
-                {baseUrl}
-              </code>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Authentication</CardTitle>
-          <CardDescription>Two ways to authenticate your requests</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-semibold mb-2">Option 1: Request Body (Recommended for n8n)</p>
-              <code className="block bg-muted p-3 rounded text-sm">
-                {`{ "apiKey": "YOUR_API_KEY", ... }`}
-              </code>
-            </div>
-            <div>
-              <p className="text-sm font-semibold mb-2">Option 2: Authorization Header</p>
-              <code className="block bg-muted p-3 rounded text-sm">
-                Authorization: Bearer YOUR_API_KEY
-              </code>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Response</h4>
+                <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+{`{
+  "result_id": "uuid",
+  "total_score": 7.8,
+  "category_breakdown": {
+    "clarity": 9.0,
+    "specificity": 7.5,
+    "efficiency": 8.0,
+    ...
+  },
+  "ai_output": "Generated response...",
+  "ai_analysis": {
+    "strengths": [...],
+    "weaknesses": [...],
+    "suggested_fixes": [...]
+  }
+}`}
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>cURL Example (n8n Compatible)</CardTitle>
-              <CardDescription>API key in request body - works perfectly with n8n HTTP Request node</CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => copyToClipboard(curlExample)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
-            {curlExample}
-          </pre>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Lab Battle API</CardTitle>
+                  <CardDescription>Compare two prompts head-to-head</CardDescription>
+                </div>
+                <Badge variant="secondary">POST</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Endpoint</h4>
+                <code className="block bg-muted p-3 rounded text-xs">
+                  POST {baseUrl}/api-lab-battle
+                </code>
+              </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Alternative: Bearer Token</CardTitle>
-              <CardDescription>Using Authorization header instead</CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => copyToClipboard(curlBearerExample)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
-            {curlBearerExample}
-          </pre>
-        </CardContent>
-      </Card>
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Example Request</h4>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2 z-10"
+                    onClick={() => copyToClipboard(`{
+  "prompt_a": "Explain quantum computing",
+  "prompt_b": "Explain quantum computing in simple terms with examples",
+  "target_llm": "gpt-4o-mini",
+  "output_type": "text"
+}`)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+{`{
+  "prompt_a": "Explain quantum computing",
+  "prompt_b": "Explain quantum computing with examples",
+  "target_llm": "gpt-4o-mini",
+  "output_type": "text"
+}`}
+                  </pre>
+                </div>
+              </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Request Parameters</CardTitle>
-              <CardDescription>Required fields for your API request</CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => copyToClipboard(requestExample)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-medium mb-1">apiKey (string, required)</p>
-              <p className="text-xs text-muted-foreground mb-2">Your API key from the "API Keys" tab. Can also be sent as a Bearer token in the Authorization header.</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium mb-1">agent_id (string, required)</p>
-              <p className="text-xs text-muted-foreground mb-2">The unique ID of your agent. Find this in the "Your Agents" tab by clicking on any agent.</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium mb-1">input (string, required)</p>
-              <p className="text-xs text-muted-foreground mb-2">The prompt or question you want to send to your AI agent.</p>
-            </div>
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm font-semibold mb-2">Example Request:</p>
-              <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">
-                {requestExample}
-              </pre>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Response</h4>
+                <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+{`{
+  "result_id": "uuid",
+  "winner": "prompt_b",
+  "score_a": 7.2,
+  "score_b": 8.9,
+  "reasoning": "Prompt B performs better because..."
+}`}
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Favorites API</CardTitle>
+                  <CardDescription>Access your favorited items</CardDescription>
+                </div>
+                <Badge variant="secondary">GET</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <h4 className="font-medium mb-2 text-sm">Endpoint</h4>
+                <code className="block bg-muted p-3 rounded text-xs">
+                  GET {baseUrl}/api-favorites?item_type=prompt
+                </code>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Card className="border-accent/20">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Response Format</CardTitle>
-              <CardDescription>Expected response structure</CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => copyToClipboard(responseExample)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
+          <CardTitle>Next Steps</CardTitle>
         </CardHeader>
-        <CardContent>
-          <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">
-            {responseExample}
-          </pre>
+        <CardContent className="space-y-3">
+          <Button 
+            variant="outline" 
+            className="w-full justify-between"
+            onClick={() => window.location.href = '/docs/api'}
+          >
+            <span>View Full API Reference</span>
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-between"
+            onClick={() => window.location.href = '/docs/api-examples'}
+          >
+            <span>Browse Code Examples (Python, Node.js, n8n)</span>
+            <ExternalLink className="h-4 w-4" />
+          </Button>
         </CardContent>
       </Card>
     </div>
