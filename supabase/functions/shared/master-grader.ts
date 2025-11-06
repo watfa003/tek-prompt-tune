@@ -1,7 +1,7 @@
 // Master Grader - Unified prompt scoring system for Lab and Optimizer
 // Philosophy: Grade the prompt by its results when possible, structure when not
 
-export type PromptType = 'simple' | 'complex' | 'creative';
+export type PromptType = 'complex' | 'creative';
 
 export interface CategoryScores {
   clarity: number;
@@ -62,25 +62,14 @@ export function detectNonsense(prompt: string, output?: string): number {
  * Detect the type of prompt for task-aware grading
  */
 export function detectPromptType(prompt: string): PromptType {
-  const wordCount = prompt.split(/\s+/).length;
   const promptLower = prompt.toLowerCase();
   
   // CREATIVE prompts - explicit creative intent
   const creativeKeywords = /\b(?:write|create|generate|compose)\s+(?:a|an)\s+(?:poem|story|haiku|tagline|slogan|joke|metaphor|song|rap|limerick|narrative|character|scene)/i;
   if (creativeKeywords.test(prompt)) return 'creative';
   
-  // COMPLEX prompts - multi-step, analytical, or long with structure
-  const hasMultipleSteps = /\b(?:first|second|third|then|next|finally|lastly|step \d+)/i.test(prompt);
-  const hasSections = (prompt.match(/\n\n+/g) || []).length >= 2;
-  const hasExamples = /\b(?:example|such as|e\.g\.|for instance)[:\s]+.{30,}/gi.test(prompt);
-  const isAnalytical = /\b(?:analyze|compare|evaluate|assess|research|investigate|examine|critique|review|explain why|explain how)/i.test(prompt);
-  
-  if (wordCount > 50 || hasMultipleSteps || hasSections || hasExamples || isAnalytical) {
-    return 'complex';
-  }
-  
-  // DEFAULT: simple
-  return 'simple';
+  // All other prompts are complex
+  return 'complex';
 }
 
 /**
@@ -88,18 +77,6 @@ export function detectPromptType(prompt: string): PromptType {
  */
 export function getContextualWeights(promptType: PromptType): Record<keyof CategoryScores, number> {
   switch (promptType) {
-    case 'simple':
-      return {
-        clarity: 2.0,           // ⭐⭐ CRITICAL - is it clear?
-        specificity: 1.8,       // ⭐⭐ CRITICAL - specific enough?
-        efficiency: 1.5,        // ⭐ IMPORTANT - no fluff?
-        intent_alignment: 1.6,  // ⭐⭐ CRITICAL - says what it wants?
-        structure: 0.1,         // ❌ IRRELEVANT for simple prompts
-        constraints: 0.0,       // ❌ COMPLETELY IGNORE
-        elaboration: 0.0,       // ❌ COMPLETELY IGNORE
-        adaptability: 0.1       // ❌ IRRELEVANT for simple prompts
-      };
-      
     case 'creative':
       return {
         clarity: 1.5,
@@ -303,18 +280,6 @@ export function scorePromptStatic(prompt: string): StaticGradeResult {
     adaptability: Math.max(0, Math.min(10, adaptability))
   };
   
-  // Normalize scores for simple prompts (boost irrelevant categories)
-  if (promptType === 'simple') {
-    // Boost irrelevant categories to neutral scores
-    if (scores.constraints < 6) scores.constraints = 7;
-    if (scores.elaboration < 6) scores.elaboration = 7;
-    if (scores.structure < 6) scores.structure = 6;
-    
-    // Be lenient on specificity if clarity is high
-    if (scores.clarity >= 7 && scores.specificity < 6) {
-      scores.specificity = Math.max(scores.specificity, 6);
-    }
-  }
   
   return {
     scores,
@@ -399,18 +364,6 @@ export function scorePromptTested(prompt: string, output: string): { scores: Cat
     scores.adaptability = Math.min(10, scores.adaptability + 1);
   }
   
-  // Normalize scores for simple prompts (boost irrelevant categories)
-  if (staticResult.promptType === 'simple') {
-    // Boost irrelevant categories to neutral scores
-    if (scores.constraints < 6) scores.constraints = 7;
-    if (scores.elaboration < 6) scores.elaboration = 7;
-    if (scores.structure < 6) scores.structure = 6;
-    
-    // Be lenient on specificity if clarity is high
-    if (scores.clarity >= 7 && scores.specificity < 6) {
-      scores.specificity = Math.max(scores.specificity, 6);
-    }
-  }
   
   return {
     scores,

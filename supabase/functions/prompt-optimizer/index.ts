@@ -369,11 +369,7 @@ serve(async (req) => {
       }
       
       // Filter strategies based on prompt type to avoid bloat
-      if (promptType === 'simple') {
-        // For simple prompts: Focus on clarity, specificity, intent - skip heavy strategies
-        const simpleStrategies = ['clarity', 'specificity', 'efficiency', 'intent'];
-        return simpleStrategies.includes(key);
-      } else if (promptType === 'creative') {
+      if (promptType === 'creative') {
         // For creative prompts: Focus on intent, adaptability, clarity - avoid rigid structure/constraints
         const creativeStrategies = ['clarity', 'intent', 'adaptability', 'specificity'];
         return creativeStrategies.includes(key);
@@ -445,8 +441,8 @@ ${enhancedPrompt}`;
         }
         
         // Critical rules: keep user's intent and only improve the prompt
-        const outputGuidance = getOutputTypeGuidance(outputType as OutputType, maxTokens || undefined);
-        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategy.name.toUpperCase()} strategy throughout your optimization.\n- Include the following output format guidance in the optimized prompt:\n\n${outputGuidance}\n\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.\n- Ensure the optimized prompt still requests the same task and does not alter the intended output type.`;
+        const outputStrategy = OUTPUT_TYPE_STRATEGIES[outputType as OutputType];
+        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategy.name.toUpperCase()} strategy throughout your optimization.\n- Consider that this prompt is intended for ${outputType} output, so optimize for ${outputStrategy.description}.\n- DO NOT add format instructions to the prompt itself (like "return as JSON" or "format as a list").\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.\n- Ensure the optimized prompt still requests the same task and does not alter the intended output type.`;
         
         // UNIFORM influence instructions - exactly the same for ALL variants
         if (influence && influence.trim().length > 0 && influenceWeight > 0) {
@@ -468,9 +464,6 @@ ${enhancedPrompt}`;
           optimizationPrompt += `\n\n=== INFLUENCE: DISABLED (0%) ===\nA template was provided but set to 0% - COMPLETELY IGNORE IT. Focus only on the original prompt.`;
         }
         
-        if (outputType && outputType !== 'text') {
-          optimizationPrompt += `\n- Ensure the improved prompt clearly instructs the AI to RESPOND in ${outputType} format (this affects the AI's response format only, not the prompt itself).`;
-        }
         
         // CRITICAL: Only integrate max_tokens if it's set
         if (maxTokens) {
