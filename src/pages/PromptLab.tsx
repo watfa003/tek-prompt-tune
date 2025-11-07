@@ -75,7 +75,7 @@ interface CompareTestResult {
   prompt_b_type?: 'simple' | 'complex' | 'creative';
 }
 
-const PromptLab = () => {
+const Lab = () => {
   const [mode, setMode] = useState<'single' | 'compare'>('single');
   const [promptA, setPromptA] = useState('');
   const [promptB, setPromptB] = useState('');
@@ -1377,4 +1377,4 @@ const PromptLab = () => {
   );
 };
 
-export default PromptLab;
+export default Lab;

@@ -20,7 +20,7 @@ import { PromptHistory } from "@/components/PromptHistory";
 import { UserSettings } from "@/components/UserSettings";
 import AIAgent from "@/pages/AIAgent";
 import APIManagement from "@/pages/APIManagement";
-import PromptLab from "@/pages/PromptLab";
+import Lab from "@/pages/PromptLab";
 import { PromptDataProvider } from "@/context/PromptDataContext";
 import { AppModeProvider, useAppMode } from "@/context/AppModeContext";
 import { TemplatesDataProvider } from "@/context/TemplatesDataContext";
@@ -143,7 +143,7 @@ const AppPageContent = () => {
       case '/app/ai-agent':
         return <AIAgent />;
       case '/app/lab':
-        return <PromptLab />;
+        return <Lab />;
       default:
         return <EnhancedDashboard />;
     }
