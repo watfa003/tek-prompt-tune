@@ -91,158 +91,138 @@ const OPTIMIZATION_MODELS = {
 // Network safety: time out external AI calls so variants don't hang forever
 const REQUEST_TIMEOUT_MS = 25000;
 
-// PrompTek V4.0 Single-Pass Precision System Prompt
-const PROMPTEK_MASTER_SYSTEM = `You are PrompTek Precision Engine V4.0, an elite prompt-engineering AI optimized for single-pass excellence.
+// PrompTek V3.5 Reinforcement Engine System Prompt
+const PROMPTEK_MASTER_SYSTEM = `You are PrompTek Reinforcement Engine V3.5, an autonomous prompt-engineering system.
+Your directive: refine any input prompt so that when graded by the 8-Pillar Framework, no single pillar scores below 8.5/10.
 
-⚡ CORE DIRECTIVE: Each output must independently achieve ≥9.0/10 average and ≥8.5/10 on EVERY pillar.
+⚙️ THE 8-PILLAR OPTIMIZATION FRAMEWORK (NON-NEGOTIABLE)
 
-⚙️ THE 8-PILLAR OPTIMIZATION FRAMEWORK (MANDATORY)
+Each optimized prompt must score ≥ 8.5/10 on every pillar:
 
-Your optimized prompt MUST score:
-• ≥9.0/10 on EVERY pillar below
-• ≥9.5/10 overall average
+1. Clarity — Explicit instructions, direct language, no ambiguity.
+2. Specificity — Detailed parameters, measurable expectations, examples where relevant.
+3. Efficiency — Dense meaning per token, no redundancy.
+4. Structure & Steps — Logical order; labeled sections or bullet hierarchy.
+5. Constraints & Format — Tone, output length, style, and formatting rules defined.
+6. Elaboration — Adequate depth, context, reasoning, or background detail.
+7. Intent Alignment — Every instruction clearly serves the user's actual goal.
+8. Adaptability — Robust across models, tasks, and contexts.
 
-1. Clarity — Explicit instructions, direct language, zero ambiguity
-2. Specificity — Detailed parameters, measurable expectations, concrete examples
-3. Efficiency — Maximum meaning per token, no redundancy
-4. Structure & Steps — Logical order, labeled sections or numbered steps
-5. Constraints & Format — Tone, output length, style, formatting rules clearly defined
-6. Elaboration — Adequate depth, context, reasoning, background
-7. Intent Alignment — Every instruction serves the user's exact goal
-8. Adaptability — Robust across models, tasks, contexts
+🧬 REINFORCEMENT LOGIC (MANDATORY):
 
-🧬 SELF-OPTIMIZATION PROTOCOL (EXECUTE BEFORE OUTPUT):
-
-You must internally self-evaluate BEFORE producing output:
-1. Draft your optimized version mentally
-2. Score each of the 8 pillars on a 1-10 scale
-3. If ANY pillar < 9.0, strengthen that section IMMEDIATELY
-4. Re-evaluate until ALL pillars ≥9.0 and average ≥9.5
-5. Only then output your final, best-possible version
-
-This is your ONLY chance to excel — no retries, no second passes.
-Deliver your strongest work in a single optimized output.
+Before producing output, you MUST:
+1. Mentally assign 0-10 scores to each pillar in the first optimized version.
+2. For any pillar < 8.5, automatically strengthen that section until ≥ 8.5.
+3. Integrate micro-enhancements (clarifying clauses, richer examples, concise reformats) within generation.
+4. Never weaken other pillars during reinforcement.
+5. Stop when lowest predicted pillar ≥ 8.5 AND average ≥ 9.0.
 
 🎯 CRITICAL RULES:
 - PRESERVE THE EXACT INTENT AND ACTION of the original prompt
 - DO NOT change what the user is asking for - only improve HOW they're asking for it
 - DO NOT answer the prompt - only optimize how it asks the question
-- Each pillar MUST score ≥9.0/10, overall average ≥9.5/10
+- Ensure every pillar ≥ 8.5/10 and overall average ≥ 9.0/10
 - Use professional, natural language; avoid filler
 - Function over form — readability and performance matter most
 - Never bloat unnecessarily; improve for intelligence and robustness
 
-✅ PRIMARY OBJECTIVE:
-Deliver a single-pass optimized prompt scoring ≥9.0 on every pillar and ≥9.5 overall.
-This is Single-Pass Precision Mode — excellence on first attempt.`;
+🔹 LIGHT MODE (for trivial prompts < 20 tokens):
+If prompt is very short and simple, apply Light Mode: improve only clarity, specificity, and intent alignment, then exit.
 
-// PrompTek V4.0 High-Precision Strategies - Single-pass excellence targeting ≥9.0/10 per pillar
+✅ PRIMARY OBJECTIVE:
+Deliver an optimized prompt that would grade ≥ 8.5 on every pillar and ≥ 9.0 on average.`;
+
+// PrompTek V3.5 Reinforcement Strategies - Targeting ≥8.5/10 per pillar
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
     name: "Cognitive Fusion (Clarity↑)",
-    definition: "Bridge model reasoning with natural-language clarity. Single-pass target: ≥9.0/10. This is your only chance to excel.",
+    definition: "Bridge model reasoning with natural-language clarity using reasoning verbs and linear logic. Target: ≥8.5/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Cognitive Fusion
 Focus: Clarity↑, Structure↑, Intent↑
-Target: ≥9.0/10 per pillar, ≥9.5/10 overall
-Method: Use reasoning verbs, eliminate ALL ambiguity, create linear logical flow while preserving exact user intent.
-Self-Check: Before outputting, verify Clarity ≥9.0. If not, add explicit action verbs, remove vague terms, specify exact deliverables.`,
-    weight: 0.92,
-    high_precision: true
+Method: Use reasoning verbs, eliminate all ambiguity, create linear logical flow while preserving exact user intent.
+Reinforcement Rule: If Clarity < 8.5, add explicit action verbs, remove vague terms, specify exact deliverables.`,
+    weight: 0.3
   },
   specificity: {
     name: "Precision Abstraction (Specificity↑)",
-    definition: "Precise data, generalizable language. Single-pass target: ≥9.0/10. No retries — deliver excellence now.",
+    definition: "Keep data precise but language generalizable for cross-domain prompts. Target: ≥8.5/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Precision Abstraction
 Focus: Specificity↑, Adaptability↑
-Target: ≥9.0/10 per pillar, ≥9.5/10 overall
-Method: Add measurable details, concrete parameters, quantifiable criteria while keeping language generalizable.
-Self-Check: Before outputting, verify Specificity ≥9.0. If not, add examples, numerical constraints, format specifications.`,
-    weight: 0.90,
-    high_precision: true
+Method: Add measurable details, concrete parameters, and quantifiable criteria while keeping language generalizable.
+Reinforcement Rule: If Specificity < 8.5, add examples, numerical constraints, or format specifications.`,
+    weight: 0.25
   },
   efficiency: {
     name: "Semantic Compression (Efficiency↑)",
-    definition: "Maximum meaning per token. Single-pass target: ≥9.0/10. Compress without compromising quality.",
+    definition: "Preserve meaning while minimizing tokens; compress enumerations and clauses. Target: ≥8.5/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Semantic Compression
 Focus: Efficiency↑, Specificity↑
-Target: ≥9.0/10 per pillar, ≥9.5/10 overall
-Method: Maximum meaning per token. Strip ALL redundancy. Compress while maintaining exact same goal.
-Self-Check: Before outputting, verify Efficiency ≥9.0. If not, remove filler words, consolidate clauses, use active voice.`,
-    weight: 0.88,
-    high_precision: true
+Method: Maximum meaning per token. Strip all redundancy. Compress while maintaining exact same goal.
+Reinforcement Rule: If Efficiency < 8.5, remove filler words, consolidate repetitive clauses, use active voice.`,
+    weight: 0.2
   },
   structure: {
     name: "Directive Synthesis (Structure↑)",
-    definition: "Multi-step procedural clarity. Single-pass target: ≥9.0/10. Assume this is your only opportunity.",
+    definition: "Rebuild vague goals into multi-step procedural clarity. Target: ≥8.5/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Directive Synthesis
 Focus: Clarity↑, Structure↑, Constraints↑
-Target: ≥9.0/10 per pillar, ≥9.5/10 overall
 Method: Create logical sequence with labeled sections or numbered steps. Multi-step procedural clarity.
-Self-Check: Before outputting, verify Structure ≥9.0. If not, add numbered steps, section headers, hierarchical bullets.`,
-    weight: 0.87,
-    high_precision: true
+Reinforcement Rule: If Structure < 8.5, add numbered steps, section headers, or hierarchical bullet points.`,
+    weight: 0.15
   },
   constraints: {
     name: "Constraint-Driven Creativity",
-    definition: "Structural limits boost precision. Single-pass target: ≥9.0/10. Front-load all constraints now.",
+    definition: "Use structural limits (word caps, themes, format) to boost creative precision. Target: ≥8.5/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Constraint-Driven Creativity
 Focus: Constraints↑, Elaboration↑, Adaptability↑
-Target: ≥9.0/10 per pillar, ≥9.5/10 overall
-Method: Add explicit output format specs, length limits, tone requirements, structural constraints.
-Self-Check: Before outputting, verify Constraints ≥9.0. If not, define format (JSON, markdown), tone, length limits.`,
-    weight: 0.86,
-    high_precision: true
+Method: Add explicit output format specs, length limits, tone requirements, and structural constraints.
+Reinforcement Rule: If Constraints < 8.5, define output format (JSON, markdown, table), tone (formal/casual), and length limits.`,
+    weight: 0.1
   },
   elaboration: {
     name: "Contextual Intelligence Matrix",
-    definition: "Situational awareness through context. Single-pass target: ≥9.0/10. Embed all necessary context now.",
+    definition: "Embed task context, audience, tone, and timeframe for situational awareness. Target: ≥8.5/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Contextual Intelligence Matrix
 Focus: Adaptability↑, Intent↑, Structure↑
-Target: ≥9.0/10 per pillar, ≥9.5/10 overall
 Method: Embed relevant context (audience, tone, timeframe, background) while absolutely preserving core intent.
-Self-Check: Before outputting, verify Elaboration ≥9.0. If not, add concrete examples, background context, use-cases.`,
-    weight: 0.89,
-    high_precision: true,
+Reinforcement Rule: If Elaboration < 8.5, add concrete examples, background context, or use-case scenarios.`,
+    weight: 0.12,
     condition: (prompt: string) => prompt.length < 200
   },
   intent: {
     name: "Semantic Anchoring (Intent↑)",
-    definition: "Definitional anchors prevent drift. Single-pass target: ≥9.0/10. Lock in intent perfectly now.",
+    definition: "Add definitional anchors to prevent drift or misinterpretation. Target: ≥8.5/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Semantic Anchoring
 Focus: Intent↑, Specificity↑
-Target: ≥9.0/10 per pillar, ≥9.5/10 overall
 Method: Clarify user intent with definitional anchors and success criteria. Preserve exact verb and outcome.
-Self-Check: Before outputting, verify Intent ≥9.0. If not, add success criteria, desired outcomes, explicit goals.`,
-    weight: 0.91,
-    high_precision: true,
+Reinforcement Rule: If Intent < 8.5, add success criteria, desired outcomes, or explicit goal statements.`,
+    weight: 0.12,
     condition: (prompt: string) => /\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(prompt)
   },
   adaptability: {
     name: "Cognitive Elasticity",
-    definition: "Interpretive flexibility across contexts. Single-pass target: ≥9.0/10. Build robustness now.",
+    definition: "Build interpretive flexibility for ambiguous or incomplete inputs. Target: ≥8.5/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
 🧬 ACTIVE STRATEGY: Cognitive Elasticity
 Focus: Adaptability↑, Intent↑, Clarity↑
-Target: ≥9.0/10 per pillar, ≥9.5/10 overall
-Method: Adapt for consistent results across AI models, contexts, edge cases. Build flexibility.
-Self-Check: Before outputting, verify Adaptability ≥9.0. If not, add conditional phrasing (if/when), fallback options.`,
-    weight: 0.85,
-    high_precision: true
+Method: Adapt for consistent results across AI models, contexts, and edge cases. Build flexibility.
+Reinforcement Rule: If Adaptability < 8.5, add conditional phrasing (if/when), fallback options, or edge-case handling.`,
+    weight: 0.10
   }
 };
 
@@ -428,35 +408,6 @@ serve(async (req) => {
     console.log(`   🔄 Testing rotation: [${rotatedRemaining.slice(0, Math.max(0, variantCount - 2)).join(', ')}]`);
     console.log(`   📊 Final selection (${selectedStrategies.length}): [${selectedStrategies.join(', ')}]`);
     
-    // Create a progress tracking session in database
-    const progressSessionId = `${userId}_${Date.now()}`;
-    let progressUpdatePromises: Promise<any>[] = [];
-    
-    const updateProgress = async (step: number, total: number, message: string) => {
-      const progressPercent = Math.floor((step / total) * 100);
-      console.log(`📊 Progress: ${progressPercent}% - ${message}`);
-      
-      // Store progress in database for frontend polling
-      const progressPromise = supabase
-        .from('optimization_progress')
-        .upsert({
-          session_id: progressSessionId,
-          user_id: userId,
-          progress: progressPercent,
-          message: message,
-          current_step: step,
-          total_steps: total,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'session_id'
-        });
-      
-      progressUpdatePromises.push(progressPromise);
-    };
-    
-    // Initial progress
-    await updateProgress(0, selectedStrategies.length + 2, 'Initializing optimization engine...');
-    
     // Test only the requested number of strategies, prioritized by performance
     const variantPromises = selectedStrategies.map(async (strategyKey, index) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
@@ -616,52 +567,55 @@ ${optimizedPrompt}`;
           
           if (testResponse) {
             actualResponse = testResponse;
-            
-            // Use master-grader for consistency with Lab scoring
-            const testedResult = scorePromptTested(optimizedPrompt, testResponse);
-            const totalScore = calculateTotalScore(
-              testedResult.scores, 
-              testedResult.promptType, 
-              optimizedPrompt
-            );
-            
-            actualScore = totalScore / 100; // Convert 0-100 to 0-1 scale
-            console.log(`✅ Master-grader score: ${totalScore.toFixed(1)}/100 (${(actualScore * 10).toFixed(1)}/10) for strategy: ${strategyKey}`);
-            
-            // Log low-scoring variants for analytics
-            if (totalScore < 85) {
-              console.warn(`⚠️ Low-scoring variant detected: ${totalScore.toFixed(1)}/100 using ${strategy.name}`);
-              console.warn(`Pillar breakdown:`, testedResult.scores);
+            // Score based on the actual response from the user's selected model
+            // Use fast evaluation for very long responses (over 2 pages)
+            const responseWords = testResponse.split(' ').length;
+            if (responseWords > 1500) { // Roughly 2 pages
+              console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
+              actualScore = fastSkimEvaluation(testResponse, strategy.weight);
+            } else {
+              const evalResult = await evaluateOutput(optimizedPrompt, testResponse, openAIApiKey);
+              actualScore = evalResult.score / 10; // Convert 0-10 to 0-1 scale
+             }
+             console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
+          } else {
+            // If no response, re-score the optimized prompt but ensure it's actually optimized
+            if (optimizedPrompt.length > originalPrompt.length * 0.8) {
+              try {
+                const evalResult = await evaluateOutput(optimizedPrompt, `Optimized using ${strategy.name} strategy`, openAIApiKey);
+                actualScore = evalResult.score / 10; // Convert 0-10 to 0-1 scale
+                actualResponse = `Successfully optimized using ${strategy.name} strategy`;
+              } catch (evalError) {
+                console.error('Evaluation error, using fallback:', evalError);
+                actualScore = strategy.weight * 0.7;
+                actualResponse = `Successfully optimized using ${strategy.name} strategy`;
+              }
+            } else {
+              // Prompt wasn't properly optimized, give low score
+              actualScore = strategy.weight * 0.3;
+              actualResponse = `Partial optimization using ${strategy.name} strategy`;
+            }
+            console.log(`Using fallback scoring for strategy: ${strategyKey}`);
+         }
+       } catch (error) {
+          console.error(`Error testing with user model ${modelName}:`, error);
+          // Ensure we still have a properly optimized prompt even in error cases
+          if (optimizedPrompt && optimizedPrompt.length > originalPrompt.length * 0.8) {
+            try {
+              const evalResult = await evaluateOutput(optimizedPrompt, `Optimization completed (fallback)`, openAIApiKey);
+              actualScore = evalResult.score / 10;
+              actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
+            } catch (evalError) {
+              console.error('Evaluation error in catch block:', evalError);
+              actualScore = strategy.weight * 0.6;
+              actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
             }
           } else {
-            // If no response from testing, score the optimized prompt statically
-            console.log(`No test response, scoring optimized prompt statically`);
-            const promptType = detectPromptType(optimizedPrompt);
-            const { scores } = scorePromptTested(optimizedPrompt, '');
-            const totalScore = calculateTotalScore(scores, promptType, optimizedPrompt);
-            
-            actualScore = totalScore / 100;
-            actualResponse = `Successfully optimized using ${strategy.name} strategy`;
-            console.log(`Static score: ${totalScore.toFixed(1)}/100 for strategy: ${strategyKey}`);
+            // If optimization failed completely, return a lower score
+            actualScore = strategy.weight * 0.2;
+            actualResponse = `Limited optimization using ${strategy.name} strategy`;
           }
-        } catch (error) {
-          console.error(`Error testing with user model ${modelName}:`, error);
-          // Fallback to static scoring
-          try {
-            const promptType = detectPromptType(optimizedPrompt);
-            const { scores } = scorePromptTested(optimizedPrompt, '');
-            const totalScore = calculateTotalScore(scores, promptType, optimizedPrompt);
-            
-            actualScore = totalScore / 100;
-            actualResponse = `Optimization completed using ${strategy.name} strategy (fallback)`;
-            console.log(`Fallback static score: ${totalScore.toFixed(1)}/100`);
-          } catch (evalError) {
-            console.error('Master-grader fallback error:', evalError);
-            // Last resort: use strategy weight as minimum baseline
-            actualScore = strategy.weight;
-            actualResponse = `Optimization completed using ${strategy.name} strategy (error fallback)`;
-          }
-        }
+       }
 
         return {
           prompt: optimizedPrompt,
@@ -716,13 +670,6 @@ ${optimizedPrompt}`;
     );
 
     const processingTime = Date.now() - startTime;
-    
-    // Final progress update
-    await updateProgress(
-      selectedStrategies.length + 2, 
-      selectedStrategies.length + 2, 
-      'Optimization complete!'
-    );
 
     // Background task for database updates and optimization insights (don't block response)
     const backgroundUpdates = async () => {
