@@ -61,7 +61,7 @@ CRITICAL RULES - YOU MUST RETURN A PROMPT, NOT AN ANSWER:
 - DO NOT answer the prompt - only optimize the prompt itself
 - DO NOT return JSON, code samples, or example outputs - return only the improved prompt
 - DO NOT add format instructions like "return as JSON" or "format as a list" unless the original had them
-- Never include fenced code blocks (``` ```) unless they were in the original prompt
+- Never include fenced code blocks (\`\`\`) unless they were in the original prompt
 - If your draft looks like an answer or data payload, discard it and produce a prompt instruction instead
 - The result must be an instruction that tells an AI what to do, not the AI's response
 - Consider the output type for optimization strategy only, don't embed format requirements
