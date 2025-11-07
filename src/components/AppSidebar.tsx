@@ -42,7 +42,7 @@ import { useAppMode } from "@/context/AppModeContext";
 const optimizerNavigationItems = [
   { title: "Dashboard", url: "/app", icon: Home, id: "dashboard-tab" },
   { title: "AI Agent", url: "/app/ai-agent", icon: Bot, id: "optimizer-tab" },
-  { title: "PromptTek Lab", url: "/app/lab", icon: FlaskConical, id: "lab-tab" },
+  { title: "Lab", url: "/app/lab", icon: FlaskConical, id: "lab-tab" },
   { title: "History", url: "/app/history", icon: History, id: "history-tab" },
   { title: "Templates", url: "/app/templates", icon: FileText, id: "templates-tab" },
   { title: "Settings", url: "/app/settings", icon: Settings, id: "settings-tab" },

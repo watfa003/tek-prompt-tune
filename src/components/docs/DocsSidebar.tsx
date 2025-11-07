@@ -20,7 +20,7 @@ const docsSections = [
     title: 'Product',
     items: [
       { title: 'Optimizer Features', href: '/docs/features', icon: Zap },
-      { title: 'Engineering Tool', href: '/docs/engineering', icon: Code },
+      { title: 'Lab', href: '/docs/engineering', icon: Code },
       { title: 'AI Model Testing', href: '/docs/testing', icon: TestTube },
       { title: 'Pricing', href: '/docs/pricing', icon: DollarSign },
     ],

@@ -100,6 +100,14 @@ const Lab = () => {
   const PENDING_START_KEY = 'lab:pendingStart';
   const PENDING_MODE_KEY = 'lab:pendingMode';
 
+  useEffect(() => {
+    document.title = 'Lab | PrompTek';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute('content', 'Test and optimize AI prompts with PrompTek Lab - compare models, get detailed scoring, and improve prompt performance.');
+    }
+  }, []);
+
   // Load last result and pending test state on mount
   useEffect(() => {
     try {
