@@ -121,6 +121,13 @@ Focus areas:
             After getting test results, you can use the "Auto-Optimize" feature to let AI automatically improve your prompt.
             You'll see a before/after comparison with detailed metrics, and you can choose to accept or reject the optimized version.
           </p>
+          <div className="bg-muted/50 border border-border rounded-lg p-4 mb-4">
+            <p className="text-sm text-muted-foreground">
+              <strong>Important:</strong> Auto-Optimize improves the <em>prompt itself</em> (how you ask the question), 
+              not the output format. It focuses on making your instructions clearer, more specific, and better structured 
+              without changing what you're asking for.
+            </p>
+          </div>
         </section>
 
         <section className="border-t border-primary/10 pt-8">

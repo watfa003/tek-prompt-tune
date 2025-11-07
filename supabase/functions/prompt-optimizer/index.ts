@@ -424,7 +424,10 @@ You are optimizing a prompt using the ${strategy.name.toUpperCase()} strategy.
 
 ${strategy.definition}
 
-${strategy.systemPrompt}${getOutputTypeSystemPrompt(outputType as OutputType)}
+${strategy.systemPrompt}
+
+[Meta-guidance only — Do not include format requirements in the optimized prompt]
+Output type context: This prompt is intended for ${outputType} output, so consider ${OUTPUT_TYPE_STRATEGIES[outputType as OutputType].description} when optimizing, but do not add format instructions to the prompt itself.
 
 Original prompt to optimize:
 ${enhancedPrompt}`;
@@ -508,6 +511,37 @@ ${enhancedPrompt}`;
             .replace(/^\s*Optimized Prompt:\s*/i, '')
             .replace(/^\s*(Here is|Here’s|Sure,|Certainly,|I can|As an AI)\b[:,]?\s*/i, '')
             .trim();
+        }
+        
+        // Validate and repair if the AI returned an answer instead of a prompt
+        if (optimizedPrompt && looksLikeAnswer(optimizedPrompt, enhancedPrompt)) {
+          console.log(`[${strategyKey}] ⚠️ Validator failed - looks like answer, triggering repair...`);
+          console.log(`[${strategyKey}] Preview:`, optimizedPrompt.slice(0, 180));
+          
+          try {
+            const repairPrompt = `You produced OUTPUT, not a PROMPT. Rewrite as an instruction prompt that preserves the original intent. Do not include JSON, code fences, sample output, or example payloads. Return only the prompt text that tells an AI what to do.
+
+Fix this - it should be a prompt instruction, not an answer:
+
+${optimizedPrompt}`;
+
+            const repairedRaw = await callAIProvider(
+              aiProvider,
+              optimizationModel,
+              repairPrompt,
+              1500,
+              0.3
+            );
+            
+            if (repairedRaw) {
+              const repairedPrompt = repairedRaw.toString().trim();
+              console.log(`[${strategyKey}] ✅ Repair successful`);
+              console.log(`[${strategyKey}] Repaired preview:`, repairedPrompt.slice(0, 180));
+              optimizedPrompt = repairedPrompt;
+            }
+          } catch (repairError) {
+            console.error(`[${strategyKey}] Repair failed:`, repairError);
+          }
         }
         
         if (!optimizedPrompt) {
@@ -1318,4 +1352,34 @@ function identifyStrategy(pattern: string): string {
   if (pattern.includes('examples') || pattern.includes('concrete')) return 'clarity';
   if (pattern.includes('constraints') || pattern.includes('requirements')) return 'constraints';
   return 'efficiency';
+}
+
+// Validator: Detect if the AI returned an answer instead of a prompt
+function looksLikeAnswer(text: string, original: string): boolean {
+  const trimmed = text.trim();
+
+  // JSON payload detection - starts with { or [ and parses as JSON
+  if ((trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    try { 
+      JSON.parse(trimmed); 
+      return true; 
+    } catch {}
+  }
+
+  // Fenced code blocks introduced that weren't in original
+  const hasFences = /```[\s\S]*?```/.test(trimmed);
+  const originalHadFences = /```[\s\S]*?```/.test(original);
+  if (hasFences && !originalHadFences) return true;
+
+  // Heuristic: no imperative prompt verbs and looks like declarative content
+  const imperativeVerbs = /(write|generate|produce|return|provide|compose|summarize|create|draft|respond|explain|describe|list|analyze|identify|compare|outline|develop|design|build|make|construct|formulate|assemble)/i;
+  const hasImperative = imperativeVerbs.test(trimmed);
+  
+  // If no imperative verbs and it's either long or multi-line, likely an answer
+  const lines = trimmed.split('\n').length;
+  if (!hasImperative && (lines > 3 || trimmed.length > 280)) {
+    return true;
+  }
+
+  return false;
 }

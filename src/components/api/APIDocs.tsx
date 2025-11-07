@@ -278,7 +278,7 @@ export function APIDocs() {
                 </div>
               </div>
 
-              <div>
+               <div>
                 <h4 className="font-medium mb-2 text-sm">Response</h4>
                 <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
 {`{
@@ -295,8 +295,12 @@ export function APIDocs() {
     "strengths": [...],
     "weaknesses": [...],
     "suggested_fixes": [...]
-  }
-}`}
+  },
+  "prompt_type": "complex"
+}
+
+Note: Lab tests and analyzes prompts without changing 
+the original. Auto-optimization is available separately.`}
                 </pre>
               </div>
             </CardContent>

@@ -55,19 +55,23 @@ THE 8-PILLAR FRAMEWORK (MANDATORY):
 7. Intent Alignment — Every instruction serves the user's actual goal
 8. Adaptability — Robust across models, tasks, contexts
 
-CRITICAL RULES:
+CRITICAL RULES - YOU MUST RETURN A PROMPT, NOT AN ANSWER:
 - PRESERVE the exact intent and action of the original prompt
 - DO NOT change what the user is asking for - only improve HOW they're asking for it
-- DO NOT answer the prompt - only optimize it
-- DO NOT add output format instructions to the prompt (like "return as JSON" or "format as a list")
-- Consider the output type for optimization strategy, but don't embed format requirements
+- DO NOT answer the prompt - only optimize the prompt itself
+- DO NOT return JSON, code samples, or example outputs - return only the improved prompt
+- DO NOT add format instructions like "return as JSON" or "format as a list" unless the original had them
+- Never include fenced code blocks (``` ```) unless they were in the original prompt
+- If your draft looks like an answer or data payload, discard it and produce a prompt instruction instead
+- The result must be an instruction that tells an AI what to do, not the AI's response
+- Consider the output type for optimization strategy only, don't embed format requirements
 - Ensure every pillar ≥8.5/10 and overall average ≥9.0/10
 - Use professional, natural language; avoid filler
 - Function over form — readability and performance matter most
 
 ${optimizationInstructions}
 
-Return ONLY the optimized prompt text. No explanations, no meta-commentary.`;
+Return ONLY the optimized prompt text. No explanations, no meta-commentary. The result must be a PROMPT, not an answer.`;
 
     const userMessage = `Original Prompt:\n${prompt}`;
 
@@ -111,10 +115,46 @@ Return ONLY the optimized prompt text. No explanations, no meta-commentary.`;
     }
 
     const data = await response.json();
-    const optimizedPrompt = data.choices?.[0]?.message?.content;
+    let optimizedPrompt = data.choices?.[0]?.message?.content;
 
     if (!optimizedPrompt) {
       throw new Error('No optimized prompt returned from AI');
+    }
+
+    // Validate and repair if the AI returned an answer instead of a prompt
+    if (looksLikeAnswer(optimizedPrompt, prompt)) {
+      console.log('[lab-auto-optimize] ⚠️ Validator failed - looks like answer, triggering repair...');
+      console.log('[lab-auto-optimize] Preview:', optimizedPrompt.slice(0, 180));
+      
+      const repairResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You produced OUTPUT, not a PROMPT. Rewrite as an instruction prompt that preserves the original intent. Do not include JSON, code fences, sample output, or example payloads. Return only the prompt text that tells an AI what to do.' 
+            },
+            { role: 'user', content: `Fix this - it should be a prompt instruction, not an answer:\n\n${optimizedPrompt}` }
+          ],
+          temperature: 0.3,
+          max_tokens: 1500,
+        }),
+      });
+
+      if (repairResponse.ok) {
+        const repairData = await repairResponse.json();
+        const repairedPrompt = repairData.choices?.[0]?.message?.content;
+        if (repairedPrompt) {
+          console.log('[lab-auto-optimize] ✅ Repair successful');
+          console.log('[lab-auto-optimize] Repaired preview:', repairedPrompt.slice(0, 180));
+          optimizedPrompt = repairedPrompt;
+        }
+      }
     }
 
     console.log('[lab-auto-optimize] Success! Optimized prompt length:', optimizedPrompt.length);
@@ -228,6 +268,35 @@ function buildOptimizationInstructions(
   }
 
   return instructions;
+}
+
+function looksLikeAnswer(text: string, original: string): boolean {
+  const trimmed = text.trim();
+
+  // JSON payload detection - starts with { or [ and parses as JSON
+  if ((trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    try { 
+      JSON.parse(trimmed); 
+      return true; 
+    } catch {}
+  }
+
+  // Fenced code blocks introduced that weren't in original
+  const hasFences = /```[\s\S]*?```/.test(trimmed);
+  const originalHadFences = /```[\s\S]*?```/.test(original);
+  if (hasFences && !originalHadFences) return true;
+
+  // Heuristic: no imperative prompt verbs and looks like declarative content
+  const imperativeVerbs = /(write|generate|produce|return|provide|compose|summarize|create|draft|respond|explain|describe|list|analyze|identify|compare|outline|develop|design|build|make|construct|formulate|assemble)/i;
+  const hasImperative = imperativeVerbs.test(trimmed);
+  
+  // If no imperative verbs and it's either long or multi-line, likely an answer
+  const lines = trimmed.split('\n').length;
+  if (!hasImperative && (lines > 3 || trimmed.length > 280)) {
+    return true;
+  }
+
+  return false;
 }
 
 function extractImprovementAreas(scores: any): string[] {
