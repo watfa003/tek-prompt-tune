@@ -6,20 +6,22 @@ interface OutputTypeSelectorProps {
   value: OutputType;
   onChange: (type: OutputType) => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export const OutputTypeSelector: React.FC<OutputTypeSelectorProps> = ({
   value,
   onChange,
-  className
+  className,
+  disabled = false
 }) => {
   const outputTypes = getAllOutputTypes();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   return (
     <div className="relative">
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className={className}>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger className={className} disabled={disabled}>
           <SelectValue placeholder="Select output type" />
         </SelectTrigger>
         <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50">

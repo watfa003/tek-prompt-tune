@@ -656,6 +656,7 @@ const Lab = () => {
                           value={outputType}
                           onChange={setOutputType}
                           className="border-primary/20"
+                          disabled={testingMode === 'single'}
                         />
                       </div>
                     </div>
@@ -798,6 +799,16 @@ const Lab = () => {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Output Type</Label>
+                      <OutputTypeSelector
+                        value={outputType}
+                        onChange={setOutputType}
+                        className="border-primary/20"
+                        disabled={testingMode === 'compare'}
+                      />
                     </div>
 
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
