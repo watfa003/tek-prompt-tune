@@ -1,5 +1,5 @@
 // Speed Mode: Optimizes via API calls (like deep mode) but skips testing responses
-import { getOutputTypeSystemPrompt, getOutputTypeGuidance, type OutputType } from './output-type-strategies.ts';
+import { getOutputTypeSystemPrompt, getOutputTypeGuidance, OUTPUT_TYPE_STRATEGIES, type OutputType } from './output-type-strategies.ts';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -630,7 +630,8 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
   
   // Critical rules: keep user's intent and only improve the prompt
   const outputStrategy = OUTPUT_TYPE_STRATEGIES[outputType as OutputType];
-  instruction += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategyConfig.name} strategy throughout your optimization.\n- Consider that this prompt is intended for ${outputType} output, so optimize for ${outputStrategy.description}.\n- DO NOT add format instructions to the prompt itself (like "return as JSON" or "format as a list").\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
+  const outputDesc = outputStrategy?.description || 'clear and well-structured responses';
+  instruction += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategyConfig.name} strategy throughout your optimization.\n- Consider that this prompt is intended for ${outputType} output, so optimize for ${outputDesc}.\n- DO NOT add format instructions to the prompt itself (like "return as JSON" or "format as a list").\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
   
   // UNIFORM influence instructions - exactly the same for ALL variants
   if (influence && influence.trim().length > 0 && influenceWeight > 0) {
