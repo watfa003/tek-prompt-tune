@@ -691,14 +691,34 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
 
     // Use the global session to start optimization
     try {
-      // Update progress for generating variants
+      // Simulate more granular progress updates
+      setTimeout(() => {
+        setOptimizationProgress({ step: 2, message: 'Analyzing prompt structure...', progress: 20 });
+      }, 300);
+      
       setTimeout(() => {
         if (optimizationMode === 'speed') {
-          setOptimizationProgress({ step: 2, message: 'Applying speed optimization patterns...', progress: 40 });
+          setOptimizationProgress({ step: 3, message: 'Applying speed optimization patterns...', progress: 50 });
         } else {
-          setOptimizationProgress({ step: 2, message: 'Generating optimized variants...', progress: 30 });
+          setOptimizationProgress({ step: 3, message: 'Generating optimized variant 1/3...', progress: 40 });
         }
-      }, 500);
+      }, 1000);
+      
+      setTimeout(() => {
+        if (optimizationMode === 'deep') {
+          setOptimizationProgress({ step: 4, message: 'Generating optimized variant 2/3...', progress: 60 });
+        }
+      }, 2000);
+      
+      setTimeout(() => {
+        if (optimizationMode === 'deep') {
+          setOptimizationProgress({ step: 5, message: 'Generating optimized variant 3/3...', progress: 80 });
+        }
+      }, 3000);
+      
+      setTimeout(() => {
+        setOptimizationProgress({ step: 6, message: 'Scoring and ranking variants...', progress: 90 });
+      }, 4000);
 
       await startOptimization({
         originalPrompt,
@@ -715,7 +735,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       });
 
       // Final progress update
-      setOptimizationProgress({ step: 4, message: 'Complete!', progress: 100 });
+      setOptimizationProgress({ step: 7, message: 'Complete!', progress: 100 });
       
       // Clear progress after a short delay
       setTimeout(() => {
@@ -938,10 +958,16 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         <Card className="p-6 shadow-card border-border/40 bg-card/50 backdrop-blur-sm" data-results-section>
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold flex items-center space-x-2">
-                <Award className="h-5 w-5 text-primary" />
-                <span>Optimization Results</span>
-              </h3>
+              <div className="flex items-center space-x-3">
+                <h3 className="text-xl font-bold flex items-center space-x-2">
+                  <Award className="h-5 w-5 text-primary" />
+                  <span>Optimization Results</span>
+                </h3>
+                <Badge variant="secondary" className="bg-gradient-to-r from-primary/20 to-purple-500/20 border-primary/30">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Single-Pass Precision Mode
+                </Badge>
+              </div>
               <div className="flex items-center space-x-4">
                 {!settings.autoSave && (
                   <Button
