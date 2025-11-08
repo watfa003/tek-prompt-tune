@@ -641,42 +641,51 @@ serve(async (req) => {
       const diagnoseResult = await handleSingleTest(request);
       
       // Store result in background (don't await)
-      supabase.from('prompt_lab_results').insert({
-        user_id: userId,
-        mode: 'single',
-        target_llm: request.target_llm,
-        prompt_a: request.prompt_a,
-        total_score_a: diagnoseResult.total_score,
-        category_breakdown_a: diagnoseResult.category_breakdown,
-        prompt_type_a: diagnoseResult.prompt_type,
-        ai_analysis: diagnoseResult.ai_analysis,
-        response_latency_ms: Date.now() - startTime,
-      }).catch(err => console.error('Background DB insert failed:', err));
+      Promise.resolve().then(async () => {
+        try {
+          await supabase.from('prompt_lab_results').insert({
+            user_id: userId,
+            mode: 'single',
+            target_llm: request.target_llm,
+            prompt_a: request.prompt_a,
+            total_score_a: diagnoseResult.total_score,
+            category_breakdown_a: diagnoseResult.category_breakdown,
+            ai_analysis: diagnoseResult.ai_analysis,
+            response_latency_ms: Date.now() - startTime,
+          });
+        } catch (err) {
+          console.error('Background DB insert failed:', err);
+        }
+      });
 
       result = diagnoseResult;
     } else if (request.mode === 'compare') {
       const battleResult = await handleCompareTest(request);
       
       // Store result in background (don't await)
-      supabase.from('prompt_lab_results').insert({
-        user_id: userId,
-        mode: 'compare',
-        target_llm: request.target_llm,
-        prompt_a: request.prompt_a,
-        prompt_b: request.prompt_b,
-        total_score_a: battleResult.prompt_a_score,
-        total_score_b: battleResult.prompt_b_score,
-        category_breakdown_a: battleResult.prompt_a_breakdown,
-        category_breakdown_b: battleResult.prompt_b_breakdown,
-        prompt_type_a: battleResult.prompt_a_type,
-        prompt_type_b: battleResult.prompt_b_type,
-        winner: battleResult.winner,
-        ai_analysis: { 
-          reasoning: battleResult.reasoning,
-          comparison: battleResult.comparison 
-        },
-        response_latency_ms: Date.now() - startTime,
-      }).catch(err => console.error('Background DB insert failed:', err));
+      Promise.resolve().then(async () => {
+        try {
+          await supabase.from('prompt_lab_results').insert({
+            user_id: userId,
+            mode: 'compare',
+            target_llm: request.target_llm,
+            prompt_a: request.prompt_a,
+            prompt_b: request.prompt_b,
+            total_score_a: battleResult.prompt_a_score,
+            total_score_b: battleResult.prompt_b_score,
+            category_breakdown_a: battleResult.prompt_a_breakdown,
+            category_breakdown_b: battleResult.prompt_b_breakdown,
+            winner: battleResult.winner,
+            ai_analysis: { 
+              reasoning: battleResult.reasoning,
+              comparison: battleResult.comparison 
+            },
+            response_latency_ms: Date.now() - startTime,
+          });
+        } catch (err) {
+          console.error('Background DB insert failed:', err);
+        }
+      });
 
       result = battleResult;
     } else if (request.mode === 'batch') {
@@ -716,19 +725,24 @@ serve(async (req) => {
       // Store all results in background as batch insert
       const successfulResults = batchResults.filter(r => r.success);
       if (successfulResults.length > 0) {
-        supabase.from('prompt_lab_results').insert(
-          successfulResults.map((r, idx) => ({
-            user_id: userId,
-            mode: 'single',
-            target_llm: request.target_llm,
-            prompt_a: request.prompts![idx].prompt,
-            total_score_a: r.result.total_score,
-            category_breakdown_a: r.result.category_breakdown,
-            prompt_type_a: r.result.prompt_type,
-            ai_analysis: r.result.ai_analysis,
-            response_latency_ms: Date.now() - startTime,
-          }))
-        ).catch(err => console.error('Background batch DB insert failed:', err));
+        Promise.resolve().then(async () => {
+          try {
+            await supabase.from('prompt_lab_results').insert(
+              successfulResults.map((r, idx) => ({
+                user_id: userId,
+                mode: 'single',
+                target_llm: request.target_llm,
+                prompt_a: request.prompts![idx].prompt,
+                total_score_a: r.result.total_score,
+                category_breakdown_a: r.result.category_breakdown,
+                ai_analysis: r.result.ai_analysis,
+                response_latency_ms: Date.now() - startTime,
+              }))
+            );
+          } catch (err) {
+            console.error('Background batch DB insert failed:', err);
+          }
+        });
       }
       
       result = batchResults;
