@@ -735,7 +735,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
     // Reset cancellation and set initial progress
     setIsCanceled(false);
-    setOptimizationProgress({ step: 1, message: 'Initializing optimization...', progress: 0 });
+    setOptimizationProgress({ step: 1, message: 'Creating variants...', progress: 0 });
 
     // Use the global session to start optimization
     try {
@@ -797,7 +797,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
 
       // Set to exactly 100% on completion
-      setOptimizationProgress({ step: 4, message: 'Complete!', progress: 100 });
+      setOptimizationProgress({ step: 3, message: 'Done!', progress: 100 });
       
       // Clear progress after a short delay
       setTimeout(() => {
@@ -931,7 +931,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span className="font-medium text-sm">
-                      Step {optimizationProgress.step}/4: {optimizationProgress.message}
+                      {optimizationProgress.message}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">

@@ -415,14 +415,13 @@ serve(async (req) => {
       }
     };
 
-    // Initialize progress
-    await updateProgress(0, 1, 'Initializing optimization...');
+    // Initialize progress - Step 1: Creating variants
+    await updateProgress(0, 1, 'Creating variants...');
     
     // Start prompt record creation
     const promptRecordPromise = createPromptRecord();
 
     // Load cached optimization insights instead of checking all history
-    await updateProgress(5, 1, 'Loading optimization insights...');
     const cachedInsights = await loadOptimizationInsights(supabase, userId, aiProvider, modelName);
     
     // Detect prompt type to determine optimization approach
@@ -450,8 +449,6 @@ serve(async (req) => {
     });
     
     console.log(`📋 Available strategies for ${promptType} prompt: [${allAvailableStrategies.join(', ')}]`);
-    
-    await updateProgress(10, 1, 'Selecting optimization strategies...');
     
     // Get ALL strategies sorted by performance for this specific LLM
     const allStrategiesSorted = selectBestStrategies(allAvailableStrategies, 0, cachedInsights, aiProvider, modelName);
@@ -486,9 +483,9 @@ serve(async (req) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
-        // Update progress for generating this variant
-        const progressPercent = 15 + Math.floor((index / selectedStrategies.length) * 30);
-        await updateProgress(progressPercent, 2, `Generating variant ${index + 1}/${selectedStrategies.length}...`);
+        // Update progress - still creating variants (10-40%)
+        const progressPercent = 10 + Math.floor((index / selectedStrategies.length) * 30);
+        await updateProgress(progressPercent, 1, 'Creating variants...');
         // Get model-friendly name for the target model
         const targetModelName = getModelFriendlyName(aiProvider, modelName);
         
@@ -632,6 +629,10 @@ ${optimizedPrompt}`;
         let actualScore = 0;
         
         if (!speedMode) {
+          // Update to testing phase (40-90%)
+          const testProgressPercent = 40 + Math.floor((index / selectedStrategies.length) * 50);
+          await updateProgress(testProgressPercent, 2, 'Testing variants...');
+          
           try {
             console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
             // Use 1024 tokens for testing when no limit is set (faster responses), otherwise respect user's limit
@@ -740,8 +741,8 @@ ${optimizedPrompt}`;
       promptRecord = { id: null };
     }
 
-    // Update progress for computing best variant
-    await updateProgress(85, 4, 'Computing best variant...');
+    // Update progress - finalizing (95%)
+    await updateProgress(95, 3, 'Done!');
     
     // Filter successful variants
     let optimizedVariants = variantResults
@@ -773,9 +774,6 @@ ${optimizedPrompt}`;
 
     const processingTime = Date.now() - startTime;
     
-    // Update progress to 95% before final updates
-    await updateProgress(95, 4, 'Finalizing results...');
-
     // Background task for database updates and optimization insights (don't block response)
     const backgroundUpdates = async () => {
       try {
@@ -863,7 +861,7 @@ ${optimizedPrompt}`;
     }
 
     // Update progress to 100% - completion
-    await updateProgress(100, 4, 'Complete!');
+    await updateProgress(100, 3, 'Done!');
     
     // Return immediate response with sessionKey for progress tracking
     const response = {
