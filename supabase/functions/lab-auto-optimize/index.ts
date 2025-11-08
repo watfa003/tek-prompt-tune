@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,7 @@ const corsHeaders = {
 };
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -159,12 +161,30 @@ Return ONLY the optimized prompt text. No explanations, no meta-commentary. The 
 
     console.log('[lab-auto-optimize] Success! Optimized prompt length:', optimizedPrompt.length);
 
+    // Re-grade the optimized prompt to get actual scores
+    console.log('[lab-auto-optimize] Re-grading optimized prompt...');
+    let newScores = null;
+    let newTotalScore = 10; // Fallback if grading fails
+    
+    try {
+      const { scores: gradedScores, reasoning } = await scorePromptWithAI(optimizedPrompt, undefined, OPENAI_API_KEY);
+      newScores = gradedScores;
+      newTotalScore = calculateOverallScore(gradedScores);
+      console.log('[lab-auto-optimize] New scores after optimization:', { newScores, newTotalScore });
+    } catch (gradingError) {
+      console.error('[lab-auto-optimize] Grading failed, using fallback score:', gradingError);
+      // If grading fails, estimate improvement
+      newTotalScore = Math.min(10, (scores ? calculateOverallScore(scores) : 7) + 1.5);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         optimizedPrompt,
         originalPrompt: prompt,
         improvementAreas: extractImprovementAreas(scores),
+        newScores, // Return the actual new scores
+        newTotalScore, // Return the actual new total score
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

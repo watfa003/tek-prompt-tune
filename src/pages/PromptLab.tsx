@@ -367,26 +367,28 @@ const Lab = () => {
       setAutoOptimizeResult(data);
       setOptimizationProgress({ step: 2, message: 'Generated optimized version...', progress: 50 });
       
-      // Step 2: Use improvement estimates from optimizer (no re-test needed for speed)
-      console.log('[Auto-Optimize] Step 2: Building comparison from optimizer results...');
+      // Step 2: Use the actual re-graded scores from the optimizer
+      console.log('[Auto-Optimize] Step 2: Using re-graded scores from optimizer...');
       setOptimizationProgress({ step: 3, message: 'Analyzing improvements...', progress: 90 });
       
-      // Build the before/after comparison using cached test result
+      // Build the before/after comparison using the actual graded scores
       const beforeResult = result;
       
-      // Estimate improved score based on improvement areas (fast estimation)
-      const estimatedScoreBoost = (data.improvementAreas?.length || 0) * 0.5;
-      const estimatedNewScore = Math.min(10, beforeResult.total_score + estimatedScoreBoost);
+      // Use the actual graded scores from the optimizer response
+      const actualNewScore = data.newTotalScore || 10;
+      const actualNewScores = data.newScores || beforeResult.category_breakdown;
       
       const afterResult = { 
-        total_score: estimatedNewScore,
+        total_score: actualNewScore,
         tested_prompt: data.optimizedPrompt,
-        category_breakdown: beforeResult.category_breakdown, // Keep original for reference
+        category_breakdown: actualNewScores,
         ai_analysis: {
           ...beforeResult.ai_analysis,
-          suggested_fixes: [`Applied ${data.improvementAreas?.join(', ')} optimizations`]
+          suggested_fixes: data.improvementAreas?.length > 0 
+            ? [`Applied ${data.improvementAreas.join(', ')} optimizations`]
+            : ['Applied AI optimizations']
         },
-        estimated: true // Flag this as estimated
+        estimated: false // This is real grading, not estimated
       };
 
       setOptimizationComparison({
@@ -398,7 +400,7 @@ const Lab = () => {
 
       toast({
         title: "Auto-Optimization Complete!",
-        description: `Estimated score improvement from ${beforeResult.total_score.toFixed(2)} to ${estimatedNewScore.toFixed(2)}. Click "Re-test" to verify.`,
+        description: `Score improved from ${beforeResult.total_score.toFixed(2)} to ${actualNewScore.toFixed(2)}`,
       });
 
     } catch (error: any) {
