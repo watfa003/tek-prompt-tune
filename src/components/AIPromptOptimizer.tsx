@@ -567,6 +567,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   const [userRating, setUserRating] = useState<number | null>(null);
   const [optimizationProgress, setOptimizationProgress] = useState<{ step: number; message: string; progress: number } | null>(null);
   const progressIntervalRef = React.useRef<number | null>(null);
+  const localStartTimeRef = React.useRef<number | null>(null);
   const currentSessionKeyRef = React.useRef<string | null>(null);
   const [isCanceled, setIsCanceled] = useState(false);
 
@@ -735,6 +736,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
     // Reset cancellation and set initial progress
     setIsCanceled(false);
+    setIsOptimizing(true);
     setOptimizationProgress({ step: 1, message: 'Creating variants...', progress: 0 });
 
     // Use the global session to start optimization
@@ -743,6 +745,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       const { data: { user } } = await supabase.auth.getUser();
       const sessionKey = `${user?.id}_${Date.now()}`;
       currentSessionKeyRef.current = sessionKey;
+      localStartTimeRef.current = Date.now();
       
       // Set up database polling for real-time progress tracking
       if (progressIntervalRef.current) {
@@ -771,6 +774,28 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
               clearInterval(progressIntervalRef.current);
               progressIntervalRef.current = null;
             }
+          } else if (localStartTimeRef.current) {
+            // Fallback UI progress if DB progress isn't available
+            const elapsed = Date.now() - localStartTimeRef.current;
+            let step = 1;
+            let message = 'Creating variants...';
+            let progress = 0;
+
+            if (elapsed < 10000) {
+              // 0-10s -> 0-40%
+              progress = Math.min(40, Math.floor((elapsed / 10000) * 40));
+            } else if (elapsed < 30000) {
+              // 10-30s -> 40-90%
+              step = 2;
+              message = 'Testing variants...';
+              progress = 40 + Math.min(50, Math.floor(((elapsed - 10000) / 20000) * 50));
+            } else {
+              // >30s -> hold at 95% until completion
+              step = 3;
+              message = 'Finalizing...';
+              progress = 95;
+            }
+            setOptimizationProgress({ step, message, progress });
           }
         } catch (error) {
           // Silently handle errors during polling
