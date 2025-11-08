@@ -25,12 +25,12 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
 
 export async function handleSpeedMode(
   supabase: any,
-  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7, influence = '', influenceWeight = 0, autoSave = true, sessionKey: clientSessionKey }: any
+  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7, influence = '', influenceWeight = 0, autoSave = true, sessionKey = null }: any
 ) {
   console.log('🚀 Running Speed Mode optimization...');
   console.log(`📋 Config: provider=${aiProvider}, model=${modelName}, variants=${requestedVariants}, maxTokens=${maxTokens}`);
-  // Generate session key for progress tracking
-  const sessionKey = clientSessionKey || `${userId}_${Date.now()}`;
+  // Generate session key for progress tracking (use provided or create new)
+  const progressSessionKey = sessionKey || `${userId}_${Date.now()}`;
   
   // Helper function to update progress in database
   const updateProgress = async (progress: number, step: number, message: string) => {
@@ -39,7 +39,7 @@ export async function handleSpeedMode(
         .from('optimization_progress')
         .upsert({
           user_id: userId,
-          session_key: sessionKey,
+          session_key: progressSessionKey,
           progress,
           step,
           message,
@@ -153,7 +153,7 @@ export async function handleSpeedMode(
       mode: 'speed',
       processingTimeMs: processingTime,
       speedResultId: speedResultId,
-      sessionKey, // Include session key for progress tracking
+      sessionKey: progressSessionKey, // Include session key for progress tracking
       improvement: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
       summary: {
         improvementScore: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),

@@ -434,7 +434,7 @@ serve(async (req) => {
       templateDescription = '',
       templateCategory = 'custom',
       // Progress tracking
-      sessionKey: clientSessionKey = null
+      sessionKey = null
     } = await req.json();
 
     console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode, isTemplate, influenceWeight });
@@ -531,8 +531,8 @@ serve(async (req) => {
         .single();
     };
 
-    // Generate session key for progress tracking (use client-provided if available)
-    const sessionKey = clientSessionKey || `${userId}_${Date.now()}`;
+    // Generate session key for progress tracking (use provided or create new)
+    const progressSessionKey = sessionKey || `${userId}_${Date.now()}`;
     
     // Helper function to update progress in database
     const updateProgress = async (progress: number, step: number, message: string) => {
@@ -541,7 +541,7 @@ serve(async (req) => {
           .from('optimization_progress')
           .upsert({
             user_id: userId,
-            session_key: sessionKey,
+            session_key: progressSessionKey,
             progress,
             step,
             message,
@@ -993,7 +993,7 @@ ${optimizedPrompt}`;
       bestScore: bestVariant.score,
       variants: optimizedVariants,
       templateSaved: saveAsTemplate && templateTitle,
-      sessionKey, // Include session key for progress tracking
+      sessionKey: progressSessionKey, // Include session key for progress tracking
       summary: {
         improvementScore: Math.round(bestVariant.score * 100), // Convert 0.93 to 93
         bestStrategy: bestVariant.strategy,
