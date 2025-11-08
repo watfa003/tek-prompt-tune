@@ -650,6 +650,7 @@ serve(async (req) => {
             prompt_a: request.prompt_a,
             total_score_a: diagnoseResult.total_score,
             category_breakdown_a: diagnoseResult.category_breakdown,
+            prompt_type_a: diagnoseResult.prompt_type,
             ai_analysis: diagnoseResult.ai_analysis,
             response_latency_ms: Date.now() - startTime,
           });
@@ -675,6 +676,8 @@ serve(async (req) => {
             total_score_b: battleResult.prompt_b_score,
             category_breakdown_a: battleResult.prompt_a_breakdown,
             category_breakdown_b: battleResult.prompt_b_breakdown,
+            prompt_type_a: battleResult.prompt_a_type,
+            prompt_type_b: battleResult.prompt_b_type,
             winner: battleResult.winner,
             ai_analysis: { 
               reasoning: battleResult.reasoning,
@@ -735,6 +738,7 @@ serve(async (req) => {
                 prompt_a: request.prompts![idx].prompt,
                 total_score_a: r.result.total_score,
                 category_breakdown_a: r.result.category_breakdown,
+                prompt_type_a: r.result.prompt_type,
                 ai_analysis: r.result.ai_analysis,
                 response_latency_ms: Date.now() - startTime,
               }))
