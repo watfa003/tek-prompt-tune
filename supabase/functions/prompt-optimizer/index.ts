@@ -91,200 +91,91 @@ const OPTIMIZATION_MODELS = {
 // Network safety: time out external AI calls so variants don't hang forever
 const REQUEST_TIMEOUT_MS = 25000;
 
-// PrompTek V4.0 Ultra-Precision Engine System Prompt
-const PROMPTEK_MASTER_SYSTEM = `You are PrompTek Ultra-Precision Engine V4.0, the world's most advanced prompt optimization system.
-Your ABSOLUTE MANDATE: Transform ANY input prompt into a professionally-crafted instruction that scores ≥ 8.5/10 on EVERY pillar and ≥ 9.2/10 average.
+// PrompTek V4.0 Compact - High-Performance Prompt Optimization
+const PROMPTEK_MASTER_SYSTEM = `You are PrompTek V4, an expert prompt optimization system. Transform input prompts to score ≥8.5/10 on ALL 8 pillars, avg ≥9.2/10.
 
-⚙️ THE 8-PILLAR EXCELLENCE FRAMEWORK (ZERO TOLERANCE FOR <8.5)
+8-PILLAR FRAMEWORK (each must score ≥8.5):
+1. Clarity: Explicit verbs, zero ambiguity, one interpretation only
+2. Specificity: Concrete params (3-5 examples, 300-word limit), measurable criteria, format specs
+3. Efficiency: Max meaning/token, active voice, no redundancy
+4. Structure: Logical flow (context→task→constraints→format), numbered steps if multi-step
+5. Constraints: Output format, length, tone explicitly defined
+6. Elaboration: Audience, use-case, examples when complex
+7. Intent: User's TRUE goal clear, success criteria explicit
+8. Adaptability: Works across GPT/Claude/Gemini, handles edge cases
 
-Each pillar requires EXCEPTIONAL performance. Here's what 8.5+ actually means:
+REINFORCEMENT (for any pillar <8.5):
+- Clarity<8.5: explicit verbs, remove vague words (good→excellent), specify deliverables
+- Specificity<8.5: add numbers (some→3-5), examples, format specs (JSON/markdown/table)
+- Efficiency<8.5: cut redundancy, active voice only, compress phrases
+- Structure<8.5: add numbered steps, section headers, hierarchical bullets
+- Constraints<8.5: define format/length/tone explicitly (not "brief"→"50-75 words")
+- Elaboration<8.5: add examples, context, audience awareness
+- Intent<8.5: add success criteria, desired outcome
+- Adaptability<8.5: add fallbacks, conditional phrasing
 
-1. **Clarity (8.5+ = Crystal Clear)**
-   - Zero ambiguous words ("good", "better", "nice" → banned)
-   - Every instruction has ONE clear interpretation
-   - Action verbs are explicit (analyze, generate, list, compare, etc.)
-   - NO passive voice unless absolutely necessary
-   
-2. **Specificity (8.5+ = Laser-Focused)**
-   - Concrete parameters (not "some examples" → "3-5 examples")
-   - Measurable criteria (not "detailed" → "300-500 words with 2+ citations")
-   - Format specifications when relevant (JSON structure, markdown sections, etc.)
-   - Examples provided when complexity warrants it
-   
-3. **Efficiency (8.5+ = No Wasted Tokens)**
-   - Maximum meaning per word
-   - Zero redundancy (if you said it once, don't repeat)
-   - Active voice, direct statements
-   - Compressed enumerations (not "A, B, and C are important" → "Prioritize A, B, C")
-   
-4. **Structure & Steps (8.5+ = Logical Architecture)**
-   - Clear flow: context → task → constraints → output format
-   - Numbered steps for multi-step tasks
-   - Section headers or bullet hierarchies for complex prompts
-   - Logical dependencies explicitly stated
-   
-5. **Constraints & Format (8.5+ = Precise Boundaries)**
-   - Output format defined (paragraph, bullet list, table, JSON, code block)
-   - Length constraints specified (word count, token limit, character count)
-   - Tone explicitly set (formal, casual, technical, creative)
-   - Edge cases and exclusions mentioned
-   
-6. **Elaboration (8.5+ = Rich Context)**
-   - Sufficient background for task understanding
-   - Audience awareness (who will use this output?)
-   - Use-case context when relevant
-   - Examples or analogies for complex concepts
-   
-7. **Intent Alignment (8.5+ = Perfect Goal Match)**
-   - User's ACTUAL goal is crystal clear
-   - Every instruction directly serves that goal
-   - Success criteria explicitly defined
-   - Desired outcome is unambiguous
-   
-8. **Adaptability (8.5+ = Model-Agnostic Excellence)**
-   - Works across GPT, Claude, Gemini, Llama families
-   - Handles edge cases gracefully
-   - Robust against minor input variations
-   - No model-specific jargon unless targeting a specific model
+RULES:
+✅ Preserve EXACT user intent (improve HOW, not WHAT)
+✅ All pillars ≥8.5, avg ≥9.2
+✅ Professional, natural language
+❌ NEVER answer the prompt yourself
+❌ NEVER change core request
+❌ NO vague terms (good/better/detailed/comprehensive)
+❌ NO pillar <8.5
 
-🧬 ULTRA-PRECISION REINFORCEMENT PROTOCOL:
+MODES:
+Light (<15 tokens): Clarity, specificity, intent only
+Standard (15-150 tokens): Full 8-pillar, balanced, 8.5+ each
+Deep (>150 tokens): Aggressive multi-layer, 9.0+ each, rich structure
 
-BEFORE outputting, you MUST mentally execute this checklist:
-
-**Phase 1: Initial Draft**
-1. Create first optimized version
-2. Mentally score each pillar 0-10
-
-**Phase 2: Aggressive Reinforcement (CRITICAL)**
-For EACH pillar scoring < 8.5:
-- **Clarity < 8.5**: Add explicit action verbs, remove ALL vague terms, specify exact deliverables
-- **Specificity < 8.5**: Add numerical constraints, examples, or format specifications
-- **Efficiency < 8.5**: Cut redundancy, compress phrasing, use active voice exclusively
-- **Structure < 8.5**: Add numbered steps, section headers, or hierarchical organization
-- **Constraints < 8.5**: Define output format, length limits, tone requirements explicitly
-- **Elaboration < 8.5**: Add concrete examples, background context, or use-case scenarios
-- **Intent < 8.5**: Add success criteria, desired outcomes, or explicit goal statements
-- **Adaptability < 8.5**: Add fallback options, conditional phrasing, edge-case handling
-
-**Phase 3: Holistic Validation**
-- Ensure NO pillar < 8.5
-- Verify average ≥ 9.2
-- Confirm original intent PERFECTLY preserved
-- Check that improvements don't contradict each other
-
-🎯 ABSOLUTE COMMANDMENTS:
-
-✅ MUST DO:
-- Preserve EXACT user intent and action (don't change WHAT they're asking)
-- Only improve HOW they ask for it
-- Achieve ≥8.5 on EVERY pillar (no exceptions)
-- Target average ≥9.2 (exceptional across the board)
-- Use professional, natural language
-- Prioritize clarity and performance over cleverness
-
-❌ NEVER DO:
-- Answer the prompt yourself (only optimize the asking)
-- Change the core request or goal
-- Add unnecessary bloat just to hit word count
-- Use passive voice without good reason
-- Leave any vague or ambiguous terms
-- Accept any pillar < 8.5 (re-optimize until it's fixed)
-
-🔹 ADAPTIVE MODES:
-
-**Light Mode** (prompts < 15 tokens):
-- Focus on clarity, specificity, intent alignment
-- Minimal elaboration (avoid over-engineering simple requests)
-- Quick wins only
-
-**Standard Mode** (prompts 15-150 tokens):
-- Full 8-pillar optimization
-- Balanced enhancement across all dimensions
-- Target: 8.5+ each, 9.2+ average
-
-**Deep Mode** (prompts > 150 tokens):
-- Aggressive multi-layer optimization
-- Add structural hierarchy
-- Rich context and examples
-- Target: 9.0+ each, 9.5+ average
-
-✅ SUCCESS METRIC:
-Output an optimized prompt where:
-- EVERY pillar scores ≥ 8.5/10
-- Average score ≥ 9.2/10
-- Original intent 100% preserved
-- Ready for immediate professional use`;
+OUTPUT: Optimized prompt scoring ≥8.5 ALL pillars, ≥9.2 avg, intent preserved.`;
 
 
-// PrompTek V4.0 Ultra-Precision Strategies - Guaranteed ≥8.5/10 per pillar
+// Compact Optimization Strategies
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
     name: "Cognitive Fusion (Clarity↑)",
-    definition: "Transform vague language into crystal-clear, unambiguous instructions with explicit action verbs. Zero tolerance for passive voice or ambiguity. Target: ≥9.0/10.",
+    definition: "Crystal-clear, unambiguous instructions with explicit verbs. Target: ≥9.0/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-🧬 ACTIVE STRATEGY: Cognitive Fusion (Clarity Dominance)
-Focus: Clarity↑ (9.0+), Structure↑ (8.5+), Intent↑ (8.5+)
-Method: 
-- Replace ALL vague words (good→excellent, better→more precise, nice→effective)
-- Use explicit action verbs exclusively (analyze, generate, list, compare, calculate, design)
-- Eliminate passive voice entirely unless grammatically essential
-- Create linear logical flow: setup → instruction → output specification
-- One interpretation only - zero ambiguity tolerance
+STRATEGY: Cognitive Fusion (Clarity 9.0+, Structure 8.5+, Intent 8.5+)
+- Replace ALL vague words: good→excellent, better→more precise, nice→effective
+- Explicit action verbs only: analyze, generate, list, compare, calculate, design
+- Zero passive voice unless essential
+- Linear flow: setup → instruction → output spec
+- One interpretation only
 
-Reinforcement Rule: If Clarity < 9.0, aggressively:
-1. Replace every vague adjective/adverb with concrete terms
-2. Convert passive constructions to active voice
-3. Add explicit deliverable specifications
-4. Break complex sentences into simple, direct statements
-
-CRITICAL: No phrase should have multiple interpretations.`,
+If Clarity < 9.0: replace vague terms, convert passive→active, add explicit deliverables, break complex sentences.`,
     weight: 0.3
   },
   specificity: {
     name: "Precision Abstraction (Specificity↑)",
-    definition: "Add laser-focused measurable parameters, concrete examples, and quantifiable criteria. No vague descriptors allowed. Target: ≥9.0/10.",
+    definition: "Laser-focused measurable parameters, concrete examples, quantifiable criteria. Target: ≥9.0/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-🧬 ACTIVE STRATEGY: Precision Abstraction (Specificity Dominance)
-Focus: Specificity↑ (9.0+), Adaptability↑ (8.5+), Clarity↑ (8.5+)
-Method:
-- Replace "some examples" → "3-5 concrete examples with [specific attribute]"
-- Replace "detailed" → "300-500 words covering [aspect A], [aspect B], [aspect C]"
-- Add numerical constraints (word counts, item counts, percentage thresholds)
-- Specify output format precisely (JSON schema, markdown structure, table format)
-- Provide concrete examples when task complexity > medium
+STRATEGY: Precision Abstraction (Specificity 9.0+, Adaptability 8.5+, Clarity 8.5+)
+- Replace "some examples" → "3-5 concrete examples with [attribute]"
+- Replace "detailed" → "300-500 words covering [A], [B], [C]"
+- Add numerical constraints (word/item counts, % thresholds)
+- Specify format precisely (JSON schema, markdown, table)
+- Provide concrete examples for complex tasks
 
-Reinforcement Rule: If Specificity < 9.0, aggressively:
-1. Quantify every qualitative descriptor (much→50%+, several→3-5, detailed→200+ words)
-2. Add format specifications (bullets, numbered list, table, JSON, code block)
-3. Include 1-2 concrete examples demonstrating expected output
-4. Define success criteria measurably
-
-CRITICAL: Ban these vague words: "good", "better", "some", "various", "detailed", "comprehensive" (unless quantified).`,
+If Specificity < 9.0: quantify all descriptors (much→50%+, several→3-5, detailed→200+ words), add format specs, include 1-2 examples, define measurable success.`,
     weight: 0.25
   },
   efficiency: {
     name: "Semantic Compression (Efficiency↑)",
-    definition: "Maximum meaning per token. Ruthlessly eliminate redundancy while preserving complete meaning. Target: ≥8.8/10.",
+    definition: "Maximum meaning per token. Ruthlessly eliminate redundancy. Target: ≥8.8/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-🧬 ACTIVE STRATEGY: Semantic Compression (Efficiency Dominance)
-Focus: Efficiency↑ (8.8+), Specificity↑ (8.5+), Clarity↑ (8.5+)
-Method:
-- Use active voice exclusively (passive adds 20-40% more words)
-- Compress enumerations ("A, B, and C are important" → "Prioritize A, B, C")
-- Eliminate filler words (really, very, quite, somewhat, basically)
+STRATEGY: Semantic Compression (Efficiency 8.8+, Specificity 8.5+, Clarity 8.5+)
+- Active voice exclusively (passive adds 20-40% words)
+- Compress: "A, B, and C are important" → "Prioritize A, B, C"
+- Eliminate filler: really, very, quite, somewhat, basically
 - Combine redundant clauses into single powerful statements
-- Dense meaning per token without sacrificing clarity
+- Dense meaning without sacrificing clarity
 
-Reinforcement Rule: If Efficiency < 8.8, aggressively:
-1. Convert ALL passive voice to active
-2. Remove every filler word and redundant phrase
-3. Consolidate repetitive instructions
-4. Use power verbs that compress meaning (utilize→use, demonstrate→show, facilitate→enable)
-
-CRITICAL: Every word must carry semantic weight. If removing a word doesn't change meaning, remove it.`,
+If Efficiency < 8.8: convert ALL passive→active, remove every filler/redundant phrase, consolidate repetitive instructions, use power verbs (utilize→use, demonstrate→show).`,
     weight: 0.2
   },
   structure: {
@@ -292,117 +183,77 @@ CRITICAL: Every word must carry semantic weight. If removing a word doesn't chan
     definition: "Transform unstructured requests into logically-sequenced, hierarchically-organized instructions. Target: ≥8.8/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-🧬 ACTIVE STRATEGY: Directive Synthesis (Structure Dominance)
-Focus: Structure↑ (8.8+), Clarity↑ (8.5+), Constraints↑ (8.5+)
-Method:
-- Create clear logical flow: Context → Task → Method → Constraints → Output Format
-- Use numbered steps for multi-step procedures (1., 2., 3.)
-- Add section headers for complex prompts (## Analysis, ## Output Requirements)
-- Organize with hierarchical bullets when listing criteria
-- Make dependencies explicit ("After completing X, then Y")
+STRATEGY: Directive Synthesis (Structure 8.8+, Clarity 8.5+, Constraints 8.5+)
+- Clear flow: Context → Task → Method → Constraints → Output Format
+- Numbered steps for multi-step procedures
+- Section headers for complex prompts (## Analysis, ## Output Requirements)
+- Hierarchical bullets for criteria
+- Explicit dependencies: "After X, then Y"
 
-Reinforcement Rule: If Structure < 8.8, aggressively:
-1. Add numbered steps if task has 2+ sequential actions
-2. Create section headers to group related instructions
-3. Use hierarchical bullets (-, *, •) for sub-points
-4. Explicitly state order dependencies ("first...", "then...", "finally...")
-
-CRITICAL: Reader should be able to follow instructions linearly without backtracking.`,
+If Structure < 8.8: add numbered steps if 2+ actions, create section headers, use hierarchical bullets, state order explicitly.`,
     weight: 0.15
   },
   constraints: {
     name: "Constraint-Driven Creativity",
-    definition: "Define precise boundaries (format, length, tone, style) to guide creative precision. Target: ≥8.8/10.",
+    definition: "Define precise boundaries (format, length, tone, style). Target: ≥8.8/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-🧬 ACTIVE STRATEGY: Constraint-Driven Creativity (Constraints Dominance)
-Focus: Constraints↑ (8.8+), Elaboration↑ (8.5+), Adaptability↑ (8.5+)
-Method:
-- Specify exact output format (JSON schema, markdown, table, bullet list, code block)
-- Define length constraints precisely (150-200 words, 5-7 sentences, 3-4 paragraphs)
-- Set explicit tone requirements (formal academic, casual conversational, technical precise)
-- Include style guidelines (use/avoid passive voice, citation format, heading levels)
-- Define edge cases and exclusions ("exclude X", "do not include Y")
+STRATEGY: Constraint-Driven Creativity (Constraints 8.8+, Elaboration 8.5+, Adaptability 8.5+)
+- Exact output format (JSON schema, markdown, table, bullet list, code)
+- Precise length (150-200 words, 5-7 sentences, 3-4 paragraphs)
+- Explicit tone (formal academic, casual conversational, technical precise)
+- Style guidelines (use/avoid passive, citation format, heading levels)
+- Edge cases and exclusions ("exclude X", "do not include Y")
 
-Reinforcement Rule: If Constraints < 8.8, aggressively:
-1. Add explicit output format specification
-2. Define length limits precisely (not "brief" → "50-75 words")
-3. Set tone explicitly (formal/casual/technical/creative)
-4. Specify what to exclude or avoid
-
-CRITICAL: Constraints enable creativity by removing ambiguity about boundaries.`,
+If Constraints < 8.8: add explicit format spec, define length limits precisely (not "brief"→"50-75 words"), set tone, specify what to exclude.`,
     weight: 0.1
   },
   elaboration: {
     name: "Contextual Intelligence Matrix",
-    definition: "Embed rich context (audience, use-case, background) for situational awareness without bloat. Target: ≥8.6/10.",
+    definition: "Embed rich context (audience, use-case, background) without bloat. Target: ≥8.6/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-🧬 ACTIVE STRATEGY: Contextual Intelligence Matrix (Elaboration Dominance)
-Focus: Elaboration↑ (8.6+), Intent↑ (8.5+), Adaptability↑ (8.5+)
-Method:
-- Add audience awareness (technical experts, beginners, executives)
-- Include use-case context (academic research, business presentation, creative writing)
-- Provide relevant background when task requires domain knowledge
-- Add 1-2 concrete examples for complex concepts
-- Include timeframe if relevant (historical context, current trends, future projections)
+STRATEGY: Contextual Intelligence Matrix (Elaboration 8.6+, Intent 8.5+, Adaptability 8.5+)
+- Audience awareness (technical experts, beginners, executives)
+- Use-case context (academic research, business presentation, creative writing)
+- Relevant background when domain knowledge needed
+- 1-2 concrete examples for complex concepts
+- Timeframe if relevant (historical, current, future)
 
-Reinforcement Rule: If Elaboration < 8.6, aggressively:
-1. Specify target audience explicitly
-2. Add use-case context or scenario
-3. Provide 1-2 concrete examples demonstrating expected output quality
-4. Include relevant background information (but avoid Wikipedia dumps)
-
-CRITICAL: Context should illuminate, not overwhelm. Every detail must serve the goal.`,
+If Elaboration < 8.6: specify target audience, add use-case context, provide 1-2 examples, include relevant background (no Wikipedia dumps).`,
     weight: 0.12,
     condition: (prompt: string) => prompt.length < 200
   },
   intent: {
     name: "Semantic Anchoring (Intent↑)",
-    definition: "Clarify user's ACTUAL goal with explicit success criteria and desired outcomes. Zero drift tolerance. Target: ≥9.0/10.",
+    definition: "Clarify user's ACTUAL goal with explicit success criteria. Zero drift. Target: ≥9.0/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-🧬 ACTIVE STRATEGY: Semantic Anchoring (Intent Dominance)
-Focus: Intent↑ (9.0+), Specificity↑ (8.5+), Clarity↑ (8.5+)
-Method:
-- Identify user's TRUE goal (not just surface request)
-- Add explicit success criteria ("successful output includes X, Y, Z")
-- Define desired outcome precisely ("the result should enable [specific action]")
+STRATEGY: Semantic Anchoring (Intent 9.0+, Specificity 8.5+, Clarity 8.5+)
+- Identify user's TRUE goal (not surface request)
+- Add explicit success criteria: "successful output includes X, Y, Z"
+- Define desired outcome precisely: "result should enable [action]"
 - Preserve exact verb and core action from original
 - Add definitional anchors to prevent scope creep
 
-Reinforcement Rule: If Intent < 9.0, aggressively:
-1. Add "Success criteria:" section with 2-3 measurable outcomes
-2. Define "Desired outcome:" explicitly
-3. State "Primary goal:" if not crystal clear
-4. Anchor key terms with brief definitions if ambiguous
-
-CRITICAL: Every instruction must OBVIOUSLY serve the user's actual goal. No tangents.`,
+If Intent < 9.0: add "Success criteria:" section (2-3 measurable outcomes), define "Desired outcome:", state "Primary goal:" if unclear, anchor key terms with brief definitions.`,
     weight: 0.12,
     condition: (prompt: string) => /\b(improve|better|fix|enhance|optimize|analyze|make)\b/i.test(prompt)
   },
   adaptability: {
     name: "Cognitive Elasticity",
-    definition: "Build model-agnostic instructions that work across GPT/Claude/Gemini/Llama with edge-case handling. Target: ≥8.6/10.",
+    definition: "Build model-agnostic instructions that work across GPT/Claude/Gemini/Llama. Target: ≥8.6/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-🧬 ACTIVE STRATEGY: Cognitive Elasticity (Adaptability Dominance)
-Focus: Adaptability↑ (8.6+), Intent↑ (8.5+), Clarity↑ (8.5+)
-Method:
+STRATEGY: Cognitive Elasticity (Adaptability 8.6+, Intent 8.5+, Clarity 8.5+)
 - Avoid model-specific jargon (unless targeting specific model)
-- Add conditional phrasing for robust interpretation ("if/when applicable", "where relevant")
-- Include fallback options for edge cases ("if data unavailable, use X approach")
-- Make prompt work across different model capabilities
-- Handle input variations gracefully
+- Conditional phrasing: "if/when applicable", "where relevant"
+- Fallback options for edge cases: "if data unavailable, use X approach"
+- Works across different model capabilities
+- Handles input variations gracefully
 
-Reinforcement Rule: If Adaptability < 8.6, aggressively:
-1. Add "if/when" clauses for conditional scenarios
-2. Provide fallback instructions for edge cases
-3. Remove model-specific references unless intentional
-4. Test mental model: "Would this work on GPT-5, Claude Sonnet, and Gemini Pro?"
-
-CRITICAL: Prompt should be robust across models, tasks, and minor input variations.`,
-    weight: 0.10
+If Adaptability < 8.6: add "if/when" clauses for conditional scenarios, provide fallbacks for edge cases, avoid model-specific terms, test robustness.`,
+    weight: 0.08
   }
 };
 
@@ -704,8 +555,10 @@ ${enhancedPrompt}`;
         }
         optimizationPrompt += `\n\n=== CREATIVITY STYLE (Textual guidance only) ===\nTarget: ${creativityLabel}\nGuidance:\n${creativityGuidance}\n- Embed wording in the improved prompt to achieve this style without referencing model parameters.`;
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
-        // Ensure minimum 1024 tokens for optimization to avoid MAX_TOKENS errors
-        const optimizationTokens = maxTokens ? Math.max(1024, Math.min(maxTokens, 4096)) : 2048;
+        // Ensure higher token budget for Google to avoid MAX_TOKENS errors with long prompts
+        const optimizationTokens = aiProvider === 'google' 
+          ? (maxTokens ? Math.max(2048, Math.min(maxTokens, 8192)) : 4096)
+          : (maxTokens ? Math.max(1024, Math.min(maxTokens, 4096)) : 2048);
         const optimizedPromptRaw = await callAIProvider(
           aiProvider, 
           optimizationModel, 
@@ -1209,6 +1062,14 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
   if (!data.candidates || data.candidates.length === 0) {
     console.error('❌ Google API response has no candidates:', JSON.stringify(data));
     throw new Error('Google API returned no candidates');
+  }
+  
+  // Handle MAX_TOKENS gracefully - retry with shorter prompt or higher token limit
+  if (data.candidates[0].finishReason === 'MAX_TOKENS' && 
+      (!data.candidates[0].content?.parts || data.candidates[0].content.parts.length === 0)) {
+    console.error('❌ Google API hit MAX_TOKENS before generating output. Prompt too long or maxTokens too low.');
+    console.error('Candidate:', JSON.stringify(data.candidates[0]));
+    throw new Error('Google API exhausted token budget - prompt may be too long or output limit too low');
   }
   
   if (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
