@@ -566,6 +566,17 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
   const [optimizationProgress, setOptimizationProgress] = useState<{ step: number; message: string; progress: number } | null>(null);
+  const progressIntervalRef = React.useRef<number | null>(null);
+  const currentSessionKeyRef = React.useRef<string | null>(null);
+  const [isCanceled, setIsCanceled] = useState(false);
+
+  const getEstimatedTotalSeconds = React.useCallback(() => (optimizationMode === 'speed' ? 15 : 40), [optimizationMode]);
+  const etaSeconds = React.useMemo(() => {
+    if (!optimizationProgress) return null;
+    const total = getEstimatedTotalSeconds();
+    const pct = Math.max(0, Math.min(100, optimizationProgress.progress || 0));
+    return Math.max(0, Math.ceil(total * (1 - pct / 100)));
+  }, [optimizationProgress, getEstimatedTotalSeconds]);
 
   // Memoized handler to prevent slider jank
   const handleInfluenceWeightChange = React.useCallback((value: number[]) => {
@@ -668,6 +679,43 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       setTemperature([settings.defaultTemperature]);
     }
   }, [settings]);
+  // Cleanup progress poller on unmount
+  React.useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  const cancelOptimization = async () => {
+    setIsCanceled(true);
+    setIsOptimizing(false);
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setOptimizationProgress(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && currentSessionKeyRef.current) {
+        await supabase
+          .from('optimization_progress')
+          .upsert({
+            user_id: user.id,
+            session_key: currentSessionKeyRef.current,
+            progress: 0,
+            step: 0,
+            message: 'Canceled by user',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'session_key,user_id' });
+      }
+    } catch (e) {
+      console.debug('Cancel upsert failed:', e);
+    }
+    toast({ title: 'Optimization canceled', description: 'You can start a new run anytime.' });
+  };
 
   const optimizePrompt = async () => {
     if (!originalPrompt.trim()) {
@@ -685,8 +733,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     } else {
       setSpeedResult(null); // Clear speed mode results
     }
-
-    // Set initial progress
+    // Reset cancellation and set initial progress
+    setIsCanceled(false);
     setOptimizationProgress({ step: 1, message: 'Initializing optimization...', progress: 0 });
 
     // Use the global session to start optimization
@@ -694,9 +742,13 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       // Generate a session key that matches backend format
       const { data: { user } } = await supabase.auth.getUser();
       const sessionKey = `${user?.id}_${Date.now()}`;
+      currentSessionKeyRef.current = sessionKey;
       
       // Set up database polling for real-time progress tracking
-      const progressPoller = setInterval(async () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      progressIntervalRef.current = window.setInterval(async () => {
         try {
           const { data: progressData } = await supabase
             .from('optimization_progress')
@@ -715,8 +767,9 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
             });
 
             // Stop polling when complete
-            if (progressData.progress >= 100) {
-              clearInterval(progressPoller);
+            if (progressData.progress >= 100 && progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
             }
           }
         } catch (error) {
@@ -741,7 +794,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       });
 
       // Clear the interval once optimization is complete
-      clearInterval(progressPoller);
+      if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
 
       // Set to exactly 100% on completion
       setOptimizationProgress({ step: 4, message: 'Complete!', progress: 100 });
@@ -881,9 +934,22 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                       Step {optimizationProgress.step}/4: {optimizationProgress.message}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {optimizationProgress.progress}%
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {etaSeconds !== null && (
+                      <span className="text-xs text-muted-foreground">ETA ~{etaSeconds}s</span>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {optimizationProgress.progress}%
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelOptimization}
+                      className="h-7 px-2"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
                 <Progress value={optimizationProgress.progress} className="h-2" />
               </div>
