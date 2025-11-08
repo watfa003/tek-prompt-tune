@@ -323,6 +323,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         influenceWeight: p.influenceWeight,
         mode: p.mode,
         autoSave: settings.autoSave,
+        speedMode: p.mode === 'speed', // Enable speed mode for speed optimization
         sessionKey: p.sessionKey,
       });
 

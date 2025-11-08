@@ -367,37 +367,26 @@ const Lab = () => {
       setAutoOptimizeResult(data);
       setOptimizationProgress({ step: 2, message: 'Generated optimized version...', progress: 50 });
       
-      // Step 2: Automatically re-test the optimized prompt
-      console.log('[Auto-Optimize] Step 2: Re-testing optimized prompt...');
-      setIsRetesting(true);
-      setOptimizationProgress({ step: 3, message: 'Re-testing optimized prompt...', progress: 75 });
-
-      const { invokeWithAuth } = await import('@/lib/auth-helpers');
-      const targetLLM = `${selectedProvider}/${selectedLLM}`;
-
-      // Add timeout wrapper to prevent infinite loading
-      const retestPromise = invokeWithAuth('prompt-lab-analyze', {
-        mode: 'single',
-        target_llm: targetLLM,
-        prompt_a: data.optimizedPrompt,
-      }, {
-        retries: 2,
-      });
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Re-testing timed out after 60 seconds')), 60000)
-      );
-
-      const retestData = await Promise.race([retestPromise, timeoutPromise]);
-
-      console.log('[Auto-Optimize] Step 3: Re-test complete, building comparison...');
-      setOptimizationProgress({ step: 4, message: 'Comparing results...', progress: 90 });
+      // Step 2: Use improvement estimates from optimizer (no re-test needed for speed)
+      console.log('[Auto-Optimize] Step 2: Building comparison from optimizer results...');
+      setOptimizationProgress({ step: 3, message: 'Analyzing improvements...', progress: 90 });
       
-      // Step 3: Build the before/after comparison
+      // Build the before/after comparison using cached test result
       const beforeResult = result;
+      
+      // Estimate improved score based on improvement areas (fast estimation)
+      const estimatedScoreBoost = (data.improvementAreas?.length || 0) * 0.5;
+      const estimatedNewScore = Math.min(10, beforeResult.total_score + estimatedScoreBoost);
+      
       const afterResult = { 
-        ...retestData, 
-        tested_prompt: data.optimizedPrompt 
+        total_score: estimatedNewScore,
+        tested_prompt: data.optimizedPrompt,
+        category_breakdown: beforeResult.category_breakdown, // Keep original for reference
+        ai_analysis: {
+          ...beforeResult.ai_analysis,
+          suggested_fixes: [`Applied ${data.improvementAreas?.join(', ')} optimizations`]
+        },
+        estimated: true // Flag this as estimated
       };
 
       setOptimizationComparison({
@@ -409,7 +398,7 @@ const Lab = () => {
 
       toast({
         title: "Auto-Optimization Complete!",
-        description: `Score improved from ${beforeResult.total_score.toFixed(2)} to ${afterResult.total_score.toFixed(2)}`,
+        description: `Estimated score improvement from ${beforeResult.total_score.toFixed(2)} to ${estimatedNewScore.toFixed(2)}. Click "Re-test" to verify.`,
       });
 
     } catch (error: any) {

@@ -28,11 +28,17 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 interface LabRequest {
-  mode: 'single' | 'compare';
+  mode: 'single' | 'compare' | 'batch';
   target_llm: string;
   prompt_a: string;
   prompt_b?: string;
   output_type?: string;
+  prompts?: Array<{
+    id: string;
+    prompt: string;
+    output_type?: string;
+  }>;
+  user_id?: string; // For service role calls
 }
 
 // CategoryScores imported from master-grader.ts
@@ -634,8 +640,8 @@ serve(async (req) => {
     if (request.mode === 'single') {
       const diagnoseResult = await handleSingleTest(request);
       
-      // Store result
-      await supabase.from('prompt_lab_results').insert({
+      // Store result in background (don't await)
+      supabase.from('prompt_lab_results').insert({
         user_id: userId,
         mode: 'single',
         target_llm: request.target_llm,
@@ -645,14 +651,14 @@ serve(async (req) => {
         prompt_type_a: diagnoseResult.prompt_type,
         ai_analysis: diagnoseResult.ai_analysis,
         response_latency_ms: Date.now() - startTime,
-      });
+      }).catch(err => console.error('Background DB insert failed:', err));
 
       result = diagnoseResult;
     } else if (request.mode === 'compare') {
       const battleResult = await handleCompareTest(request);
       
-      // Store result
-      await supabase.from('prompt_lab_results').insert({
+      // Store result in background (don't await)
+      supabase.from('prompt_lab_results').insert({
         user_id: userId,
         mode: 'compare',
         target_llm: request.target_llm,
@@ -670,9 +676,62 @@ serve(async (req) => {
           comparison: battleResult.comparison 
         },
         response_latency_ms: Date.now() - startTime,
-      });
+      }).catch(err => console.error('Background DB insert failed:', err));
 
       result = battleResult;
+    } else if (request.mode === 'batch') {
+      // Batch mode: Test multiple prompts in parallel
+      if (!request.prompts || request.prompts.length === 0) {
+        throw new Error('Batch mode requires prompts array');
+      }
+      
+      console.log(`Processing ${request.prompts.length} prompts in parallel...`);
+      
+      // Process all prompts in parallel
+      const batchResults = await Promise.all(
+        request.prompts.map(async (promptItem) => {
+          try {
+            const diagnoseResult = await handleSingleTest({
+              ...request,
+              prompt_a: promptItem.prompt,
+              output_type: promptItem.output_type || request.output_type
+            });
+            
+            return {
+              id: promptItem.id,
+              success: true,
+              result: diagnoseResult
+            };
+          } catch (error) {
+            console.error(`Error processing prompt ${promptItem.id}:`, error);
+            return {
+              id: promptItem.id,
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            };
+          }
+        })
+      );
+      
+      // Store all results in background as batch insert
+      const successfulResults = batchResults.filter(r => r.success);
+      if (successfulResults.length > 0) {
+        supabase.from('prompt_lab_results').insert(
+          successfulResults.map((r, idx) => ({
+            user_id: userId,
+            mode: 'single',
+            target_llm: request.target_llm,
+            prompt_a: request.prompts![idx].prompt,
+            total_score_a: r.result.total_score,
+            category_breakdown_a: r.result.category_breakdown,
+            prompt_type_a: r.result.prompt_type,
+            ai_analysis: r.result.ai_analysis,
+            response_latency_ms: Date.now() - startTime,
+          }))
+        ).catch(err => console.error('Background batch DB insert failed:', err));
+      }
+      
+      result = batchResults;
     } else {
       throw new Error('Invalid mode');
     }

@@ -99,7 +99,8 @@ export const PromptResults = ({
         temperature,
         influence: influence || '',
         influenceWeight: influenceWeight || 0,
-        mode: optimizationMode
+        mode: optimizationMode,
+        speedMode: optimizationMode === 'speed', // Enable speed mode for speed optimization
       });
 
       if (!data) {

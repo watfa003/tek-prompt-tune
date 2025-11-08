@@ -132,6 +132,7 @@ export const TemplateOptimizer = () => {
           maxTokens,
           temperature,
           mode: 'deep',
+          speedMode: false, // Template optimization uses full testing
           isTemplate: true,
           templateId: selectedTemplate.id,
           saveAsTemplate,
