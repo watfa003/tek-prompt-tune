@@ -257,17 +257,27 @@ export function scorePromptStatic(prompt: string): StaticGradeResult {
   // 7. INTENT ALIGNMENT (0-10) - Static baseline only
   const intentAlignment = calculateIntentAlignment(prompt);
   
-  // 8. ADAPTABILITY (0-10)
-  const hasConditionals = (prompt.match(/\b(?:if|when|unless|in case|depending on|based on)\b/gi) || []).length;
-  const hasOptions = (prompt.match(/\b(?:or|alternatively|either|consider|might|could|prefer)\b/gi) || []).length;
-  const hasFlexibility = (prompt.match(/\b(?:consider|might|could|may|prefer|optionally)\b/gi) || []).length;
-  const hasEdgeCases = /\b(?:edge case|exception|special case|if not|otherwise)\b/i.test(prompt);
+  // 8. ADAPTABILITY (0-10) - Structural robustness for context swapping
+  // Not about being generic, but about having a structure that can absorb new contexts
+  // while maintaining clarity and strength
   
-  let adaptability = 5;
-  if (hasConditionals > 0) adaptability += 2;
-  if (hasOptions > 0) adaptability += 2;
-  if (hasFlexibility > 0) adaptability += 1;
-  if (hasEdgeCases) adaptability += 1;
+  // Structural markers: placeholders, variables, roles, sections
+  const hasPlaceholders = (prompt.match(/\b(?:\[.*?\]|\{.*?\}|<.*?>|X|Y|TOPIC|SUBJECT|CONTEXT)\b/gi) || []).length;
+  const hasVariables = (prompt.match(/\b(?:the topic|this subject|given context|provided information|specified)\b/gi) || []).length;
+  const hasRoles = (prompt.match(/\b(?:as a|you are a|acting as|role of|persona of)\b/gi) || []).length;
+  
+  // Logical separations that allow context swapping
+  const hasConditionalLogic = (prompt.match(/\b(?:if|when|based on|depending on|given)\b/gi) || []).length;
+  const hasClearSections = (prompt.match(/\n\s*[-*•]\s|1\.|2\.|3\.|:\n/g) || []).length >= 2;
+  const hasReusableStructure = /\b(?:for any|regardless of|independent of|applies to)\b/i.test(prompt);
+  
+  let adaptability = 3; // Lower base - most prompts are context-specific
+  if (hasPlaceholders > 0) adaptability += 2; // Strong signal of swappable context
+  if (hasVariables > 0) adaptability += 2;    // References abstract inputs
+  if (hasRoles > 0) adaptability += 1;        // Role-based can adapt contexts
+  if (hasConditionalLogic > 1) adaptability += 1; // Logic branches = flexibility
+  if (hasClearSections) adaptability += 1;    // Sections allow partial swapping
+  if (hasReusableStructure) adaptability += 1; // Explicitly designed for reuse
   
   const scores = {
     clarity: Math.max(0, Math.min(10, clarity)),
@@ -358,10 +368,13 @@ export function scorePromptTested(prompt: string, output: string): { scores: Cat
   // INTENT ALIGNMENT - Use real calculation
   scores.intent_alignment = calculateIntentAlignment(prompt, output);
   
-  // ADAPTABILITY - Check if output shows flexibility
-  const outputShowsOptions = (output.match(/\b(?:alternatively|option|choice|could also|might|consider)\b/gi) || []).length > 0;
-  if (outputShowsOptions) {
-    scores.adaptability = Math.min(10, scores.adaptability + 1);
+  // ADAPTABILITY - Validate structure maintained clarity with actual context
+  // If the prompt has structural markers (placeholders, variables), check if output is coherent
+  const hasStructuralMarkers = /\b(?:\[.*?\]|\{.*?\}|<.*?>|the topic|this subject|given context)\b/gi.test(prompt);
+  const outputMaintainsClarity = outputLength > 50 && !outputLower.includes('unclear') && !outputLower.includes('i need more');
+  
+  if (hasStructuralMarkers && outputMaintainsClarity) {
+    scores.adaptability = Math.min(10, scores.adaptability + 2); // Structure worked with actual context
   }
   
   

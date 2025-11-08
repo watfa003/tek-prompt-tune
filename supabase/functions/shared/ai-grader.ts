@@ -93,11 +93,16 @@ const GRADING_SYSTEM_PROMPT = `You are an expert prompt engineering evaluator. Y
    - 7-8: Clear expected output
    - 9-10: Perfect alignment between ask and expected result
 
-8. **Adaptability (0-10)** - Can this prompt work across different contexts/variations?
-   - 0-3: Hyper-specific, brittle to changes
-   - 4-6: Works in limited scenarios
-   - 7-8: Generalizable to similar cases
-   - 9-10: Robust template, works across variations
+8. **Adaptability (0-10)** - How well can the prompt's structure and logic absorb a new context while maintaining strength and clarity?
+   ⚠️ **NOT about being generic/vague - about structural robustness:**
+   - Look for: placeholders, variables, roles, clear sections, conditional logic
+   - "Write a poem about [TOPIC]" = HIGH adaptability (structure handles any topic)
+   - "Write a detailed analysis" = LOW adaptability (context-dependent, no structure for swapping)
+   
+   - 0-3: Hardcoded context, cannot swap without breaking logic
+   - 4-6: Some structural separation, but tightly coupled to one context
+   - 7-8: Clear structural markers (placeholders/variables) that allow context swapping
+   - 9-10: Template-grade structure with explicit placeholders and logic that works universally
 
 **OUTPUT FORMAT:**
 Return a valid JSON object with this exact structure:
