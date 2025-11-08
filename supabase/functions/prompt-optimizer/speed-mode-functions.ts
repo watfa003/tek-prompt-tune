@@ -30,6 +30,32 @@ export async function handleSpeedMode(
   console.log('🚀 Running Speed Mode optimization...');
   console.log(`📋 Config: provider=${aiProvider}, model=${modelName}, variants=${requestedVariants}, maxTokens=${maxTokens}`);
   
+  // Generate unique session key for progress tracking
+  const sessionKey = `${userId}_${Date.now()}`;
+  
+  // Helper function to update progress in database
+  const updateProgress = async (progress: number, step: number, message: string) => {
+    try {
+      await supabase
+        .from('optimization_progress')
+        .upsert({
+          user_id: userId,
+          session_key: sessionKey,
+          progress,
+          step,
+          message,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'session_key,user_id'
+        });
+    } catch (error) {
+      console.error('Progress update failed:', error);
+    }
+  };
+
+  // Initialize progress
+  await updateProgress(0, 1, 'Initializing speed optimization...');
+  
   // 20-second timeout for all operations (increased for slower models)
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => reject(new Error('Speed mode timeout: 20 seconds exceeded')), 20000);
@@ -65,12 +91,17 @@ export async function handleSpeedMode(
       temperature,
       influence,
       influenceWeight,
-      userId
+      userId,
+      updateProgress
     );
+    
+    await updateProgress(85, 4, 'Computing best variant...');
     
     const variants = await Promise.race([speedPromise, timeoutPromise]) as any[];
     const bestVariant = selectBestVariant(variants);
     const processingTime = Date.now() - startTime;
+
+    await updateProgress(95, 4, 'Finalizing results...');
 
     console.log(`✨ Speed optimization completed in ${processingTime}ms with ${variants.length} variants. Best variant score: ${bestVariant.score}`);
     console.log(`🎯 Best prompt preview: ${bestVariant.prompt.substring(0, 100)}...`);
@@ -102,6 +133,9 @@ export async function handleSpeedMode(
       }
     }
 
+    // Update progress to 100% - completion
+    await updateProgress(100, 4, 'Complete!');
+
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -120,6 +154,7 @@ export async function handleSpeedMode(
       mode: 'speed',
       processingTimeMs: processingTime,
       speedResultId: speedResultId,
+      sessionKey, // Include session key for progress tracking
       improvement: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
       summary: {
         improvementScore: calculateSpeedImprovement(originalPrompt, bestVariant.prompt),
@@ -196,7 +231,7 @@ export async function handleSpeedMode(
 }
 
 // Generate multiple variants using speed heuristics (same strategies as deep mode)
-async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number, influence: string = '', influenceWeight: number = 0, userId?: string): Promise<any[]> {
+async function generateSpeedVariants(originalPrompt: string, taskDescription: string, outputType: string, insights: any, requestedVariants: number = 3, aiProvider: string, modelName: string, maxTokens: number, temperature: number, influence: string = '', influenceWeight: number = 0, userId?: string, updateProgress?: (progress: number, step: number, message: string) => Promise<void>): Promise<any[]> {
   const variants = [];
   
   // Use the same strategy selection logic as deep mode - include all 8 strategies
@@ -244,6 +279,10 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   const optimizationModel = OPTIMIZATION_MODELS[aiProvider] || modelName;
   const tasks = selectedStrategies.map((strategy, i) => (async () => {
     const instruction = buildInstructionForStrategy(strategy, originalPrompt, taskDescription, outputType, insights, influence, influenceWeight, maxTokens);
+
+    // Update progress for this variant
+    const progressPercent = 10 + Math.floor((i / numVariants) * 70);
+    await updateProgress(progressPercent, 2, `Generating variant ${i + 1}/${numVariants}...`);
 
     let optimizedPrompt = '';
     try {

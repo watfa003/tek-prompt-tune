@@ -299,6 +299,39 @@ export type Database = {
         }
         Relationships: []
       }
+      optimization_progress: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          progress: number
+          session_key: string
+          step: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          progress?: number
+          session_key: string
+          step?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          progress?: number
+          session_key?: string
+          step?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           bio: string | null

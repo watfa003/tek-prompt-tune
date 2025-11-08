@@ -348,10 +348,37 @@ serve(async (req) => {
         .single();
     };
 
+    // Generate unique session key for progress tracking
+    const sessionKey = `${userId}_${Date.now()}`;
+    
+    // Helper function to update progress in database
+    const updateProgress = async (progress: number, step: number, message: string) => {
+      try {
+        await supabase
+          .from('optimization_progress')
+          .upsert({
+            user_id: userId,
+            session_key: sessionKey,
+            progress,
+            step,
+            message,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'session_key,user_id'
+          });
+      } catch (error) {
+        console.error('Progress update failed:', error);
+      }
+    };
+
+    // Initialize progress
+    await updateProgress(0, 1, 'Initializing optimization...');
+    
     // Start prompt record creation
     const promptRecordPromise = createPromptRecord();
 
     // Load cached optimization insights instead of checking all history
+    await updateProgress(5, 1, 'Loading optimization insights...');
     const cachedInsights = await loadOptimizationInsights(supabase, userId, aiProvider, modelName);
     
     // Detect prompt type to determine optimization approach
@@ -379,6 +406,8 @@ serve(async (req) => {
     });
     
     console.log(`📋 Available strategies for ${promptType} prompt: [${allAvailableStrategies.join(', ')}]`);
+    
+    await updateProgress(10, 1, 'Selecting optimization strategies...');
     
     // Get ALL strategies sorted by performance for this specific LLM
     const allStrategiesSorted = selectBestStrategies(allAvailableStrategies, 0, cachedInsights, aiProvider, modelName);
@@ -413,6 +442,9 @@ serve(async (req) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
+        // Update progress for generating this variant
+        const progressPercent = 15 + Math.floor((index / selectedStrategies.length) * 30);
+        await updateProgress(progressPercent, 2, `Generating variant ${index + 1}/${selectedStrategies.length}...`);
         // Get model-friendly name for the target model
         const targetModelName = getModelFriendlyName(aiProvider, modelName);
         
@@ -553,6 +585,10 @@ ${optimizedPrompt}`;
         let actualResponse = '';
         let actualScore = 0;
         
+        // Update progress for testing this variant
+        const testProgressPercent = 45 + Math.floor((index / selectedStrategies.length) * 40);
+        await updateProgress(testProgressPercent, 3, `Testing variant ${index + 1}/${selectedStrategies.length}...`);
+        
         try {
           console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
           // Use 1024 tokens for testing when no limit is set (faster responses), otherwise respect user's limit
@@ -655,6 +691,9 @@ ${optimizedPrompt}`;
       promptRecord = { id: null };
     }
 
+    // Update progress for computing best variant
+    await updateProgress(85, 4, 'Computing best variant...');
+    
     // Filter successful variants
     const optimizedVariants = variantResults
       .filter(result => result.status === 'fulfilled' && result.value)
@@ -670,6 +709,9 @@ ${optimizedPrompt}`;
     );
 
     const processingTime = Date.now() - startTime;
+    
+    // Update progress to 95% before final updates
+    await updateProgress(95, 4, 'Finalizing results...');
 
     // Background task for database updates and optimization insights (don't block response)
     const backgroundUpdates = async () => {
@@ -757,7 +799,10 @@ ${optimizedPrompt}`;
       }
     }
 
-    // Return immediate response
+    // Update progress to 100% - completion
+    await updateProgress(100, 4, 'Complete!');
+    
+    // Return immediate response with sessionKey for progress tracking
     const response = {
       promptId: autoSave && promptRecord?.id ? promptRecord.id : null,
       originalPrompt,
@@ -765,6 +810,7 @@ ${optimizedPrompt}`;
       bestScore: bestVariant.score,
       variants: optimizedVariants,
       templateSaved: saveAsTemplate && templateTitle,
+      sessionKey, // Include session key for progress tracking
       summary: {
         improvementScore: Math.round(bestVariant.score * 100), // Convert 0.93 to 93
         bestStrategy: bestVariant.strategy,

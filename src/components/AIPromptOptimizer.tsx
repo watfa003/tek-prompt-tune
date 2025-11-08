@@ -691,49 +691,39 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
 
     // Use the global session to start optimization
     try {
-      // Track progress based on actual time elapsed
-      const totalVariants = variants;
-      const expectedDuration = optimizationMode === 'speed' ? 15000 : 40000; // 15s for speed, 40s for deep
-      const startTime = Date.now();
+      // Generate a session key that matches backend format
+      const { data: { user } } = await supabase.auth.getUser();
+      const sessionKey = `${user?.id}_${Date.now()}`;
       
-      const progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const rawProgress = Math.min((elapsed / expectedDuration) * 100, 95);
-        
-        let step = 1;
-        let message = 'Initializing optimization...';
-        
-        // Update message based on progress
-        if (rawProgress < 10) {
-          step = 1;
-          message = 'Initializing optimization...';
-        } else if (rawProgress < 30) {
-          step = 2;
-          message = optimizationMode === 'speed' 
-            ? 'Applying cached optimization patterns...'
-            : `Generating variant 1/${totalVariants}...`;
-        } else if (rawProgress < 50) {
-          step = 2;
-          message = optimizationMode === 'speed'
-            ? 'Finalizing optimization...'
-            : `Generating variant 2/${totalVariants}...`;
-        } else if (rawProgress < 70) {
-          step = 3;
-          message = optimizationMode === 'speed'
-            ? 'Finalizing results...'
-            : `Testing variant 2/${totalVariants}...`;
-        } else if (rawProgress < 90) {
-          step = 3;
-          message = optimizationMode === 'speed'
-            ? 'Finalizing results...'
-            : `Testing variant 3/${totalVariants}...`;
-        } else {
-          step = 4;
-          message = 'Computing best variant...';
+      // Set up database polling for real-time progress tracking
+      const progressPoller = setInterval(async () => {
+        try {
+          const { data: progressData } = await supabase
+            .from('optimization_progress')
+            .select('*')
+            .eq('session_key', sessionKey)
+            .eq('user_id', user?.id)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (progressData) {
+            setOptimizationProgress({
+              step: progressData.step,
+              message: progressData.message,
+              progress: progressData.progress
+            });
+
+            // Stop polling when complete
+            if (progressData.progress >= 100) {
+              clearInterval(progressPoller);
+            }
+          }
+        } catch (error) {
+          // Silently handle errors during polling
+          console.debug('Progress polling error:', error);
         }
-        
-        setOptimizationProgress({ step, message, progress: Math.round(rawProgress) });
-      }, 200);
+      }, 500); // Poll every 500ms
 
       await startOptimization({
         originalPrompt,
@@ -750,7 +740,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       });
 
       // Clear the interval once optimization is complete
-      clearInterval(progressInterval);
+      clearInterval(progressPoller);
 
       // Set to exactly 100% on completion
       setOptimizationProgress({ step: 4, message: 'Complete!', progress: 100 });
