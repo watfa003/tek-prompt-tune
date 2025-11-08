@@ -631,9 +631,6 @@ ${optimizedPrompt}`;
         let actualResponse = '';
         let actualScore = 0;
         
-        // Speed mode: skip testing for 30% speedup
-        const speedMode = reqBody.speedMode === true;
-        
         if (!speedMode) {
           try {
             console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
