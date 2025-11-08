@@ -705,7 +705,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
             .eq('user_id', user?.id)
             .order('updated_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (progressData) {
             setOptimizationProgress({
@@ -737,6 +737,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         influence: selectedInfluence,
         influenceWeight: influenceWeight[0],
         mode: optimizationMode,
+        sessionKey,
       });
 
       // Clear the interval once optimization is complete

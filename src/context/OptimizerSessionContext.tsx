@@ -18,6 +18,7 @@ export interface OptimizerPayload {
   influence: string;
   influenceWeight: number;
   mode: OptimizationMode;
+  sessionKey?: string; // optional progress tracking key
 }
 
 export interface OptimizationResult {
@@ -322,6 +323,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         influenceWeight: p.influenceWeight,
         mode: p.mode,
         autoSave: settings.autoSave,
+        sessionKey: p.sessionKey,
       });
 
       if (p.mode === 'speed') {

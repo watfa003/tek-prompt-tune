@@ -25,13 +25,12 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
 
 export async function handleSpeedMode(
   supabase: any,
-  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7, influence = '', influenceWeight = 0, autoSave = true }: any
+  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7, influence = '', influenceWeight = 0, autoSave = true, sessionKey: clientSessionKey }: any
 ) {
   console.log('🚀 Running Speed Mode optimization...');
   console.log(`📋 Config: provider=${aiProvider}, model=${modelName}, variants=${requestedVariants}, maxTokens=${maxTokens}`);
-  
-  // Generate unique session key for progress tracking
-  const sessionKey = `${userId}_${Date.now()}`;
+  // Generate session key for progress tracking
+  const sessionKey = clientSessionKey || `${userId}_${Date.now()}`;
   
   // Helper function to update progress in database
   const updateProgress = async (progress: number, step: number, message: string) => {

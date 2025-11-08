@@ -252,7 +252,9 @@ serve(async (req) => {
       saveAsTemplate = false,
       templateTitle = '',
       templateDescription = '',
-      templateCategory = 'custom'
+      templateCategory = 'custom',
+      // Progress tracking
+      sessionKey: clientSessionKey = null
     } = await req.json();
 
     console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode, isTemplate, influenceWeight });
@@ -326,6 +328,7 @@ serve(async (req) => {
         influence,
         influenceWeight,
         autoSave,
+        sessionKey // pass through for progress tracking
       });
     }
 
@@ -348,8 +351,8 @@ serve(async (req) => {
         .single();
     };
 
-    // Generate unique session key for progress tracking
-    const sessionKey = `${userId}_${Date.now()}`;
+    // Generate session key for progress tracking (use client-provided if available)
+    const sessionKey = clientSessionKey || `${userId}_${Date.now()}`;
     
     // Helper function to update progress in database
     const updateProgress = async (progress: number, step: number, message: string) => {
