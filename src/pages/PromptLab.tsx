@@ -375,13 +375,20 @@ const Lab = () => {
       const { invokeWithAuth } = await import('@/lib/auth-helpers');
       const targetLLM = `${selectedProvider}/${selectedLLM}`;
 
-      const retestData = await invokeWithAuth('prompt-lab-analyze', {
+      // Add timeout wrapper to prevent infinite loading
+      const retestPromise = invokeWithAuth('prompt-lab-analyze', {
         mode: 'single',
         target_llm: targetLLM,
         prompt_a: data.optimizedPrompt,
       }, {
         retries: 2,
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Re-testing timed out after 60 seconds')), 60000)
+      );
+
+      const retestData = await Promise.race([retestPromise, timeoutPromise]);
 
       console.log('[Auto-Optimize] Step 3: Re-test complete, building comparison...');
       setOptimizationProgress({ step: 4, message: 'Comparing results...', progress: 90 });
