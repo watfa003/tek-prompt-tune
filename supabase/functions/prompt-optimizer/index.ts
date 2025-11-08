@@ -744,12 +744,26 @@ ${optimizedPrompt}`;
     await updateProgress(85, 4, 'Computing best variant...');
     
     // Filter successful variants
-    const optimizedVariants = variantResults
+    let optimizedVariants = variantResults
       .filter(result => result.status === 'fulfilled' && result.value)
       .map(result => (result as PromiseFulfilledResult<any>).value);
 
     if (optimizedVariants.length === 0) {
-      throw new Error('Failed to generate any optimized variants');
+      console.warn('No optimized variants generated; using baseline fallback');
+      optimizedVariants = [{
+        prompt: enhancedPrompt,
+        strategy: 'Baseline',
+        strategyKey: 'baseline',
+        score: 0.4,
+        response: 'Using original prompt as fallback due to optimization failure',
+        metrics: {
+          tokens_used: enhancedPrompt.length,
+          response_length: 0,
+          prompt_length: originalPrompt.length,
+          strategy_weight: 0,
+          tested_with_target_model: false
+        }
+      }];
     }
 
     // Find best variant
