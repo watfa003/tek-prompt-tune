@@ -687,49 +687,53 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
 
     // Set initial progress
-    setOptimizationProgress({ step: 1, message: 'Initializing optimization...', progress: 5 });
+    setOptimizationProgress({ step: 1, message: 'Initializing optimization...', progress: 0 });
 
     // Use the global session to start optimization
     try {
-      // Simulate progressive updates based on expected time
+      // Track progress based on actual time elapsed
       const totalVariants = variants;
+      const expectedDuration = optimizationMode === 'speed' ? 15000 : 40000; // 15s for speed, 40s for deep
+      const startTime = Date.now();
+      
       const progressInterval = setInterval(() => {
-        setOptimizationProgress(prev => {
-          if (!prev) return null;
-          
-          // Calculate dynamic progress based on mode and variants
-          let newProgress = prev.progress + (optimizationMode === 'speed' ? 8 : 3);
-          let newStep = prev.step;
-          let newMessage = prev.message;
-          
-          // Update based on progress milestones
-          if (newProgress >= 15 && prev.step === 1) {
-            newStep = 2;
-            newMessage = optimizationMode === 'speed' 
-              ? 'Applying cached optimization patterns...'
-              : `Generating variant 1/${totalVariants}...`;
-          } else if (newProgress >= 35 && prev.step === 2 && optimizationMode === 'deep') {
-            newStep = 2;
-            newMessage = `Generating variant ${Math.min(2, totalVariants)}/${totalVariants}...`;
-          } else if (newProgress >= 55 && prev.step === 2 && optimizationMode === 'deep') {
-            newStep = 3;
-            newMessage = `Testing variant ${Math.min(2, totalVariants)}/${totalVariants}...`;
-          } else if (newProgress >= 75 && prev.step <= 3) {
-            newStep = 3;
-            newMessage = optimizationMode === 'speed'
-              ? 'Finalizing results...'
-              : `Testing variant ${Math.min(3, totalVariants)}/${totalVariants}...`;
-          } else if (newProgress >= 90) {
-            newStep = 4;
-            newMessage = 'Computing best variant...';
-          }
-          
-          // Cap at 95% until actual completion
-          if (newProgress > 95) newProgress = 95;
-          
-          return { step: newStep, message: newMessage, progress: newProgress };
-        });
-      }, optimizationMode === 'speed' ? 800 : 1500);
+        const elapsed = Date.now() - startTime;
+        const rawProgress = Math.min((elapsed / expectedDuration) * 100, 95);
+        
+        let step = 1;
+        let message = 'Initializing optimization...';
+        
+        // Update message based on progress
+        if (rawProgress < 10) {
+          step = 1;
+          message = 'Initializing optimization...';
+        } else if (rawProgress < 30) {
+          step = 2;
+          message = optimizationMode === 'speed' 
+            ? 'Applying cached optimization patterns...'
+            : `Generating variant 1/${totalVariants}...`;
+        } else if (rawProgress < 50) {
+          step = 2;
+          message = optimizationMode === 'speed'
+            ? 'Finalizing optimization...'
+            : `Generating variant 2/${totalVariants}...`;
+        } else if (rawProgress < 70) {
+          step = 3;
+          message = optimizationMode === 'speed'
+            ? 'Finalizing results...'
+            : `Testing variant 2/${totalVariants}...`;
+        } else if (rawProgress < 90) {
+          step = 3;
+          message = optimizationMode === 'speed'
+            ? 'Finalizing results...'
+            : `Testing variant 3/${totalVariants}...`;
+        } else {
+          step = 4;
+          message = 'Computing best variant...';
+        }
+        
+        setOptimizationProgress({ step, message, progress: Math.round(rawProgress) });
+      }, 200);
 
       await startOptimization({
         originalPrompt,
@@ -748,7 +752,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       // Clear the interval once optimization is complete
       clearInterval(progressInterval);
 
-      // Final progress update
+      // Set to exactly 100% on completion
       setOptimizationProgress({ step: 4, message: 'Complete!', progress: 100 });
       
       // Clear progress after a short delay
