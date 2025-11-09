@@ -199,7 +199,13 @@ async function generateAnalysis(
   aiReasoning?: Record<keyof CategoryScores, string>
 ): Promise<any> {
   const systemPrompt = `You are the PromptTek Lab Calibration Model, an expert evaluator of AI prompt quality.
-Your purpose is to synchronize scoring behavior across all categories so that excellent prompts score near 10 and weak ones score near 0.
+Your purpose is to provide actionable recommendations for improving the PROMPT itself (not the output).
+
+**CRITICAL INSTRUCTION:**
+- Users can only change the PROMPT, not the output
+- All recommendations must focus on how to REWRITE or IMPROVE the prompt text
+- Suggest specific changes to the prompt's wording, structure, or instructions
+- Do NOT suggest changes to the output format or content unless you're telling them to ADD those instructions to the prompt
 
 You must follow the numeric scale faithfully and never downgrade a prompt solely because it is long — evaluate efficiency of instruction, not word count.
 
@@ -316,17 +322,17 @@ Always include a one-sentence summary_comment that captures overall performance.
 
 🧾 OUTPUT FORMAT (JSON Only)
 {
-  "strengths": ["..."],          // optional, omit if none
-  "weaknesses": ["..."],         // optional
-  "suggested_fixes": ["..."],    // 3–4 concrete improvements or [] if not needed
+  "strengths": ["..."],          // optional, omit if none - focus on what the PROMPT does well
+  "weaknesses": ["..."],         // optional - focus on what the PROMPT lacks
+  "suggested_fixes": ["..."],    // 3–4 ACTIONABLE prompt rewrites (e.g., "Add specific constraints like...", "Restructure the prompt to...", "Include examples such as...")
   "explanation": {
-    "clarity": "...",
-    "specificity": "...",
-    "efficiency": "...",
-    "structure": "...",
-    "constraints": "...",
-    "elaboration": "...",
-    "intent_alignment": "...",
+    "clarity": "...",            // Explain the prompt's clarity (not output's)
+    "specificity": "...",        // Explain the prompt's specificity (not output's)
+    "efficiency": "...",         // Explain the prompt's efficiency (not output's)
+    "structure": "...",          // Explain the prompt's structure (not output's)
+    "constraints": "...",        // Explain the prompt's constraints (not output's)
+    "elaboration": "...",        // Explain the prompt's elaboration (not output's)
+    "intent_alignment": "...",   // Explain if the prompt aligns with its intent (considering output quality)
     "adaptability": "..."
   },
   "summary_comment": "..."
@@ -371,15 +377,15 @@ Max Output Tokens: 700`;
 
   const trimmedOutput = output ? output.substring(0, 1200) : "No output available";
   
-  const analysisPrompt = `🧠 Context Input
-
-Prompt:
+  const analysisPrompt = `**PROMPT TO EVALUATE:**
 ${prompt}
 
-Model Output (from the test run):
+${output ? `**ACTUAL OUTPUT GENERATED:**
 ${trimmedOutput}
 
-Category Scores (0–10):
+**IMPORTANT:** The output helps you assess if the prompt achieved its goals (for scoring), but all recommendations must focus on IMPROVING THE PROMPT TEXT ITSELF, not the output.` : ''}
+
+**CATEGORY SCORES (0-10):**
 - Clarity: ${scores.clarity.toFixed(1)}
 - Specificity: ${scores.specificity.toFixed(1)}
 - Efficiency: ${scores.efficiency.toFixed(1)}
@@ -388,6 +394,11 @@ Category Scores (0–10):
 - Elaboration: ${scores.elaboration.toFixed(1)}
 - Intent Alignment: ${scores.intent_alignment.toFixed(1)}
 - Adaptability: ${scores.adaptability.toFixed(1)}
+
+**YOUR TASK:**
+1. Evaluate how well the PROMPT is written (use output to validate effectiveness)
+2. Provide strengths/weaknesses of the PROMPT itself
+3. Suggest 3-4 specific ways to REWRITE or IMPROVE the prompt
 
 Return only the JSON object with strengths, weaknesses, suggested_fixes, explanation, and summary_comment.`;
 
