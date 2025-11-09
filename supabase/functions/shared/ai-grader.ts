@@ -161,7 +161,7 @@ ${prompt}`;
           { role: 'system', content: GRADING_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.3, // Lower temperature for consistent scoring
+        temperature: 0.2, // CRITICAL: Low temp for scoring consistency
         max_tokens: 1500,
         response_format: { type: "json_object" }
       }),
@@ -177,16 +177,16 @@ ${prompt}`;
     const content = data.choices[0].message.content;
     const evaluation: AIGradingResponse = JSON.parse(content);
 
-    // Extract scores and reasoning
+    // Extract scores and reasoning - ROUND TO 1 DECIMAL FOR CONSISTENCY
     const scores: CategoryScores = {
-      clarity: Math.round(evaluation.clarity.score),
-      specificity: Math.round(evaluation.specificity.score),
-      constraints: Math.round(evaluation.constraints.score),
-      elaboration: Math.round(evaluation.elaboration.score),
-      efficiency: Math.round(evaluation.efficiency.score),
-      structure: Math.round(evaluation.structure.score),
-      intent_alignment: Math.round(evaluation.intentAlignment.score),
-      adaptability: Math.round(evaluation.adaptability.score),
+      clarity: Math.round(evaluation.clarity.score * 10) / 10,
+      specificity: Math.round(evaluation.specificity.score * 10) / 10,
+      constraints: Math.round(evaluation.constraints.score * 10) / 10,
+      elaboration: Math.round(evaluation.elaboration.score * 10) / 10,
+      efficiency: Math.round(evaluation.efficiency.score * 10) / 10,
+      structure: Math.round(evaluation.structure.score * 10) / 10,
+      intent_alignment: Math.round(evaluation.intentAlignment.score * 10) / 10,
+      adaptability: Math.round(evaluation.adaptability.score * 10) / 10,
     };
 
     const reasoning: Record<keyof CategoryScores, string> = {
@@ -214,15 +214,16 @@ ${prompt}`;
  * Calculate overall score from category scores
  */
 export function calculateOverallScore(scores: CategoryScores): number {
+  // UNIFIED WEIGHTS - Matches master-grader.ts complex type
   const weights = {
-    clarity: 1.2,
-    specificity: 1.2,
-    constraints: 1.0,
-    elaboration: 0.8,
+    clarity: 1.5,
+    specificity: 1.3,
+    constraints: 1.2,
+    elaboration: 1.3,
     efficiency: 1.0,
-    structure: 0.9,
-    intent_alignment: 1.3,
-    adaptability: 0.6,
+    structure: 1.2,
+    intent_alignment: 1.4,
+    adaptability: 0.8,
   };
 
   const weightedSum = Object.entries(scores).reduce((sum, [key, value]) => {

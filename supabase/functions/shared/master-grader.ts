@@ -279,15 +279,16 @@ export function scorePromptStatic(prompt: string): StaticGradeResult {
   if (hasClearSections) adaptability += 1;    // Sections allow partial swapping
   if (hasReusableStructure) adaptability += 1; // Explicitly designed for reuse
   
+  // CRITICAL: Round all scores to 1 decimal for consistency
   const scores = {
-    clarity: Math.max(0, Math.min(10, clarity)),
-    specificity: Math.max(0, Math.min(10, specificity)),
-    efficiency: Math.max(0, Math.min(10, efficiency)),
-    structure: Math.max(0, Math.min(10, structure)),
-    constraints: Math.max(0, Math.min(10, constraints)),
-    elaboration: Math.max(0, Math.min(10, elaboration)),
-    intent_alignment: Math.max(0, Math.min(10, intentAlignment)),
-    adaptability: Math.max(0, Math.min(10, adaptability))
+    clarity: Math.round(Math.max(0, Math.min(10, clarity)) * 10) / 10,
+    specificity: Math.round(Math.max(0, Math.min(10, specificity)) * 10) / 10,
+    efficiency: Math.round(Math.max(0, Math.min(10, efficiency)) * 10) / 10,
+    structure: Math.round(Math.max(0, Math.min(10, structure)) * 10) / 10,
+    constraints: Math.round(Math.max(0, Math.min(10, constraints)) * 10) / 10,
+    elaboration: Math.round(Math.max(0, Math.min(10, elaboration)) * 10) / 10,
+    intent_alignment: Math.round(Math.max(0, Math.min(10, intentAlignment)) * 10) / 10,
+    adaptability: Math.round(Math.max(0, Math.min(10, adaptability)) * 10) / 10
   };
   
   
@@ -395,8 +396,17 @@ export function calculateTotalScore(
   // Auto-detect type if not provided
   const detectedType = promptType || (prompt ? detectPromptType(prompt) : 'complex');
   
-  // Get contextual weights
-  const weights = getContextualWeights(detectedType);
+  // CRITICAL: Use unified weights from ai-grader.ts (no prompt type variations for consistency)
+  const weights = {
+    clarity: 1.5,
+    specificity: 1.3,
+    constraints: 1.2,
+    elaboration: 1.3,
+    efficiency: 1.0,
+    structure: 1.2,
+    intent_alignment: 1.4,
+    adaptability: 0.8,
+  };
   
   const weightedSum = 
     scores.clarity * weights.clarity +

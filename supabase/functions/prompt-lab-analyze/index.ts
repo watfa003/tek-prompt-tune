@@ -416,7 +416,7 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
           { role: 'user', content: analysisPrompt }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.2,
+        temperature: 0.2, // CRITICAL: Consistent with ai-grader.ts
         max_tokens: 3000,
       }),
     });
@@ -455,20 +455,9 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     scores = aiResult.scores;
     aiReasoning = aiResult.reasoning;
     
-    // Apply contextual weights based on prompt type
-    const weights = getContextualWeights(promptType);
-    const weightedScores = { ...scores };
-    let weightSum = 0;
-    let weightedSum = 0;
-    
-    for (const [key, value] of Object.entries(scores)) {
-      const weight = weights[key as keyof CategoryScores];
-      weightedSum += value * weight;
-      weightSum += weight;
-    }
-    
-    finalScore = weightSum > 0 ? weightedSum / weightSum : calculateOverallScore(scores);
-    console.log(`✅ Using AI-powered scoring with contextual weights (${promptType}): ${finalScore.toFixed(2)}`);
+    // CRITICAL: Use calculateOverallScore for consistency across all systems
+    finalScore = calculateOverallScore(scores);
+    console.log(`✅ AI-powered scoring: ${finalScore.toFixed(2)}`);
   } catch (error) {
     console.error('AI grading failed, using fallback:', error);
     const result = scorePromptAndOutput(req.prompt_a, output);
@@ -517,28 +506,10 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
     scoresA = aiResultA.scores;
     scoresB = aiResultB.scores;
     
-    // Apply contextual weights based on prompt types
-    const weightsA = getContextualWeights(promptTypeA);
-    const weightsB = getContextualWeights(promptTypeB);
-    
-    let weightSumA = 0, weightedSumA = 0;
-    let weightSumB = 0, weightedSumB = 0;
-    
-    for (const [key, value] of Object.entries(scoresA)) {
-      const weight = weightsA[key as keyof CategoryScores];
-      weightedSumA += value * weight;
-      weightSumA += weight;
-    }
-    
-    for (const [key, value] of Object.entries(scoresB)) {
-      const weight = weightsB[key as keyof CategoryScores];
-      weightedSumB += value * weight;
-      weightSumB += weight;
-    }
-    
-    totalA = weightSumA > 0 ? weightedSumA / weightSumA : calculateOverallScore(scoresA);
-    totalB = weightSumB > 0 ? weightedSumB / weightSumB : calculateOverallScore(scoresB);
-    console.log(`✅ Using AI-powered scoring for battle comparison with contextual weights`);
+    // CRITICAL: Use consistent calculateOverallScore (no contextual weights for consistency)
+    totalA = calculateOverallScore(scoresA);
+    totalB = calculateOverallScore(scoresB);
+    console.log(`✅ AI-powered battle scoring: A=${totalA.toFixed(2)}, B=${totalB.toFixed(2)}`);
   } catch (error) {
     console.error('AI grading failed in battle, using fallback:', error);
     const resultA = scorePromptAndOutput(req.prompt_a, outputA);
