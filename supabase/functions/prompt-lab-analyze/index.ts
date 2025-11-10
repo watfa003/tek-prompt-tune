@@ -8,6 +8,7 @@ import {
   calculateTotalScore, 
   getContextualWeights,
   detectPromptType,
+  scoreOutputQuality,
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
@@ -455,9 +456,11 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     scores = aiResult.scores;
     aiReasoning = aiResult.reasoning;
     
-    // CRITICAL: Use calculateOverallScore for consistency across all systems
-    finalScore = calculateOverallScore(scores);
-    console.log(`✅ AI-powered scoring: ${finalScore.toFixed(2)}`);
+    // Combine 50/50: prompt quality + output quality
+    const promptScore = calculateOverallScore(scores);
+    const outputScore = scoreOutputQuality(output);
+    finalScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
+    console.log(`✅ AI-powered scoring (50/50): prompt=${promptScore.toFixed(1)}, output=${outputScore.toFixed(1)}, final=${finalScore.toFixed(1)}`);
   } catch (error) {
     console.error('AI grading failed, using fallback:', error);
     const result = scorePromptAndOutput(req.prompt_a, output);
@@ -506,10 +509,14 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
     scoresA = aiResultA.scores;
     scoresB = aiResultB.scores;
     
-    // CRITICAL: Use consistent calculateOverallScore (no contextual weights for consistency)
-    totalA = calculateOverallScore(scoresA);
-    totalB = calculateOverallScore(scoresB);
-    console.log(`✅ AI-powered battle scoring: A=${totalA.toFixed(2)}, B=${totalB.toFixed(2)}`);
+    // Combine 50/50 for both A and B
+    const promptA = calculateOverallScore(scoresA);
+    const promptB = calculateOverallScore(scoresB);
+    const outA = scoreOutputQuality(outputA);
+    const outB = scoreOutputQuality(outputB);
+    totalA = Math.round(((promptA * 0.5) + (outA * 0.5)) * 10) / 10;
+    totalB = Math.round(((promptB * 0.5) + (outB * 0.5)) * 10) / 10;
+    console.log(`✅ AI-powered battle scoring (50/50): A_prompt=${promptA.toFixed(1)}, A_out=${outA.toFixed(1)}, A=${totalA.toFixed(1)} | B_prompt=${promptB.toFixed(1)}, B_out=${outB.toFixed(1)}, B=${totalB.toFixed(1)}`);
   } catch (error) {
     console.error('AI grading failed in battle, using fallback:', error);
     const resultA = scorePromptAndOutput(req.prompt_a, outputA);

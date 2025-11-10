@@ -8,6 +8,7 @@ import {
   scorePromptAndOutput,
   calculateTotalScore,
   detectPromptType,
+  scoreOutputQuality,
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
@@ -1127,13 +1128,14 @@ async function evaluateOutput(
     console.log('⚠️ Using fallback rule-based scoring in optimizer');
   }
 
-  const overallScore = calculateOverallScore(scores);
+  const promptScore = calculateOverallScore(scores);
+  const outputScore = scoreOutputQuality(output);
+  const overallScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
 
   return {
     score: overallScore,
     categoryScores: scores
   };
-}
 
 // Removed old evaluation functions - now using master-grader.ts unified scoring
 
