@@ -93,7 +93,7 @@ const OPTIMIZATION_MODELS = {
 const REQUEST_TIMEOUT_MS = 25000;
 
 // PrompTek V4.0 Compact - High-Performance Prompt Optimization
-const PROMPTEK_MASTER_SYSTEM = `You are PrompTek V4, an expert prompt optimization system. Transform input prompts to score ≥8.5/10 on ALL 8 pillars, avg ≥9.2/10.
+const PROMPTEK_MASTER_SYSTEM = `You are PrompTek V4, an expert prompt optimization system. Transform input prompts to score ≥7.5/10 on ALL 8 pillars, avg ≥8.0/10.
 
 CRITICAL RULE - ROLE-BASED PERSONA:
 Every optimized prompt MUST start with "You are a [role]" where [role] is contextually appropriate to the task:
@@ -104,7 +104,7 @@ Every optimized prompt MUST start with "You are a [role]" where [role] is contex
 - Data analysis → "You are a data analyst"
 Choose the role that best matches the expertise needed for the task. This increases quality and grading scores significantly.
 
-8-PILLAR FRAMEWORK (each must score ≥8.5):
+8-PILLAR FRAMEWORK (each must score ≥7.5):
 1. Clarity: Explicit verbs, zero ambiguity, one interpretation only
 2. Specificity: Concrete params (3-5 examples, 300-word limit), measurable criteria, format specs
 3. Efficiency: Max meaning/token, active voice, no redundancy
@@ -114,93 +114,93 @@ Choose the role that best matches the expertise needed for the task. This increa
 7. Intent: User's TRUE goal clear, success criteria explicit
 8. Adaptability: Works across GPT/Claude/Gemini, handles edge cases
 
-REINFORCEMENT (for any pillar <8.5):
-- Clarity<8.5: explicit verbs, remove vague words (good→excellent), specify deliverables
-- Specificity<8.5: add numbers (some→3-5), examples, format specs (JSON/markdown/table)
-- Efficiency<8.5: cut redundancy, active voice only, compress phrases
-- Structure<8.5: add numbered steps, section headers, hierarchical bullets
-- Constraints<8.5: define format/length/tone explicitly (not "brief"→"50-75 words")
-- Elaboration<8.5: add examples, context, audience awareness
-- Intent<8.5: add success criteria, desired outcome
-- Adaptability<8.5: add fallbacks, conditional phrasing
+REINFORCEMENT (for any pillar <7.5):
+- Clarity<7.5: explicit verbs, remove vague words (good→excellent), specify deliverables
+- Specificity<7.5: add numbers (some→3-5), examples, format specs (JSON/markdown/table)
+- Efficiency<7.5: cut redundancy, active voice only, compress phrases
+- Structure<7.5: add numbered steps, section headers, hierarchical bullets
+- Constraints<7.5: define format/length/tone explicitly (not "brief"→"50-75 words")
+- Elaboration<7.5: add examples, context, audience awareness
+- Intent<7.5: add success criteria, desired outcome
+- Adaptability<7.5: add fallbacks, conditional phrasing
 
 RULES:
 ✅ Preserve EXACT user intent (improve HOW, not WHAT)
-✅ All pillars ≥8.5, avg ≥9.2
+✅ All pillars ≥7.5, avg ≥8.0
 ✅ Professional, natural language
 ❌ NEVER answer the prompt yourself
 ❌ NEVER change core request
 ❌ NO vague terms (good/better/detailed/comprehensive)
-❌ NO pillar <8.5
+❌ NO pillar <7.5
 
 MODES:
 Light (<15 tokens): Clarity, specificity, intent only
-Standard (15-150 tokens): Full 8-pillar, balanced, 8.5+ each
-Deep (>150 tokens): Aggressive multi-layer, 9.0+ each, rich structure
+Standard (15-150 tokens): Full 8-pillar, balanced, 7.5+ each
+Deep (>150 tokens): Aggressive multi-layer, 8.0+ each, rich structure
 
-OUTPUT: Optimized prompt scoring ≥8.5 ALL pillars, ≥9.2 avg, intent preserved.`;
+OUTPUT: Optimized prompt scoring ≥7.5 ALL pillars, ≥8.0 avg, intent preserved.`;
 
 
 // Compact Optimization Strategies
 const OPTIMIZATION_STRATEGIES = {
   clarity: {
     name: "Cognitive Fusion (Clarity↑)",
-    definition: "Crystal-clear, unambiguous instructions with explicit verbs. Target: ≥9.0/10.",
+    definition: "Crystal-clear, unambiguous instructions with explicit verbs. Target: ≥8.0/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-STRATEGY: Cognitive Fusion (Clarity 9.0+, Structure 8.5+, Intent 8.5+)
+STRATEGY: Cognitive Fusion (Clarity 8.0+, Structure 7.5+, Intent 7.5+)
 - Replace ALL vague words: good→excellent, better→more precise, nice→effective
 - Explicit action verbs only: analyze, generate, list, compare, calculate, design
 - Zero passive voice unless essential
 - Linear flow: setup → instruction → output spec
 - One interpretation only
 
-If Clarity < 9.0: replace vague terms, convert passive→active, add explicit deliverables, break complex sentences.`,
+If Clarity < 8.0: replace vague terms, convert passive→active, add explicit deliverables, break complex sentences.`,
     weight: 0.3
   },
   specificity: {
     name: "Precision Abstraction (Specificity↑)",
-    definition: "Laser-focused measurable parameters, concrete examples, quantifiable criteria. Target: ≥9.0/10.",
+    definition: "Laser-focused measurable parameters, concrete examples, quantifiable criteria. Target: ≥8.0/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-STRATEGY: Precision Abstraction (Specificity 9.0+, Adaptability 8.5+, Clarity 8.5+)
+STRATEGY: Precision Abstraction (Specificity 8.0+, Adaptability 7.5+, Clarity 7.5+)
 - Replace "some examples" → "3-5 concrete examples with [attribute]"
 - Replace "detailed" → "300-500 words covering [A], [B], [C]"
 - Add numerical constraints (word/item counts, % thresholds)
 - Specify format precisely (JSON schema, markdown, table)
 - Provide concrete examples for complex tasks
 
-If Specificity < 9.0: quantify all descriptors (much→50%+, several→3-5, detailed→200+ words), add format specs, include 1-2 examples, define measurable success.`,
+If Specificity < 8.0: quantify all descriptors (much→50%+, several→3-5, detailed→200+ words), add format specs, include 1-2 examples, define measurable success.`,
     weight: 0.25
   },
   efficiency: {
     name: "Semantic Compression (Efficiency↑)",
-    definition: "Maximum meaning per token. Ruthlessly eliminate redundancy. Target: ≥8.8/10.",
+    definition: "Maximum meaning per token. Ruthlessly eliminate redundancy. Target: ≥7.8/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-STRATEGY: Semantic Compression (Efficiency 8.8+, Specificity 8.5+, Clarity 8.5+)
+STRATEGY: Semantic Compression (Efficiency 7.8+, Specificity 7.5+, Clarity 7.5+)
 - Active voice exclusively (passive adds 20-40% words)
 - Compress: "A, B, and C are important" → "Prioritize A, B, C"
 - Eliminate filler: really, very, quite, somewhat, basically
 - Combine redundant clauses into single powerful statements
 - Dense meaning without sacrificing clarity
 
-If Efficiency < 8.8: convert ALL passive→active, remove every filler/redundant phrase, consolidate repetitive instructions, use power verbs (utilize→use, demonstrate→show).`,
+If Efficiency < 7.8: convert ALL passive→active, remove every filler/redundant phrase, consolidate repetitive instructions, use power verbs (utilize→use, demonstrate→show).`,
     weight: 0.2
   },
   structure: {
     name: "Directive Synthesis (Structure↑)",
-    definition: "Transform unstructured requests into logically-sequenced, hierarchically-organized instructions. Target: ≥8.8/10.",
+    definition: "Transform unstructured requests into logically-sequenced, hierarchically-organized instructions. Target: ≥7.8/10.",
     systemPrompt: `${PROMPTEK_MASTER_SYSTEM}
 
-STRATEGY: Directive Synthesis (Structure 8.8+, Clarity 8.5+, Constraints 8.5+)
+STRATEGY: Directive Synthesis (Structure 7.8+, Clarity 7.5+, Constraints 7.5+)
 - Clear flow: Context → Task → Method → Constraints → Output Format
 - Numbered steps for multi-step procedures
 - Section headers for complex prompts (## Analysis, ## Output Requirements)
 - Hierarchical bullets for criteria
 - Explicit dependencies: "After X, then Y"
 
-If Structure < 8.8: add numbered steps if 2+ actions, create section headers, use hierarchical bullets, state order explicitly.`,
+If Structure < 7.8: add numbered steps if 2+ actions, create section headers, use hierarchical bullets, state order explicitly.`,
     weight: 0.15
   },
   constraints: {
@@ -698,10 +698,19 @@ ${optimizedPrompt}`;
             }
          }
         } else {
-          // Speed mode: Use static evaluation based on prompt quality metrics
-          console.log(`[Speed Mode] Skipping testing for ${strategyKey}, using static evaluation`);
-          actualScore = strategy.weight * 0.85; // Assume 85% effectiveness in speed mode
-          actualResponse = `Optimized using ${strategy.name} strategy (speed mode)`;
+          // Speed mode: Use static evaluation based on actual prompt quality
+          console.log(`[Speed Mode] Skipping testing for ${strategyKey}, using static analysis`);
+          try {
+            const staticEval = scorePromptAndOutput(optimizedPrompt, "");
+            const normalizedScore = staticEval.finalScore / 100; // Convert 0-100 to 0-1
+            actualScore = strategy.weight * normalizedScore;
+            actualResponse = `Optimized using ${strategy.name} strategy (static score: ${staticEval.finalScore}%)`;
+            console.log(`[Speed Mode Static] ${strategyKey}: ${staticEval.finalScore}% → weighted: ${actualScore}`);
+          } catch (staticError) {
+            console.error(`Static evaluation failed for ${strategyKey}:`, staticError);
+            actualScore = strategy.weight * 0.65; // Conservative fallback
+            actualResponse = `Optimized using ${strategy.name} strategy (fallback)`;
+          }
         }
 
         return {
