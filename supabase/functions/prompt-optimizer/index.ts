@@ -1136,6 +1136,7 @@ async function evaluateOutput(
     score: overallScore,
     categoryScores: scores
   };
+}
 
 // Removed old evaluation functions - now using master-grader.ts unified scoring
 
