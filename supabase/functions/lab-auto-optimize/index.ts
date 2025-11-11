@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
+import { scoreOutputQuality } from '../shared/master-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,7 +23,8 @@ serve(async (req) => {
       scores, 
       aiRecommendations,
       outputType = 'text',
-      promptType
+      promptType,
+      target_llm = 'openai/gpt-4o-mini'
     } = await req.json();
 
     if (!prompt) {
@@ -37,7 +39,8 @@ serve(async (req) => {
       hasScores: !!scores,
       hasRecommendations: !!aiRecommendations,
       outputType,
-      promptType
+      promptType,
+      target_llm
     });
 
     // Build comprehensive optimization instructions
@@ -45,7 +48,7 @@ serve(async (req) => {
 
     const systemPrompt = `You are PrompTek Auto-Optimizer, an advanced prompt engineering AI specialized in the 8-Pillar Framework.
 
-Your mission: Transform the provided prompt into an optimized version that scores ≥8.5/10 on ALL 8 pillars while preserving the exact user intent.
+Your mission: Transform the provided prompt into an optimized version that scores ≥7.5/10 on ALL 8 pillars with an average ≥8.0/10, while preserving the exact user intent.
 
 THE 8-PILLAR FRAMEWORK (MANDATORY):
 1. Clarity — Explicit instructions, direct language, zero ambiguity
@@ -67,7 +70,7 @@ CRITICAL RULES - YOU MUST RETURN A PROMPT, NOT AN ANSWER:
 - If your draft looks like an answer or data payload, discard it and produce a prompt instruction instead
 - The result must be an instruction that tells an AI what to do, not the AI's response
 - Consider the output type for optimization strategy only, don't embed format requirements
-- Ensure every pillar ≥8.5/10 and overall average ≥9.0/10
+- Ensure every pillar ≥7.5/10 and overall average ≥8.0/10
 - Use professional, natural language; avoid filler
 - Function over form — readability and performance matter most
 
@@ -161,20 +164,51 @@ Return ONLY the optimized prompt text. No explanations, no meta-commentary. The 
 
     console.log('[lab-auto-optimize] Success! Optimized prompt length:', optimizedPrompt.length);
 
-    // Re-grade the optimized prompt to get actual scores
-    console.log('[lab-auto-optimize] Re-grading optimized prompt...');
+    // Generate reference output and compute 50/50 final score (unified with Lab)
+    console.log('[lab-auto-optimize] Generating reference output and computing unified 50/50 score...');
     let newScores = null;
-    let newTotalScore = 10; // Fallback if grading fails
+    let newPromptScore = 10;
+    let newOutputScore = 10;
+    let newFinalScore = 10;
+    let fallbackReason: string | undefined;
     
     try {
-      const { scores: gradedScores, reasoning } = await scorePromptWithAI(optimizedPrompt, undefined, OPENAI_API_KEY);
+      // Generate output using the same target_llm as Lab
+      const output = await callAIModel(optimizedPrompt, target_llm, outputType);
+      console.log('[lab-auto-optimize] Generated output length:', output.length);
+      
+      // Compute AI category scores
+      const { scores: gradedScores } = await scorePromptWithAI(optimizedPrompt, output, OPENAI_API_KEY);
       newScores = gradedScores;
-      newTotalScore = calculateOverallScore(gradedScores);
-      console.log('[lab-auto-optimize] New scores after optimization:', { newScores, newTotalScore });
+      
+      // 50% - Prompt quality score
+      newPromptScore = Math.round(calculateOverallScore(gradedScores) * 10) / 10;
+      
+      // 50% - Output quality score
+      newOutputScore = Math.round(scoreOutputQuality(output) * 10) / 10;
+      
+      // 50/50 combined final score (matches Lab exactly)
+      newFinalScore = Math.round(((newPromptScore * 0.5) + (newOutputScore * 0.5)) * 10) / 10;
+      
+      console.log('[lab-auto-optimize] Unified scores:', { 
+        promptScore: newPromptScore, 
+        outputScore: newOutputScore, 
+        finalScore: newFinalScore,
+        categoryScores: newScores
+      });
     } catch (gradingError) {
-      console.error('[lab-auto-optimize] Grading failed, using fallback score:', gradingError);
-      // If grading fails, estimate improvement
-      newTotalScore = Math.min(10, (scores ? calculateOverallScore(scores) : 7) + 1.5);
+      console.error('[lab-auto-optimize] Output generation or grading failed:', gradingError);
+      // Fall back to prompt-only scoring
+      fallbackReason = 'Output generation failed - showing prompt-only score';
+      try {
+        const { scores: gradedScores } = await scorePromptWithAI(optimizedPrompt, undefined, OPENAI_API_KEY);
+        newScores = gradedScores;
+        newPromptScore = Math.round(calculateOverallScore(gradedScores) * 10) / 10;
+        newFinalScore = newPromptScore; // Fallback to prompt-only
+        newOutputScore = 0;
+      } catch {
+        newFinalScore = Math.min(10, (scores ? calculateOverallScore(scores) : 7) + 1.5);
+      }
     }
 
     return new Response(
@@ -183,8 +217,12 @@ Return ONLY the optimized prompt text. No explanations, no meta-commentary. The 
         optimizedPrompt,
         originalPrompt: prompt,
         improvementAreas: extractImprovementAreas(scores),
-        newScores, // Return the actual new scores
-        newTotalScore, // Return the actual new total score
+        newScores,
+        newPromptScore,
+        newOutputScore,
+        newFinalScore,
+        newTotalScore: newFinalScore, // Backward compatibility
+        fallbackReason,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -270,12 +308,12 @@ function buildOptimizationInstructions(
       { key: 'adaptability', name: 'Adaptability' }
     ];
 
-    const weakPillars = pillars.filter(p => scores[p.key] && scores[p.key] < 8.5);
+    const weakPillars = pillars.filter(p => scores[p.key] && scores[p.key] < 7.5);
     
     if (weakPillars.length > 0) {
-      instructions += '\nFocus on improving these pillars (currently below 8.5):\n';
+      instructions += '\nFocus on improving these pillars (currently below 7.5):\n';
       weakPillars.forEach(p => {
-        instructions += `- ${p.name}: Current score ${scores[p.key]}/10 → Target ≥8.5/10\n`;
+        instructions += `- ${p.name}: Current score ${scores[p.key]}/10 → Target ≥7.5/10\n`;
       });
     }
   }
@@ -288,6 +326,99 @@ function buildOptimizationInstructions(
   }
 
   return instructions;
+}
+
+// AI Model Calling Function (replicated from prompt-lab-analyze for consistency)
+async function callAIModel(prompt: string, targetLLM: string, outputType?: string): Promise<string> {
+  const systemMessage = outputType && outputType !== 'text' 
+    ? `You are a helpful AI assistant. IMPORTANT: Format your response as ${outputType.toUpperCase()}. ${getOutputTypeInstruction(outputType)}`
+    : "You are a helpful AI assistant.";
+  
+  const userMessage = prompt;
+  
+  function getOutputTypeInstruction(type: string): string {
+    switch(type) {
+      case 'essay': return 'Provide a well-structured essay with clear introduction, body paragraphs, and conclusion.';
+      case 'list': return 'Provide your response as a numbered or bulleted list.';
+      case 'code': return 'Provide your response as code with proper syntax and formatting.';
+      case 'json': return 'Provide your response as valid JSON only, no additional text.';
+      default: return '';
+    }
+  }
+  
+  const [provider, model] = targetLLM.split('/');
+  
+  if (provider === 'openai') {
+    const modelName = model || 'gpt-4o-mini';
+    const isNewModel = modelName.includes('gpt-5') || modelName.includes('o3') || modelName.includes('o4');
+    
+    const requestBody: any = {
+      model: modelName,
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: userMessage }
+      ],
+    };
+    
+    if (isNewModel) {
+      requestBody.max_completion_tokens = 4000;
+    } else {
+      requestBody.max_tokens = 4000;
+    }
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('OpenAI API error:', response.status, data);
+      throw new Error(`OpenAI API error: ${JSON.stringify(data)}`);
+    }
+    
+    if (!data.choices || !data.choices[0]) {
+      console.error('Unexpected OpenAI response:', data);
+      throw new Error('Invalid response from OpenAI API');
+    }
+    
+    return data.choices[0].message.content;
+  } else if (provider === 'google') {
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.5-flash'}:generateContent?key=${GOOGLE_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: `${systemMessage}\n\n${userMessage}` }]
+          }],
+          generationConfig: { maxOutputTokens: 4000 }
+        }),
+      }
+    );
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('Google API error:', response.status, data);
+      throw new Error(`Google API error: ${JSON.stringify(data)}`);
+    }
+    
+    if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+      console.error('Unexpected Google response:', data);
+      throw new Error('Invalid response from Google API');
+    }
+    
+    return data.candidates[0].content.parts[0].text;
+  }
+  
+  throw new Error(`Unsupported provider: ${provider}`);
 }
 
 function looksLikeAnswer(text: string, original: string): boolean {
@@ -334,6 +465,6 @@ function extractImprovementAreas(scores: any): string[] {
   ];
 
   return pillars
-    .filter(p => scores[p.key] && scores[p.key] < 8.5)
+    .filter(p => scores[p.key] && scores[p.key] < 7.5)
     .map(p => `${p.name} (${scores[p.key]}/10)`);
 }

@@ -351,8 +351,9 @@ const Lab = () => {
           prompt: promptToOptimize,
           scores: result.category_breakdown,
           aiRecommendations: result.ai_analysis?.suggested_fixes,
-          outputType: outputType, // Pass the actual output type
-          promptType: result.prompt_type, // Send detected prompt type if available
+          outputType: outputType,
+          promptType: result.prompt_type,
+          target_llm: `${selectedProvider}/${selectedLLM}`, // Pass the target LLM for unified scoring
         }
       });
 
@@ -374,21 +375,26 @@ const Lab = () => {
       // Build the before/after comparison using the actual graded scores
       const beforeResult = result;
       
-      // Use the actual graded scores from the optimizer response
-      const actualNewScore = data.newTotalScore || 10;
+      // Use the unified 50/50 scores from the optimizer response (matches Lab exactly)
+      const actualNewScore = data.newFinalScore ?? data.newTotalScore ?? 10;
       const actualNewScores = data.newScores || beforeResult.category_breakdown;
+      const newPromptScore = data.newPromptScore;
+      const newOutputScore = data.newOutputScore;
       
       const afterResult = { 
         total_score: actualNewScore,
         tested_prompt: data.optimizedPrompt,
         category_breakdown: actualNewScores,
+        prompt_score: newPromptScore, // Store prompt score separately
+        output_score: newOutputScore, // Store output score separately
         ai_analysis: {
           ...beforeResult.ai_analysis,
           suggested_fixes: data.improvementAreas?.length > 0 
             ? [`Applied ${data.improvementAreas.join(', ')} optimizations`]
             : ['Applied AI optimizations']
         },
-        estimated: false // This is real grading, not estimated
+        estimated: !!data.fallbackReason,
+        fallback_reason: data.fallbackReason
       };
 
       setOptimizationComparison({
