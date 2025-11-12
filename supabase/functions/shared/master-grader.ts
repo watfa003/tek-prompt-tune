@@ -405,7 +405,7 @@ export function calculateTotalScore(
     efficiency: 1.0,
     structure: 1.2,
     intent_alignment: 1.4,
-    adaptability: 0.8,
+    adaptability: 0.4, // Updated to match ai-grader.ts
   };
   
   const weightedSum = 
@@ -419,15 +419,23 @@ export function calculateTotalScore(
     scores.adaptability * weights.adaptability;
   
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-  const normalizedScore = (weightedSum / totalWeight);
+  const baseScore = (weightedSum / totalWeight);
   
   // Minimum quality threshold (only for complex prompts)
   if (detectedType === 'complex') {
     const avgScore = Object.values(scores).reduce((a, b) => a + b, 0) / 8;
-    if (avgScore < 3.0) return Math.min(normalizedScore, 3.5);
+    if (avgScore < 3.0) {
+      const minScore = Math.min(baseScore, 3.5);
+      // Apply curve even to minimum scores
+      const curved = minScore + (10 - minScore) * 0.25;
+      return Math.round(curved * 10) / 10;
+    }
   }
   
-  return Math.round(normalizedScore * 10) / 10;
+  // Apply score curve: curvedScore = baseScore + (10 - baseScore) * 0.25
+  const curvedScore = baseScore + (10 - baseScore) * 0.25;
+  
+  return Math.round(curvedScore * 10) / 10;
 }
 
 /**
@@ -484,7 +492,12 @@ export function scoreOutputQuality(output: string): number {
   if (tooManyNewlines) score -= 1;
   
   // Keep in valid range
-  return Math.max(0, Math.min(10, score));
+  const baseScore = Math.max(0, Math.min(10, score));
+  
+  // Apply score curve: curvedScore = baseScore + (10 - baseScore) * 0.25
+  const curvedScore = baseScore + (10 - baseScore) * 0.25;
+  
+  return Math.round(curvedScore * 10) / 10;
 }
 
 /**
@@ -505,8 +518,9 @@ export function scorePromptAndOutput(prompt: string, output: string): {
   // 50% - Score the output quality
   const outputScore = scoreOutputQuality(output);
   
-  // Combine 50/50
-  const finalScore = (promptScore * 0.5) + (outputScore * 0.5);
+  // Combine 50/50 and apply curve
+  const baseFinalScore = (promptScore * 0.5) + (outputScore * 0.5);
+  const finalScore = Math.round(baseFinalScore * 10) / 10;
   
   return {
     scores: staticResult.scores,

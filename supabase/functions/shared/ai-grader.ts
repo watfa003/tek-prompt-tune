@@ -186,16 +186,22 @@ ${prompt}`;
     const content = data.choices[0].message.content;
     const evaluation: AIGradingResponse = JSON.parse(content);
 
-    // Extract scores and reasoning - ROUND TO 1 DECIMAL FOR CONSISTENCY
+    // Apply score curve: curvedScore = baseScore + (10 - baseScore) * 0.25
+    const applyCurve = (baseScore: number): number => {
+      const curved = baseScore + (10 - baseScore) * 0.25;
+      return Math.round(curved * 10) / 10;
+    };
+
+    // Extract scores and reasoning - APPLY CURVE AND ROUND TO 1 DECIMAL
     const scores: CategoryScores = {
-      clarity: Math.round(evaluation.clarity.score * 10) / 10,
-      specificity: Math.round(evaluation.specificity.score * 10) / 10,
-      constraints: Math.round(evaluation.constraints.score * 10) / 10,
-      elaboration: Math.round(evaluation.elaboration.score * 10) / 10,
-      efficiency: Math.round(evaluation.efficiency.score * 10) / 10,
-      structure: Math.round(evaluation.structure.score * 10) / 10,
-      intent_alignment: Math.round(evaluation.intentAlignment.score * 10) / 10,
-      adaptability: Math.round(evaluation.adaptability.score * 10) / 10,
+      clarity: applyCurve(evaluation.clarity.score),
+      specificity: applyCurve(evaluation.specificity.score),
+      constraints: applyCurve(evaluation.constraints.score),
+      elaboration: applyCurve(evaluation.elaboration.score),
+      efficiency: applyCurve(evaluation.efficiency.score),
+      structure: applyCurve(evaluation.structure.score),
+      intent_alignment: applyCurve(evaluation.intentAlignment.score),
+      adaptability: applyCurve(evaluation.adaptability.score),
     };
 
     const reasoning: Record<keyof CategoryScores, string> = {
@@ -241,6 +247,10 @@ export function calculateOverallScore(scores: CategoryScores): number {
   }, 0);
 
   const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
+  const baseScore = weightedSum / totalWeight;
   
-  return Math.round((weightedSum / totalWeight) * 10) / 10;
+  // Apply score curve: curvedScore = baseScore + (10 - baseScore) * 0.25
+  const curvedScore = baseScore + (10 - baseScore) * 0.25;
+  
+  return Math.round(curvedScore * 10) / 10;
 }
