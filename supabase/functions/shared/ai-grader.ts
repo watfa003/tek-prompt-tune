@@ -232,7 +232,7 @@ export function calculateOverallScore(scores: CategoryScores): number {
     efficiency: 1.0,
     structure: 1.2,
     intent_alignment: 1.4,
-    adaptability: 0.8,
+    adaptability: 0.4,
   };
 
   const weightedSum = Object.entries(scores).reduce((sum, [key, value]) => {

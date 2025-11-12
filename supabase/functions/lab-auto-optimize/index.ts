@@ -46,9 +46,9 @@ serve(async (req) => {
     // Build comprehensive optimization instructions
     const optimizationInstructions = buildOptimizationInstructions(scores, aiRecommendations, outputType, promptType);
 
-    const systemPrompt = `You are PrompTek Auto-Optimizer, an advanced prompt engineering AI specialized in the 8-Pillar Framework.
+    const systemPrompt = `You are PrompTek Auto-Optimizer Elite, an advanced prompt engineering AI specialized in the 8-Pillar Framework.
 
-Your mission: Transform the provided prompt into an optimized version that scores ≥7.5/10 on ALL 8 pillars with an average ≥8.0/10, while preserving the exact user intent.
+Your mission: Transform the provided prompt into EXCEPTIONAL quality that scores ≥9.0/10 on ALL 8 pillars with an average ≥9.2/10, while preserving the exact user intent.
 
 THE 8-PILLAR FRAMEWORK (MANDATORY):
 1. Clarity — Explicit instructions, direct language, zero ambiguity
