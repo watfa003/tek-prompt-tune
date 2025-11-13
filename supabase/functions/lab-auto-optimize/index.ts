@@ -70,9 +70,16 @@ CRITICAL RULES - YOU MUST RETURN A PROMPT, NOT AN ANSWER:
 - If your draft looks like an answer or data payload, discard it and produce a prompt instruction instead
 - The result must be an instruction that tells an AI what to do, not the AI's response
 - Consider the output type for optimization strategy only, don't embed format requirements
-- Ensure every pillar ≥7.5/10 and overall average ≥8.0/10
-- Use professional, natural language; avoid filler
-- Function over form — readability and performance matter most
+
+AGGRESSIVE OPTIMIZATION RULES - MAKE MEANINGFUL CHANGES:
+- Don't just reword - ADD substantial improvements (examples, constraints, context)
+- If a prompt lacks examples, ADD concrete examples
+- If specificity is weak, ADD exact parameters, numbers, criteria
+- If structure is poor, ADD numbered steps or clear sections
+- If constraints are missing, ADD tone guidance, length specs, style rules
+- Aim for at MINIMUM 30% improvement in weak pillars - minor tweaks aren't enough
+- Every pillar must hit ≥9.0/10 - push hard to exceed baseline expectations
+- If the prompt is already strong (≥8.5), still find ways to add polish and precision
 
 ${optimizationInstructions}
 
@@ -308,13 +315,43 @@ function buildOptimizationInstructions(
       { key: 'adaptability', name: 'Adaptability' }
     ];
 
-    const weakPillars = pillars.filter(p => scores[p.key] && scores[p.key] < 7.5);
+    const weakPillars = pillars.filter(p => scores[p.key] && scores[p.key] < 9.0);
     
     if (weakPillars.length > 0) {
-      instructions += '\nFocus on improving these pillars (currently below 7.5):\n';
+      instructions += '\n🎯 CRITICAL IMPROVEMENT AREAS (target ≥9.0/10 for ALL):\n';
       weakPillars.forEach(p => {
-        instructions += `- ${p.name}: Current score ${scores[p.key]}/10 → Target ≥7.5/10\n`;
+        const currentScore = scores[p.key] || 0;
+        const gap = 9.0 - currentScore;
+        const percentGap = ((gap / 9.0) * 100).toFixed(0);
+        instructions += `- ${p.name}: Currently ${currentScore}/10 → MUST reach ≥9.0/10 (${percentGap}% gap to close)\n`;
+        
+        // Add specific tactical guidance for each pillar
+        if (p.key === 'clarity' && currentScore < 9.0) {
+          instructions += `  → Add: Direct, explicit instructions with zero ambiguity. Use imperative verbs.\n`;
+        }
+        if (p.key === 'specificity' && currentScore < 9.0) {
+          instructions += `  → Add: Concrete examples, exact parameters, measurable criteria, numerical targets.\n`;
+        }
+        if (p.key === 'constraints' && currentScore < 9.0) {
+          instructions += `  → Add: Tone specifications, output length, style rules, format requirements.\n`;
+        }
+        if (p.key === 'elaboration' && currentScore < 9.0) {
+          instructions += `  → Add: Context, background, rationale, use cases, examples.\n`;
+        }
+        if (p.key === 'structure' && currentScore < 9.0) {
+          instructions += `  → Add: Numbered steps, clear sections, logical flow markers.\n`;
+        }
+        if (p.key === 'efficiency' && currentScore < 9.0) {
+          instructions += `  → Remove: Redundancy, filler words. Make every word count.\n`;
+        }
+        if (p.key === 'intent' && currentScore < 9.0) {
+          instructions += `  → Align: Every instruction to the core user goal. Remove tangents.\n`;
+        }
+        if (p.key === 'adaptability' && currentScore < 9.0) {
+          instructions += `  → Generalize: Use placeholders, variables, or templates where appropriate.\n`;
+        }
       });
+      instructions += '\n⚠️ DO NOT make minor tweaks - these pillars need SUBSTANTIAL improvements!\n';
     }
   }
 
