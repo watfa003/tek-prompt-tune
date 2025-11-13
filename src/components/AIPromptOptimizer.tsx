@@ -747,8 +747,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       currentSessionKeyRef.current = sessionKey;
       localStartTimeRef.current = Date.now();
       
-      // Set up smooth progress tracking that only moves forward
-      let lastProgress = 0;
+      // Simple progress tracking - always show real DB progress when available
+      let lastDbProgress = 0;
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
@@ -763,55 +763,27 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
             .limit(1)
             .maybeSingle();
 
-          if (progressData && progressData.progress > lastProgress) {
-            // Only update if progress moves forward
-            lastProgress = progressData.progress;
-            setOptimizationProgress({
-              step: progressData.step,
-              message: progressData.message,
-              progress: progressData.progress
-            });
+          if (progressData) {
+            // Always use real DB progress when available, only move forward
+            if (progressData.progress > lastDbProgress) {
+              lastDbProgress = progressData.progress;
+              setOptimizationProgress({
+                step: progressData.step,
+                message: progressData.message,
+                progress: progressData.progress
+              });
+            }
 
             // Stop polling when complete
             if (progressData.progress >= 100 && progressIntervalRef.current) {
               clearInterval(progressIntervalRef.current);
               progressIntervalRef.current = null;
             }
-          } else if (localStartTimeRef.current) {
-            // Fallback UI progress - smooth, time-based estimation
-            const elapsed = Date.now() - localStartTimeRef.current;
-            let step = 1;
-            let message = 'Optimizing...';
-            let progress = 0;
-
-            if (elapsed < 15000) {
-              // 0-15s -> 0-50%
-              step = 1;
-              message = 'Analyzing prompt...';
-              progress = Math.min(50, Math.floor((elapsed / 15000) * 50));
-            } else if (elapsed < 40000) {
-              // 15-40s -> 50-85%
-              step = 2;
-              message = 'Testing improvements...';
-              progress = 50 + Math.min(35, Math.floor(((elapsed - 15000) / 25000) * 35));
-            } else {
-              // >40s -> hold at 90% until completion
-              step = 3;
-              message = 'Finalizing...';
-              progress = 90;
-            }
-            
-            // Only update if moving forward
-            if (progress > lastProgress) {
-              lastProgress = progress;
-              setOptimizationProgress({ step, message, progress });
-            }
           }
         } catch (error) {
-          // Silently handle errors during polling
           console.debug('Progress polling error:', error);
         }
-      }, 1500); // Poll every 1.5s for smoother updates
+      }, 1000); // Poll every second
 
       await startOptimization({
         originalPrompt,
