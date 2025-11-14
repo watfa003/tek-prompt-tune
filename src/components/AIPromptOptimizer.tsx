@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,7 @@ import { useSettings } from '@/hooks/use-settings';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { usePromptData } from '@/context/PromptDataContext';
 import { useOptimizerSession } from '@/context/OptimizerSessionContext';
+import { useOptimizationProgress } from '@/hooks/use-optimization-progress';
 import { detectOutputType } from '@/lib/output-formatters';
 import { OutputTypeSelector } from '@/components/ui/output-type-selector';
 
@@ -565,19 +566,28 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   const [optimizationMode, setOptimizationMode] = useState<'speed' | 'deep'>('deep');
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
-  const [optimizationProgress, setOptimizationProgress] = useState<{ step: number; message: string; progress: number } | null>(null);
-  const progressIntervalRef = React.useRef<number | null>(null);
-  const localStartTimeRef = React.useRef<number | null>(null);
-  const currentSessionKeyRef = React.useRef<string | null>(null);
   const [isCanceled, setIsCanceled] = useState(false);
+  const currentSessionKeyRef = useRef<string | null>(null);
 
-  const getEstimatedTotalSeconds = React.useCallback(() => (optimizationMode === 'speed' ? 15 : 40), [optimizationMode]);
-  const etaSeconds = React.useMemo(() => {
-    if (!optimizationProgress) return null;
-    const total = getEstimatedTotalSeconds();
-    const pct = Math.max(0, Math.min(100, optimizationProgress.progress || 0));
-    return Math.max(0, Math.ceil(total * (1 - pct / 100)));
-  }, [optimizationProgress, getEstimatedTotalSeconds]);
+  // Get user for realtime progress
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id || null));
+  }, []);
+
+  // Use the realtime progress hook
+  const {
+    displayedProgress,
+    step: progressStep,
+    message: progressMessage,
+    phase,
+    indeterminate
+  } = useOptimizationProgress({
+    sessionKey: currentSessionKeyRef.current,
+    userId,
+    mode: optimizationMode,
+    isActive: isOptimizing,
+  });
 
   // Memoized handler to prevent slider jank
   const handleInfluenceWeightChange = React.useCallback((value: number[]) => {
@@ -734,10 +744,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     } else {
       setSpeedResult(null); // Clear speed mode results
     }
-    // Reset cancellation and set initial progress
     setIsCanceled(false);
     setIsOptimizing(true);
-    setOptimizationProgress({ step: 1, message: 'Creating variants...', progress: 0 });
 
     // Use the global session to start optimization
     try {
@@ -745,45 +753,6 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       const { data: { user } } = await supabase.auth.getUser();
       const sessionKey = `${user?.id}_${Date.now()}`;
       currentSessionKeyRef.current = sessionKey;
-      localStartTimeRef.current = Date.now();
-      
-      // Simple progress tracking - always show real DB progress when available
-      let lastDbProgress = 0;
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      progressIntervalRef.current = window.setInterval(async () => {
-        try {
-          const { data: progressData } = await supabase
-            .from('optimization_progress')
-            .select('*')
-            .eq('session_key', sessionKey)
-            .eq('user_id', user?.id)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (progressData) {
-            // Always use real DB progress when available, only move forward
-            if (progressData.progress > lastDbProgress) {
-              lastDbProgress = progressData.progress;
-              setOptimizationProgress({
-                step: progressData.step,
-                message: progressData.message,
-                progress: progressData.progress
-              });
-            }
-
-            // Stop polling when complete
-            if (progressData.progress >= 100 && progressIntervalRef.current) {
-              clearInterval(progressIntervalRef.current);
-              progressIntervalRef.current = null;
-            }
-          }
-        } catch (error) {
-          console.debug('Progress polling error:', error);
-        }
-      }, 1000); // Poll every second
 
       await startOptimization({
         originalPrompt,
@@ -799,21 +768,10 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         mode: optimizationMode,
         sessionKey,
       });
-
-      // Clear the interval once optimization is complete
-      if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
-
-      // Set to exactly 100% on completion
-      setOptimizationProgress({ step: 3, message: 'Done!', progress: 100 });
-      
-      // Clear progress after a short delay
-      setTimeout(() => {
-        setOptimizationProgress(null);
-      }, 1000);
     } catch (error) {
-      setOptimizationProgress(null);
       throw error;
     }
+  };
   };
 
   // Start new session function - clear all state
