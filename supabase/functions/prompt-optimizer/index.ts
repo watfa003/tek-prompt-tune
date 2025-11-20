@@ -757,6 +757,15 @@ ${optimizedPrompt}`;
         } else {
           // Speed mode: Use static evaluation based on actual prompt quality
           console.log(`[Speed Mode] Skipping testing for ${strategyKey}, using static analysis`);
+          
+          // Track completion for progress
+          variantCompletionStatus[variantIndex] = true;
+          totalCompleted++;
+          
+          // Update progress in speed mode (35-85%)
+          const speedProgressPercent = 35 + Math.floor((totalCompleted / totalVariants) * 50);
+          await updateProgress(speedProgressPercent, 2, `Evaluating variants... (${totalCompleted}/${totalVariants})`);
+          
           try {
             const staticEval = scorePromptAndOutput(optimizedPrompt, "");
             const normalizedScore = staticEval.finalScore / 100; // Convert 0-100 to 0-1
@@ -768,14 +777,6 @@ ${optimizedPrompt}`;
             actualScore = strategy.weight * 0.65; // Conservative fallback
             actualResponse = `Optimized using ${strategy.name} strategy (fallback)`;
           }
-        } else {
-          // Speed mode: still track completion for progress
-          variantCompletionStatus[variantIndex] = true;
-          totalCompleted++;
-          
-          // Update progress in speed mode (35-85%)
-          const speedProgressPercent = 35 + Math.floor((totalCompleted / totalVariants) * 50);
-          await updateProgress(speedProgressPercent, 2, `Evaluating variants... (${totalCompleted}/${totalVariants})`);
         }
 
         return {
