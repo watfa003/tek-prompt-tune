@@ -721,17 +721,18 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       setSpeedResult(null); // Clear speed mode results
     }
     setIsCanceled(false);
-    setIsOptimizing(true);
-    setOptimizationModeForProgress(optimizationMode); // Store mode for progress bar
-    setOptimizationModeForProgress(optimizationMode); // Store mode for progress bar
-
-    // Use the global session to start optimization
+    
+    // Generate session key FIRST before showing progress bar
     try {
-      // Generate a session key that matches backend format
       const { data: { user } } = await supabase.auth.getUser();
       const sessionKey = `${user?.id}_${Date.now()}`;
       currentSessionKeyRef.current = sessionKey;
+      
+      // Now set optimizing to true - this will render the ProgressBarWithETA with the sessionKey
+      setIsOptimizing(true);
+      setOptimizationModeForProgress(optimizationMode);
 
+      // Start optimization with the session key
       await startOptimization({
         originalPrompt,
         taskDescription: optimizerTaskDescription,

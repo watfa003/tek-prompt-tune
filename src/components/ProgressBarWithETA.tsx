@@ -29,9 +29,9 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
 }) => {
   const [progress, setProgress] = useState(0);
   const [displayProgress, setDisplayProgress] = useState(0);
-  const [status, setStatus] = useState<string>('pending');
-  const [message, setMessage] = useState('Initializing...');
-  const [eta, setEta] = useState<string>('Calculating...');
+  const [status, setStatus] = useState<string>('starting');
+  const [message, setMessage] = useState('Starting optimization...');
+  const [eta, setEta] = useState<string>('Initializing...');
   const [error, setError] = useState<string | null>(null);
   const [isStalled, setIsStalled] = useState(false);
 
@@ -76,6 +76,12 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
     const newProgress = Math.min(100, Math.max(0, data.progress));
     const now = Date.now();
 
+    // CRITICAL: Only allow progress to move forward (monotonic)
+    if (newProgress < progress && progress < 100) {
+      console.warn(`Ignoring backward progress: ${progress}% -> ${newProgress}%`);
+      return;
+    }
+
     // Update progress history for ETA calculation
     progressHistoryRef.current.push({ progress: newProgress, timestamp: now });
     
@@ -110,7 +116,7 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       inferredStatus,
       message: data.message,
     });
-  }, [onComplete]);
+  }, [onComplete, progress]);
 
   // Calculate ETA based on progress history
   const calculateETA = useCallback(() => {
@@ -167,10 +173,21 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
     return () => clearInterval(interval);
   }, [calculateETA]);
 
-  // Check for stalls and auto-increment if needed
+  // Check for stalls and auto-complete if needed
   useEffect(() => {
     const checkStall = () => {
       const timeSinceUpdate = Date.now() - lastUpdateTimeRef.current;
+      
+      // If no update for 15 seconds and progress > 90%, auto-complete
+      if (timeSinceUpdate > 15000 && progress > 90 && status !== 'completed') {
+        console.warn('Progress stalled at', progress, '% - auto-completing');
+        setProgress(100);
+        setDisplayProgress(100);
+        setStatus('completed');
+        setEta('Complete!');
+        setTimeout(() => onComplete?.(), 500);
+        return;
+      }
       
       // If no update for 8 seconds and progress < 90, consider stalled
       if (timeSinceUpdate > 8000 && progress < 90 && status !== 'completed') {
@@ -186,7 +203,7 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
 
     const interval = setInterval(checkStall, 2000);
     return () => clearInterval(interval);
-  }, [progress, status]);
+  }, [progress, status, onComplete]);
 
   // Smooth animation for display progress
   useEffect(() => {
