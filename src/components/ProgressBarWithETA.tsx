@@ -31,7 +31,10 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
   const [displayProgress, setDisplayProgress] = useState(0);
   const [status, setStatus] = useState<string>('starting');
   const [message, setMessage] = useState('Starting optimization...');
-  const [eta, setEta] = useState<string>('Initializing...');
+  const [eta, setEta] = useState<string>(() => {
+    // Set initial ETA based on mode
+    return mode === 'speed' ? '~15s remaining' : '~40s remaining';
+  });
   const [error, setError] = useState<string | null>(null);
   const [isStalled, setIsStalled] = useState(false);
 
@@ -118,17 +121,34 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
     });
   }, [onComplete, progress]);
 
-  // Calculate ETA based on progress history
+  // Calculate ETA based on progress history and mode
   const calculateETA = useCallback(() => {
     if (progress >= 100 || status === 'completed') {
       return 'Complete!';
     }
 
+    // Show "Almost done..." above 95%
+    if (progress >= 95) {
+      return 'Almost done...';
+    }
+
     const history = progressHistoryRef.current;
+    const elapsedTime = Date.now() - startTimeRef.current;
     
-    // Need at least 2 data points for calculation
-    if (history.length < 2) {
-      return 'Calculating...';
+    // Use mode-based estimate for first few seconds
+    if (history.length < 2 || elapsedTime < 2000) {
+      const expectedTime = mode === 'speed' ? 15000 : 40000;
+      const remainingTime = Math.max(0, expectedTime - elapsedTime);
+      const seconds = Math.ceil(remainingTime / 1000);
+      
+      if (seconds < 5) {
+        return 'Almost done...';
+      } else if (seconds < 60) {
+        return `~${seconds}s remaining`;
+      } else {
+        const minutes = Math.ceil(seconds / 60);
+        return `~${minutes}m remaining`;
+      }
     }
 
     // Calculate average progress rate from recent history
@@ -139,19 +159,27 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
     const timeDelta = lastPoint.timestamp - firstPoint.timestamp;
 
     if (progressDelta <= 0 || timeDelta <= 0) {
-      return 'Calculating...';
+      // Fall back to mode-based estimate
+      const expectedTime = mode === 'speed' ? 15000 : 40000;
+      const remainingTime = Math.max(0, expectedTime - elapsedTime);
+      const seconds = Math.ceil(remainingTime / 1000);
+      return seconds < 60 ? `~${seconds}s remaining` : `~${Math.ceil(seconds / 60)}m remaining`;
     }
 
     // Calculate rate: progress per millisecond
     const rate = progressDelta / timeDelta;
     
-    // Calculate remaining time
+    // Calculate remaining time based on actual progress
     const remainingProgress = 100 - progress;
     const remainingTimeMs = remainingProgress / rate;
     const remainingSeconds = Math.ceil(remainingTimeMs / 1000);
 
     if (!isFinite(remainingSeconds) || remainingSeconds < 0) {
-      return 'Calculating...';
+      // Fall back to mode-based estimate
+      const expectedTime = mode === 'speed' ? 15000 : 40000;
+      const remainingTime = Math.max(0, expectedTime - elapsedTime);
+      const seconds = Math.ceil(remainingTime / 1000);
+      return seconds < 60 ? `~${seconds}s remaining` : `~${Math.ceil(seconds / 60)}m remaining`;
     }
 
     if (remainingSeconds < 5) {
@@ -162,7 +190,7 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       const minutes = Math.ceil(remainingSeconds / 60);
       return `~${minutes}m remaining`;
     }
-  }, [progress, status]);
+  }, [progress, status, mode]);
 
   // Update ETA periodically
   useEffect(() => {
@@ -242,6 +270,9 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
     console.log('Setting up realtime subscription for session:', sessionKey);
     startTimeRef.current = Date.now();
     lastUpdateTimeRef.current = Date.now();
+    
+    // Set initial ETA based on mode
+    setEta(mode === 'speed' ? '~15s remaining' : '~40s remaining');
 
     // Initial fetch
     fetchProgress();
