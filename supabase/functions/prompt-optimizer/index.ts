@@ -453,8 +453,13 @@ serve(async (req) => {
       }
     };
 
-    // Initialize progress - Step 1: Creating variants
-    await updateProgress(0, 1, 'Creating variants...');
+    // Initialize progress immediately - Step 1: Creating variants
+    await updateProgress(0, 1, 'Starting optimization...');
+    
+    // Small delay to ensure initial progress is written
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    await updateProgress(5, 1, 'Creating variants...');
     
     // Start prompt record creation
     const promptRecordPromise = createPromptRecord();
@@ -518,18 +523,23 @@ serve(async (req) => {
     
     // Test only the requested number of strategies, prioritized by performance
     // Track completed variants for monotonic progress (prevents backwards progress)
-    let completedCreations = 0;
-    let completedTests = 0;
+    // Use arrays to track which specific variants have started/completed to maintain order
+    const variantStartOrder: number[] = [];
+    const variantCompletionStatus: boolean[] = new Array(selectedStrategies.length).fill(false);
+    let totalCompleted = 0;
     const totalVariants = selectedStrategies.length;
     
-    const variantPromises = selectedStrategies.map(async (strategyKey, index) => {
+    const variantPromises = selectedStrategies.map(async (strategyKey, variantIndex) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
-        // Update progress - still creating variants (10-40%) based on COMPLETION ORDER
-        completedCreations++;
-        const progressPercent = 10 + Math.floor((completedCreations / totalVariants) * 30);
-        await updateProgress(progressPercent, 1, `Creating variants... (${completedCreations}/${totalVariants})`);
+        // Track START order immediately
+        variantStartOrder.push(variantIndex);
+        const startPosition = variantStartOrder.length;
+        
+        // Update progress based on START position (5-35%)
+        const creationProgress = 5 + Math.floor((startPosition / totalVariants) * 30);
+        await updateProgress(creationProgress, 1, `Creating variants... (${startPosition}/${totalVariants})`);
         // Get model-friendly name for the target model
         const targetModelName = getModelFriendlyName(aiProvider, modelName);
         
@@ -673,10 +683,13 @@ ${optimizedPrompt}`;
         let actualScore = 0;
         
         if (!speedMode) {
-          // Update to testing phase (40-90%) based on COMPLETION ORDER, not index
-          completedTests++;
-          const testProgressPercent = 40 + Math.floor((completedTests / totalVariants) * 50);
-          await updateProgress(testProgressPercent, 2, `Testing variants... (${completedTests}/${totalVariants})`);
+          // Mark this variant as completed and count total
+          variantCompletionStatus[variantIndex] = true;
+          totalCompleted++;
+          
+          // Update to testing phase (35-85%) based on TOTAL completed
+          const testProgressPercent = 35 + Math.floor((totalCompleted / totalVariants) * 50);
+          await updateProgress(testProgressPercent, 2, `Testing variants... (${totalCompleted}/${totalVariants})`);
           
           try {
             console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
@@ -755,6 +768,14 @@ ${optimizedPrompt}`;
             actualScore = strategy.weight * 0.65; // Conservative fallback
             actualResponse = `Optimized using ${strategy.name} strategy (fallback)`;
           }
+        } else {
+          // Speed mode: still track completion for progress
+          variantCompletionStatus[variantIndex] = true;
+          totalCompleted++;
+          
+          // Update progress in speed mode (35-85%)
+          const speedProgressPercent = 35 + Math.floor((totalCompleted / totalVariants) * 50);
+          await updateProgress(speedProgressPercent, 2, `Evaluating variants... (${totalCompleted}/${totalVariants})`);
         }
 
         return {
@@ -795,8 +816,8 @@ ${optimizedPrompt}`;
       promptRecord = { id: null };
     }
 
-    // Update progress - finalizing (95%)
-    await updateProgress(95, 3, 'Done!');
+    // Update progress - finalizing (90%)
+    await updateProgress(90, 3, 'Selecting best variant...');
     
     // Filter successful variants
     let optimizedVariants = variantResults
@@ -827,6 +848,14 @@ ${optimizedPrompt}`;
     );
 
     const processingTime = Date.now() - startTime;
+    
+    // Update progress to 95% - best variant selected
+    await updateProgress(95, 3, 'Finalizing results...');
+    
+    // CRITICAL: Update progress to 100% BEFORE background tasks
+    // This ensures the UI always shows completion even if background tasks fail
+    await updateProgress(100, 3, 'Done!');
+    console.log('✅ Progress updated to 100% - optimization complete');
     
     // Background task for database updates and optimization insights (don't block response)
     const backgroundUpdates = async () => {
@@ -913,10 +942,8 @@ ${optimizedPrompt}`;
         console.error('❌ Error saving template:', templateError);
       }
     }
-
-    // Update progress to 100% - completion
-    await updateProgress(100, 3, 'Done!');
     
+    // Note: Progress already updated to 100% before background tasks
     // Return immediate response with sessionKey for progress tracking
     const response = {
       promptId: autoSave && promptRecord?.id ? promptRecord.id : null,
