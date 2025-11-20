@@ -1,0 +1,390 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Progress } from '@/components/ui/progress';
+import { Clock, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface ProgressBarWithETAProps {
+  sessionKey: string;
+  userId: string;
+  onComplete?: () => void;
+  mode?: 'speed' | 'deep';
+  className?: string;
+}
+
+interface ProgressData {
+  progress: number;
+  step: number;
+  message: string;
+  updated_at: string;
+  created_at: string;
+}
+
+export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
+  sessionKey,
+  userId,
+  onComplete,
+  mode = 'deep',
+  className = '',
+}) => {
+  const [progress, setProgress] = useState(0);
+  const [displayProgress, setDisplayProgress] = useState(0);
+  const [status, setStatus] = useState<string>('pending');
+  const [message, setMessage] = useState('Initializing...');
+  const [eta, setEta] = useState<string>('Calculating...');
+  const [error, setError] = useState<string | null>(null);
+  const [isStalled, setIsStalled] = useState(false);
+
+  const channelRef = useRef<any>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(Date.now());
+  const progressHistoryRef = useRef<Array<{ progress: number; timestamp: number }>>([]);
+  const animationFrameRef = useRef<number>();
+  const autoIncrementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Expected total time based on mode
+  const expectedTotalTime = mode === 'speed' ? 15000 : 40000; // milliseconds
+
+  // Fetch progress from database
+  const fetchProgress = useCallback(async () => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('optimization_progress')
+        .select('*')
+        .eq('session_key', sessionKey)
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error fetching progress:', fetchError);
+        return;
+      }
+
+      if (data) {
+        updateProgressState(data);
+      }
+    } catch (err) {
+      console.error('Fetch progress exception:', err);
+    }
+  }, [sessionKey, userId]);
+
+  // Update progress state with new data
+  const updateProgressState = useCallback((data: ProgressData) => {
+    const newProgress = Math.min(100, Math.max(0, data.progress));
+    const now = Date.now();
+
+    // Update progress history for ETA calculation
+    progressHistoryRef.current.push({ progress: newProgress, timestamp: now });
+    
+    // Keep only last 5 entries for ETA calculation
+    if (progressHistoryRef.current.length > 5) {
+      progressHistoryRef.current.shift();
+    }
+
+    setProgress(newProgress);
+    
+    // Infer status from progress
+    const inferredStatus = newProgress >= 100 ? 'completed' : newProgress > 0 ? 'processing' : 'pending';
+    setStatus(inferredStatus);
+    setMessage(data.message || 'Processing...');
+    lastUpdateTimeRef.current = now;
+    setIsStalled(false);
+
+    // If completed, snap to 100 and trigger callback
+    if (newProgress >= 100) {
+      setProgress(100);
+      setDisplayProgress(100);
+      setStatus('completed');
+      setEta('Complete!');
+      
+      setTimeout(() => {
+        onComplete?.();
+      }, 500);
+    }
+
+    console.log('Progress updated:', {
+      progress: newProgress,
+      inferredStatus,
+      message: data.message,
+    });
+  }, [onComplete]);
+
+  // Calculate ETA based on progress history
+  const calculateETA = useCallback(() => {
+    if (progress >= 100 || status === 'completed') {
+      return 'Complete!';
+    }
+
+    const history = progressHistoryRef.current;
+    
+    // Need at least 2 data points for calculation
+    if (history.length < 2) {
+      return 'Calculating...';
+    }
+
+    // Calculate average progress rate from recent history
+    const firstPoint = history[0];
+    const lastPoint = history[history.length - 1];
+    
+    const progressDelta = lastPoint.progress - firstPoint.progress;
+    const timeDelta = lastPoint.timestamp - firstPoint.timestamp;
+
+    if (progressDelta <= 0 || timeDelta <= 0) {
+      return 'Calculating...';
+    }
+
+    // Calculate rate: progress per millisecond
+    const rate = progressDelta / timeDelta;
+    
+    // Calculate remaining time
+    const remainingProgress = 100 - progress;
+    const remainingTimeMs = remainingProgress / rate;
+    const remainingSeconds = Math.ceil(remainingTimeMs / 1000);
+
+    if (!isFinite(remainingSeconds) || remainingSeconds < 0) {
+      return 'Calculating...';
+    }
+
+    if (remainingSeconds < 5) {
+      return 'Almost done...';
+    } else if (remainingSeconds < 60) {
+      return `~${remainingSeconds}s remaining`;
+    } else {
+      const minutes = Math.ceil(remainingSeconds / 60);
+      return `~${minutes}m remaining`;
+    }
+  }, [progress, status]);
+
+  // Update ETA periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEta(calculateETA());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [calculateETA]);
+
+  // Check for stalls and auto-increment if needed
+  useEffect(() => {
+    const checkStall = () => {
+      const timeSinceUpdate = Date.now() - lastUpdateTimeRef.current;
+      
+      // If no update for 8 seconds and progress < 90, consider stalled
+      if (timeSinceUpdate > 8000 && progress < 90 && status !== 'completed') {
+        setIsStalled(true);
+        
+        // Auto-increment slowly (fail-safe)
+        if (progress < 85) {
+          setProgress(prev => Math.min(90, prev + 0.5));
+          console.log('Auto-incrementing progress (stall detected)');
+        }
+      }
+    };
+
+    const interval = setInterval(checkStall, 2000);
+    return () => clearInterval(interval);
+  }, [progress, status]);
+
+  // Smooth animation for display progress
+  useEffect(() => {
+    const animate = () => {
+      setDisplayProgress(current => {
+        const diff = progress - current;
+        
+        // Snap to target if very close
+        if (Math.abs(diff) < 0.5) {
+          return progress;
+        }
+        
+        // Smooth easing
+        const increment = diff * 0.15;
+        return current + increment;
+      });
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [progress]);
+
+  // Set up realtime subscription
+  useEffect(() => {
+    if (!sessionKey || !userId) {
+      return;
+    }
+
+    console.log('Setting up realtime subscription for session:', sessionKey);
+    startTimeRef.current = Date.now();
+    lastUpdateTimeRef.current = Date.now();
+
+    // Initial fetch
+    fetchProgress();
+
+    // Set up realtime channel
+    const channel = supabase
+      .channel(`progress-${sessionKey}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'optimization_progress',
+          filter: `session_key=eq.${sessionKey}`,
+        },
+        (payload: any) => {
+          console.log('Realtime update received:', payload);
+          
+          if (payload.new && payload.new.user_id === userId) {
+            updateProgressState(payload.new);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to progress updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to realtime updates, falling back to polling');
+          setError('Connection issue detected, using fallback mode');
+        }
+      });
+
+    channelRef.current = channel;
+
+    // Set up polling as fallback (every 1 second)
+    pollingIntervalRef.current = setInterval(() => {
+      fetchProgress();
+    }, 1000);
+
+    // Cleanup
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
+      if (autoIncrementTimeoutRef.current) {
+        clearTimeout(autoIncrementTimeoutRef.current);
+      }
+    };
+  }, [sessionKey, userId, fetchProgress, updateProgressState]);
+
+  // Force completion if status is completed but progress isn't 100
+  useEffect(() => {
+    if (status === 'completed' && progress < 100) {
+      console.log('Forcing progress to 100 (status is completed)');
+      setProgress(100);
+      setDisplayProgress(100);
+    }
+  }, [status, progress]);
+
+  const roundedProgress = Math.round(displayProgress);
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className={`space-y-3 ${className}`}
+      >
+        {/* Progress Bar */}
+        <div className="relative">
+          <Progress 
+            value={roundedProgress} 
+            className={`h-3 transition-all duration-300 ${
+              isStalled ? 'progress-stalled' : ''
+            }`}
+          />
+          
+          {/* Percentage Label */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-xs font-bold text-primary-foreground mix-blend-difference">
+              {roundedProgress}%
+            </span>
+          </div>
+        </div>
+
+        {/* Status Message and ETA */}
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <motion.div
+              animate={{ rotate: status === 'completed' ? 0 : 360 }}
+              transition={{ 
+                repeat: status === 'completed' ? 0 : Infinity, 
+                duration: 2,
+                ease: 'linear'
+              }}
+            >
+              <div className="h-2 w-2 rounded-full bg-primary" />
+            </motion.div>
+            <span className={isStalled ? 'text-amber-500' : ''}>
+              {message}
+              {isStalled && ' (taking longer than usual...)'}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span className="font-medium">{eta}</span>
+          </div>
+        </div>
+
+        {/* Error Banner */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="flex items-center gap-2 rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400"
+          >
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{error}</span>
+          </motion.div>
+        )}
+
+        {/* Custom striped animation for stalled state */}
+        <style>{`
+          .progress-stalled [role="progressbar"] > div {
+            background: repeating-linear-gradient(
+              45deg,
+              hsl(var(--primary)),
+              hsl(var(--primary)) 10px,
+              hsl(var(--primary) / 0.7) 10px,
+              hsl(var(--primary) / 0.7) 20px
+            );
+            animation: progress-stripes 1s linear infinite;
+          }
+          
+          @keyframes progress-stripes {
+            0% {
+              background-position: 0 0;
+            }
+            100% {
+              background-position: 40px 0;
+            }
+          }
+        `}</style>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+

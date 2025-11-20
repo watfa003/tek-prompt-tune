@@ -42,9 +42,9 @@ import { useSettings } from '@/hooks/use-settings';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { usePromptData } from '@/context/PromptDataContext';
 import { useOptimizerSession } from '@/context/OptimizerSessionContext';
-import { useOptimizationProgress } from '@/hooks/use-optimization-progress';
 import { detectOutputType } from '@/lib/output-formatters';
 import { OutputTypeSelector } from '@/components/ui/output-type-selector';
+import { ProgressBarWithETA } from '@/components/ProgressBarWithETA';
 
 interface OptimizationResult {
   promptId: string;
@@ -575,20 +575,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id || null));
   }, []);
 
-  // Use the realtime progress hook
-  const {
-    displayedProgress,
-    step: progressStep,
-    message: progressMessage,
-    phase,
-    indeterminate,
-    etaSeconds
-  } = useOptimizationProgress({
-    sessionKey: currentSessionKeyRef.current,
-    userId,
-    mode: optimizationMode,
-    isActive: isOptimizing,
-  });
+  // Mode for progress bar
+  const [optimizationModeForProgress, setOptimizationModeForProgress] = useState<'speed' | 'deep'>('deep');
 
   // Memoized handler to prevent slider jank
   const handleInfluenceWeightChange = React.useCallback((value: number[]) => {
@@ -734,6 +722,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
     setIsCanceled(false);
     setIsOptimizing(true);
+    setOptimizationModeForProgress(optimizationMode); // Store mode for progress bar
+    setOptimizationModeForProgress(optimizationMode); // Store mode for progress bar
 
     // Use the global session to start optimization
     try {
@@ -869,64 +859,43 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       />
 
       {/* Optimization Progress Bar */}
-      <AnimatePresence>
-        {isOptimizing && displayedProgress > 0 && (
+      <AnimatePresence mode="wait">
+        {isOptimizing && !isCanceled && userId && currentSessionKeyRef.current && (
           <motion.div
+            key="progress"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="p-4 bg-primary/5 border-primary/20">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="font-medium text-sm">
-                      {phase}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {etaSeconds !== null && (
-                      <span className="text-xs text-muted-foreground">ETA ~{etaSeconds}s</span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {Math.round(displayedProgress)}%
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={cancelOptimization}
-                      className="h-7 px-2"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-                <Progress value={displayedProgress} indeterminate={indeterminate} className="h-2" />
+            <Card className="p-6 bg-primary/5 border-primary/20">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Optimizing Your Prompt...</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cancelOptimization}
+                  className="h-8"
+                >
+                  Cancel
+                </Button>
               </div>
+              
+              <ProgressBarWithETA
+                sessionKey={currentSessionKeyRef.current}
+                userId={userId}
+                mode={optimizationModeForProgress}
+                onComplete={() => {
+                  console.log('Optimization completed!');
+                  setIsOptimizing(false);
+                }}
+              />
             </Card>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Optimization Recovery Banner */}
-      {isOptimizing && optimizationStartTime && displayedProgress === 0 && (
-        <Card className="p-4 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
-          <div className="flex items-center space-x-2">
-            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-            <div>
-              <p className="font-medium text-blue-900 dark:text-blue-100">
-                Optimization in Progress
-              </p>
-              <p className="text-sm text-blue-700 dark:text-blue-200">
-                Your prompt optimization is still running in the background. You can safely navigate away and come back to check results.
-                Started {Math.round((Date.now() - optimizationStartTime) / 1000 / 60)} minutes ago.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
+
       {speedResult && (
         <div className="space-y-4" data-results-section>
           {/* Speed Mode Stats */}
