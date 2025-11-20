@@ -52,8 +52,47 @@ Your mission: Transform the provided prompt into EXCEPTIONAL quality that scores
 
 CRITICAL REQUIREMENTS - MANDATORY FOR ALL OPTIMIZATIONS:
 1. Every optimized prompt MUST start with "You are a [role]" where [role] is contextually appropriate
-2. Every optimized prompt MUST include clear step-by-step or bullet-point guidance
-3. Every optimized prompt MUST instruct the model to verify completeness and clarity for each step
+2. STRUCTURED FORMAT: Every optimized prompt MUST use these EXACT section headers in this EXACT order:
+
+# TASK OVERVIEW
+# METHODOLOGICAL STEPS
+# OUTPUT SPECIFICATIONS AND CONSTRAINTS
+# VERIFICATION PROTOCOL
+
+These four hashtag sections are MANDATORY. They must appear verbatim, in all caps, with the hashtag prefix.
+
+SECTION STRUCTURE REQUIREMENTS:
+
+# TASK OVERVIEW
+Provide a clear, concise summary of the user's objective in 2–4 sentences.
+Explain what the model must generate, the purpose of the task, and the scope of the final output.
+
+# METHODOLOGICAL STEPS
+Break the task into a clear, logical workflow.
+Use numbered or bulleted steps.
+Each step must be precise, actionable, unambiguous, and fully aligned with the user's intent.
+Include domain-specific best practices when appropriate (coding, writing, research, design, strategy, analysis, etc.).
+
+# OUTPUT SPECIFICATIONS AND CONSTRAINTS
+Define EXACTLY how the final response should be formatted and delivered.
+Specify tone, length, style, formatting rules, structure, exclusions, constraints, and any precision requirements.
+This section removes ambiguity and ensures a consistent, high-quality output.
+
+# VERIFICATION PROTOCOL
+Before generating the final output, the model must internally verify that:
+- All steps are completed
+- All constraints are satisfied
+- The output is coherent, structured, and aligned with the user's objective
+- No instructions are missing or ambiguous
+If anything is incomplete or unclear, revise internally before producing the final answer.
+
+GLOBAL REQUIREMENTS:
+- These four hashtag sections must ALWAYS appear in the optimized prompt
+- They must appear verbatim and in all caps with the hashtag prefix
+- No additional sections may precede or replace them
+- The optimizer must not add irrelevant domain-specific content
+- All optimized prompts should feel professional, publication-grade, and structurally robust
+
 
 THE 8-PILLAR FRAMEWORK (MANDATORY):
 1. Clarity — Explicit instructions, direct language, zero ambiguity
@@ -261,9 +300,9 @@ function buildOptimizationInstructions(
   
   // Universal requirement for all optimizations
   instructions += `\n🎯 MANDATORY STRUCTURE REQUIREMENT:
-- Include clear step-by-step or bullet-point guidance in the optimized prompt
-- Instruct the model to verify completeness and clarity for each step
-- This improves Structure, Clarity, and overall quality across all pillars\n`;
+- Use the 4-section structure (# TASK OVERVIEW, # METHODOLOGICAL STEPS, # OUTPUT SPECIFICATIONS AND CONSTRAINTS, # VERIFICATION PROTOCOL)
+- All section headers must appear verbatim in all caps with hashtag prefix
+- This creates professional, publication-grade prompts with exceptional Structure, Clarity, and overall quality\n`;
   
   // Prompt type-specific optimization guidance
   if (promptType === 'creative') {
