@@ -99,9 +99,9 @@ export const useOptimizationProgress = ({
         return Math.min(95, Math.max(current, next));
       });
 
-      // Check for stall
+      // Check for stall - show indeterminate if no DB update for >5s
       const timeSinceLastUpdate = Date.now() - lastDbUpdateRef.current;
-      setIndeterminate(timeSinceLastUpdate > 7000 && dbProgress < 90);
+      setIndeterminate(timeSinceLastUpdate > 5000 && dbProgress < 90);
 
       animationFrameRef.current = requestAnimationFrame(animate);
     };
