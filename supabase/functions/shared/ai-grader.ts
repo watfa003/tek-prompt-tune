@@ -170,7 +170,7 @@ ${prompt}`;
           { role: 'system', content: GRADING_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.3, // Universal temperature for consistent grading across all features
+        temperature: 0.5, // Universal temperature for consistent grading across all features
         max_tokens: 1500,
         response_format: { type: "json_object" }
       }),
