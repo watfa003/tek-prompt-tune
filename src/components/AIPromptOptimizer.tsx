@@ -722,17 +722,17 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
     setIsCanceled(false);
     
-    // Generate session key FIRST before showing progress bar
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const sessionKey = `${user?.id}_${Date.now()}`;
-      currentSessionKeyRef.current = sessionKey;
-      
-      // Now set optimizing to true - this will render the ProgressBarWithETA with the sessionKey
-      setIsOptimizing(true);
-      setOptimizationModeForProgress(optimizationMode);
+    // Generate session key and set states SYNCHRONOUSLY before any async operations
+    const { data: { user } } = await supabase.auth.getUser();
+    const sessionKey = `${user?.id}_${Date.now()}`;
+    currentSessionKeyRef.current = sessionKey;
+    setOptimizationModeForProgress(optimizationMode);
+    
+    // Set optimizing AFTER sessionKey is guaranteed to be set
+    setIsOptimizing(true);
 
-      // Start optimization with the session key
+    // Start optimization with the session key
+    try {
       await startOptimization({
         originalPrompt,
         taskDescription: optimizerTaskDescription,
@@ -748,7 +748,13 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         sessionKey,
       });
     } catch (error) {
-      throw error;
+      console.error('Optimization error:', error);
+      setIsOptimizing(false);
+      toast({
+        title: "Error",
+        description: "Optimization failed. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
