@@ -50,48 +50,38 @@ serve(async (req) => {
 
 Your mission: Transform the provided prompt into EXCEPTIONAL quality that scores ≥9.0/10 on ALL 8 pillars with an average ≥9.2/10, while preserving the exact user intent.
 
-CRITICAL REQUIREMENTS - MANDATORY FOR ALL OPTIMIZATIONS:
-1. Every optimized prompt MUST start with "You are a [role]" where [role] is contextually appropriate
-2. STRUCTURED FORMAT: Every optimized prompt MUST use these EXACT section headers in this EXACT order:
+CRITICAL REQUIREMENTS FOR ALL OPTIMIZATIONS:
+1. Every optimized prompt should start with "You are a [role]" where [role] is contextually appropriate
+2. STRUCTURED FORMAT INSPIRATION: Consider using a clear organizational structure inspired by these recommended sections:
 
 # TASK OVERVIEW
 # METHODOLOGICAL STEPS
 # OUTPUT SPECIFICATIONS AND CONSTRAINTS
 # VERIFICATION PROTOCOL
 
-These four hashtag sections are MANDATORY. They must appear verbatim, in all caps, with the hashtag prefix.
+These are RECOMMENDED organizational patterns, not mandatory requirements. Use them as inspiration to create well-structured, professional prompts. Feel free to adapt, rename, or reorganize these sections to best fit the specific task. The goal is clarity and organization, not rigid adherence to a template.
 
-SECTION STRUCTURE REQUIREMENTS:
+STRUCTURAL GUIDANCE (Use as Inspiration):
 
-# TASK OVERVIEW
-Provide a clear, concise summary of the user's objective in 2–4 sentences.
-Explain what the model must generate, the purpose of the task, and the scope of the final output.
+**Task Overview Pattern:**
+Provide a clear, concise summary of the objective in 2–4 sentences. Explain what should be generated, the purpose, and the scope. This can be integrated naturally into the prompt opening without a formal header if it flows better.
 
-# METHODOLOGICAL STEPS
-Break the task into a clear, logical workflow.
-Use numbered or bulleted steps.
-Each step must be precise, actionable, unambiguous, and fully aligned with the user's intent.
-Include domain-specific best practices when appropriate (coding, writing, research, design, strategy, analysis, etc.).
+**Methodological Steps Pattern:**
+Break complex tasks into clear, logical workflows. Use numbered or bulleted steps when helpful. Each step should be precise, actionable, and aligned with the intent. Include domain-specific best practices when appropriate. This doesn't need a formal section header if the steps flow naturally in the prompt.
 
-# OUTPUT SPECIFICATIONS AND CONSTRAINTS
-Define EXACTLY how the final response should be formatted and delivered.
-Specify tone, length, style, formatting rules, structure, exclusions, constraints, and any precision requirements.
-This section removes ambiguity and ensures a consistent, high-quality output.
+**Output Specifications Pattern:**
+Define how the final response should be formatted and delivered. Specify tone, length, style, formatting rules, structure, and constraints. This removes ambiguity. Can be woven throughout the prompt or grouped logically without requiring a specific header format.
 
-# VERIFICATION PROTOCOL
-Before generating the final output, the model must internally verify that:
-- All steps are completed
-- All constraints are satisfied
-- The output is coherent, structured, and aligned with the user's objective
-- No instructions are missing or ambiguous
-If anything is incomplete or unclear, revise internally before producing the final answer.
+**Verification Approach Pattern:**
+Encourage internal verification: all steps completed, constraints satisfied, output coherent and aligned. This can be expressed as final instructions like "Before responding, verify..." or "Ensure that..." rather than requiring a formal section.
 
-GLOBAL REQUIREMENTS:
-- These four hashtag sections must ALWAYS appear in the optimized prompt
-- They must appear verbatim and in all caps with the hashtag prefix
-- No additional sections may precede or replace them
-- The optimizer must not add irrelevant domain-specific content
-- All optimized prompts should feel professional, publication-grade, and structurally robust
+STRUCTURAL FLEXIBILITY:
+- Adapt the organizational pattern to fit the task naturally
+- Section headers are optional - use them only when they improve clarity
+- Small, simple prompts may not need formal sections at all
+- Complex prompts benefit from clear organization, but the exact format should be organic
+- The goal is professional, publication-grade structure that fits the specific use case
+- Don't force unnecessary formality onto simple tasks
 
 
 THE 8-PILLAR FRAMEWORK (MANDATORY):
@@ -298,11 +288,15 @@ function buildOptimizationInstructions(
 ): string {
   let instructions = '\nOPTIMIZATION TARGETS:\n';
   
-  // Universal requirement for all optimizations
-  instructions += `\n🎯 MANDATORY STRUCTURE REQUIREMENT:
-- Use the 4-section structure (# TASK OVERVIEW, # METHODOLOGICAL STEPS, # OUTPUT SPECIFICATIONS AND CONSTRAINTS, # VERIFICATION PROTOCOL)
-- All section headers must appear verbatim in all caps with hashtag prefix
-- This creates professional, publication-grade prompts with exceptional Structure, Clarity, and overall quality\n`;
+  // Universal structural guidance (inspirational, not mandatory)
+  instructions += `\n🎯 STRUCTURAL GUIDANCE:
+- Consider organizing your optimized prompt using clear sections inspired by this pattern:
+  # TASK OVERVIEW / # METHODOLOGICAL STEPS / # OUTPUT SPECIFICATIONS AND CONSTRAINTS / # VERIFICATION PROTOCOL
+- These are RECOMMENDED organizational patterns to inspire a well-structured prompt
+- Feel free to adapt, rename, or reorganize to best fit this specific task
+- Use formal section headers only when they improve clarity
+- For simpler prompts, integrate these elements naturally without explicit headers
+- The goal is professional, publication-grade structure that fits the specific use case\n`;
   
   // Prompt type-specific optimization guidance
   if (promptType === 'creative') {
