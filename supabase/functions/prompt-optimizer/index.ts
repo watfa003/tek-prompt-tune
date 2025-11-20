@@ -528,13 +528,19 @@ serve(async (req) => {
     console.log(`   📊 Final selection (${selectedStrategies.length}): [${selectedStrategies.join(', ')}]`);
     
     // Test only the requested number of strategies, prioritized by performance
+    // Track completed variants for monotonic progress (prevents backwards progress)
+    let completedCreations = 0;
+    let completedTests = 0;
+    const totalVariants = selectedStrategies.length;
+    
     const variantPromises = selectedStrategies.map(async (strategyKey, index) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
       
       try {
-        // Update progress - still creating variants (10-40%)
-        const progressPercent = 10 + Math.floor((index / selectedStrategies.length) * 30);
-        await updateProgress(progressPercent, 1, 'Creating variants...');
+        // Update progress - still creating variants (10-40%) based on COMPLETION ORDER
+        completedCreations++;
+        const progressPercent = 10 + Math.floor((completedCreations / totalVariants) * 30);
+        await updateProgress(progressPercent, 1, `Creating variants... (${completedCreations}/${totalVariants})`);
         // Get model-friendly name for the target model
         const targetModelName = getModelFriendlyName(aiProvider, modelName);
         
@@ -678,9 +684,10 @@ ${optimizedPrompt}`;
         let actualScore = 0;
         
         if (!speedMode) {
-          // Update to testing phase (40-90%)
-          const testProgressPercent = 40 + Math.floor((index / selectedStrategies.length) * 50);
-          await updateProgress(testProgressPercent, 2, 'Testing variants...');
+          // Update to testing phase (40-90%) based on COMPLETION ORDER, not index
+          completedTests++;
+          const testProgressPercent = 40 + Math.floor((completedTests / totalVariants) * 50);
+          await updateProgress(testProgressPercent, 2, `Testing variants... (${completedTests}/${totalVariants})`);
           
           try {
             console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
