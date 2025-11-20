@@ -581,7 +581,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     step: progressStep,
     message: progressMessage,
     phase,
-    indeterminate
+    indeterminate,
+    etaSeconds
   } = useOptimizationProgress({
     sessionKey: currentSessionKeyRef.current,
     userId,
@@ -690,24 +691,11 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       setTemperature([settings.defaultTemperature]);
     }
   }, [settings]);
-  // Cleanup progress poller on unmount
-  React.useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-    };
-  }, []);
 
   const cancelOptimization = async () => {
     setIsCanceled(true);
     setIsOptimizing(false);
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
-    setOptimizationProgress(null);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user && currentSessionKeyRef.current) {
@@ -771,7 +759,6 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     } catch (error) {
       throw error;
     }
-  };
   };
 
   // Start new session function - clear all state
@@ -883,7 +870,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
 
       {/* Optimization Progress Bar */}
       <AnimatePresence>
-        {optimizationProgress && (
+        {isOptimizing && displayedProgress > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -896,7 +883,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span className="font-medium text-sm">
-                      {optimizationProgress.message}
+                      {phase}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -904,7 +891,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                       <span className="text-xs text-muted-foreground">ETA ~{etaSeconds}s</span>
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {optimizationProgress.progress}%
+                      {Math.round(displayedProgress)}%
                     </span>
                     <Button
                       variant="outline"
@@ -916,7 +903,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                     </Button>
                   </div>
                 </div>
-                <Progress value={optimizationProgress.progress} className="h-2" />
+                <Progress value={displayedProgress} indeterminate={indeterminate} className="h-2" />
               </div>
             </Card>
           </motion.div>
@@ -924,7 +911,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       </AnimatePresence>
 
       {/* Optimization Recovery Banner */}
-      {isOptimizing && optimizationStartTime && !optimizationProgress && (
+      {isOptimizing && optimizationStartTime && displayedProgress === 0 && (
         <Card className="p-4 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
           <div className="flex items-center space-x-2">
             <Loader2 className="h-4 w-4 animate-spin text-blue-600" />

@@ -20,6 +20,7 @@ interface UseOptimizationProgressReturn {
   message: string;
   phase: string;
   indeterminate: boolean;
+  etaSeconds: number | null;
 }
 
 export const useOptimizationProgress = ({
@@ -185,11 +186,18 @@ export const useOptimizationProgress = ({
     ? `${phaseInfo.phase} (can take longer)`
     : message || phaseInfo.phase;
 
+  // Calculate ETA
+  const elapsed = (Date.now() - startTimeRef.current) / 1000;
+  const etaSeconds = isActive && displayedProgress < 95
+    ? Math.max(0, Math.round(totalSeconds - elapsed))
+    : null;
+
   return {
     displayedProgress: Math.round(displayedProgress),
     step: phaseInfo.step,
     message: displayMessage,
     phase: phaseInfo.phase,
     indeterminate,
+    etaSeconds,
   };
 };
