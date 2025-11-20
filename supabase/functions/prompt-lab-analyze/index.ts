@@ -417,7 +417,7 @@ Return only the JSON object with strengths, weaknesses, suggested_fixes, explana
           { role: 'user', content: analysisPrompt }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.2, // CRITICAL: Consistent with ai-grader.ts
+        temperature: 0.3, // Universal temperature for consistent grading across all features
         max_tokens: 3000,
       }),
     });
