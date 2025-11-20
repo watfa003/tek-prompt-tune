@@ -50,6 +50,11 @@ serve(async (req) => {
 
 Your mission: Transform the provided prompt into EXCEPTIONAL quality that scores ≥9.0/10 on ALL 8 pillars with an average ≥9.2/10, while preserving the exact user intent.
 
+CRITICAL REQUIREMENTS - MANDATORY FOR ALL OPTIMIZATIONS:
+1. Every optimized prompt MUST start with "You are a [role]" where [role] is contextually appropriate
+2. Every optimized prompt MUST include clear step-by-step or bullet-point guidance
+3. Every optimized prompt MUST instruct the model to verify completeness and clarity for each step
+
 THE 8-PILLAR FRAMEWORK (MANDATORY):
 1. Clarity — Explicit instructions, direct language, zero ambiguity
 2. Specificity — Detailed parameters, measurable expectations, concrete examples
@@ -253,6 +258,12 @@ function buildOptimizationInstructions(
   promptType?: string
 ): string {
   let instructions = '\nOPTIMIZATION TARGETS:\n';
+  
+  // Universal requirement for all optimizations
+  instructions += `\n🎯 MANDATORY STRUCTURE REQUIREMENT:
+- Include clear step-by-step or bullet-point guidance in the optimized prompt
+- Instruct the model to verify completeness and clarity for each step
+- This improves Structure, Clarity, and overall quality across all pillars\n`;
   
   // Prompt type-specific optimization guidance
   if (promptType === 'creative') {
