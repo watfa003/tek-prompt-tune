@@ -49,13 +49,17 @@ export const useOptimizationProgress = ({
     const progress = elapsed / totalSeconds;
     
     if (mode === 'speed') {
-      if (elapsed < 8) return Math.min(50, progress * 50 * 8);
-      if (elapsed < 14) return 50 + Math.min(40, ((elapsed - 8) / 6) * 40);
-      return 90;
+      // Reach 50% by 8s, 85% by 14s, then gradually to 93% by 18s
+      if (elapsed < 8) return Math.min(50, (elapsed / 8) * 50);
+      if (elapsed < 14) return 50 + Math.min(35, ((elapsed - 8) / 6) * 35);
+      if (elapsed < 18) return 85 + Math.min(8, ((elapsed - 14) / 4) * 8);
+      return 93;
     } else {
+      // Reach 50% by 18s, 85% by 35s, then gradually to 93% by 42s
       if (elapsed < 18) return Math.min(50, (elapsed / 18) * 50);
-      if (elapsed < 38) return 50 + Math.min(40, ((elapsed - 18) / 20) * 40);
-      return 90;
+      if (elapsed < 35) return 50 + Math.min(35, ((elapsed - 18) / 17) * 35);
+      if (elapsed < 42) return 85 + Math.min(8, ((elapsed - 35) / 7) * 8);
+      return 93;
     }
   }, [mode, totalSeconds]);
 
@@ -63,7 +67,7 @@ export const useOptimizationProgress = ({
   const getPhaseInfo = useCallback((progress: number) => {
     if (progress < 35) {
       return { phase: 'Creating variants...', step: 1 };
-    } else if (progress < 90) {
+    } else if (progress < 93) {
       return { phase: 'Evaluating variants...', step: 2 };
     } else {
       return { phase: 'Finalizing...', step: 3 };
