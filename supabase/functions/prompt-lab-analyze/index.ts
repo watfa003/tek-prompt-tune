@@ -46,6 +46,8 @@ interface LabRequest {
 
 interface DiagnoseResult {
   total_score: number;
+  prompt_score: number;
+  output_score: number;
   category_breakdown: CategoryScores;
   prompt_type: PromptType;
   ai_analysis: {
@@ -450,6 +452,8 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   let scores: CategoryScores;
   let aiReasoning: Record<keyof CategoryScores, string> | undefined;
   let finalScore: number;
+  let promptScore: number;
+  let outputScore: number;
   
   try {
     const aiResult = await scorePromptWithAI(req.prompt_a, output, openAIApiKey);
@@ -457,14 +461,16 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     aiReasoning = aiResult.reasoning;
     
     // Combine 50/50: prompt quality + output quality
-    const promptScore = calculateOverallScore(scores);
-    const outputScore = scoreOutputQuality(output);
+    promptScore = calculateOverallScore(scores);
+    outputScore = scoreOutputQuality(output);
     finalScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
     console.log(`✅ AI-powered scoring (50/50): prompt=${promptScore.toFixed(1)}, output=${outputScore.toFixed(1)}, final=${finalScore.toFixed(1)}`);
   } catch (error) {
     console.error('AI grading failed, using fallback:', error);
     const result = scorePromptAndOutput(req.prompt_a, output);
     scores = result.scores;
+    promptScore = result.promptScore;
+    outputScore = result.outputScore;
     finalScore = result.finalScore;
     console.log('⚠️ Using fallback rule-based scoring');
   }
@@ -474,6 +480,8 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   
   return {
     total_score: finalScore,
+    prompt_score: promptScore,
+    output_score: outputScore,
     category_breakdown: scores,
     prompt_type: promptType,
     ai_analysis: analysis,
