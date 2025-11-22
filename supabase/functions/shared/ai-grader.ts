@@ -227,6 +227,8 @@ ${prompt}`;
 
 /**
  * Calculate overall score from category scores
+ * NOTE: Curve is already applied to individual pillars in scorePromptWithAI,
+ * so we only perform weighted averaging here without additional curve
  */
 export function calculateOverallScore(scores: CategoryScores): number {
   // UNIFIED WEIGHTS - Matches master-grader.ts complex type
@@ -247,10 +249,7 @@ export function calculateOverallScore(scores: CategoryScores): number {
   }, 0);
 
   const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
-  const baseScore = weightedSum / totalWeight;
+  const finalScore = weightedSum / totalWeight;
   
-  // Apply score curve: curvedScore = baseScore + (10 - baseScore) * 0.25
-  const curvedScore = baseScore + (10 - baseScore) * 0.25;
-  
-  return Math.round(curvedScore * 10) / 10;
+  return Math.round(finalScore * 10) / 10;
 }

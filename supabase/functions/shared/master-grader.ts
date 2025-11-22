@@ -458,15 +458,15 @@ function detectRepetition(text: string): boolean {
  * Evaluates AI response characteristics AND how well it addresses the prompt
  */
 export function scoreOutputQuality(output: string, prompt?: string): number {
-  let surfaceScore = 5; // baseline for surface metrics (70% weight)
-  let intentScore = 5;  // baseline for intent alignment (30% weight)
+  let surfaceScore = 5; // baseline for surface metrics (50% weight)
+  let intentScore = 5;  // baseline for intent alignment (50% weight)
   
   const outputLength = output.length;
   const words = output.split(/\s+/).length;
   const sentences = output.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
   const avgWordsPerSentence = sentences > 0 ? words / sentences : 0;
   
-  // ===== SURFACE METRICS (70% of output score) =====
+  // ===== SURFACE METRICS (50% of output score) =====
   
   // Length appropriateness (not too short, not excessively long)
   if (outputLength > 50 && outputLength < 3000) surfaceScore += 1;
@@ -494,7 +494,7 @@ export function scoreOutputQuality(output: string, prompt?: string): number {
   if (hasRepetition) surfaceScore -= 1.5;
   if (tooManyNewlines) surfaceScore -= 1;
   
-  // ===== INTENT ALIGNMENT (30% of output score) =====
+  // ===== INTENT ALIGNMENT (50% of output score) =====
   
   if (prompt) {
     // Check if prompt is gibberish/nonsensical - if so, heavily penalize
@@ -563,8 +563,8 @@ export function scoreOutputQuality(output: string, prompt?: string): number {
   const normalizedSurface = Math.max(0, Math.min(10, surfaceScore));
   const normalizedIntent = Math.max(0, Math.min(10, intentScore));
   
-  // Combine: 70% surface metrics, 30% intent alignment
-  const combinedScore = (normalizedSurface * 0.70) + (normalizedIntent * 0.30);
+  // Combine: 50% surface metrics, 50% intent alignment
+  const combinedScore = (normalizedSurface * 0.50) + (normalizedIntent * 0.50);
   
   // Apply score curve: curvedScore = baseScore + (10 - baseScore) * 0.25
   const curvedScore = combinedScore + (10 - combinedScore) * 0.25;
