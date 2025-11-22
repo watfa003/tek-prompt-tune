@@ -454,6 +454,26 @@ const Lab = () => {
     });
   };
 
+  const handleCancel = () => {
+    console.log('🛑 [PromptLab] Cancelling operation');
+    
+    // Reset all loading states
+    setIsLoading(false);
+    setIsAutoOptimizing(false);
+    setTestingMode(null);
+    setIsRetesting(false);
+    setOptimizationProgress(null);
+    
+    // Clear pending states from storage
+    localStorage.removeItem(PENDING_START_KEY);
+    localStorage.removeItem(PENDING_MODE_KEY);
+    
+    toast({
+      title: "Cancelled",
+      description: "Operation cancelled successfully.",
+    });
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copied", description: "Copied to clipboard" });
@@ -665,27 +685,45 @@ const Lab = () => {
                       </div>
                     </div>
 
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                      <Button 
-                        onClick={handleRunTest} 
-                        disabled={isLoading || !promptA.trim()}
-                        className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white h-14 text-lg font-semibold shadow-[0_0_30px_rgba(110,231,255,0.3)] hover:shadow-[0_0_50px_rgba(110,231,255,0.5)] transition-all btn-sheen"
-                        size="lg"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                            Analyzing Prompt...
-                          </>
-                        ) : (
-                          <>
-                            <ZapIcon className="h-5 w-5 mr-2" />
-                            Run Test & Score
-                            <ArrowRight className="h-5 w-5 ml-2" />
-                          </>
-                        )}
-                      </Button>
-                    </motion.div>
+                    <div className="flex gap-3">
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
+                        <Button 
+                          onClick={handleRunTest} 
+                          disabled={isLoading || !promptA.trim()}
+                          className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white h-14 text-lg font-semibold shadow-[0_0_30px_rgba(110,231,255,0.3)] hover:shadow-[0_0_50px_rgba(110,231,255,0.5)] transition-all btn-sheen"
+                          size="lg"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                              Analyzing Prompt...
+                            </>
+                          ) : (
+                            <>
+                              <ZapIcon className="h-5 w-5 mr-2" />
+                              Run Test & Score
+                              <ArrowRight className="h-5 w-5 ml-2" />
+                            </>
+                          )}
+                        </Button>
+                      </motion.div>
+                      {isLoading && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                        >
+                          <Button
+                            onClick={handleCancel}
+                            variant="destructive"
+                            size="lg"
+                            className="h-14 px-6"
+                          >
+                            <X className="h-5 w-5" />
+                          </Button>
+                        </motion.div>
+                      )}
+                    </div>
                   </motion.div>
                 </TabsContent>
 
@@ -815,27 +853,45 @@ const Lab = () => {
                       />
                     </div>
 
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                      <Button 
-                        onClick={handleRunTest} 
-                        disabled={isLoading || !promptA.trim() || !promptB.trim()}
-                        className="w-full bg-gradient-to-r from-accent via-primary to-[hsl(330,100%,69%)] hover:opacity-90 text-white h-14 text-lg font-semibold shadow-[0_0_30px_rgba(124,92,255,0.3)] hover:shadow-[0_0_50px_rgba(124,92,255,0.5)] transition-all btn-sheen"
-                        size="lg"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                            Running Battle...
-                          </>
-                        ) : (
-                          <>
-                            <TrophyIcon className="h-5 w-5 mr-2" />
-                            Start Battle
-                            <ArrowRight className="h-5 w-5 ml-2" />
-                          </>
-                        )}
-                      </Button>
-                    </motion.div>
+                    <div className="flex gap-3">
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
+                        <Button 
+                          onClick={handleRunTest} 
+                          disabled={isLoading || !promptA.trim() || !promptB.trim()}
+                          className="w-full bg-gradient-to-r from-accent via-primary to-[hsl(330,100%,69%)] hover:opacity-90 text-white h-14 text-lg font-semibold shadow-[0_0_30px_rgba(124,92,255,0.3)] hover:shadow-[0_0_50px_rgba(124,92,255,0.5)] transition-all btn-sheen"
+                          size="lg"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                              Running Battle...
+                            </>
+                          ) : (
+                            <>
+                              <TrophyIcon className="h-5 w-5 mr-2" />
+                              Start Battle
+                              <ArrowRight className="h-5 w-5 ml-2" />
+                            </>
+                          )}
+                        </Button>
+                      </motion.div>
+                      {isLoading && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                        >
+                          <Button
+                            onClick={handleCancel}
+                            variant="destructive"
+                            size="lg"
+                            className="h-14 px-6"
+                          >
+                            <X className="h-5 w-5" />
+                          </Button>
+                        </motion.div>
+                      )}
+                    </div>
                   </motion.div>
                 </TabsContent>
               </Tabs>
