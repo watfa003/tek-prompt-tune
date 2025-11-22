@@ -714,6 +714,18 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       return;
     }
 
+    // CRITICAL FIX: Get user BEFORE setting isOptimizing to ensure userId is available
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to optimize prompts",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Clear the opposite mode's result before starting new optimization
     if (optimizationMode === 'speed') {
       setResult(null); // Clear deep mode results
@@ -722,15 +734,13 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
     setIsCanceled(false);
     
-    // CRITICAL FIX: Generate sessionKey SYNCHRONOUSLY before setting isOptimizing
-    // This ensures ProgressBarWithETA has sessionKey immediately when it mounts
+    // Generate sessionKey synchronously before setting isOptimizing
     const sessionKey = `opt_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     currentSessionKeyRef.current = sessionKey;
     setOptimizationModeForProgress(optimizationMode);
-    setIsOptimizing(true);
     
-    // Get user async AFTER state is set
-    const { data: { user } } = await supabase.auth.getUser();
+    // NOW set isOptimizing - ProgressBarWithETA will have both sessionKey and userId
+    setIsOptimizing(true);
 
     // Start optimization with the session key
     try {
