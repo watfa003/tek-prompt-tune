@@ -140,9 +140,6 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
     console.log('Setting up realtime subscription for session:', sessionKey);
     lastUpdateTimeRef.current = Date.now();
 
-    // Initial fetch so first click immediately shows real progress
-    fetchProgress();
-
     const channel = supabase
       .channel(`progress-${sessionKey}`)
       .on(
