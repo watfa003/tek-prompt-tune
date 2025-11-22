@@ -53,6 +53,8 @@ interface CategoryScores {
 interface SingleTestResult {
   total_score: number;
   category_breakdown: CategoryScores;
+  prompt_score?: number;
+  output_score?: number;
   ai_analysis: {
     strengths?: string[];
     weaknesses?: string[];
@@ -60,7 +62,7 @@ interface SingleTestResult {
     explanation?: Record<string, string>;
   };
   prompt_type?: 'simple' | 'complex' | 'creative';
-  tested_prompt?: string; // Add the prompt that was tested
+  tested_prompt?: string;
 }
 
 interface CompareTestResult {
@@ -921,16 +923,44 @@ const Lab = () => {
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.2, duration: 0.5 }}
-                    className="flex flex-col items-center gap-4 py-8"
+                    className="flex flex-col items-center gap-6 py-8"
                   >
                     <ScoreGauge score={singleResult.total_score} size="lg" />
+                    
+                    {/* Grading Methodology Explanation */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="glass-panel p-4 rounded-lg max-w-2xl"
+                    >
+                      <div className="text-center space-y-2">
+                        <div className="text-sm font-semibold text-primary">Grading Methodology</div>
+                        <div className="text-xs text-muted-foreground leading-relaxed">
+                          Final score is calculated as <span className="text-foreground font-mono">50% Prompt Quality + 50% Output Quality</span>
+                        </div>
+                        {singleResult.prompt_score !== undefined && singleResult.output_score !== undefined && (
+                          <div className="flex justify-center gap-6 pt-2 text-xs">
+                            <div className="flex flex-col items-center">
+                              <span className="text-muted-foreground">Prompt Quality (8 Pillars)</span>
+                              <span className="font-mono text-lg text-primary">{singleResult.prompt_score.toFixed(1)}/10</span>
+                            </div>
+                            <div className="flex items-center text-muted-foreground">+</div>
+                            <div className="flex flex-col items-center">
+                              <span className="text-muted-foreground">Output Quality</span>
+                              <span className="font-mono text-lg text-accent">{singleResult.output_score.toFixed(1)}/10</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
                     
                     {/* Prompt Type Badge */}
                     {singleResult.prompt_type && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
+                        transition={{ delay: 0.4 }}
                         className="flex items-center gap-2"
                       >
                         <Badge 
