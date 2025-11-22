@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProgressBarWithETAProps {
   sessionKey: string;
-  userId: string;
+  userId: string | null;
   onComplete?: () => void;
   mode?: 'speed' | 'deep';
   className?: string;
