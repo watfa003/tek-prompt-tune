@@ -878,7 +878,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
 
       {/* Optimization Progress Bar */}
       <AnimatePresence mode="wait">
-        {isOptimizing && !isCanceled && userId && currentSessionKeyRef.current && (
+        {isOptimizing && !isCanceled && currentSessionKeyRef.current && (
           <motion.div
             key="progress"
             initial={{ opacity: 0, y: -20 }}
