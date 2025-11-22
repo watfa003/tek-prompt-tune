@@ -714,18 +714,6 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       return;
     }
 
-    // CRITICAL FIX: Get user BEFORE setting isOptimizing to ensure userId is available
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to optimize prompts",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Clear the opposite mode's result before starting new optimization
     if (optimizationMode === 'speed') {
       setResult(null); // Clear deep mode results
@@ -734,12 +722,13 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
     setIsCanceled(false);
     
-    // Generate sessionKey synchronously before setting isOptimizing
-    const sessionKey = `opt_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    // Generate session key and set states SYNCHRONOUSLY before any async operations
+    const { data: { user } } = await supabase.auth.getUser();
+    const sessionKey = `${user?.id}_${Date.now()}`;
     currentSessionKeyRef.current = sessionKey;
     setOptimizationModeForProgress(optimizationMode);
     
-    // NOW set isOptimizing - ProgressBarWithETA will have both sessionKey and userId
+    // Set optimizing AFTER sessionKey is guaranteed to be set
     setIsOptimizing(true);
 
     // Start optimization with the session key
@@ -878,7 +867,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
 
       {/* Optimization Progress Bar */}
       <AnimatePresence mode="wait">
-        {isOptimizing && !isCanceled && currentSessionKeyRef.current && (
+        {isOptimizing && !isCanceled && userId && currentSessionKeyRef.current && (
           <motion.div
             key="progress"
             initial={{ opacity: 0, y: -20 }}
