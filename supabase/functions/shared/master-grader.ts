@@ -454,48 +454,120 @@ function detectRepetition(text: string): boolean {
 }
 
 /**
- * Score output quality on 0-10 scale
- * Evaluates AI response characteristics independently of prompt
+ * Score output quality on 0-10 scale with intent alignment
+ * Evaluates AI response characteristics AND how well it addresses the prompt
  */
-export function scoreOutputQuality(output: string): number {
-  let score = 5; // baseline
+export function scoreOutputQuality(output: string, prompt?: string): number {
+  let surfaceScore = 5; // baseline for surface metrics (70% weight)
+  let intentScore = 5;  // baseline for intent alignment (30% weight)
   
   const outputLength = output.length;
   const words = output.split(/\s+/).length;
   const sentences = output.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
   const avgWordsPerSentence = sentences > 0 ? words / sentences : 0;
   
+  // ===== SURFACE METRICS (70% of output score) =====
+  
   // Length appropriateness (not too short, not excessively long)
-  if (outputLength > 50 && outputLength < 3000) score += 1;
-  if (outputLength > 200) score += 0.5;
+  if (outputLength > 50 && outputLength < 3000) surfaceScore += 1;
+  if (outputLength > 200) surfaceScore += 0.5;
   
   // Structure quality
-  if (avgWordsPerSentence > 8 && avgWordsPerSentence < 30) score += 1;
-  if (sentences > 2) score += 0.5;
+  if (avgWordsPerSentence > 8 && avgWordsPerSentence < 30) surfaceScore += 1;
+  if (sentences > 2) surfaceScore += 0.5;
   
   // Content richness
   const hasVariety = /[,;:]/.test(output); // punctuation variety
   const hasStructure = /(\n|  )/.test(output); // formatting
-  if (hasVariety) score += 0.5;
-  if (hasStructure) score += 0.5;
+  if (hasVariety) surfaceScore += 0.5;
+  if (hasStructure) surfaceScore += 0.5;
   
   // Coherence indicators
   const startsCapital = /^[A-Z]/.test(output.trim());
   const properEnding = /[.!?]$/.test(output.trim());
-  if (startsCapital) score += 0.3;
-  if (properEnding) score += 0.2;
+  if (startsCapital) surfaceScore += 0.3;
+  if (properEnding) surfaceScore += 0.2;
   
   // Avoid repetitive or low-quality patterns
   const hasRepetition = /(.{20,})\1{2,}/.test(output);
   const tooManyNewlines = (output.match(/\n/g) || []).length > sentences * 2;
-  if (hasRepetition) score -= 1.5;
-  if (tooManyNewlines) score -= 1;
+  if (hasRepetition) surfaceScore -= 1.5;
+  if (tooManyNewlines) surfaceScore -= 1;
   
-  // Keep in valid range
-  const baseScore = Math.max(0, Math.min(10, score));
+  // ===== INTENT ALIGNMENT (30% of output score) =====
+  
+  if (prompt) {
+    // Check if prompt is gibberish/nonsensical - if so, heavily penalize
+    const nonsenseScore = detectNonsense(prompt, output);
+    if (nonsenseScore < 3) {
+      // Prompt is gibberish, output should score very low regardless of quality
+      intentScore = 1; // Very low intent alignment score
+    } else {
+      // Prompt is valid, evaluate if output addresses it
+      
+      // Extract key concepts from prompt (simple word frequency approach)
+      const promptWords = prompt.toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 4); // Focus on substantial words
+      
+      const promptKeywords = new Set(promptWords);
+      const outputLower = output.toLowerCase();
+      
+      // Check how many prompt concepts appear in output
+      let conceptMatches = 0;
+      promptKeywords.forEach(keyword => {
+        if (outputLower.includes(keyword)) conceptMatches++;
+      });
+      
+      const conceptCoverage = promptKeywords.size > 0 
+        ? conceptMatches / promptKeywords.size 
+        : 0.5;
+      
+      if (conceptCoverage >= 0.5) intentScore += 2;
+      else if (conceptCoverage >= 0.3) intentScore += 1.2;
+      else if (conceptCoverage >= 0.1) intentScore += 0.5;
+      else intentScore -= 1; // Output seems unrelated to prompt
+      
+      // Check for question-answer alignment
+      const isQuestion = /\?|^(what|why|how|when|where|who|can|should|would|could|is|are|do|does)/i.test(prompt);
+      if (isQuestion) {
+        // Output should be answering, not asking more questions
+        const outputIsAnswering = !output.startsWith('?') && 
+          (output.includes('because') || output.includes('by') || output.includes('through') || 
+           output.includes('is') || output.includes('are') || sentences.length >= 2);
+        
+        if (outputIsAnswering) intentScore += 1.5;
+        else intentScore -= 1; // Question not answered
+      } else {
+        intentScore += 0.8; // Neutral for non-questions
+      }
+      
+      // Check for instruction compliance
+      const hasInstructions = /\b(write|create|generate|list|explain|describe|analyze|compare|summarize)\b/i.test(prompt);
+      if (hasInstructions) {
+        // Check if output appears to follow instructions (has substance)
+        const hasSubstance = outputLength > 100 && sentences >= 3;
+        if (hasSubstance) intentScore += 1.5;
+        else intentScore += 0.5;
+      } else {
+        intentScore += 1; // Neutral for non-instruction prompts
+      }
+    }
+  } else {
+    // No prompt provided, use neutral intent score
+    intentScore = 5;
+  }
+  
+  // Normalize both scores to 0-10, then combine with weights
+  const normalizedSurface = Math.max(0, Math.min(10, surfaceScore));
+  const normalizedIntent = Math.max(0, Math.min(10, intentScore));
+  
+  // Combine: 70% surface metrics, 30% intent alignment
+  const combinedScore = (normalizedSurface * 0.70) + (normalizedIntent * 0.30);
   
   // Apply score curve: curvedScore = baseScore + (10 - baseScore) * 0.25
-  const curvedScore = baseScore + (10 - baseScore) * 0.25;
+  const curvedScore = combinedScore + (10 - combinedScore) * 0.25;
   
   return Math.round(curvedScore * 10) / 10;
 }
@@ -515,8 +587,8 @@ export function scorePromptAndOutput(prompt: string, output: string): {
   const staticResult = scorePromptStatic(prompt);
   const promptScore = calculateTotalScore(staticResult.scores, staticResult.promptType, prompt);
   
-  // 50% - Score the output quality
-  const outputScore = scoreOutputQuality(output);
+  // 50% - Score the output quality with intent alignment
+  const outputScore = scoreOutputQuality(output, prompt);
   
   // Combine 50/50 and apply curve
   const baseFinalScore = (promptScore * 0.5) + (outputScore * 0.5);

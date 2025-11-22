@@ -460,9 +460,9 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     scores = aiResult.scores;
     aiReasoning = aiResult.reasoning;
     
-    // Combine 50/50: prompt quality + output quality
+    // Combine 50/50: prompt quality + output quality (with intent alignment)
     promptScore = calculateOverallScore(scores);
-    outputScore = scoreOutputQuality(output);
+    outputScore = scoreOutputQuality(output, req.prompt_a);
     finalScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
     console.log(`✅ AI-powered scoring (50/50): prompt=${promptScore.toFixed(1)}, output=${outputScore.toFixed(1)}, final=${finalScore.toFixed(1)}`);
   } catch (error) {
