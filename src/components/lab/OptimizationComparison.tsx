@@ -31,10 +31,14 @@ interface ComparisonResult {
   before: {
     total_score: number;
     category_breakdown: CategoryScores;
+    prompt_score?: number;
+    output_score?: number;
   };
   after: {
     total_score: number;
     category_breakdown: CategoryScores;
+    prompt_score?: number;
+    output_score?: number;
   };
 }
 
@@ -136,6 +140,18 @@ export const OptimizationComparison: React.FC<OptimizationComparisonProps> = ({
             <div className="flex flex-col items-center gap-4 p-6 glass-panel rounded-xl">
               <span className="text-sm text-muted-foreground font-medium">Before</span>
               <ScoreGauge score={before.total_score} size="md" />
+              {before.prompt_score !== undefined && before.output_score !== undefined && (
+                <div className="flex flex-col gap-2 w-full text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Prompt Quality (8 Pillars)</span>
+                    <span className="font-mono text-foreground">{before.prompt_score.toFixed(1)}/10</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Output Quality</span>
+                    <span className="font-mono text-foreground">{before.output_score.toFixed(1)}/10</span>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="flex flex-col items-center justify-center gap-3 p-6 glass-panel rounded-xl border-2 border-green-500/30">
@@ -169,6 +185,18 @@ export const OptimizationComparison: React.FC<OptimizationComparisonProps> = ({
             <div className="flex flex-col items-center gap-4 p-6 glass-panel rounded-xl border-2 border-green-500/40">
               <span className="text-sm text-green-400 font-medium">After</span>
               <ScoreGauge score={after.total_score} size="md" />
+              {after.prompt_score !== undefined && after.output_score !== undefined && (
+                <div className="flex flex-col gap-2 w-full text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-green-400/70">Prompt Quality (8 Pillars)</span>
+                    <span className="font-mono text-green-400">{after.prompt_score.toFixed(1)}/10</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-green-400/70">Output Quality</span>
+                    <span className="font-mono text-green-400">{after.output_score.toFixed(1)}/10</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
