@@ -722,14 +722,15 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
     setIsCanceled(false);
     
-    // Generate session key and set states SYNCHRONOUSLY before any async operations
-    const { data: { user } } = await supabase.auth.getUser();
-    const sessionKey = `${user?.id}_${Date.now()}`;
+    // CRITICAL FIX: Generate sessionKey SYNCHRONOUSLY before setting isOptimizing
+    // This ensures ProgressBarWithETA has sessionKey immediately when it mounts
+    const sessionKey = `opt_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     currentSessionKeyRef.current = sessionKey;
     setOptimizationModeForProgress(optimizationMode);
-    
-    // Set optimizing AFTER sessionKey is guaranteed to be set
     setIsOptimizing(true);
+    
+    // Get user async AFTER state is set
+    const { data: { user } } = await supabase.auth.getUser();
 
     // Start optimization with the session key
     try {

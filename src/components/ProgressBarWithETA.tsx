@@ -47,13 +47,17 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
 
   // Fetch progress from database
   const fetchProgress = useCallback(async () => {
+    if (!userId || !sessionKey) return;
+    
     try {
+      // CRITICAL FIX: Query latest row by created_at timestamp
+      // Since we now use INSERT instead of UPSERT, we need the most recent row
       const { data, error: fetchError } = await supabase
         .from('optimization_progress')
         .select('*')
         .eq('session_key', sessionKey)
         .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -188,13 +192,13 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT', // Only listen to INSERTs since we no longer use UPSERT
           schema: 'public',
           table: 'optimization_progress',
           filter: `session_key=eq.${sessionKey}`,
         },
         (payload: any) => {
-          console.log('Realtime update received:', payload);
+          console.log('📡 Realtime INSERT received:', payload);
           
           if (payload.new && payload.new.user_id === userId) {
             updateProgressState(payload.new);
@@ -205,9 +209,9 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
         console.log('Realtime subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to progress updates');
+          console.log('✅ Successfully subscribed to progress updates');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to realtime updates, falling back to polling');
+          console.error('❌ Failed to subscribe to realtime updates, falling back to polling');
           setError('Connection issue detected, using fallback mode');
         }
       });
