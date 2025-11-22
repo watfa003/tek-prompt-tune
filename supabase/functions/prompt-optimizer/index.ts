@@ -434,19 +434,19 @@ serve(async (req) => {
     const progressSessionKey = sessionKey || `${userId}_${Date.now()}`;
     
     // Helper function to update progress in database
+    // CRITICAL: Use INSERT instead of UPSERT so Realtime receives every update
     const updateProgress = async (progress: number, step: number, message: string) => {
       try {
         await supabase
           .from('optimization_progress')
-          .upsert({
+          .insert({
             user_id: userId,
             session_key: progressSessionKey,
             progress,
             step,
             message,
+            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'session_key,user_id'
           });
       } catch (error) {
         console.error('Progress update failed:', error);
@@ -531,6 +531,7 @@ serve(async (req) => {
     
     const variantPromises = selectedStrategies.map(async (strategyKey, variantIndex) => {
       const strategy = OPTIMIZATION_STRATEGIES[strategyKey as keyof typeof OPTIMIZATION_STRATEGIES];
+      const strategyName = strategy.name.split('(')[0].trim(); // e.g., "Cognitive Fusion Elite"
       
       try {
         // Track START order immediately
@@ -539,7 +540,7 @@ serve(async (req) => {
         
         // Update progress based on START position (5-35%)
         const creationProgress = 5 + Math.floor((startPosition / totalVariants) * 30);
-        await updateProgress(creationProgress, 1, `Creating variants... (${startPosition}/${totalVariants})`);
+        await updateProgress(creationProgress, 1, `Creating variant ${startPosition}/${totalVariants} (${strategyName})...`);
         // Get model-friendly name for the target model
         const targetModelName = getModelFriendlyName(aiProvider, modelName);
         
@@ -689,7 +690,7 @@ ${optimizedPrompt}`;
           
           // Update to testing phase (35-85%) based on TOTAL completed
           const testProgressPercent = 35 + Math.floor((totalCompleted / totalVariants) * 50);
-          await updateProgress(testProgressPercent, 2, `Testing variants... (${totalCompleted}/${totalVariants})`);
+          await updateProgress(testProgressPercent, 2, `Testing variant ${totalCompleted}/${totalVariants}...`);
           
           try {
             console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
@@ -764,7 +765,7 @@ ${optimizedPrompt}`;
           
           // Update progress in speed mode (35-85%)
           const speedProgressPercent = 35 + Math.floor((totalCompleted / totalVariants) * 50);
-          await updateProgress(speedProgressPercent, 2, `Evaluating variants... (${totalCompleted}/${totalVariants})`);
+          await updateProgress(speedProgressPercent, 2, `Evaluating variant ${totalCompleted}/${totalVariants}...`);
           
           try {
             const staticEval = scorePromptAndOutput(optimizedPrompt, "");
@@ -817,8 +818,8 @@ ${optimizedPrompt}`;
       promptRecord = { id: null };
     }
 
-    // Update progress - finalizing (90%)
-    await updateProgress(90, 3, 'Selecting best variant...');
+    // Update progress - finalizing (85%)
+    await updateProgress(85, 3, 'Selecting best variant...');
     
     // Filter successful variants
     let optimizedVariants = variantResults
@@ -850,17 +851,11 @@ ${optimizedPrompt}`;
 
     const processingTime = Date.now() - startTime;
     
-    // Update progress to 95% - best variant selected
-    await updateProgress(95, 3, 'Finalizing results...');
-    
-    // CRITICAL: Update progress to 100% BEFORE background tasks
-    // This ensures the UI always shows completion even if background tasks fail
-    await updateProgress(100, 3, 'Done!');
-    console.log('✅ Progress updated to 100% - optimization complete');
-    
-    // Background task for database updates and optimization insights (don't block response)
     const backgroundUpdates = async () => {
       try {
+        // Update progress during background tasks
+        await updateProgress(90, 3, 'Saving results...');
+        
         // Store optimization history (only when autoSave is enabled and we have a prompt id)
         let historyPromises: Promise<any>[] = [];
         if (autoSave && promptRecord?.id) {
@@ -939,12 +934,18 @@ ${optimizedPrompt}`;
           tags: [aiProvider, modelName, bestVariant.strategy.toLowerCase().replace(/\s+/g, '-')]
         });
         console.log('✅ Template saved successfully');
+        
+        // Update progress after template save
+        await updateProgress(95, 3, 'Template saved...');
       } catch (templateError) {
         console.error('❌ Error saving template:', templateError);
       }
     }
     
-    // Note: Progress already updated to 100% before background tasks
+    // CRITICAL: Update progress to 100% AFTER all background tasks complete
+    await updateProgress(100, 4, 'Optimization complete!');
+    console.log('✅ Progress updated to 100% - optimization complete');
+    
     // Return immediate response with sessionKey for progress tracking
     const response = {
       promptId: autoSave && promptRecord?.id ? promptRecord.id : null,
