@@ -32,21 +32,16 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
   const [status, setStatus] = useState<string>('starting');
   const [message, setMessage] = useState('Starting optimization...');
   const [error, setError] = useState<string | null>(null);
-  const [isStalled, setIsStalled] = useState(false);
 
   const channelRef = useRef<any>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateTimeRef = useRef<number>(Date.now());
-  const startTimeRef = useRef<number>(Date.now());
-  const progressHistoryRef = useRef<Array<{ progress: number; timestamp: number }>>([]);
   const animationFrameRef = useRef<number>();
-  const autoIncrementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Expected total time based on mode
-  const expectedTotalTime = mode === 'speed' ? 15000 : 40000; // milliseconds
-
-  // Fetch progress from database
+  // Fetch progress from database (single source of truth)
   const fetchProgress = useCallback(async () => {
+    if (!sessionKey || !userId) return;
+
     try {
       const { data, error: fetchError } = await supabase
         .from('optimization_progress')
@@ -63,96 +58,63 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       }
 
       if (data) {
-        updateProgressState(data);
+        updateProgressState(data as ProgressData);
       }
     } catch (err) {
       console.error('Fetch progress exception:', err);
     }
   }, [sessionKey, userId]);
 
-  // Update progress state with new data
-  const updateProgressState = useCallback((data: ProgressData) => {
-    const newProgress = Math.min(100, Math.max(0, data.progress));
-    const now = Date.now();
+  // Update progress state using ONLY backend values
+  const updateProgressState = useCallback(
+    (data: ProgressData) => {
+      const newProgress = Math.min(100, Math.max(0, data.progress));
+      const now = Date.now();
 
-    // CRITICAL: Only allow progress to move forward (monotonic)
-    setProgress(prev => {
-      if (newProgress < prev && prev < 100) {
-        console.warn(`Ignoring backward progress: ${prev}% -> ${newProgress}%`);
-        return prev;
-      }
-      return newProgress;
-    });
-    
-    // Infer status from progress
-    const inferredStatus = newProgress >= 100 ? 'completed' : newProgress > 0 ? 'processing' : 'pending';
-    setStatus(inferredStatus);
-    setMessage(data.message || 'Processing...');
-    lastUpdateTimeRef.current = now;
-    setIsStalled(false);
+      // Only allow progress to move forward (monotonic), but never fake it
+      setProgress((prev) => {
+        if (newProgress < prev && prev < 100) {
+          console.warn(`Ignoring backward progress: ${prev}% -> ${newProgress}%`);
+          return prev;
+        }
+        return newProgress;
+      });
 
-    // If completed, snap to 100 and trigger callback
-    if (newProgress >= 100) {
-      setProgress(100);
-      setDisplayProgress(100);
-      setStatus('completed');
-      
-      setTimeout(() => {
-        onComplete?.();
-      }, 500);
-    }
+      const inferredStatus =
+        newProgress >= 100 ? 'completed' : newProgress > 0 ? 'processing' : 'pending';
+      setStatus(inferredStatus);
+      setMessage(data.message || 'Processing...');
+      lastUpdateTimeRef.current = now;
 
-    console.log('Progress updated:', {
-      progress: newProgress,
-      inferredStatus,
-      message: data.message,
-    });
-  }, [onComplete]);
-
-
-  // Check for stalls and auto-complete if needed
-  useEffect(() => {
-    const checkStall = () => {
-      const timeSinceUpdate = Date.now() - lastUpdateTimeRef.current;
-      
-      // If no update for 15 seconds and progress > 90%, auto-complete
-      if (timeSinceUpdate > 15000 && progress > 90 && status !== 'completed') {
-        console.warn('Progress stalled at', progress, '% - auto-completing');
+      if (newProgress >= 100) {
         setProgress(100);
         setDisplayProgress(100);
         setStatus('completed');
-        setTimeout(() => onComplete?.(), 500);
-        return;
-      }
-      
-      // If no update for 8 seconds and progress < 90, consider stalled
-      if (timeSinceUpdate > 8000 && progress < 90 && status !== 'completed') {
-        setIsStalled(true);
-        
-        // Auto-increment slowly (fail-safe)
-        if (progress < 85) {
-          setProgress(prev => Math.min(90, prev + 0.5));
-          console.log('Auto-incrementing progress (stall detected)');
-        }
-      }
-    };
 
-    const interval = setInterval(checkStall, 2000);
-    return () => clearInterval(interval);
-  }, [progress, status, onComplete]);
+        setTimeout(() => {
+          onComplete?.();
+        }, 500);
+      }
 
-  // Smooth animation for display progress
+      console.log('Progress updated from backend:', {
+        progress: newProgress,
+        inferredStatus,
+        message: data.message,
+      });
+    },
+    [onComplete]
+  );
+
+  // Smooth animation for display progress (visual only, does NOT invent progress)
   useEffect(() => {
     const animate = () => {
-      setDisplayProgress(current => {
+      setDisplayProgress((current) => {
         const diff = progress - current;
-        
-        // Snap to target if very close
+
         if (Math.abs(diff) < 0.5) {
           return progress;
         }
-        
-        // Smooth easing
+
         const increment = diff * 0.15;
         return current + increment;
       });
@@ -169,20 +131,18 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
     };
   }, [progress]);
 
-  // Set up realtime subscription
+  // Set up realtime subscription + polling fallback
   useEffect(() => {
     if (!sessionKey || !userId) {
       return;
     }
 
     console.log('Setting up realtime subscription for session:', sessionKey);
-    startTimeRef.current = Date.now();
     lastUpdateTimeRef.current = Date.now();
 
-    // Initial fetch
+    // Initial fetch so first click immediately shows real progress
     fetchProgress();
 
-    // Set up realtime channel
     const channel = supabase
       .channel(`progress-${sessionKey}`)
       .on(
@@ -195,37 +155,34 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
         },
         (payload: any) => {
           console.log('Realtime update received:', payload);
-          
+
           if (payload.new && payload.new.user_id === userId) {
-            updateProgressState(payload.new);
+            updateProgressState(payload.new as ProgressData);
           }
         }
       )
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to progress updates');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to realtime updates, falling back to polling');
+
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to realtime updates, using fallback polling');
           setError('Connection issue detected, using fallback mode');
         }
       });
 
     channelRef.current = channel;
 
-    // Set up polling as fallback (every 1 second)
+    // Polling fallback every 1s to keep in sync with backend
     pollingIntervalRef.current = setInterval(() => {
       fetchProgress();
     }, 1000);
 
-    // Cleanup
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
-      
+
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
@@ -234,17 +191,13 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-
-      if (autoIncrementTimeoutRef.current) {
-        clearTimeout(autoIncrementTimeoutRef.current);
-      }
     };
   }, [sessionKey, userId, fetchProgress, updateProgressState]);
 
-  // Force completion if status is completed but progress isn't 100
+  // If backend marks status as completed but progress isn't 100 yet, trust backend state
   useEffect(() => {
     if (status === 'completed' && progress < 100) {
-      console.log('Forcing progress to 100 (status is completed)');
+      console.log('Forcing progress to 100 (status is completed from backend)');
       setProgress(100);
       setDisplayProgress(100);
     }
@@ -262,13 +215,8 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       >
         {/* Progress Bar */}
         <div className="relative">
-          <Progress 
-            value={roundedProgress} 
-            className={`h-3 transition-all duration-300 ${
-              isStalled ? 'progress-stalled' : ''
-            }`}
-          />
-          
+          <Progress value={roundedProgress} className="h-3 transition-all duration-300" />
+
           {/* Percentage Label */}
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-xs font-bold text-primary-foreground mix-blend-difference">
@@ -281,18 +229,15 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <motion.div
             animate={{ rotate: status === 'completed' ? 0 : 360 }}
-            transition={{ 
-              repeat: status === 'completed' ? 0 : Infinity, 
+            transition={{
+              repeat: status === 'completed' ? 0 : Infinity,
               duration: 2,
-              ease: 'linear'
+              ease: 'linear',
             }}
           >
             <div className="h-2 w-2 rounded-full bg-primary" />
           </motion.div>
-          <span className={isStalled ? 'text-amber-500' : ''}>
-            {message}
-            {isStalled && ' (taking longer than usual...)'}
-          </span>
+          <span>{message}</span>
         </div>
 
         {/* Error Banner */}
@@ -306,31 +251,7 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
             <span>{error}</span>
           </motion.div>
         )}
-
-        {/* Custom striped animation for stalled state */}
-        <style>{`
-          .progress-stalled [role="progressbar"] > div {
-            background: repeating-linear-gradient(
-              45deg,
-              hsl(var(--primary)),
-              hsl(var(--primary)) 10px,
-              hsl(var(--primary) / 0.7) 10px,
-              hsl(var(--primary) / 0.7) 20px
-            );
-            animation: progress-stripes 1s linear infinite;
-          }
-          
-          @keyframes progress-stripes {
-            0% {
-              background-position: 0 0;
-            }
-            100% {
-              background-position: 40px 0;
-            }
-          }
-        `}</style>
       </motion.div>
     </AnimatePresence>
   );
 };
-
