@@ -147,7 +147,7 @@ const Landing = () => {
             
             {/* Main H1 with keyword optimization and neon glow */}
             <motion.h1 
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 1, y: 0 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight relative"
@@ -183,7 +183,7 @@ const Landing = () => {
             </motion.h1>
             
             <motion.p 
-              initial={{ opacity: 0 }}
+              initial={{ opacity: 1 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
@@ -192,7 +192,7 @@ const Landing = () => {
             </motion.p>
             
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 1, y: 0 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
               className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
@@ -240,7 +240,7 @@ const Landing = () => {
             </motion.div>
 
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 1, scale: 1 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.8 }}
               className="relative mx-auto max-w-4xl"
