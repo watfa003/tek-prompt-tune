@@ -23,9 +23,21 @@
           } else {
             document.documentElement.classList.remove('dark');
           }
+          
+          // Suppress all transitions during initial render to prevent flashing
+          document.documentElement.classList.add('no-transitions');
+          setTimeout(function() {
+            document.documentElement.classList.remove('no-transitions');
+          }, 100);
         } catch (e) {}
       })();
     </script>
+    <style>
+      .no-transitions * {
+        transition: none !important;
+        animation: none !important;
+      }
+    </style>
     
     <!-- Fonts: Space Grotesk for headers, Inter for body -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

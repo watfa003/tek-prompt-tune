@@ -162,19 +162,18 @@ const AppPageContent = () => {
               className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]"
               animate={{
                 scale: [1, 1.2, 1],
-                opacity: [0.3, 0.5, 0.3],
               }}
               transition={{
                 duration: 8,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
+              style={{ opacity: 0.3 }}
             />
             <motion.div
               className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px]"
               animate={{
                 scale: [1, 1.3, 1],
-                opacity: [0.3, 0.5, 0.3],
               }}
               transition={{
                 duration: 10,
@@ -182,16 +181,14 @@ const AppPageContent = () => {
                 ease: "easeInOut",
                 delay: 1,
               }}
+              style={{ opacity: 0.3 }}
             />
           </div>
           
           <AppSidebar />
           
           <div className="flex-1 flex flex-col relative z-base min-w-0 max-w-full overflow-hidden">
-            <motion.header
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.5 }}
+            <header
               className="border-b border-white/10 glass-panel sticky top-0 z-header"
               style={{ overflow: "hidden" }}
             >
@@ -248,22 +245,13 @@ const AppPageContent = () => {
                   ease: "easeInOut",
                 }}
               />
-            </motion.header>
+            </header>
 
             <main className="flex-1 p-6 w-full max-w-full relative" style={{ overflowY: "auto", overflowX: "hidden" }}>
               <div className="w-full max-w-[1280px] mx-auto px-8 box-border">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={location.pathname}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                    className="w-full max-w-full overflow-hidden"
-                  >
-                    {renderContent()}
-                  </motion.div>
-                </AnimatePresence>
+                <div className="w-full max-w-full overflow-hidden">
+                  {renderContent()}
+                </div>
               </div>
             </main>
           </div>
