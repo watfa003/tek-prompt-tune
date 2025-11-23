@@ -518,7 +518,7 @@ const Lab = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 1, y: 0 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="space-y-2"
@@ -533,7 +533,7 @@ const Lab = () => {
 
         {/* Main Lab Interface */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 1, y: 0 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
         >
@@ -586,7 +586,7 @@ const Lab = () => {
                 {/* Single Prompt Mode */}
                 <TabsContent value="single" className="space-y-6 mt-6">
                   <motion.div
-                    initial={{ opacity: 0 }}
+                    initial={{ opacity: 1 }}
                     animate={{ opacity: 1 }}
                     className="space-y-4"
                   >
@@ -732,7 +732,7 @@ const Lab = () => {
                 {/* Compare Mode */}
                 <TabsContent value="compare" className="space-y-6 mt-6">
                   <motion.div
-                    initial={{ opacity: 0 }}
+                    initial={{ opacity: 1 }}
                     animate={{ opacity: 1 }}
                     className="space-y-4"
                   >
