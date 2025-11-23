@@ -58,8 +58,8 @@ export const AmbientParticles = () => {
           }}
           animate={{
             y: [0, -100, 0],
-            opacity: [0, 1, 0],
-            scale: [0, 1.5, 0],
+            opacity: [0.3, 0.7, 0.3],
+            scale: [0.5, 1.5, 0.5],
           }}
           transition={{
             duration: 3 + Math.random() * 2,
