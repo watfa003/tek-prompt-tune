@@ -656,6 +656,7 @@ export type Database = {
           email: string | null
           email_notifications: boolean | null
           id: string
+          low_motion_mode: boolean | null
           name: string | null
           new_features: boolean | null
           prompt_completed: boolean | null
@@ -682,6 +683,7 @@ export type Database = {
           email?: string | null
           email_notifications?: boolean | null
           id?: string
+          low_motion_mode?: boolean | null
           name?: string | null
           new_features?: boolean | null
           prompt_completed?: boolean | null
@@ -708,6 +710,7 @@ export type Database = {
           email?: string | null
           email_notifications?: boolean | null
           id?: string
+          low_motion_mode?: boolean | null
           name?: string | null
           new_features?: boolean | null
           prompt_completed?: boolean | null
