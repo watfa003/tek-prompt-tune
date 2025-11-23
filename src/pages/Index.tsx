@@ -101,12 +101,9 @@ const Index = () => {
   ];
 
   return (
-    <div className="space-y-8 fade-slide-up">
+    <div className="space-y-8">
       {/* Hero Welcome Block */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div 
         className="relative overflow-hidden rounded-[24px] glass-card p-6 md:p-8 neon-glow"
       >
         <div className="absolute inset-0 gradient-bg-animated opacity-30 pointer-events-none" />
@@ -124,7 +121,7 @@ const Index = () => {
             Your AI prompt optimization workspace. Create, test, and refine prompts with intelligent assistance.
           </p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Quick Actions Grid */}
       <div>
@@ -134,11 +131,8 @@ const Index = () => {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {quickActions.map((action, index) => (
-            <motion.div
+            <div
               key={action.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.4 }}
             >
               <Card 
                 className="glass-card interactive-card cursor-pointer group p-4 md:p-6 hover:neon-border"
@@ -154,7 +148,7 @@ const Index = () => {
                   <ArrowRight className="h-3 w-3 md:h-4 md:w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
@@ -167,11 +161,8 @@ const Index = () => {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {stats.map((stat, index) => (
-            <motion.div
+            <div
               key={stat.label}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 + index * 0.1, duration: 0.4 }}
             >
               <Card className="glass-card p-4 md:p-6 hover:neon-border transition-all">
                 <div className="flex items-start justify-between mb-3 md:mb-4">
@@ -185,7 +176,7 @@ const Index = () => {
                 <div className="text-2xl md:text-3xl font-bold mb-1 gradient-text">{stat.value}</div>
                 <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
@@ -231,11 +222,8 @@ const Index = () => {
         ) : (
           <div className="space-y-3">
             {recentItems.map((item, index) => (
-              <motion.div
+              <div
                 key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + index * 0.05 }}
               >
                 <Card 
                   className="glass-card p-3 md:p-4 hover:neon-border transition-all cursor-pointer group"
@@ -264,7 +252,7 @@ const Index = () => {
                     </div>
                   </div>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
