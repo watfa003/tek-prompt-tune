@@ -89,13 +89,13 @@ export const GlassboardDashboard = () => {
             x: [0, 50, 0],
             y: [0, -30, 0],
             scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
           }}
           transition={{
             duration: 12,
             repeat: Infinity,
             ease: 'easeInOut',
           }}
+          style={{ opacity: 0.3 }}
         />
         <motion.div
           className="absolute bottom-20 right-1/4 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[140px]"
@@ -103,7 +103,6 @@ export const GlassboardDashboard = () => {
             x: [0, -40, 0],
             y: [0, 40, 0],
             scale: [1, 1.3, 1],
-            opacity: [0.3, 0.5, 0.3],
           }}
           transition={{
             duration: 15,
@@ -111,6 +110,7 @@ export const GlassboardDashboard = () => {
             ease: 'easeInOut',
             delay: 2,
           }}
+          style={{ opacity: 0.3 }}
         />
       </div>
 
