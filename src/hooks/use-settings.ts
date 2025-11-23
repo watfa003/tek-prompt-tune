@@ -31,10 +31,16 @@ export interface UserSettings {
   compactMode: boolean;
   showScores: boolean;
   autoSave: boolean;
+  lowMotionMode: boolean;
   
   // History
   showOnlyBestInHistory: boolean;
 }
+
+// Auto-detect reduced motion preference
+const prefersReducedMotion = typeof window !== 'undefined' 
+  ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+  : false;
 
 const DEFAULT_SETTINGS: UserSettings = {
   // Profile
@@ -65,6 +71,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   compactMode: false,
   showScores: true,
   autoSave: true,
+  lowMotionMode: prefersReducedMotion, // Auto-detect system preference
   
   // History
   showOnlyBestInHistory: false,
@@ -132,6 +139,7 @@ export const useSettings = () => {
           compactMode: data.compact_mode ?? DEFAULT_SETTINGS.compactMode,
           showScores: data.show_scores ?? DEFAULT_SETTINGS.showScores,
           autoSave: data.auto_save ?? DEFAULT_SETTINGS.autoSave,
+          lowMotionMode: data.low_motion_mode ?? DEFAULT_SETTINGS.lowMotionMode,
           showOnlyBestInHistory: data.show_only_best_in_history ?? DEFAULT_SETTINGS.showOnlyBestInHistory,
         };
         setSettings(loadedSettings);
@@ -218,6 +226,7 @@ export const useSettings = () => {
         compact_mode: settings.compactMode,
         show_scores: settings.showScores,
         auto_save: settings.autoSave,
+        low_motion_mode: settings.lowMotionMode,
         show_only_best_in_history: settings.showOnlyBestInHistory,
       };
 

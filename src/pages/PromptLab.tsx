@@ -38,6 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 import type { OutputType } from '@/lib/output-formatters';
+import { useSettings } from '@/hooks/use-settings';
 
 interface CategoryScores {
   clarity: number;
@@ -96,6 +97,7 @@ const Lab = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { settings } = useSettings();
 
   // Persistence keys
   const LAST_RESULT_KEY = 'lab:lastResult';

@@ -438,6 +438,21 @@ export const UserSettings = () => {
         </div>
         
         <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 border border-border rounded-md bg-muted/20">
+            <div>
+              <p className="font-medium">Reduce Animations (Recommended for Laptops)</p>
+              <p className="text-sm text-muted-foreground">
+                Disables background particles, sidebar glow effects, and recommendation animations for better performance
+              </p>
+            </div>
+            <Switch
+              checked={settings.lowMotionMode}
+              onCheckedChange={(checked) => setSettings({ ...settings, lowMotionMode: checked })}
+            />
+          </div>
+          
+          <Separator />
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Theme</Label>
