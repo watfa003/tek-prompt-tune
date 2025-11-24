@@ -356,10 +356,15 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           influence: p.influence,
           influenceWeight: p.influenceWeight,
           mode: p.mode,
-        autoSave: settings.autoSave,
-        speedMode: p.mode === 'speed', // Enable speed mode for speed optimization
-        sessionKey: p.sessionKey,
+          autoSave: settings.autoSave,
+          speedMode: p.mode === 'speed',
+          sessionKey: p.sessionKey,
+        }
       });
+      
+      if (invokeError) {
+        throw invokeError;
+      }
 
       console.log('✅ Edge function returned successfully:', {
         hasData: !!data,
