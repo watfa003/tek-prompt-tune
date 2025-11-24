@@ -458,8 +458,8 @@ function detectRepetition(text: string): boolean {
  * Evaluates AI response characteristics AND how well it addresses the prompt
  */
 export function scoreOutputQuality(output: string, prompt?: string): number {
-  let surfaceScore = 5; // baseline for surface metrics (50% weight)
-  let intentScore = 5;  // baseline for intent alignment (50% weight)
+  let surfaceScore = 6; // baseline for surface metrics (50% weight) - increased from 5
+  let intentScore = 6;  // baseline for intent alignment (50% weight) - increased from 5
   
   const outputLength = output.length;
   const words = output.split(/\s+/).length;
@@ -556,7 +556,7 @@ export function scoreOutputQuality(output: string, prompt?: string): number {
     }
   } else {
     // No prompt provided, use neutral intent score
-    intentScore = 5;
+    intentScore = 6; // Increased from 5
   }
   
   // Normalize both scores to 0-10, then combine with weights
@@ -566,10 +566,9 @@ export function scoreOutputQuality(output: string, prompt?: string): number {
   // Combine: 50% surface metrics, 50% intent alignment
   const combinedScore = (normalizedSurface * 0.50) + (normalizedIntent * 0.50);
   
-  // Apply score curve: curvedScore = baseScore + (10 - baseScore) * 0.25
-  const curvedScore = combinedScore + (10 - combinedScore) * 0.25;
-  
-  return Math.round(curvedScore * 10) / 10;
+  // Return raw score without curve - let the final combination handle normalization
+  // (Removed double curving that was inflating output scores)
+  return Math.round(combinedScore * 10) / 10;
 }
 
 /**
