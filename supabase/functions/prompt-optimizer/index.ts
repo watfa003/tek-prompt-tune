@@ -713,7 +713,7 @@ ${optimizedPrompt}`;
                 actualScore = fastSkimEvaluation(testResponse, strategy.weight);
               } else {
                 const evalResult = await evaluateOutput(optimizedPrompt, testResponse, openAIApiKey);
-                actualScore = evalResult.score / 10; // Convert 0-10 to 0-1 scale
+                actualScore = evalResult.score; // Already on 0-10 scale
                }
                console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
             } else {
@@ -721,7 +721,7 @@ ${optimizedPrompt}`;
               if (optimizedPrompt.length > originalPrompt.length * 0.8) {
                 try {
                   const evalResult = await evaluateOutput(optimizedPrompt, `Optimized using ${strategy.name} strategy`, openAIApiKey);
-                  actualScore = evalResult.score / 10; // Convert 0-10 to 0-1 scale
+                  actualScore = evalResult.score; // Already on 0-10 scale
                   actualResponse = `Successfully optimized using ${strategy.name} strategy`;
                 } catch (evalError) {
                   console.error('Evaluation error, using fallback:', evalError);
@@ -768,10 +768,10 @@ ${optimizedPrompt}`;
           
           try {
             const staticEval = scorePromptAndOutput(optimizedPrompt, "");
-            const normalizedScore = staticEval.finalScore / 100; // Convert 0-100 to 0-1
+            const normalizedScore = staticEval.finalScore / 10; // Convert 0-10 to 0-1
             actualScore = strategy.weight * normalizedScore;
-            actualResponse = `Optimized using ${strategy.name} strategy (static score: ${staticEval.finalScore}%)`;
-            console.log(`[Speed Mode Static] ${strategyKey}: ${staticEval.finalScore}% → weighted: ${actualScore}`);
+            actualResponse = `Optimized using ${strategy.name} strategy (static score: ${staticEval.finalScore.toFixed(1)})`;
+            console.log(`[Speed Mode Static] ${strategyKey}: ${staticEval.finalScore.toFixed(1)} → weighted: ${actualScore}`);
           } catch (staticError) {
             console.error(`Static evaluation failed for ${strategyKey}:`, staticError);
             actualScore = strategy.weight * 0.65; // Conservative fallback
@@ -1210,7 +1210,7 @@ async function evaluateOutput(
   }
 
   const promptScore = calculateOverallScore(scores);
-  const outputScore = scoreOutputQuality(output);
+  const outputScore = scoreOutputQuality(output, prompt); // Add prompt for intent validation
   const overallScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
 
   return {
