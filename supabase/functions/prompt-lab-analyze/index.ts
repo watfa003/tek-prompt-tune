@@ -13,6 +13,7 @@ import {
   type PromptType
 } from '../shared/master-grader.ts';
 import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
+import { scoreCombined, calculatePromptScore } from '../shared/combined-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,6 +35,7 @@ interface LabRequest {
   prompt_a: string;
   prompt_b?: string;
   output_type?: string;
+  skip_analysis?: boolean; // If true, skip AI analysis generation for faster results
   prompts?: Array<{
     id: string;
     prompt: string;
@@ -448,7 +450,7 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   // Call AI model to get real output with output type guidance
   const output = await callAIModel(req.prompt_a, req.target_llm, req.output_type);
   
-  // Use AI-powered scoring with fallback to rule-based
+  // Use COMBINED AI-powered scoring (single API call for both prompt + output)
   let scores: CategoryScores;
   let aiReasoning: Record<keyof CategoryScores, string> | undefined;
   let finalScore: number;
@@ -456,17 +458,22 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   let outputScore: number;
   
   try {
-    const aiResult = await scorePromptWithAI(req.prompt_a, output, openAIApiKey);
-    scores = aiResult.scores;
-    aiReasoning = aiResult.reasoning;
+    const combined = await scoreCombined(req.prompt_a, output, openAIApiKey);
+    scores = combined.promptScores;
+    aiReasoning = combined.promptReasoning;
     
-    // Combine 50/50: prompt quality + output quality (with intent alignment)
-    promptScore = calculateOverallScore(scores);
-    outputScore = await scoreOutputQualityWithAI(output, req.prompt_a, openAIApiKey);
+    // Calculate prompt score from categories
+    promptScore = calculatePromptScore(scores);
+    
+    // Calculate output score (50/50: quality + intent alignment)
+    outputScore = Math.round(((combined.outputQuality * 0.5) + (combined.outputIntentAlignment * 0.5)) * 10) / 10;
+    
+    // Final score (50/50: prompt + output)
     finalScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
-    console.log(`✅ AI-powered scoring (50/50): prompt=${promptScore.toFixed(1)}, output=${outputScore.toFixed(1)}, final=${finalScore.toFixed(1)}`);
+    
+    console.log(`✅ Combined AI scoring (1 API call): prompt=${promptScore.toFixed(1)}, output=${outputScore.toFixed(1)}, final=${finalScore.toFixed(1)}`);
   } catch (error) {
-    console.error('AI grading failed, using fallback:', error);
+    console.error('Combined AI grading failed, using fallback:', error);
     const result = scorePromptAndOutput(req.prompt_a, output);
     scores = result.scores;
     promptScore = result.promptScore;
@@ -475,8 +482,10 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     console.log('⚠️ Using fallback rule-based scoring');
   }
   
-  // Generate AI analysis with output and reasoning
-  const analysis = await generateAnalysis(req.prompt_a, scores, output, aiReasoning);
+  // Generate AI analysis ONLY if not skipped (for lazy loading)
+  const analysis = req.skip_analysis 
+    ? { strengths: [], weaknesses: [], suggested_fixes: ["Analysis not generated"] }
+    : await generateAnalysis(req.prompt_a, scores, output, aiReasoning);
   
   return {
     total_score: finalScore,
@@ -505,28 +514,31 @@ async function handleCompareTest(req: LabRequest): Promise<BattleResult> {
     callAIModel(req.prompt_b, req.target_llm, req.output_type),
   ]);
   
-  // Score both with AI-powered grading (with fallback)
+  // Score both with COMBINED AI (2 calls instead of 4)
   let totalA: number, totalB: number;
   let scoresA: CategoryScores, scoresB: CategoryScores;
   
   try {
-    const [aiResultA, aiResultB] = await Promise.all([
-      scorePromptWithAI(req.prompt_a, outputA, openAIApiKey),
-      scorePromptWithAI(req.prompt_b, outputB, openAIApiKey),
+    const [combinedA, combinedB] = await Promise.all([
+      scoreCombined(req.prompt_a, outputA, openAIApiKey),
+      scoreCombined(req.prompt_b!, outputB, openAIApiKey),
     ]);
-    scoresA = aiResultA.scores;
-    scoresB = aiResultB.scores;
     
-    // Combine 50/50 for both A and B
-    const promptA = calculateOverallScore(scoresA);
-    const promptB = calculateOverallScore(scoresB);
-    const outA = scoreOutputQuality(outputA);
-    const outB = scoreOutputQuality(outputB);
+    scoresA = combinedA.promptScores;
+    scoresB = combinedB.promptScores;
+    
+    const promptA = calculatePromptScore(scoresA);
+    const promptB = calculatePromptScore(scoresB);
+    
+    const outA = Math.round(((combinedA.outputQuality * 0.5) + (combinedA.outputIntentAlignment * 0.5)) * 10) / 10;
+    const outB = Math.round(((combinedB.outputQuality * 0.5) + (combinedB.outputIntentAlignment * 0.5)) * 10) / 10;
+    
     totalA = Math.round(((promptA * 0.5) + (outA * 0.5)) * 10) / 10;
     totalB = Math.round(((promptB * 0.5) + (outB * 0.5)) * 10) / 10;
-    console.log(`✅ AI-powered battle scoring (50/50): A_prompt=${promptA.toFixed(1)}, A_out=${outA.toFixed(1)}, A=${totalA.toFixed(1)} | B_prompt=${promptB.toFixed(1)}, B_out=${outB.toFixed(1)}, B=${totalB.toFixed(1)}`);
+    
+    console.log(`✅ Combined AI battle (2 calls): A=${totalA.toFixed(1)} (p=${promptA.toFixed(1)}, o=${outA.toFixed(1)}), B=${totalB.toFixed(1)} (p=${promptB.toFixed(1)}, o=${outB.toFixed(1)})`);
   } catch (error) {
-    console.error('AI grading failed in battle, using fallback:', error);
+    console.error('Combined AI grading failed in battle, using fallback:', error);
     const resultA = scorePromptAndOutput(req.prompt_a, outputA);
     const resultB = scorePromptAndOutput(req.prompt_b, outputB);
     scoresA = resultA.scores;
