@@ -54,29 +54,31 @@ Use the FULL 0-10 scale naturally. Most average prompts should score 5-6. Excell
 
 **PART 2: OUTPUT EVALUATION (2 scores, 0-10 each)**
 
-1. **Quality (0-10)**: Assess the output itself
-   - Coherence, completeness, correctness
-   - Professional formatting and presentation
-   - Proper structure
+CRITICAL: First evaluate the PROMPT quality before scoring output!
+
+1. **Quality (0-10)**: Score based on BOTH output coherence AND prompt validity
+   
+   Step 1 - Check the prompt first:
+   - Is it gibberish/nonsense/random characters? → Output quality MUST be 0-2 (hallucinated nonsense)
+   - Is it vague with no clear purpose? → Output quality capped at 3-5 (likely hallucination)
+   - Clear prompt with specific request? → Score output normally (0-10)
+   
+   Step 2 - For CLEAR prompts only, assess output:
    - 0-4: Poor quality, incoherent, incomplete
    - 5-6: Basic quality, functional (AVERAGE)
    - 7-8: Good quality, well-formatted (GOOD)
    - 9-10: Excellent quality, publication-ready (EXCEPTIONAL)
+   
+   STRICT RULE: Gibberish prompt = max 2 quality score, regardless of output coherence
 
-2. **Intent Alignment (0-10)**: CRITICAL - First understand the prompt, then score alignment
+2. **Intent Alignment (0-10)**: How well does output match the prompt's request?
    
-   Step 1 - Understand the prompt:
-   - Is it gibberish/nonsense/random characters? → No clear intent exists
-   - Is it vague/unclear with no specific purpose? → Weak intent, AI will likely hallucinate
-   - Does it have a clear, specific request? → Strong intent to evaluate against
-   
-   Step 2 - Score based on prompt clarity:
-   - Gibberish/nonsense prompt: score 0 (no intent to align with)
-   - Vague prompt with no clear purpose: score 1-4 (weak intent, high hallucination risk)
-   - Clear prompt, output partially addresses it: score 5-7
+   - Gibberish/nonsense prompt: score 0 (no intent exists to align with)
+   - Vague prompt with no clear purpose: score 1-3 (weak intent, high hallucination risk)
+   - Clear prompt, output partially addresses it: score 4-7
    - Clear prompt, output fully addresses it: score 8-10
    
-   BE STRICT: If there's no clear user intent in the prompt, there's nothing to align with → score near 0
+   BE STRICT: No clear user intent in prompt = score 0-1
 
 **OUTPUT FORMAT:**
 Return a valid JSON object:
