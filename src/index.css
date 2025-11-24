@@ -420,11 +420,13 @@
 }
 
 @layer utilities {
-  /* 3D Hover Effects - removed transform to prevent layout shift */
+  /* 3D Hover Effects - Chrome optimized */
   .hover-3d { 
     transition: var(--transition-smooth); 
     transform-style: preserve-3d;
-    transform-gpu: auto;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
   .hover-3d:hover { 
     box-shadow: 0 8px 24px rgba(110, 231, 255, 0.2);

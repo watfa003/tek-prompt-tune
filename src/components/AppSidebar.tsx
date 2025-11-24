@@ -196,21 +196,25 @@ export function AppSidebar() {
                           navigate(item.url);
                         }
                       }}
-                      className={`relative w-full justify-start group-data-[collapsible=icon]:justify-center transition-all duration-250 hover:-translate-y-0.5 rounded-xl group overflow-hidden ${
+                      className={`relative w-full justify-start group-data-[collapsible=icon]:justify-center rounded-xl group overflow-hidden ${
                         mode === 'api' && 'section' in item
                           ? isApiSectionActive(item.section) 
-                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-2 border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
-                            : 'hover:bg-white/5 hover:border-primary/20 border-2 border-transparent'
+                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-2 border-primary/40 shadow-[0_0_15px_rgba(110,231,255,0.25)]' 
+                            : 'hover:bg-white/5 hover:border-primary/20 border-2 border-transparent transition-[background-color,border-color] duration-200'
                           : 'url' in item && isActive(item.url) 
-                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-2 border-primary/40 shadow-[0_0_20px_rgba(110,231,255,0.2)] animate-border-glow' 
-                            : 'hover:bg-white/5 hover:border-primary/20 border-2 border-transparent'
+                            ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary border-2 border-primary/40 shadow-[0_0_15px_rgba(110,231,255,0.25)]' 
+                            : 'hover:bg-white/5 hover:border-primary/20 border-2 border-transparent transition-[background-color,border-color] duration-200'
                       }`}
+                      style={{ 
+                        transform: 'translate3d(0, 0, 0)',
+                        backfaceVisibility: 'hidden'
+                      }}
                     >
-                      <item.icon className={`h-4 w-4 flex-shrink-0 transition-all duration-250 text-primary ${
+                      <item.icon className={`h-4 w-4 flex-shrink-0 transition-[filter] duration-200 text-primary ${
                         (mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
                         ('url' in item && isActive(item.url)) 
-                          ? 'drop-shadow-[0_0_8px_rgba(110,231,255,0.6)]' 
-                          : 'drop-shadow-[0_0_6px_rgba(110,231,255,0.4)]'
+                          ? 'drop-shadow-[0_0_4px_rgba(110,231,255,0.6)]' 
+                          : 'drop-shadow-[0_0_3px_rgba(110,231,255,0.4)]'
                       }`} />
                       <span className="text-sm truncate font-medium tracking-tight transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">{item.title}</span>
                       {((mode === 'api' && 'section' in item && isApiSectionActive(item.section)) || 
