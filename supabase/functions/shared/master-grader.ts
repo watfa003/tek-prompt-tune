@@ -530,8 +530,8 @@ Return ONLY a JSON object with this exact structure:
     const quality = parsed.quality || 5;
     const intentAlignment = parsed.intent_alignment || 5;
     
-    // Average the two scores
-    const rawScore = (quality + intentAlignment) / 2;
+    // 50/50 weighting: quality + intent alignment (prevents gibberish prompts from scoring high)
+    const rawScore = (quality * 0.5) + (intentAlignment * 0.5);
     
     // Apply 25% curve (same as prompt grading)
     const curvedScore = rawScore + (10 - rawScore) * 0.25;
