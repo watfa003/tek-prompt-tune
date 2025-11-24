@@ -151,6 +151,23 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   }, [payload, result, speedResult, appendToHistory, toast]);
 
   const startOptimization = useCallback(async (p: OptimizerPayload, opts?: { resume?: boolean }) => {
+    console.log('🚀 startOptimization called with params:', p);
+    
+    // Force clear stuck state before starting
+    console.log('📊 Pre-flight check - runningRef.current:', runningRef.current, 'isOptimizing:', isOptimizing);
+    if (runningRef.current && !opts?.resume) {
+      console.warn('⚠️ runningRef stuck as true - forcing reset');
+      runningRef.current = false;
+    }
+    
+    // Clear any stuck localStorage flags
+    const storedRunning = localStorage.getItem('promptOptimizer_isOptimizing');
+    if (storedRunning === 'true' && !opts?.resume) {
+      console.warn('⚠️ localStorage stuck as true - forcing clear');
+      localStorage.removeItem('promptOptimizer_isOptimizing');
+      localStorage.removeItem('promptOptimizer_startTime');
+    }
+
     // Always clear any cached results before starting a brand-new optimization to avoid stale polling
     if (!opts?.resume) {
       localStorage.removeItem('promptOptimizer_result_speed');
@@ -300,15 +317,20 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       }
     }
     
+    console.log('✅ Setting optimization state to active');
     runningRef.current = true;
     setError(null);
     setPayload(p);
     setIsOptimizing(true);
+    console.log('📝 State set - runningRef:', runningRef.current);
 
     try {
+      console.log('🔐 Getting authentication...');
       const { invokeWithAuth, getValidAuth } = await import('@/lib/auth-helpers');
       const auth = await getValidAuth();
+      console.log('✅ Auth validated - user:', auth.userId);
 
+      console.log('📤 Invoking edge function...');
       const data = await invokeWithAuth('prompt-optimizer', {
         originalPrompt: p.originalPrompt,
         taskDescription: p.taskDescription,
@@ -326,12 +348,13 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         speedMode: p.mode === 'speed', // Enable speed mode for speed optimization
         sessionKey: p.sessionKey,
       });
+      console.log('✅ Edge function response received:', data ? 'Success' : 'No data');
 
       if (p.mode === 'speed') {
-        console.log('Speed optimization completed:', data);
+        console.log('✅ Speed optimization completed:', data);
         setSpeedResult(data);
       } else {
-        console.log('Deep optimization completed:', data);
+        console.log('✅ Deep optimization completed:', data);
         setResult(data);
       }
 
@@ -352,12 +375,23 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         toast({ title: 'Success', description: `Prompt optimized successfully using ${p.mode} mode!` });
       }
     } catch (err: any) {
-      console.error('Error optimizing prompt:', err);
+      console.error('❌ Optimization error:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        stack: err.stack,
+        type: err.constructor?.name
+      });
       setError(err?.message || 'Unknown error');
-      toast({ title: 'Error', description: 'Failed to optimize prompt. Please try again.', variant: 'destructive' });
+      toast({ 
+        title: 'Error', 
+        description: err.message || 'Failed to optimize prompt. Check console for details.', 
+        variant: 'destructive' 
+      });
     } finally {
+      console.log('🏁 Optimization finished - cleaning up state');
       setIsOptimizing(false);
       runningRef.current = false;
+      console.log('✅ Cleanup complete');
     }
   }, [appendToHistory, toast]);
 
