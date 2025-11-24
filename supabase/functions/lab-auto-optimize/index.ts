@@ -225,8 +225,8 @@ Return ONLY the optimized prompt text. No explanations, no meta-commentary. The 
       // 50% - Prompt quality score
       newPromptScore = Math.round(calculateOverallScore(gradedScores) * 10) / 10;
       
-      // 50% - Output quality score
-      newOutputScore = Math.round(scoreOutputQuality(output) * 10) / 10;
+      // 50% - Output quality score (with prompt for intent validation)
+      newOutputScore = Math.round(scoreOutputQuality(output, optimizedPrompt) * 10) / 10;
       
       // 50/50 combined final score (matches Lab exactly)
       newFinalScore = Math.round(((newPromptScore * 0.5) + (newOutputScore * 0.5)) * 10) / 10;
