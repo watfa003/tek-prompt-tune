@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
-import { scoreOutputQuality } from '../shared/master-grader.ts';
+import { scoreOutputQualityWithAI } from '../shared/master-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -226,7 +226,7 @@ Return ONLY the optimized prompt text. No explanations, no meta-commentary. The 
       newPromptScore = Math.round(calculateOverallScore(gradedScores) * 10) / 10;
       
       // 50% - Output quality score (with prompt for intent validation)
-      newOutputScore = Math.round(scoreOutputQuality(output, optimizedPrompt) * 10) / 10;
+      newOutputScore = Math.round(await scoreOutputQualityWithAI(output, optimizedPrompt, OPENAI_API_KEY) * 10) / 10;
       
       // 50/50 combined final score (matches Lab exactly)
       newFinalScore = Math.round(((newPromptScore * 0.5) + (newOutputScore * 0.5)) * 10) / 10;

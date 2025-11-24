@@ -8,7 +8,7 @@ import {
   calculateTotalScore, 
   getContextualWeights,
   detectPromptType,
-  scoreOutputQuality,
+  scoreOutputQualityWithAI,
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
@@ -462,7 +462,7 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     
     // Combine 50/50: prompt quality + output quality (with intent alignment)
     promptScore = calculateOverallScore(scores);
-    outputScore = scoreOutputQuality(output, req.prompt_a);
+    outputScore = await scoreOutputQualityWithAI(output, req.prompt_a, OPENAI_API_KEY);
     finalScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
     console.log(`✅ AI-powered scoring (50/50): prompt=${promptScore.toFixed(1)}, output=${outputScore.toFixed(1)}, final=${finalScore.toFixed(1)}`);
   } catch (error) {
