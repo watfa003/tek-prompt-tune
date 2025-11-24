@@ -8,11 +8,10 @@ import {
   scorePromptAndOutput,
   calculateTotalScore,
   detectPromptType,
-  scoreOutputQualityWithAI,
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
-import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
+import { scoreCombined, calculatePromptScore } from '../shared/combined-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1188,35 +1187,48 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
   return data.candidates[0].content.parts[0].text;
 }
 
-// AI-powered evaluation for optimizer
+// AI-powered evaluation for optimizer - uses combined grading for speed
 async function evaluateOutput(
   prompt: string,
   output: string,
   openAIKey?: string
 ): Promise<{ score: number; categoryScores: CategoryScores }> {
   
-  // Use AI-powered scoring with fallback to rule-based
-  let scores: CategoryScores;
-  
   try {
-    const aiResult = await scorePromptWithAI(prompt, output, openAIKey);
-    scores = aiResult.scores;
-    console.log('✅ Using AI-powered scoring for optimizer evaluation');
+    // Use combined grader for single API call instead of 2 separate calls
+    const result = await scoreCombined(prompt, output, openAIKey);
+    
+    // Calculate prompt score using combined grader's scoring
+    const promptScore = calculatePromptScore(result.promptScores);
+    
+    // Use the combined output score (average of quality and intent alignment)
+    const outputScore = (result.outputQuality + result.outputIntentAlignment) / 2;
+    
+    // 50/50 weighted average
+    const overallScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
+    
+    console.log('✅ Combined grading complete:', {
+      promptScore: promptScore.toFixed(1),
+      outputQuality: result.outputQuality.toFixed(1),
+      outputAlignment: result.outputIntentAlignment.toFixed(1),
+      overallScore: overallScore.toFixed(1)
+    });
+
+    return {
+      score: overallScore,
+      categoryScores: result.promptScores
+    };
   } catch (error) {
-    console.error('AI grading failed in optimizer, using fallback:', error);
+    console.error('Combined grading failed, using fallback:', error);
     const result = scorePromptAndOutput(prompt, output);
-    scores = result.scores;
+    const promptScore = calculateTotalScore(result.scores);
     console.log('⚠️ Using fallback rule-based scoring in optimizer');
+    
+    return {
+      score: promptScore,
+      categoryScores: result.scores
+    };
   }
-
-  const promptScore = calculateOverallScore(scores);
-  const outputScore = await scoreOutputQualityWithAI(output, prompt, OPENAI_API_KEY);
-  const overallScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
-
-  return {
-    score: overallScore,
-    categoryScores: scores
-  };
 }
 
 // Removed old evaluation functions - now using master-grader.ts unified scoring
