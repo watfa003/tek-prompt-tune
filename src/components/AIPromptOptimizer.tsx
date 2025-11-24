@@ -36,6 +36,7 @@ import {
   Save,
   Wand2
 } from 'lucide-react';
+import { OptimizerResetButton } from '@/components/OptimizerResetButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/use-settings';
@@ -705,6 +706,19 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   };
 
   const optimizePrompt = async () => {
+    // Force reset any stuck state before starting
+    console.log('🔄 Starting optimization - resetting any stuck state');
+    console.log('Current state:', {
+      isOptimizing,
+      localStorageOptimizing: localStorage.getItem('promptOptimizer_isOptimizing'),
+      localStorageStartTime: localStorage.getItem('promptOptimizer_startTime')
+    });
+    
+    // Force clear stuck states
+    localStorage.removeItem('promptOptimizer_isOptimizing');
+    localStorage.removeItem('promptOptimizer_startTime');
+    console.log('✅ Stuck states cleared');
+    
     if (!originalPrompt.trim()) {
       toast({
         title: "Error",
@@ -820,14 +834,17 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                 Previous optimization results are available. You can continue viewing them or start fresh.
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={startNewSession}
-              className="border-primary/30 hover:bg-primary/10"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Start New Session
-            </Button>
+            <div className="flex gap-2">
+              <OptimizerResetButton />
+              <Button 
+                variant="outline" 
+                onClick={startNewSession}
+                className="border-primary/30 hover:bg-primary/10"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Start New Session
+              </Button>
+            </div>
           </div>
         </Card>
       )}
