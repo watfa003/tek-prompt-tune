@@ -89,7 +89,8 @@ const OPTIMIZATION_MODELS = {
 };
 
 // Network safety: time out external AI calls so variants don't hang forever
-const REQUEST_TIMEOUT_MS = 25000;
+// Increased to 45s to handle slower OpenAI responses
+const REQUEST_TIMEOUT_MS = 45000;
 
 // PrompTek V4.0 Compact - High-Performance Prompt Optimization
 const PROMPTEK_MASTER_SYSTEM = `You are PrompTek V5 Elite, an expert prompt optimization system. Your mission: Transform input prompts to EXCEPTIONAL quality - target ≥9.0/10 on ALL 8 pillars, avg ≥9.2/10.
@@ -672,9 +673,10 @@ ${optimizedPrompt}`;
           }
         }
         
-        if (!optimizedPrompt) {
-          console.error('Failed to get optimization response for strategy:', strategyKey);
-          return null;
+        if (!optimizedPrompt || optimizedPrompt.trim().length === 0) {
+          console.error(`[${strategyKey}] ⚠️ Optimization failed - using enhanced prompt as fallback`);
+          // Don't return null - use the enhanced prompt with a penalty instead
+          optimizedPrompt = enhancedPrompt;
         }
 
         // Test the optimized prompt with user's selected model (ONLY if not in speed mode)
@@ -1046,7 +1048,8 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
     }
   } catch (error) {
     console.error(`Error calling ${provider} API:`, error);
-    return null;
+    // Return error message instead of null to help debugging
+    throw new Error(`${provider} API call failed: ${error.message}`);
   }
 }
 
