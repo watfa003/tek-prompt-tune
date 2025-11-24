@@ -458,8 +458,8 @@ function detectRepetition(text: string): boolean {
  * Evaluates AI response characteristics AND how well it addresses the prompt
  */
 export function scoreOutputQuality(output: string, prompt?: string): number {
-  let surfaceScore = 6; // baseline for surface metrics (50% weight) - increased from 5
-  let intentScore = 6;  // baseline for intent alignment (50% weight) - increased from 5
+  let surfaceScore = 6; // baseline for surface metrics (50% weight)
+  let intentScore = 7;  // baseline for intent alignment (50% weight) - increased from 6
   
   const outputLength = output.length;
   const words = output.split(/\s+/).length;
@@ -524,10 +524,11 @@ export function scoreOutputQuality(output: string, prompt?: string): number {
         ? conceptMatches / promptKeywords.size 
         : 0.5;
       
-      if (conceptCoverage >= 0.5) intentScore += 2;
-      else if (conceptCoverage >= 0.3) intentScore += 1.2;
-      else if (conceptCoverage >= 0.1) intentScore += 0.5;
-      else intentScore -= 1; // Output seems unrelated to prompt
+      // More generous scoring for concept coverage
+      if (conceptCoverage >= 0.5) intentScore += 2.5; // Increased from 2
+      else if (conceptCoverage >= 0.3) intentScore += 1.8; // Increased from 1.2
+      else if (conceptCoverage >= 0.1) intentScore += 1.0; // Increased from 0.5
+      else intentScore -= 0.5; // Less harsh penalty (was -1)
       
       // Check for question-answer alignment
       const isQuestion = /\?|^(what|why|how|when|where|who|can|should|would|could|is|are|do|does)/i.test(prompt);
@@ -538,7 +539,7 @@ export function scoreOutputQuality(output: string, prompt?: string): number {
            output.includes('is') || output.includes('are') || sentences.length >= 2);
         
         if (outputIsAnswering) intentScore += 1.5;
-        else intentScore -= 1; // Question not answered
+        else intentScore -= 0.5; // Less harsh (was -1)
       } else {
         intentScore += 0.8; // Neutral for non-questions
       }
@@ -556,7 +557,7 @@ export function scoreOutputQuality(output: string, prompt?: string): number {
     }
   } else {
     // No prompt provided, use neutral intent score
-    intentScore = 6; // Increased from 5
+    intentScore = 7; // Increased from 6
   }
   
   // Normalize both scores to 0-10, then combine with weights
