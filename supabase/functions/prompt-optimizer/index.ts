@@ -1048,8 +1048,8 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
     }
   } catch (error) {
     console.error(`Error calling ${provider} API:`, error);
-    // Return error message instead of null to help debugging
-    throw new Error(`${provider} API call failed: ${error.message}`);
+    // Return null to allow other variants to continue
+    return null;
   }
 }
 

@@ -451,23 +451,25 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Safety: timeout long-running sessions (2 minutes max)
+  // Safety: timeout long-running sessions (5 minutes max for deep optimization)
   useEffect(() => {
     const checkStale = () => {
       // Do not enforce timeout while the tab is hidden to avoid false cancellations
       if (document.hidden) return;
       if (isOptimizing && optimizationStartTime) {
         const elapsed = Date.now() - optimizationStartTime;
-        // Reduced to 2 minutes timeout for better UX
-        if (elapsed > 2 * 60 * 1000) {
-          console.warn('⚠️ Optimization timeout after 2 minutes - auto-clearing');
+        // 5 minutes timeout for deep mode, 2 minutes for speed mode
+        const timeoutMs = payload?.mode === 'deep' ? 5 * 60 * 1000 : 2 * 60 * 1000;
+        if (elapsed > timeoutMs) {
+          const modeLabel = payload?.mode === 'deep' ? '5 minutes' : '2 minutes';
+          console.warn(`⚠️ Optimization timeout after ${modeLabel} - auto-clearing`);
           setIsOptimizing(false);
           runningRef.current = false;
           localStorage.removeItem('promptOptimizer_isOptimizing');
           localStorage.removeItem('promptOptimizer_startTime');
           toast({ 
             title: 'Optimization Timeout', 
-            description: 'The optimization took too long and was cancelled. Please try again.', 
+            description: `The optimization took too long (>${modeLabel}) and was cancelled. Please try again.`, 
             variant: 'destructive' 
           });
         }
@@ -476,7 +478,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
 
     const id = setInterval(checkStale, 10000); // Check every 10 seconds
     return () => clearInterval(id);
-  }, [isOptimizing, optimizationStartTime, toast]);
+  }, [isOptimizing, optimizationStartTime, payload?.mode, toast]);
 
   // Phase 3: Add visibility change detection for background optimization safety
   useEffect(() => {
