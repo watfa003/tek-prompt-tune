@@ -475,12 +475,20 @@ export async function scoreOutputQualityWithAI(
    - Does it have proper structure?
    - Is it complete and coherent?
 
-2. **Intent Alignment** (0-10): CRITICAL - How well does the output address the prompt?
-   - If the prompt is gibberish/nonsense/random characters: score 0-2 regardless of output quality
-   - If the prompt is vague but the output tries to interpret it: score 3-5
-   - If the prompt is clear and output partially addresses it: score 6-7
-   - If the prompt is clear and output fully addresses it: score 8-10
-   - BE STRICT: A beautiful output from a terrible prompt should score low here
+2. **Intent Alignment** (0-10): CRITICAL - First understand the prompt, then score alignment
+   
+   Step 1 - Understand the prompt:
+   - Is it gibberish/nonsense/random characters? → No clear intent exists
+   - Is it vague/unclear with no specific purpose? → Weak intent, AI will likely hallucinate
+   - Does it have a clear, specific request? → Strong intent to evaluate against
+   
+   Step 2 - Score based on prompt clarity:
+   - Gibberish/nonsense prompt: score 0 (no intent to align with)
+   - Vague prompt with no clear purpose: score 1-4 (weak intent, high hallucination risk)
+   - Clear prompt, output partially addresses it: score 5-7
+   - Clear prompt, output fully addresses it: score 8-10
+   
+   BE STRICT: If there's no clear user intent in the prompt, there's nothing to align with → score near 0
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -531,8 +539,8 @@ Return ONLY a JSON object with this exact structure:
     const quality = parsed.quality || 5;
     const intentAlignment = parsed.intent_alignment || 5;
     
-    // 30/70 weighting: heavily favor intent alignment to penalize gibberish prompts
-    const rawScore = (quality * 0.3) + (intentAlignment * 0.7);
+    // 50/50 weighting: quality + intent alignment (intent scores 0 when prompt has no clear purpose)
+    const rawScore = (quality * 0.5) + (intentAlignment * 0.5);
     
     // Apply 25% curve (same as prompt grading)
     const curvedScore = rawScore + (10 - rawScore) * 0.25;
