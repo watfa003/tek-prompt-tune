@@ -706,69 +706,79 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   };
 
   const optimizePrompt = async () => {
-    // Force reset any stuck state before starting
-    console.log('🔄 Starting optimization - resetting any stuck state');
-    console.log('Current state:', {
-      isOptimizing,
-      localStorageOptimizing: localStorage.getItem('promptOptimizer_isOptimizing'),
-      localStorageStartTime: localStorage.getItem('promptOptimizer_startTime')
-    });
-    
-    // Force clear stuck states
-    localStorage.removeItem('promptOptimizer_isOptimizing');
-    localStorage.removeItem('promptOptimizer_startTime');
-    console.log('✅ Stuck states cleared');
-    
-    if (!originalPrompt.trim()) {
+    try {
+      // Force reset any stuck state before starting
+      console.log('🔄 Starting optimization - resetting any stuck state');
+      console.log('Current state:', {
+        isOptimizing,
+        localStorageOptimizing: localStorage.getItem('promptOptimizer_isOptimizing'),
+        localStorageStartTime: localStorage.getItem('promptOptimizer_startTime')
+      });
+      
+      // Force clear stuck states
+      localStorage.removeItem('promptOptimizer_isOptimizing');
+      localStorage.removeItem('promptOptimizer_startTime');
+      console.log('✅ Stuck states cleared');
+      
+      if (!originalPrompt.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter a prompt to optimize",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Clear the opposite mode's result before starting new optimization
+      if (optimizationMode === 'speed') {
+        setResult(null); // Clear deep mode results
+      } else {
+        setSpeedResult(null); // Clear speed mode results
+      }
+      setIsCanceled(false);
+      
+      // Generate session key SYNCHRONOUSLY
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to optimize prompts",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const sessionKey = `${userId}_${Date.now()}`;
+      currentSessionKeyRef.current = sessionKey;
+      setOptimizationModeForProgress(optimizationMode);
+
+      // Start optimization - it will handle setting isOptimizing
+      console.log('🚀 Starting optimization with sessionKey:', sessionKey);
+      await startOptimization({
+        originalPrompt,
+        taskDescription: optimizerTaskDescription,
+        aiProvider,
+        modelName,
+        outputType,
+        variants,
+        maxTokens: maxTokens[0] === 0 ? null : maxTokens[0],
+        temperature: temperature[0],
+        influence: selectedInfluence,
+        influenceWeight: influenceWeight[0],
+        mode: optimizationMode,
+        sessionKey,
+      });
+    } catch (error) {
+      console.error('❌ Optimization failed:', error);
+      setIsOptimizing(false);
       toast({
-        title: "Error",
-        description: "Please enter a prompt to optimize",
+        title: "Optimization Error",
+        description: error instanceof Error ? error.message : "Failed to start optimization. Please try again.",
         variant: "destructive",
       });
-      return;
     }
-
-    // Clear the opposite mode's result before starting new optimization
-    if (optimizationMode === 'speed') {
-      setResult(null); // Clear deep mode results
-    } else {
-      setSpeedResult(null); // Clear speed mode results
-    }
-    setIsCanceled(false);
-    
-    // Generate session key SYNCHRONOUSLY
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
-    
-    if (!userId) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to optimize prompts",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const sessionKey = `${userId}_${Date.now()}`;
-    currentSessionKeyRef.current = sessionKey;
-    setOptimizationModeForProgress(optimizationMode);
-
-    // Start optimization - it will handle setting isOptimizing
-    console.log('🚀 Starting optimization with sessionKey:', sessionKey);
-    await startOptimization({
-      originalPrompt,
-      taskDescription: optimizerTaskDescription,
-      aiProvider,
-      modelName,
-      outputType,
-      variants,
-      maxTokens: maxTokens[0] === 0 ? null : maxTokens[0],
-      temperature: temperature[0],
-      influence: selectedInfluence,
-      influenceWeight: influenceWeight[0],
-      mode: optimizationMode,
-      sessionKey,
-    });
   };
 
   // Start new session function - clear all state
