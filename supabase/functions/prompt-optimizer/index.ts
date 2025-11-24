@@ -8,7 +8,7 @@ import {
   scorePromptAndOutput,
   calculateTotalScore,
   detectPromptType,
-  scoreOutputQuality,
+  scoreOutputQualityWithAI,
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
@@ -1210,7 +1210,7 @@ async function evaluateOutput(
   }
 
   const promptScore = calculateOverallScore(scores);
-  const outputScore = scoreOutputQuality(output, prompt); // Add prompt for intent validation
+  const outputScore = await scoreOutputQualityWithAI(output, prompt, OPENAI_API_KEY);
   const overallScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
 
   return {

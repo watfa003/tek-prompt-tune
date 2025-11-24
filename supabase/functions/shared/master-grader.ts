@@ -454,122 +454,134 @@ function detectRepetition(text: string): boolean {
 }
 
 /**
- * Score output quality on 0-10 scale with intent alignment
- * Evaluates AI response characteristics AND how well it addresses the prompt
+ * AI-powered natural output quality grading
+ * Evaluates output quality and intent alignment using GPT-4o-mini
  */
-export function scoreOutputQuality(output: string, prompt?: string): number {
-  let surfaceScore = 6; // baseline for surface metrics (50% weight)
-  let intentScore = 7;  // baseline for intent alignment (50% weight) - increased from 6
-  
-  const outputLength = output.length;
-  const words = output.split(/\s+/).length;
-  const sentences = output.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-  const avgWordsPerSentence = sentences > 0 ? words / sentences : 0;
-  
-  // ===== SURFACE METRICS (50% of output score) =====
-  
-  // Length appropriateness (not too short, not excessively long)
-  if (outputLength > 50 && outputLength < 3000) surfaceScore += 1;
-  if (outputLength > 200) surfaceScore += 0.5;
-  
-  // Structure quality
-  if (avgWordsPerSentence > 8 && avgWordsPerSentence < 30) surfaceScore += 1;
-  if (sentences > 2) surfaceScore += 0.5;
-  
-  // Content richness
-  const hasVariety = /[,;:]/.test(output); // punctuation variety
-  const hasStructure = /(\n|  )/.test(output); // formatting
-  if (hasVariety) surfaceScore += 0.5;
-  if (hasStructure) surfaceScore += 0.5;
-  
-  // Coherence indicators
-  const startsCapital = /^[A-Z]/.test(output.trim());
-  const properEnding = /[.!?]$/.test(output.trim());
-  if (startsCapital) surfaceScore += 0.3;
-  if (properEnding) surfaceScore += 0.2;
-  
-  // Avoid repetitive or low-quality patterns
-  const hasRepetition = /(.{20,})\1{2,}/.test(output);
-  const tooManyNewlines = (output.match(/\n/g) || []).length > sentences * 2;
-  if (hasRepetition) surfaceScore -= 1.5;
-  if (tooManyNewlines) surfaceScore -= 1;
-  
-  // ===== INTENT ALIGNMENT (50% of output score) =====
-  
-  if (prompt) {
-    // Check if prompt is gibberish/nonsensical - if so, heavily penalize
-    const nonsenseScore = detectNonsense(prompt, output);
-    if (nonsenseScore < 3) {
-      // Prompt is gibberish, output should score very low regardless of quality
-      intentScore = 1; // Very low intent alignment score
-    } else {
-      // Prompt is valid, evaluate if output addresses it
-      
-      // Extract key concepts from prompt (simple word frequency approach)
-      const promptWords = prompt.toLowerCase()
-        .replace(/[^\w\s]/g, ' ')
-        .split(/\s+/)
-        .filter(w => w.length > 4); // Focus on substantial words
-      
-      const promptKeywords = new Set(promptWords);
-      const outputLower = output.toLowerCase();
-      
-      // Check how many prompt concepts appear in output
-      let conceptMatches = 0;
-      promptKeywords.forEach(keyword => {
-        if (outputLower.includes(keyword)) conceptMatches++;
-      });
-      
-      const conceptCoverage = promptKeywords.size > 0 
-        ? conceptMatches / promptKeywords.size 
-        : 0.5;
-      
-      // More generous scoring for concept coverage
-      if (conceptCoverage >= 0.5) intentScore += 2.5; // Increased from 2
-      else if (conceptCoverage >= 0.3) intentScore += 1.8; // Increased from 1.2
-      else if (conceptCoverage >= 0.1) intentScore += 1.0; // Increased from 0.5
-      else intentScore -= 0.5; // Less harsh penalty (was -1)
-      
-      // Check for question-answer alignment
-      const isQuestion = /\?|^(what|why|how|when|where|who|can|should|would|could|is|are|do|does)/i.test(prompt);
-      if (isQuestion) {
-        // Output should be answering, not asking more questions
-        const outputIsAnswering = !output.startsWith('?') && 
-          (output.includes('because') || output.includes('by') || output.includes('through') || 
-           output.includes('is') || output.includes('are') || sentences.length >= 2);
-        
-        if (outputIsAnswering) intentScore += 1.5;
-        else intentScore -= 0.5; // Less harsh (was -1)
-      } else {
-        intentScore += 0.8; // Neutral for non-questions
-      }
-      
-      // Check for instruction compliance
-      const hasInstructions = /\b(write|create|generate|list|explain|describe|analyze|compare|summarize)\b/i.test(prompt);
-      if (hasInstructions) {
-        // Check if output appears to follow instructions (has substance)
-        const hasSubstance = outputLength > 100 && sentences >= 3;
-        if (hasSubstance) intentScore += 1.5;
-        else intentScore += 0.5;
-      } else {
-        intentScore += 1; // Neutral for non-instruction prompts
-      }
+export async function scoreOutputQualityWithAI(
+  output: string,
+  prompt?: string,
+  openAIKey?: string
+): Promise<number> {
+  const apiKey = openAIKey || Deno.env.get('OPENAI_API_KEY');
+  if (!apiKey) {
+    console.warn('No OpenAI API key available, using fallback');
+    return scoreOutputQualityFallback(output, prompt);
+  }
+
+  const systemPrompt = `You are an expert AI output quality evaluator. Grade the AI-generated output on a 0-10 scale for two criteria:
+
+1. **Quality** (0-10): Evaluate clarity, coherence, completeness, and structure
+   - Is it well-written and clear?
+   - Does it have proper structure?
+   - Is it complete and coherent?
+
+2. **Intent Alignment** (0-10): If a prompt is provided, how well does the output address it?
+   - Does it answer what was asked?
+   - Is it relevant to the prompt?
+   - Does it fulfill the prompt's intent?
+   - If no prompt is provided, score based on whether output seems purposeful (default: 7)
+
+Return ONLY a JSON object with this exact structure:
+{
+  "quality": <number 0-10>,
+  "intent_alignment": <number 0-10>,
+  "reasoning": {
+    "quality": "<brief explanation>",
+    "intent_alignment": "<brief explanation>"
+  }
+}`;
+
+  const userPrompt = prompt 
+    ? `**Prompt:**\n${prompt}\n\n**Output:**\n${output}`
+    : `**Output:**\n${output}`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        temperature: 0.3,
+        max_tokens: 500,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      return scoreOutputQualityFallback(output, prompt);
     }
-  } else {
-    // No prompt provided, use neutral intent score
-    intentScore = 7; // Increased from 6
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      console.error('No content in OpenAI response');
+      return scoreOutputQualityFallback(output, prompt);
+    }
+
+    const parsed = JSON.parse(content);
+    const quality = parsed.quality || 5;
+    const intentAlignment = parsed.intent_alignment || 5;
+    
+    // Average the two scores
+    const rawScore = (quality + intentAlignment) / 2;
+    
+    // Apply 25% curve (same as prompt grading)
+    const curvedScore = rawScore + (10 - rawScore) * 0.25;
+    
+    return Math.round(curvedScore * 10) / 10;
+  } catch (error) {
+    console.error('Error in AI output quality grading:', error);
+    return scoreOutputQualityFallback(output, prompt);
+  }
+}
+
+/**
+ * Simplified fallback for output quality grading (speed mode or API failure)
+ */
+export function scoreOutputQualityFallback(output: string, prompt?: string): number {
+  const words = output.split(/\s+/).length;
+  const sentences = output.split(/[.!?]+/).filter(s => s.trim()).length;
+  
+  // Base score starts at 5
+  let score = 5;
+  
+  // Length appropriateness (simple, wide range)
+  if (words >= 10 && words <= 500) score += 2;
+  else if (words >= 5) score += 1;
+  
+  // Has structure
+  if (sentences >= 2) score += 1;
+  
+  // Prompt alignment (if provided)
+  if (prompt && prompt.length > 0) {
+    const promptWords = new Set(
+      prompt.toLowerCase().split(/\W+/).filter(w => w.length > 3)
+    );
+    const outputLower = output.toLowerCase();
+    let matches = 0;
+    promptWords.forEach(w => { if (outputLower.includes(w)) matches++; });
+    
+    const coverage = promptWords.size > 0 ? matches / promptWords.size : 0.5;
+    if (coverage >= 0.3) score += 2;
+    else if (coverage >= 0.1) score += 1;
   }
   
-  // Normalize both scores to 0-10, then combine with weights
-  const normalizedSurface = Math.max(0, Math.min(10, surfaceScore));
-  const normalizedIntent = Math.max(0, Math.min(10, intentScore));
-  
-  // Combine: 50% surface metrics, 50% intent alignment
-  const combinedScore = (normalizedSurface * 0.50) + (normalizedIntent * 0.50);
-  
-  // Return raw score without curve - let the final combination handle normalization
-  // (Removed double curving that was inflating output scores)
-  return Math.round(combinedScore * 10) / 10;
+  return Math.max(0, Math.min(10, score));
+}
+
+/**
+ * @deprecated Use scoreOutputQualityWithAI() for natural grading or scoreOutputQualityFallback() for speed mode
+ */
+export function scoreOutputQuality(output: string, prompt?: string): number {
+  return scoreOutputQualityFallback(output, prompt);
 }
 
 /**
