@@ -736,41 +736,39 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     }
     setIsCanceled(false);
     
-    // Generate session key and set states SYNCHRONOUSLY before any async operations
+    // Generate session key SYNCHRONOUSLY
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
+    
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to optimize prompts",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const sessionKey = `${userId}_${Date.now()}`;
     currentSessionKeyRef.current = sessionKey;
     setOptimizationModeForProgress(optimizationMode);
-    
-    // Set optimizing AFTER sessionKey is guaranteed to be set
-    setIsOptimizing(true);
 
-    // Start optimization with the session key
-    try {
-      await startOptimization({
-        originalPrompt,
-        taskDescription: optimizerTaskDescription,
-        aiProvider,
-        modelName,
-        outputType,
-        variants,
-        maxTokens: maxTokens[0] === 0 ? null : maxTokens[0],
-        temperature: temperature[0],
-        influence: selectedInfluence,
-        influenceWeight: influenceWeight[0],
-        mode: optimizationMode,
-        sessionKey,
-      });
-    } catch (error) {
-      console.error('Optimization error:', error);
-      setIsOptimizing(false);
-      toast({
-        title: "Error",
-        description: "Optimization failed. Please try again.",
-        variant: "destructive",
-      });
-    }
+    // Start optimization - it will handle setting isOptimizing
+    console.log('🚀 Starting optimization with sessionKey:', sessionKey);
+    await startOptimization({
+      originalPrompt,
+      taskDescription: optimizerTaskDescription,
+      aiProvider,
+      modelName,
+      outputType,
+      variants,
+      maxTokens: maxTokens[0] === 0 ? null : maxTokens[0],
+      temperature: temperature[0],
+      influence: selectedInfluence,
+      influenceWeight: influenceWeight[0],
+      mode: optimizationMode,
+      sessionKey,
+    });
   };
 
   // Start new session function - clear all state
