@@ -329,29 +329,42 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
     setIsOptimizing(true);
 
     try {
-      console.log('🔐 Getting authentication...');
-      const { invokeWithAuth, getValidAuth } = await import('@/lib/auth-helpers');
-      const auth = await getValidAuth();
-      console.log('✅ Authentication successful, user ID:', auth.userId);
+      console.log('🔐 Getting session...');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Not authenticated. Please sign in again.');
+      }
+      
+      console.log('✅ Session retrieved, user ID:', session.user.id);
 
       console.log('📡 Calling prompt-optimizer edge function...');
-      const data = await invokeWithAuth('prompt-optimizer', {
-        originalPrompt: p.originalPrompt,
-        taskDescription: p.taskDescription,
-        aiProvider: p.aiProvider,
-        modelName: p.modelName,
-        outputType: p.outputType,
-        variants: p.variants,
-        userId: auth.userId,
-        maxTokens: p.maxTokens,
-        temperature: p.temperature,
-        influence: p.influence,
-        influenceWeight: p.influenceWeight,
-        mode: p.mode,
-        autoSave: settings.autoSave,
-        speedMode: p.mode === 'speed', // Enable speed mode for speed optimization
-        sessionKey: p.sessionKey,
+      const { data, error: invokeError } = await supabase.functions.invoke('prompt-optimizer', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: {
+          originalPrompt: p.originalPrompt,
+          taskDescription: p.taskDescription,
+          aiProvider: p.aiProvider,
+          modelName: p.modelName,
+          outputType: p.outputType,
+          variants: p.variants,
+          userId: session.user.id,
+          maxTokens: p.maxTokens,
+          temperature: p.temperature,
+          influence: p.influence,
+          influenceWeight: p.influenceWeight,
+          mode: p.mode,
+          autoSave: settings.autoSave,
+          speedMode: p.mode === 'speed',
+          sessionKey: p.sessionKey,
+        }
       });
+      
+      if (invokeError) {
+        throw invokeError;
+      }
 
       console.log('✅ Edge function returned successfully:', {
         hasData: !!data,
