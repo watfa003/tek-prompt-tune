@@ -475,11 +475,12 @@ export async function scoreOutputQualityWithAI(
    - Does it have proper structure?
    - Is it complete and coherent?
 
-2. **Intent Alignment** (0-10): If a prompt is provided, how well does the output address it?
-   - Does it answer what was asked?
-   - Is it relevant to the prompt?
-   - Does it fulfill the prompt's intent?
-   - If no prompt is provided, score based on whether output seems purposeful (default: 7)
+2. **Intent Alignment** (0-10): CRITICAL - How well does the output address the prompt?
+   - If the prompt is gibberish/nonsense/random characters: score 0-2 regardless of output quality
+   - If the prompt is vague but the output tries to interpret it: score 3-5
+   - If the prompt is clear and output partially addresses it: score 6-7
+   - If the prompt is clear and output fully addresses it: score 8-10
+   - BE STRICT: A beautiful output from a terrible prompt should score low here
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -530,8 +531,8 @@ Return ONLY a JSON object with this exact structure:
     const quality = parsed.quality || 5;
     const intentAlignment = parsed.intent_alignment || 5;
     
-    // 50/50 weighting: quality + intent alignment (prevents gibberish prompts from scoring high)
-    const rawScore = (quality * 0.5) + (intentAlignment * 0.5);
+    // 30/70 weighting: heavily favor intent alignment to penalize gibberish prompts
+    const rawScore = (quality * 0.3) + (intentAlignment * 0.7);
     
     // Apply 25% curve (same as prompt grading)
     const curvedScore = rawScore + (10 - rawScore) * 0.25;
