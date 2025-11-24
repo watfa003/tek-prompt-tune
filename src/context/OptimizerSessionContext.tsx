@@ -300,15 +300,41 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
       }
     }
     
+    console.log('🔄 OptimizerSession startOptimization called', {
+      mode: p.mode,
+      provider: p.aiProvider,
+      model: p.modelName,
+      variants: p.variants,
+      hasOriginalPrompt: !!p.originalPrompt,
+      runningRef: runningRef.current,
+      isOptimizing
+    });
+    
+    // Safety check: Don't start if already running
+    if (runningRef.current && !opts?.resume) {
+      console.warn('⚠️ Optimization already in progress, skipping new start');
+      toast({
+        title: 'Already Running',
+        description: 'An optimization is already in progress. Please wait.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Set running state BEFORE any async operations to prevent race conditions
+    console.log('✅ Setting runningRef.current = true and isOptimizing = true');
     runningRef.current = true;
     setError(null);
     setPayload(p);
     setIsOptimizing(true);
 
     try {
+      console.log('🔐 Getting authentication...');
       const { invokeWithAuth, getValidAuth } = await import('@/lib/auth-helpers');
       const auth = await getValidAuth();
+      console.log('✅ Authentication successful, user ID:', auth.userId);
 
+      console.log('📡 Calling prompt-optimizer edge function...');
       const data = await invokeWithAuth('prompt-optimizer', {
         originalPrompt: p.originalPrompt,
         taskDescription: p.taskDescription,
@@ -325,6 +351,12 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         autoSave: settings.autoSave,
         speedMode: p.mode === 'speed', // Enable speed mode for speed optimization
         sessionKey: p.sessionKey,
+      });
+
+      console.log('✅ Edge function returned successfully:', {
+        hasData: !!data,
+        bestScore: data?.bestScore,
+        variantCount: data?.variants?.length
       });
 
       if (p.mode === 'speed') {
@@ -352,10 +384,31 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
         toast({ title: 'Success', description: `Prompt optimized successfully using ${p.mode} mode!` });
       }
     } catch (err: any) {
-      console.error('Error optimizing prompt:', err);
+      console.error('❌ Optimization error:', {
+        message: err.message,
+        stack: err.stack,
+        fullError: err
+      });
+      
       setError(err?.message || 'Unknown error');
-      toast({ title: 'Error', description: 'Failed to optimize prompt. Please try again.', variant: 'destructive' });
+      
+      // Provide specific error messages based on error type
+      let errorMessage = 'Failed to optimize prompt. Please try again.';
+      if (err.message?.includes('auth')) {
+        errorMessage = 'Authentication error. Please try logging out and back in.';
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      toast({ 
+        title: 'Optimization Failed', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      });
     } finally {
+      console.log('✅ Optimization process completed, cleaning up state');
       setIsOptimizing(false);
       runningRef.current = false;
     }

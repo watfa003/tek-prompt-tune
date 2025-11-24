@@ -956,7 +956,7 @@ ${optimizedPrompt}`;
       templateSaved: saveAsTemplate && templateTitle,
       sessionKey: progressSessionKey, // Include session key for progress tracking
       summary: {
-        improvementScore: Math.round(bestVariant.score * 100), // Convert 0.93 to 93
+        improvementScore: Math.round(bestVariant.score * 10), // Already 0-10, just round to whole number
         bestStrategy: bestVariant.strategy,
         totalVariants: optimizedVariants.length,
         processingTimeMs: processingTime
