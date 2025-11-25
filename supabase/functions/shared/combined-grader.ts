@@ -156,21 +156,16 @@ Assess both the prompt quality (8 categories) and output quality (2 scores).`;
     const data = await response.json();
     const evaluation: CombinedGradingResponse = JSON.parse(data.choices[0].message.content);
 
-    // Apply score curve to prompt scores
-    const applyCurve = (baseScore: number): number => {
-      const curved = baseScore + (10 - baseScore) * 0.25;
-      return Math.round(curved * 10) / 10;
-    };
-
+    // Return raw AI scores without curve
     const promptScores: CategoryScores = {
-      clarity: applyCurve(evaluation.prompt.clarity.score),
-      specificity: applyCurve(evaluation.prompt.specificity.score),
-      constraints: applyCurve(evaluation.prompt.constraints.score),
-      elaboration: applyCurve(evaluation.prompt.elaboration.score),
-      efficiency: applyCurve(evaluation.prompt.efficiency.score),
-      structure: applyCurve(evaluation.prompt.structure.score),
-      intent_alignment: applyCurve(evaluation.prompt.intentAlignment.score),
-      adaptability: applyCurve(evaluation.prompt.adaptability.score),
+      clarity: Math.round(evaluation.prompt.clarity.score * 10) / 10,
+      specificity: Math.round(evaluation.prompt.specificity.score * 10) / 10,
+      constraints: Math.round(evaluation.prompt.constraints.score * 10) / 10,
+      elaboration: Math.round(evaluation.prompt.elaboration.score * 10) / 10,
+      efficiency: Math.round(evaluation.prompt.efficiency.score * 10) / 10,
+      structure: Math.round(evaluation.prompt.structure.score * 10) / 10,
+      intent_alignment: Math.round(evaluation.prompt.intentAlignment.score * 10) / 10,
+      adaptability: Math.round(evaluation.prompt.adaptability.score * 10) / 10,
     };
 
     const promptReasoning: Record<keyof CategoryScores, string> = {
@@ -184,9 +179,9 @@ Assess both the prompt quality (8 categories) and output quality (2 scores).`;
       adaptability: evaluation.prompt.adaptability.reasoning,
     };
 
-    // Apply curve to output scores and calculate combined score
-    const outputQuality = applyCurve(evaluation.output.quality);
-    const outputIntentAlignment = applyCurve(evaluation.output.intentAlignment);
+    // Return raw AI scores for output without curve
+    const outputQuality = Math.round(evaluation.output.quality * 10) / 10;
+    const outputIntentAlignment = Math.round(evaluation.output.intentAlignment * 10) / 10;
 
     console.log('Combined AI Grading Results:', {
       promptScores,
