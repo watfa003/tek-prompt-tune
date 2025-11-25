@@ -154,7 +154,7 @@ export const TemplateOptimizer = () => {
 
       toast({
         title: "Template optimized!",
-        description: `Improved with ${result.summary.bestStrategy} strategy (${(result.bestScore * 100).toFixed(1)}% score)`,
+        description: `Improved with ${result.summary.bestStrategy} strategy (${(result.bestScore * 10).toFixed(1)}% score)`,
       });
 
       if (result.templateSaved) {
@@ -494,7 +494,7 @@ export const TemplateOptimizer = () => {
             <div className="flex items-center space-x-2">
               {settings.showScores && (
                 <Badge className="bg-success text-success-foreground">
-                  Score: {(optimizationResult.bestScore * 100).toFixed(1)}%
+                  Score: {(optimizationResult.bestScore * 10).toFixed(1)}%
                 </Badge>
               )}
               <Button size="sm" variant="outline" onClick={() => copyToClipboard(optimizedPrompt)}>
@@ -529,7 +529,7 @@ export const TemplateOptimizer = () => {
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline">{variant.strategy}</Badge>
                     <div className="text-sm font-medium">
-                      {(variant.score * 100).toFixed(1)}%
+                      {(variant.score * 10).toFixed(1)}%
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-3">

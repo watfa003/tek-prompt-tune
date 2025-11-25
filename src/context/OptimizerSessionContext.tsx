@@ -273,7 +273,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
               bestScore: dbPrompt.score || bestVariant?.score || 0,
               variants: variants,
               summary: dbPrompt.performance_metrics || {
-                improvementScore: Math.round(((dbPrompt.score || bestVariant?.score || 0) * 100)),
+                improvementScore: Math.round(((dbPrompt.score || bestVariant?.score || 0) * 10)),
                 bestStrategy: bestVariant?.strategy || 'unknown',
                 totalVariants: variants.length,
                 processingTimeMs,
@@ -813,7 +813,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           if (!prev || prev.promptId !== result.promptId) return prev;
           const summary = {
             ...prev.summary,
-            improvementScore: prev.summary?.improvementScore ?? Math.round(((bestVariant?.score ?? prev.bestScore ?? 0) * 100)),
+            improvementScore: prev.summary?.improvementScore ?? Math.round(((bestVariant?.score ?? prev.bestScore ?? 0) * 10)),
             bestStrategy: prev.summary?.bestStrategy ?? bestVariant?.strategy ?? 'unknown',
             totalVariants: variants.length,
             processingTimeMs: prev.summary?.processingTimeMs ?? processingTimeMs,

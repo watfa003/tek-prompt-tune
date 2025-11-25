@@ -818,16 +818,16 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) return "text-green-600";
-    if (score >= 0.6) return "text-yellow-600";
+    if (score >= 8) return "text-green-600";
+    if (score >= 6) return "text-yellow-600";
     return "text-red-600";
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 0.9) return <Badge className="bg-green-500 text-white">Excellent</Badge>;
-    if (score >= 0.8) return <Badge className="bg-blue-500 text-white">Great</Badge>;
-    if (score >= 0.7) return <Badge className="bg-yellow-500 text-white">Good</Badge>;
-    if (score >= 0.6) return <Badge className="bg-orange-500 text-white">Fair</Badge>;
+    if (score >= 9) return <Badge className="bg-green-500 text-white">Excellent</Badge>;
+    if (score >= 8) return <Badge className="bg-blue-500 text-white">Great</Badge>;
+    if (score >= 7) return <Badge className="bg-yellow-500 text-white">Good</Badge>;
+    if (score >= 6) return <Badge className="bg-orange-500 text-white">Fair</Badge>;
     return <Badge className="bg-red-500 text-white">Needs Work</Badge>;
   };
 
@@ -1007,7 +1007,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                     <div className="text-right">
                       <div className="text-sm text-muted-foreground">Best Score</div>
                       <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
-                        {Math.round(result.bestScore * 100)}%
+                        {Math.round(result.bestScore * 10)}%
                       </div>
                     </div>
                     {getScoreBadge(result.bestScore)}
@@ -1074,7 +1074,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                       <div className="flex items-center space-x-1">
                         <span className="text-xs text-muted-foreground">Score:</span>
                         <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
-                          {Math.round(result.bestScore * 100)}%
+                          {Math.round(result.bestScore * 10)}%
                         </span>
                       </div>
                       {getScoreBadge(result.bestScore)}
@@ -1091,7 +1091,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                         <Badge variant="outline">{variant.strategy}</Badge>
                         {settings.showScores && (
                           <span className={`text-sm font-medium ${getScoreColor(variant.score)}`}>
-                            {Math.round(variant.score * 100)}%
+                            {Math.round(variant.score * 10)}%
                           </span>
                         )}
                       </div>

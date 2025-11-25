@@ -138,16 +138,16 @@ export const PromptResults = ({
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 0.8) return <Badge className="bg-green-500">Excellent</Badge>;
-    if (score >= 0.6) return <Badge className="bg-blue-500">Good</Badge>;
-    if (score >= 0.4) return <Badge className="bg-yellow-500">Fair</Badge>;
+    if (score >= 8) return <Badge className="bg-green-500">Excellent</Badge>;
+    if (score >= 6) return <Badge className="bg-blue-500">Good</Badge>;
+    if (score >= 4) return <Badge className="bg-yellow-500">Fair</Badge>;
     return <Badge className="bg-red-500">Needs Work</Badge>;
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) return "text-green-500";
-    if (score >= 0.6) return "text-blue-500";
-    if (score >= 0.4) return "text-yellow-500";
+    if (score >= 8) return "text-green-500";
+    if (score >= 6) return "text-blue-500";
+    if (score >= 4) return "text-yellow-500";
     return "text-red-500";
   };
 
@@ -208,7 +208,7 @@ export const PromptResults = ({
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground">Best Score</div>
                   <div className={`text-lg font-bold ${getScoreColor(result.bestScore)}`}>
-                    {Math.round(result.bestScore * 100)}%
+                    {Math.round(result.bestScore * 10)}%
                   </div>
                 </div>
                 {getScoreBadge(result.bestScore)}
@@ -301,7 +301,7 @@ export const PromptResults = ({
                   <div className="flex items-center space-x-1">
                     <span className="text-xs text-muted-foreground">Score:</span>
                     <span className={`text-sm font-bold ${getScoreColor(result.bestScore)}`}>
-                      {Math.round(result.bestScore * 100)}%
+                      {Math.round(result.bestScore * 10)}%
                     </span>
                   </div>
                   {getScoreBadge(result.bestScore)}
@@ -343,7 +343,7 @@ export const PromptResults = ({
                   <div className="flex items-center space-x-2">
                     {settings.showScores && (
                       <span className={`text-sm font-medium ${getScoreColor(variant.score)}`}>
-                        {Math.round(variant.score * 100)}%
+                        {Math.round(variant.score * 10)}%
                       </span>
                     )}
                   </div>
