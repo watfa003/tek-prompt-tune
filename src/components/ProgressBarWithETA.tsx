@@ -32,11 +32,13 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
   const [status, setStatus] = useState<string>('starting');
   const [message, setMessage] = useState('Starting optimization...');
   const [error, setError] = useState<string | null>(null);
+  const [isStalled, setIsStalled] = useState(false);
 
   const channelRef = useRef<any>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateTimeRef = useRef<number>(Date.now());
   const animationFrameRef = useRef<number>();
+  const stallCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch progress from database (single source of truth)
   const fetchProgress = useCallback(async () => {
@@ -85,6 +87,9 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       setStatus(inferredStatus);
       setMessage(data.message || 'Processing...');
       lastUpdateTimeRef.current = now;
+      
+      // Clear stall state when we get an update
+      setIsStalled(false);
 
       if (newProgress >= 100) {
         setProgress(100);
@@ -169,9 +174,20 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
 
     channelRef.current = channel;
 
-    // Polling fallback every 1s to keep in sync with backend
+    // Polling fallback every 500ms to keep in sync with backend (faster catch-up)
     pollingIntervalRef.current = setInterval(() => {
       fetchProgress();
+    }, 500);
+    
+    // Stall detection: Check every 1s if no updates for >5s during testing phase
+    stallCheckIntervalRef.current = setInterval(() => {
+      const timeSinceLastUpdate = Date.now() - lastUpdateTimeRef.current;
+      const isInTestingPhase = progress >= 35 && progress < 85 && status === 'processing';
+      
+      if (timeSinceLastUpdate > 5000 && isInTestingPhase) {
+        setIsStalled(true);
+        console.log('⚠️ Stall detected: No progress update for >5 seconds');
+      }
     }, 1000);
 
     return () => {
@@ -183,6 +199,11 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
+      }
+      
+      if (stallCheckIntervalRef.current) {
+        clearInterval(stallCheckIntervalRef.current);
+        stallCheckIntervalRef.current = null;
       }
 
       if (animationFrameRef.current) {
@@ -212,7 +233,11 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
       >
         {/* Progress Bar */}
         <div className="relative">
-          <Progress value={roundedProgress} className="h-3 transition-all duration-300" />
+          <Progress 
+            value={roundedProgress} 
+            indeterminate={isStalled}
+            className="h-3 transition-all duration-300" 
+          />
 
           {/* Percentage Label */}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -234,7 +259,9 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
           >
             <div className="h-2 w-2 rounded-full bg-primary" />
           </motion.div>
-          <span>{message}</span>
+          <span>
+            {isStalled ? `${message} (this can take a moment)` : message}
+          </span>
         </div>
 
         {/* Error Banner */}

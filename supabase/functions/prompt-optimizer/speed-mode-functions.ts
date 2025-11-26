@@ -33,20 +33,21 @@ export async function handleSpeedMode(
   const progressSessionKey = sessionKey || `${userId}_${Date.now()}`;
   
   // Helper function to update progress in database
+  // Uses INSERT instead of UPSERT to ensure Realtime receives ALL progress events
   const updateProgress = async (progress: number, step: number, message: string) => {
     try {
       await supabase
         .from('optimization_progress')
-        .upsert({
+        .insert({
           user_id: userId,
           session_key: progressSessionKey,
+          progress_id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
           progress,
           step,
           message,
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'session_key,user_id'
         });
+      console.log(`📊 Speed Mode Progress: ${progress}% - ${message}`);
     } catch (error) {
       console.error('Progress update failed:', error);
     }
