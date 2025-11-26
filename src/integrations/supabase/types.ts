@@ -305,6 +305,7 @@ export type Database = {
           id: string
           message: string
           progress: number
+          progress_id: string | null
           session_key: string
           step: number
           updated_at: string | null
@@ -315,6 +316,7 @@ export type Database = {
           id?: string
           message: string
           progress?: number
+          progress_id?: string | null
           session_key: string
           step?: number
           updated_at?: string | null
@@ -325,6 +327,7 @@ export type Database = {
           id?: string
           message?: string
           progress?: number
+          progress_id?: string | null
           session_key?: string
           step?: number
           updated_at?: string | null

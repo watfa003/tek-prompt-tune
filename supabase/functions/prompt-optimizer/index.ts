@@ -434,20 +434,21 @@ serve(async (req) => {
     const progressSessionKey = sessionKey || `${userId}_${Date.now()}`;
     
     // Helper function to update progress in database
+    // Uses INSERT instead of UPSERT to ensure Realtime receives ALL progress events
     const updateProgress = async (progress: number, step: number, message: string) => {
       try {
         await supabase
           .from('optimization_progress')
-          .upsert({
+          .insert({
             user_id: userId,
             session_key: progressSessionKey,
+            progress_id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             progress,
             step,
             message,
             updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'session_key,user_id'
           });
+        console.log(`📊 Progress: ${progress}% - ${message}`);
       } catch (error) {
         console.error('Progress update failed:', error);
       }
@@ -536,10 +537,11 @@ serve(async (req) => {
         // Track START order immediately
         variantStartOrder.push(variantIndex);
         const startPosition = variantStartOrder.length;
+        const strategyName = strategy.name;
         
         // Update progress based on START position (5-35%)
         const creationProgress = 5 + Math.floor((startPosition / totalVariants) * 30);
-        await updateProgress(creationProgress, 1, `Creating variants... (${startPosition}/${totalVariants})`);
+        await updateProgress(creationProgress, 1, `Creating variant ${startPosition} of ${totalVariants} (${strategyName})...`);
         // Get model-friendly name for the target model
         const targetModelName = getModelFriendlyName(aiProvider, modelName);
         
@@ -688,9 +690,9 @@ ${optimizedPrompt}`;
           variantCompletionStatus[variantIndex] = true;
           totalCompleted++;
           
-          // Update to testing phase (35-85%) based on TOTAL completed
-          const testProgressPercent = 35 + Math.floor((totalCompleted / totalVariants) * 50);
-          await updateProgress(testProgressPercent, 2, `Testing variants... (${totalCompleted}/${totalVariants})`);
+          // Update to testing phase with DETAILED messages using START position
+          const testProgressPercent = 35 + Math.floor((totalCompleted / totalVariants) * 35);
+          await updateProgress(testProgressPercent, 2, `Testing variant ${startPosition} of ${totalVariants} (${strategyName})...`);
           
           try {
             console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
@@ -706,6 +708,10 @@ ${optimizedPrompt}`;
           
             if (testResponse) {
               actualResponse = testResponse;
+              // Add progress update BEFORE grading
+              const gradingProgressPercent = 70 + Math.floor((totalCompleted / totalVariants) * 15);
+              await updateProgress(gradingProgressPercent, 2, `Grading variant ${startPosition} of ${totalVariants} (${strategyName})...`);
+              
               // Score based on the actual response from the user's selected model
               // Use fast evaluation for very long responses (over 2 pages)
               const responseWords = testResponse.split(' ').length;
