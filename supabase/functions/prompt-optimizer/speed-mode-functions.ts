@@ -53,8 +53,9 @@ export async function handleSpeedMode(
     }
   };
 
-  // Initialize progress
-  await updateProgress(0, 1, 'Initializing speed optimization...');
+  // Initialize progress immediately
+  await updateProgress(0, 1, 'Starting speed optimization...');
+  await updateProgress(5, 1, 'Loading optimization patterns...');
   
   // 20-second timeout for all operations (increased for slower models)
   const timeoutPromise = new Promise((_, reject) => {
@@ -95,7 +96,7 @@ export async function handleSpeedMode(
       updateProgress
     );
     
-    await updateProgress(85, 4, 'Computing best variant...');
+    await updateProgress(85, 3, 'Computing best variant...');
     
     const variants = await Promise.race([speedPromise, timeoutPromise]) as any[];
     const bestVariant = selectBestVariant(variants);
@@ -282,7 +283,9 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
 
     // Update progress for this variant
     const progressPercent = 10 + Math.floor((i / numVariants) * 70);
-    await updateProgress(progressPercent, 2, `Generating variant ${i + 1}/${numVariants}...`);
+    if (updateProgress) {
+      await updateProgress(progressPercent, 2, `Generating variant ${i + 1}/${numVariants} (${strategy})...`);
+    }
 
     let optimizedPrompt = '';
     try {
