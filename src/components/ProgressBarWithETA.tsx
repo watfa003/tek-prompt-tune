@@ -50,7 +50,7 @@ export const ProgressBarWithETA: React.FC<ProgressBarWithETAProps> = ({
         .select('*')
         .eq('session_key', sessionKey)
         .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
