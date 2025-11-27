@@ -719,8 +719,10 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       localStorage.removeItem('promptOptimizer_isOptimizing');
       localStorage.removeItem('promptOptimizer_startTime');
       console.log('✅ Stuck states cleared');
+      console.log('📝 Original prompt value:', originalPrompt?.substring(0, 50), 'length:', originalPrompt?.length);
       
       if (!originalPrompt.trim()) {
+        console.log('❌ Exiting: Empty prompt');
         toast({
           title: "Error",
           description: "Please enter a prompt to optimize",
@@ -728,6 +730,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         });
         return;
       }
+      console.log('✅ Prompt validation passed');
 
       // Clear the opposite mode's result before starting new optimization
       if (optimizationMode === 'speed') {
@@ -738,10 +741,13 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       setIsCanceled(false);
       
       // Generate session key SYNCHRONOUSLY
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 Getting auth session...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔐 Session result:', { hasSession: !!session, hasUser: !!session?.user, error: sessionError?.message });
       const userId = session?.user?.id;
       
       if (!userId) {
+        console.log('❌ Exiting: No userId found');
         toast({
           title: "Error",
           description: "You must be logged in to optimize prompts",
@@ -749,6 +755,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         });
         return;
       }
+      console.log('✅ Auth validated, userId:', userId);
       
       const sessionKey = `${userId}_${Date.now()}`;
       currentSessionKeyRef.current = sessionKey;
