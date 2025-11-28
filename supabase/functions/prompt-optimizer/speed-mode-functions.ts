@@ -1,5 +1,6 @@
 // Speed Mode: Optimizes via API calls (like deep mode) but skips testing responses
 import { getOutputTypeSystemPrompt, getOutputTypeGuidance, OUTPUT_TYPE_STRATEGIES, type OutputType } from './output-type-strategies.ts';
+import { COMPILED_STRATEGIES, type StrategyKey } from './schema-compiler.ts';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -619,49 +620,16 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
 }
 
 // Build instruction identical to deep mode - CRITICAL: keep exact same logic across modes
+// Now uses compiled strategy prompts from JSON schema for consistency
 function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any, influence: string = '', influenceWeight: number = 0, maxTokens: number = 1024): string {
-  const STRATEGY_CONFIGS = {
-    clarity: {
-      name: 'CLARITY ENHANCEMENT',
-      systemPrompt: 'You are a prompt optimization expert. Your job is to make the given prompt clearer and more specific while PRESERVING THE EXACT INTENT AND ACTION. If the user asks to \'say hello\', the optimized prompt should still result in the AI saying \'hello\' - just with better structure. Do NOT change what the user is asking for - only improve HOW they\'re asking for it:'
-    },
-    specificity: {
-      name: 'SPECIFICITY IMPROVEMENT',
-      systemPrompt: 'You are a prompt optimization expert. Your job is to add specific details to make this prompt more precise while KEEPING THE CORE REQUEST UNCHANGED. If the user asks to \'write code\', don\'t ask for \'analyze code\' instead. Preserve their exact intent and action. Do NOT answer the prompt - only improve how it asks the question:'
-    },
-    efficiency: {
-      name: 'EFFICIENCY OPTIMIZATION',
-      systemPrompt: 'You are a prompt optimization expert. Your job is to optimize this prompt for better AI performance while MAINTAINING THE EXACT SAME GOAL. Do not change what the user wants to accomplish. If they ask to generate something, keep it as generate. If they ask to explain, keep it as explain. Do NOT answer the prompt - only improve how it asks the question:'
-    },
-    structure: {
-      name: 'STRUCTURE AND STEPS',
-      systemPrompt: 'You are a prompt optimization expert. Your job is to improve the logical structure with step-by-step instructions while PRESERVING THE ORIGINAL REQUEST. The end goal must be identical to the original prompt. Do NOT answer the prompt - only improve how it asks the question:'
-    },
-    constraints: {
-      name: 'CONSTRAINTS AND FORMAT',
-      systemPrompt: 'You are a prompt optimization expert. Your job is to add constraints and output format specifications while KEEPING THE CORE ACTION THE SAME. If the user asks to \'say bye\', the optimized version should still tell the AI to say bye, just with better formatting. Do NOT answer the prompt - only improve how it asks the question:'
-    },
-    elaboration: {
-      name: 'ELABORATION & CONTEXT EXPANSION',
-      systemPrompt: 'You are a prompt optimization expert. Your job is to expand this prompt to include relevant context while ABSOLUTELY PRESERVING THE CORE INTENT. The fundamental action/goal must remain unchanged. If they want the AI to output \'hello\', don\'t change it to \'create a greeting\' - keep the exact action but add helpful context. Do NOT answer the prompt - only improve how it asks the question:'
-    },
-    intent: {
-      name: 'USER INTENT ALIGNMENT',
-      systemPrompt: 'You are a prompt optimization expert. Your job is to clarify the user\'s intent and make it more actionable WITHOUT CHANGING THEIR GOAL. If they ask to \'fix code\', keep it as fixing code - don\'t change to \'analyze\' or \'review\'. Preserve the exact verb and outcome. Do NOT answer the prompt - only improve how it asks the question:'
-    },
-    adaptability: {
-      name: 'ADAPTABILITY OPTIMIZATION',
-      systemPrompt: 'You are a prompt optimization expert. Your job is to adapt this prompt for consistent results across multiple AI models while KEEPING THE EXACT SAME REQUEST. Do not alter what the user is asking the AI to do - just make the instructions clearer for different models. Do NOT answer the prompt - only improve how it asks the question:'
-    }
-  };
-
-  const strategyConfig = STRATEGY_CONFIGS[strategy as keyof typeof STRATEGY_CONFIGS];
-  if (!strategyConfig) {
+  // Use the compiled strategy from JSON schema (same as deep mode)
+  const strategyData = COMPILED_STRATEGIES[strategy as StrategyKey];
+  if (!strategyData) {
     throw new Error(`Unknown strategy: ${strategy}`);
   }
 
-  // Build instruction IDENTICAL to deep mode
-  let instruction = `You are optimizing a prompt using the ${strategyConfig.name} strategy.\n\n${strategyConfig.systemPrompt}${getOutputTypeSystemPrompt(outputType as OutputType)}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
+  // Build instruction using the full compiled system prompt from JSON schema
+  let instruction = `You are optimizing a prompt using the ${strategyData.name} strategy. ${strategyData.definition}\n\n${strategyData.systemPrompt}${getOutputTypeSystemPrompt(outputType as OutputType)}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
   
   // CRITICAL: Add task description as meta-instructions FIRST, before anything else
   if (taskDescription) {
