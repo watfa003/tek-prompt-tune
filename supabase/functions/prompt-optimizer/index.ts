@@ -434,21 +434,25 @@ serve(async (req) => {
     const progressSessionKey = sessionKey || `${userId}_${Date.now()}`;
     
     // Helper function to update progress in database
-    // Uses INSERT instead of UPSERT to ensure Realtime receives ALL progress events
+    // Uses UPSERT for reliability - one row per session, updated in place
     const updateProgress = async (progress: number, step: number, message: string) => {
       try {
-        await supabase
+        const { error } = await supabase
           .from('optimization_progress')
-          .insert({
+          .upsert({
             user_id: userId,
             session_key: progressSessionKey,
-            progress_id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             progress,
             step,
             message,
             updated_at: new Date().toISOString()
-          });
-        console.log(`📊 Progress: ${progress}% - ${message}`);
+          }, { onConflict: 'session_key,user_id' });
+        
+        if (error) {
+          console.error(`❌ Progress update error: ${error.message}`);
+        } else {
+          console.log(`📊 Progress: ${progress}% - ${message}`);
+        }
       } catch (error) {
         console.error('Progress update failed:', error);
       }
