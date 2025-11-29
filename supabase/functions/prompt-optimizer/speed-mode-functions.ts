@@ -619,57 +619,39 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
   };
 }
 
-// Build instruction identical to deep mode - CRITICAL: keep exact same logic across modes
-// Now uses compiled strategy prompts from JSON schema for consistency
+// Build instruction using compact JSON format - matches deep mode
 function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any, influence: string = '', influenceWeight: number = 0, maxTokens: number = 1024): string {
-  // Use the compiled strategy from JSON schema (same as deep mode)
   const strategyData = COMPILED_STRATEGIES[strategy as StrategyKey];
   if (!strategyData) {
     throw new Error(`Unknown strategy: ${strategy}`);
   }
 
-  // Build instruction using the full compiled system prompt from JSON schema
-  // Note: strategyData.systemPrompt already contains master prompt + strategy definition
-  let instruction = `${strategyData.systemPrompt}${getOutputTypeSystemPrompt(outputType as OutputType)}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
+  const outputStrategy = OUTPUT_TYPE_STRATEGIES[outputType as OutputType];
+  const outputDesc = outputStrategy?.description || 'clear and well-structured responses';
   
-  // CRITICAL: Add task description as meta-instructions FIRST, before anything else
-  if (taskDescription) {
-    instruction += `\n\n=== HOW TO OPTIMIZE (Meta-instructions) ===\nThe following are guidance on HOW you should optimize this prompt. These are NOT part of the prompt itself:\n${taskDescription}`;
+  // Build compact meta object
+  const meta: any = { outputType, outputHint: outputDesc };
+  if (taskDescription) meta.context = taskDescription;
+  if (maxTokens) meta.maxTokens = maxTokens;
+  if (influence?.trim() && influenceWeight > 0) {
+    meta.influence = { template: influence, weight: influenceWeight };
   }
   
   // Add cached insights if available
   const strategyInsights = insights?.strategies?.[strategy];
   if (strategyInsights?.patterns?.length > 0) {
-    instruction += `\n\nSuccessful patterns for this strategy: ${strategyInsights.patterns.slice(0, 3).join(', ')}`;
+    meta.patterns = strategyInsights.patterns.slice(0, 3);
   }
-  
-  // Critical rules: keep user's intent and only improve the prompt
-  const outputStrategy = OUTPUT_TYPE_STRATEGIES[outputType as OutputType];
-  const outputDesc = outputStrategy?.description || 'clear and well-structured responses';
-  instruction += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategyConfig.name} strategy throughout your optimization.\n- Consider that this prompt is intended for ${outputType} output, so optimize for ${outputDesc}.\n- DO NOT add format instructions to the prompt itself (like "return as JSON" or "format as a list").\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.`;
-  
-  // UNIFORM influence instructions - exactly the same for ALL variants
-  if (influence && influence.trim().length > 0 && influenceWeight > 0) {
-    const influenceStrength = 
-      influenceWeight < 30 ? 'MINIMAL' :
-      influenceWeight < 60 ? 'MODERATE' :
-      'STRONG';
-    
-    instruction += `\n\n=== INFLUENCE TEMPLATE (${influenceWeight}% weight) ===\nReference template:\n"${influence}"\n\n🎯 CRITICAL INFLUENCE RULES - APPLY UNIFORMLY:\n`;
-    
-    if (influenceWeight < 30) {
-      instruction += `- ${influenceWeight}% = ${influenceStrength} influence\n- Use template for LIGHT INSPIRATION ONLY (tone/style hints)\n- PRIMARY FOCUS: ${100 - influenceWeight}% on original prompt\n- DO NOT copy template structure, phrasing, or patterns\n- Keep original prompt's core approach and voice`;
-    } else if (influenceWeight < 60) {
-      instruction += `- ${influenceWeight}% = ${influenceStrength} influence\n- Balance template guidance with original style\n- Blend template patterns with user's approach (${influenceWeight}% template / ${100 - influenceWeight}% original)\n- Adapt helpful template elements while preserving original intent`;
-    } else {
-      instruction += `- ${influenceWeight}% = ${influenceStrength} influence\n- Closely follow template's patterns and structure\n- Adapt template approach (${influenceWeight}%) to user's specific needs (${100 - influenceWeight}%)\n- Template is primary guide, original prompt provides the topic`;
-    }
-  } else if (influence && influence.trim().length > 0) {
-    instruction += `\n\n=== INFLUENCE: DISABLED (0%) ===\nA template was provided but set to 0% - COMPLETELY IGNORE IT. Focus only on the original prompt.`;
-  }
-  
 
-  return instruction;
+  // Compact JSON format matching deep mode
+  return `CONFIG:${strategyData.systemPrompt}
+
+META:${JSON.stringify(meta)}
+
+INPUT:"${originalPrompt}"
+
+TASK:Optimize INPUT using CONFIG. Apply strategy "${strategyData.name}". Preserve intent. Output ${outputType}.
+OUTPUT:<optimized_prompt>RESULT</optimized_prompt>`;
 }
 
 // Provider calls (subset matching index.ts behavior)

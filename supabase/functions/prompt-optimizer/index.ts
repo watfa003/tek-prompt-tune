@@ -346,75 +346,43 @@ serve(async (req) => {
         await updateProgress(creationProgress, 1, `Creating variant ${startPosition} of ${totalVariants} (${strategyName})...`);
         // Get model-friendly name for the target model
         const targetModelName = getModelFriendlyName(aiProvider, modelName);
+        const outputStrategy = OUTPUT_TYPE_STRATEGIES[outputType as OutputType];
         
-        // For optimization: use compiled JSON schema prompt (strategy.systemPrompt contains full master + strategy)
-        // Added model specialization as a lightweight prefix
-        let optimizationPrompt = `[Target Model: ${targetModelName}]
-
-${strategy.systemPrompt}
-
-[Meta-guidance only — Do not include format requirements in the optimized prompt]
-Output type context: This prompt is intended for ${outputType} output, so consider ${OUTPUT_TYPE_STRATEGIES[outputType as OutputType].description} when optimizing, but do not add format instructions to the prompt itself.
-
-Original prompt to optimize:
-${enhancedPrompt}`;
+        // Build compact JSON-based optimization prompt
+        // The strategy.systemPrompt is now pure JSON - wrap with minimal instructions
+        const meta: any = {
+          model: targetModelName,
+          outputType,
+          outputHint: outputStrategy.description
+        };
         
-        // CRITICAL: Add task description as meta-instructions FIRST, before anything else
-        if (taskDescription) {
-          optimizationPrompt += `\n\n=== HOW TO OPTIMIZE (Meta-instructions) ===\nThe following are guidance on HOW you should optimize this prompt. These are NOT part of the prompt itself:\n${taskDescription}`;
+        if (taskDescription) meta.context = taskDescription;
+        if (maxTokens) meta.maxTokens = maxTokens;
+        
+        // Add influence if set
+        if (influence?.trim() && influenceWeight > 0) {
+          meta.influence = { template: influence, weight: influenceWeight };
         }
+        
+        // Add creativity guidance based on temperature
+        const temp = typeof temperature === 'number' ? temperature : 0.7;
+        meta.creativity = temp <= 0.3 ? 'deterministic' : temp < 0.7 ? 'balanced' : 'creative';
         
         // Add cached insights if available
         const strategyInsights = cachedInsights.strategies[strategyKey];
         if (strategyInsights?.patterns?.length > 0) {
-          optimizationPrompt += `\n\nSuccessful patterns for this strategy: ${strategyInsights.patterns.slice(0, 3).join(', ')}`;
+          meta.patterns = strategyInsights.patterns.slice(0, 3);
         }
         
-        // Critical rules: keep user's intent and only improve the prompt
-        const outputStrategy = OUTPUT_TYPE_STRATEGIES[outputType as OutputType];
-        optimizationPrompt += `\n\nRules:\n- Preserve the user's original task and intent exactly.\n- You are optimizing a PROMPT, not answering it directly.\n- Do NOT answer the user's question - only improve how they ask it.\n- Apply the ${strategy.name.toUpperCase()} strategy throughout your optimization.\n- Consider that this prompt is intended for ${outputType} output, so optimize for ${outputStrategy.description}.\n- DO NOT add format instructions to the prompt itself (like "return as JSON" or "format as a list").\n- Return ONLY the improved prompt enclosed between <optimized_prompt> and </optimized_prompt> with no other text.\n- Do not use markdown fences or commentary.\n- The output should still be a prompt that asks for the same thing, just better.\n- Do not change the task into writing code unless the original prompt explicitly requested code.\n- Ensure the optimized prompt still requests the same task and does not alter the intended output type.`;
-        
-        // UNIFORM influence instructions - exactly the same for ALL variants
-        if (influence && influence.trim().length > 0 && influenceWeight > 0) {
-          const influenceStrength = 
-            influenceWeight < 30 ? 'MINIMAL' :
-            influenceWeight < 60 ? 'MODERATE' :
-            'STRONG';
-          
-          optimizationPrompt += `\n\n=== INFLUENCE TEMPLATE (${influenceWeight}% weight) ===\nReference template:\n"${influence}"\n\n🎯 CRITICAL INFLUENCE RULES - APPLY UNIFORMLY:\n`;
-          
-          if (influenceWeight < 30) {
-            optimizationPrompt += `- ${influenceWeight}% = ${influenceStrength} influence\n- Use template for LIGHT INSPIRATION ONLY (tone/style hints)\n- PRIMARY FOCUS: ${100 - influenceWeight}% on original prompt\n- DO NOT copy template structure, phrasing, or patterns\n- Keep original prompt's core approach and voice`;
-          } else if (influenceWeight < 60) {
-            optimizationPrompt += `- ${influenceWeight}% = ${influenceStrength} influence\n- Balance template guidance with original style\n- Blend template patterns with user's approach (${influenceWeight}% template / ${100 - influenceWeight}% original)\n- Adapt helpful template elements while preserving original intent`;
-          } else {
-            optimizationPrompt += `- ${influenceWeight}% = ${influenceStrength} influence\n- Closely follow template's patterns and structure\n- Adapt template approach (${influenceWeight}%) to user's specific needs (${100 - influenceWeight}%)\n- Template is primary guide, original prompt provides the topic`;
-          }
-        } else if (influence && influence.trim().length > 0) {
-          optimizationPrompt += `\n\n=== INFLUENCE: DISABLED (0%) ===\nA template was provided but set to 0% - COMPLETELY IGNORE IT. Focus only on the original prompt.`;
-        }
-        
-        
-        // CRITICAL: Only integrate max_tokens if it's set
-        if (maxTokens) {
-          optimizationPrompt += `\n- IMPORTANT: Integrate the token limit naturally into the prompt as a constraint. For example, add phrasing like "in ${maxTokens} tokens or less" or "Keep the response within ${maxTokens} tokens" or "Provide a concise response (max ${maxTokens} tokens)" as part of the prompt's requirements. Make it flow naturally with the rest of the prompt - don't just append it as metadata.`;
-        }
+        // Compact prompt format: JSON config + minimal wrapper
+        let optimizationPrompt = `CONFIG:${strategy.systemPrompt}
 
-        // Textual creativity guidance derived from user's temperature (do NOT mention parameters)
-        const temp = typeof temperature === 'number' ? temperature : 0.7;
-        let creativityLabel = 'Balanced';
-        let creativityGuidance = '- Maintain a balance between novelty and adherence to constraints.';
-        if (temp <= 0.3) {
-          creativityLabel = 'Highly deterministic';
-          creativityGuidance = '- Emphasize specificity, determinism, and reproducibility; minimize brainstorming or randomness.';
-        } else if (temp < 0.7) {
-          creativityLabel = 'Balanced';
-          creativityGuidance = '- Encourage limited variation while strictly following requirements and structure.';
-        } else {
-          creativityLabel = 'Creative';
-          creativityGuidance = '- Encourage diverse ideas and varied phrasing while still meeting acceptance criteria.';
-        }
-        optimizationPrompt += `\n\n=== CREATIVITY STYLE (Textual guidance only) ===\nTarget: ${creativityLabel}\nGuidance:\n${creativityGuidance}\n- Embed wording in the improved prompt to achieve this style without referencing model parameters.`;
+META:${JSON.stringify(meta)}
+
+INPUT:"${enhancedPrompt}"
+
+TASK:Optimize INPUT using CONFIG. Apply strategy "${strategy.name}". Preserve intent. Output ${outputType}.
+OUTPUT:<optimized_prompt>RESULT</optimized_prompt>`;
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
         // Ensure higher token budget for Google to avoid MAX_TOKENS errors with long prompts
         const optimizationTokens = aiProvider === 'google' 
