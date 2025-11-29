@@ -347,13 +347,9 @@ serve(async (req) => {
         // Get model-friendly name for the target model
         const targetModelName = getModelFriendlyName(aiProvider, modelName);
         
-        // For optimization: enhance the prompt while preserving intent
-        // CRITICAL: Explicitly state the strategy being used with model awareness
-        let optimizationPrompt = `You are a prompt optimization expert specializing in the ${targetModelName} language model. Tailor the improved prompt for ${targetModelName}'s preferred structure, clarity, and style.
-
-You are optimizing a prompt using the ${strategy.name.toUpperCase()} strategy.
-
-${strategy.definition}
+        // For optimization: use compiled JSON schema prompt (strategy.systemPrompt contains full master + strategy)
+        // Added model specialization as a lightweight prefix
+        let optimizationPrompt = `[Target Model: ${targetModelName}]
 
 ${strategy.systemPrompt}
 
