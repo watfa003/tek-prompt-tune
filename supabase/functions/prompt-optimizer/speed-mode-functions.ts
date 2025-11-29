@@ -629,7 +629,8 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
   }
 
   // Build instruction using the full compiled system prompt from JSON schema
-  let instruction = `You are optimizing a prompt using the ${strategyData.name} strategy. ${strategyData.definition}\n\n${strategyData.systemPrompt}${getOutputTypeSystemPrompt(outputType as OutputType)}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
+  // Note: strategyData.systemPrompt already contains master prompt + strategy definition
+  let instruction = `${strategyData.systemPrompt}${getOutputTypeSystemPrompt(outputType as OutputType)}\n\nOriginal prompt to optimize:\n${originalPrompt}`;
   
   // CRITICAL: Add task description as meta-instructions FIRST, before anything else
   if (taskDescription) {
