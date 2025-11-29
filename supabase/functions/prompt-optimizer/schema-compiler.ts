@@ -1,121 +1,86 @@
-// PrompTek V5 Elite - Compact Schema Compiler
-// Compiles JSON schemas into token-efficient prompts
+// PrompTek V5 Elite - JSON Schema Compiler
+// Outputs ultra-compact JSON instructions for GPT-4o Mini
 
-import { PROMPTEK_SCHEMA, STRATEGY_SCHEMAS, type StrategyKey } from './optimization-schema.ts';
+import { PROMPTEK_JSON, STRATEGIES, type StrategyKey } from './optimization-schema.ts';
 
 /**
- * Compiles a COMPACT master system prompt from JSON schema
- * Optimized for minimal tokens while preserving all rules
+ * Compiles master system as compact JSON string
  */
 export function compileMasterSystemPrompt(): string {
-  const s = PROMPTEK_SCHEMA;
-  
-  // Compact pillars: "1.Clarity≥9: definition | fixes"
-  const pillarsCompact = Object.entries(s.pillars).map(([key, p]) => 
-    `${p.id}.${key.charAt(0).toUpperCase() + key.slice(1)}≥${p.target}: ${p.definition}`
-  ).join('\n');
-
-  // Compact fixes as single line per pillar
-  const fixesCompact = Object.entries(s.pillars).map(([key, p]) => 
-    `${key}<${p.target}: ${p.fixes.join('; ')}`
-  ).join('\n');
-
-  // Compact role examples
-  const roleExamples = Object.entries(s.criticalRules.rolePersona.examples)
-    .map(([task, role]) => `${task.replace(/_/g, ' ')}→${role}`)
-    .join(', ');
-
-  return `SYSTEM: ${s.system.name}
-MISSION: ${s.system.mission}
-TARGETS: All pillars ≥${s.system.targets.minPillar}, avg ≥${s.system.targets.avgTarget}
-
-RULES:
-• Start with "You are a [role]" (${roleExamples})
-• Structure: TASK→METHOD→CONSTRAINTS→VERIFY (adapt to task)
-• Preserve exact user intent
-• Be aggressive - create ELITE prompts
-• NEVER answer the prompt, only optimize it
-• NO vague terms (good→exceptional, some→3-5, detailed→300-500 words)
-
-8 PILLARS (each ≥${s.system.targets.minPillar}):
-${pillarsCompact}
-
-FIXES:
-${fixesCompact}
-
-INTENSITY: <15 tokens→8.5+, 15-150→9.0+, >150→9.5+
-
-OUTPUT: Return ONLY the optimized prompt between <optimized_prompt> tags.`;
+  return JSON.stringify({
+    sys: PROMPTEK_JSON.id,
+    mission: PROMPTEK_JSON.mission,
+    targets: PROMPTEK_JSON.targets,
+    rules: PROMPTEK_JSON.rules,
+    roles: PROMPTEK_JSON.roles,
+    pillars: PROMPTEK_JSON.pillars,
+    replace: PROMPTEK_JSON.replace,
+    intensity: PROMPTEK_JSON.intensity,
+    output: PROMPTEK_JSON.output
+  });
 }
 
 /**
- * Compiles a COMPACT strategy-specific prompt
+ * Compiles strategy-specific JSON prompt
  */
 export function compileStrategyPrompt(strategyKey: StrategyKey): string {
-  const master = compileMasterSystemPrompt();
-  const strat = STRATEGY_SCHEMAS[strategyKey];
+  const strat = STRATEGIES[strategyKey];
   
-  // Compact target pillars
-  const targets = Object.entries(strat.targetPillars)
-    .map(([p, score]) => `${p}≥${score}`)
-    .join(', ');
-
-  // Compact transformations
-  const transforms = strat.transformations.map(t => {
-    if ('examples' in t && t.examples) {
-      return `• ${t.rule} (${t.examples.slice(0, 2).join(', ')})`;
-    }
-    return `• ${t.rule}`;
-  }).join('\n');
-
-  return `${master}
-
-STRATEGY: ${strat.name}
-${strat.definition}
-Targets: ${targets}
-
-Apply:
-${transforms}
-
-${strat.conditionalFix}`;
+  return JSON.stringify({
+    sys: PROMPTEK_JSON.id,
+    mission: PROMPTEK_JSON.mission,
+    targets: PROMPTEK_JSON.targets,
+    rules: PROMPTEK_JSON.rules,
+    roles: PROMPTEK_JSON.roles,
+    pillars: PROMPTEK_JSON.pillars,
+    replace: PROMPTEK_JSON.replace,
+    strategy: {
+      name: strat.name,
+      focus: strat.focus,
+      targets: strat.targets,
+      apply: strat.apply,
+      fix: strat.fix
+    },
+    output: PROMPTEK_JSON.output
+  });
 }
 
 /**
  * Get strategy display name
  */
 export function getStrategyName(strategyKey: StrategyKey): string {
-  return STRATEGY_SCHEMAS[strategyKey]?.name || strategyKey;
+  return STRATEGIES[strategyKey]?.name || strategyKey;
 }
 
 /**
  * Get strategy weight
  */
 export function getStrategyWeight(strategyKey: StrategyKey): number {
-  return STRATEGY_SCHEMAS[strategyKey]?.weight || 0.1;
+  return STRATEGIES[strategyKey]?.w || 0.1;
 }
 
 /**
- * Check if strategy condition is met for a given prompt
+ * Check if strategy condition is met
  */
 export function checkStrategyCondition(strategyKey: StrategyKey, prompt: string): boolean {
-  const strategy = STRATEGY_SCHEMAS[strategyKey];
-  if (!strategy.condition) return true;
+  const strategy = STRATEGIES[strategyKey];
+  if (!strategy.cond) return true;
 
-  const condition = strategy.condition;
+  const cond = strategy.cond;
   
-  if (condition.type === 'prompt_length') {
+  if (cond.type === 'length') {
     const length = prompt.length;
-    switch (condition.operator) {
-      case '<': return length < condition.value;
-      case '>': return length > condition.value;
-      case '<=': return length <= condition.value;
-      case '>=': return length >= condition.value;
+    switch (cond.op) {
+      case '<': return length < cond.val;
+      case '>': return length > cond.val;
+      case '<=': return length <= cond.val;
+      case '>=': return length >= cond.val;
       default: return true;
     }
   }
   
-  if (condition.type === 'regex') {
-    const regex = new RegExp(condition.pattern, condition.flags || '');
+  if (cond.type === 'regex') {
+    const regex = new RegExp(cond.pattern, 'i');
     return regex.test(prompt);
   }
 
@@ -123,16 +88,16 @@ export function checkStrategyCondition(strategyKey: StrategyKey, prompt: string)
 }
 
 /**
- * Get all available strategies filtered by conditions
+ * Get available strategies filtered by conditions
  */
 export function getAvailableStrategies(prompt: string): StrategyKey[] {
-  return (Object.keys(STRATEGY_SCHEMAS) as StrategyKey[]).filter(key => 
+  return (Object.keys(STRATEGIES) as StrategyKey[]).filter(key => 
     checkStrategyCondition(key, prompt)
   );
 }
 
 /**
- * Build the complete optimization strategies object for the edge function
+ * Build optimization strategies object for edge function
  */
 export function buildOptimizationStrategies(): Record<StrategyKey, {
   name: string;
@@ -143,14 +108,14 @@ export function buildOptimizationStrategies(): Record<StrategyKey, {
 }> {
   const strategies: any = {};
   
-  for (const key of Object.keys(STRATEGY_SCHEMAS) as StrategyKey[]) {
-    const schema = STRATEGY_SCHEMAS[key];
+  for (const key of Object.keys(STRATEGIES) as StrategyKey[]) {
+    const schema = STRATEGIES[key];
     strategies[key] = {
       name: schema.name,
-      definition: schema.definition,
+      definition: schema.apply.join('. '),
       systemPrompt: compileStrategyPrompt(key),
-      weight: schema.weight,
-      ...(schema.condition && {
+      weight: schema.w,
+      ...(schema.cond && {
         condition: (prompt: string) => checkStrategyCondition(key, prompt)
       })
     };
@@ -159,7 +124,7 @@ export function buildOptimizationStrategies(): Record<StrategyKey, {
   return strategies;
 }
 
-// Export pre-compiled prompts for direct use
+// Pre-compiled exports
 export const COMPILED_MASTER_PROMPT = compileMasterSystemPrompt();
 export const COMPILED_STRATEGIES = buildOptimizationStrategies();
 
