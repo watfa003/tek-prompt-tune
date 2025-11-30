@@ -173,7 +173,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Average Score</p>
-              <p className="text-2xl font-bold">{(analytics.overview.averageScore * 100).toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{(analytics.overview.averageScore || 0).toFixed(1)}/10</p>
             </div>
             <Award className="h-8 w-8 text-primary" />
           </div>
@@ -304,7 +304,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                     <div className="text-right">
                       <div className="text-sm font-semibold">{stats.count}</div>
                       <div className="text-xs text-muted-foreground">
-                        {Math.round(stats.avgScore * 100)}% avg
+                        {(stats.avgScore || 0).toFixed(1)}/10 avg
                       </div>
                     </div>
                   </div>
@@ -322,7 +322,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                     <div className="text-right">
                       <div className="text-sm font-semibold">{stats.count}</div>
                       <div className="text-xs text-muted-foreground">
-                        {Math.round(stats.avgScore * 100)}% avg
+                        {(stats.avgScore || 0).toFixed(1)}/10 avg
                       </div>
                     </div>
                   </div>
@@ -340,7 +340,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                     <div className="text-right">
                       <div className="text-sm font-semibold">{stats.count}</div>
                       <div className="text-xs text-muted-foreground">
-                        {Math.round(stats.avgScore * 100)}% avg
+                        {(stats.avgScore || 0).toFixed(1)}/10 avg
                       </div>
                     </div>
                   </div>
@@ -384,7 +384,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="text-sm text-muted-foreground">
-                      {Math.round(day.avgScore * 100)}% avg score
+                      {(day.avgScore || 0).toFixed(1)}/10 avg score
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {Math.round(day.avgGenerationTime)}ms avg time
@@ -420,7 +420,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                       )}
                       {activity.score != null && (
                         <div className="text-sm font-semibold">
-                          {Math.round(activity.score * 100)}%
+                          {(activity.score || 0).toFixed(1)}/10
                         </div>
                       )}
                     </div>

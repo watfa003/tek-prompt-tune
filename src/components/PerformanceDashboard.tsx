@@ -65,14 +65,14 @@ export const PerformanceDashboard = () => {
   const { settings } = useSettings();
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) return "text-green-500";
-    if (score >= 0.6) return "text-yellow-500";
+    if (score >= 8) return "text-green-500";
+    if (score >= 6) return "text-yellow-500";
     return "text-red-500";
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 0.8) return <Badge className="bg-green-500">Excellent</Badge>;
-    if (score >= 0.6) return <Badge className="bg-yellow-500">Good</Badge>;
+    if (score >= 8) return <Badge className="bg-green-500">Excellent</Badge>;
+    if (score >= 6) return <Badge className="bg-yellow-500">Good</Badge>;
     return <Badge variant="destructive">Needs Work</Badge>;
   };
 
@@ -173,9 +173,9 @@ export const PerformanceDashboard = () => {
                   <span className="text-sm text-muted-foreground">{stats.count} prompts</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Progress value={stats.avgScore * 100} className="flex-1" />
+                  <Progress value={stats.avgScore * 10} className="flex-1" />
                   <span className={`text-sm font-medium ${getScoreColor(stats.avgScore)}`}>
-                    {stats.avgScore.toFixed(1)}
+                    {stats.avgScore.toFixed(1)}/10
                   </span>
                 </div>
               </div>

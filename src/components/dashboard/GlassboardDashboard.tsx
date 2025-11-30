@@ -53,8 +53,8 @@ export const GlassboardDashboard = () => {
   };
 
   const getScoreBadgeIcon = (score: number) => {
-    if (score >= 0.8) return <ExcellenceBadge size={20} className="text-primary" />;
-    if (score >= 0.6) return <GoodBadge size={20} className="text-primary" />;
+    if (score >= 8) return <ExcellenceBadge size={20} className="text-primary" />;
+    if (score >= 6) return <GoodBadge size={20} className="text-primary" />;
     return <AverageBadge size={20} className="text-muted-foreground" />;
   };
 
@@ -367,7 +367,7 @@ export const GlassboardDashboard = () => {
                         <div className="text-right">
                           {settings.showScores && (
                             <div className="text-2xl font-bold font-heading tracking-tighter gradient-text transition-transform duration-250 group-hover:scale-110">
-                              {((activity.score || 0) * 100).toFixed(0)}%
+                              {((activity.score || 0)).toFixed(1)}/10
                             </div>
                           )}
                         </div>
