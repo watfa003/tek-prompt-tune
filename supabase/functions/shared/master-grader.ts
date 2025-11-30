@@ -1,5 +1,8 @@
-// Master Grader - Unified prompt scoring system for Lab and Optimizer
+// Master Grader V2 - Unified prompt scoring system for Lab and Optimizer
 // Philosophy: Grade the prompt by its results when possible, structure when not
+// Uses compact JSON schema for reduced token usage
+
+import { compileGradingPrompt, getWeights } from './grading-schema.ts';
 
 export type PromptType = 'complex' | 'creative';
 
@@ -396,17 +399,8 @@ export function calculateTotalScore(
   // Auto-detect type if not provided
   const detectedType = promptType || (prompt ? detectPromptType(prompt) : 'complex');
   
-  // CRITICAL: Use unified weights from ai-grader.ts (no prompt type variations for consistency)
-  const weights = {
-    clarity: 1.5,
-    specificity: 1.3,
-    constraints: 1.2,
-    elaboration: 1.3,
-    efficiency: 1.0,
-    structure: 1.2,
-    intent_alignment: 1.4,
-    adaptability: 0.4, // Updated to match ai-grader.ts
-  };
+  // Use unified weights from grading schema
+  const weights = getWeights();
   
   const weightedSum = 
     scores.clarity * weights.clarity +
@@ -468,37 +462,18 @@ export async function scoreOutputQualityWithAI(
     return scoreOutputQualityFallback(output, prompt);
   }
 
-  const systemPrompt = `You are an expert AI output quality evaluator. Grade the AI-generated output on a 0-10 scale for two criteria:
+  // Compact system prompt for output-only grading
+  const systemPrompt = `Expert output evaluator. Score 0-10 each:
+1. Quality: clarity, coherence, completeness, structure
+   - 0-4:poor/incomplete, 5-6:basic/functional, 7-8:good/formatted, 9-10:excellent
+2. Intent Alignment: FIRST check prompt validity
+   - Gibberish prompt → 0 (no intent)
+   - Vague prompt → 1-4 (weak intent)
+   - Clear prompt, partial match → 5-7
+   - Clear prompt, full match → 8-10
+   STRICT: No clear user intent = 0-1
 
-1. **Quality** (0-10): Evaluate clarity, coherence, completeness, and structure
-   - Is it well-written and clear?
-   - Does it have proper structure?
-   - Is it complete and coherent?
-
-2. **Intent Alignment** (0-10): CRITICAL - First understand the prompt, then score alignment
-   
-   Step 1 - Understand the prompt:
-   - Is it gibberish/nonsense/random characters? → No clear intent exists
-   - Is it vague/unclear with no specific purpose? → Weak intent, AI will likely hallucinate
-   - Does it have a clear, specific request? → Strong intent to evaluate against
-   
-   Step 2 - Score based on prompt clarity:
-   - Gibberish/nonsense prompt: score 0 (no intent to align with)
-   - Vague prompt with no clear purpose: score 1-4 (weak intent, high hallucination risk)
-   - Clear prompt, output partially addresses it: score 5-7
-   - Clear prompt, output fully addresses it: score 8-10
-   
-   BE STRICT: If there's no clear user intent in the prompt, there's nothing to align with → score near 0
-
-Return ONLY a JSON object with this exact structure:
-{
-  "quality": <number 0-10>,
-  "intent_alignment": <number 0-10>,
-  "reasoning": {
-    "quality": "<brief explanation>",
-    "intent_alignment": "<brief explanation>"
-  }
-}`;
+Return JSON: {"quality":X,"intent_alignment":X,"reasoning":{"quality":"...","intent_alignment":"..."}}`;
 
   const userPrompt = prompt 
     ? `**Prompt:**\n${prompt}\n\n**Output:**\n${output}`
