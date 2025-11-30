@@ -1,8 +1,9 @@
 /**
- * Combined AI Grading System
- * 
- * Scores both prompt AND output in a single API call for faster lab results.
+ * Combined AI Grading System V2
+ * Scores both prompt AND output in a single API call using compact JSON schema
  */
+
+import { compileGradingPrompt, getWeights } from './grading-schema.ts';
 
 export interface CategoryScores {
   clarity: number;
@@ -37,67 +38,8 @@ interface CombinedGradingResponse {
   };
 }
 
-const COMBINED_GRADING_PROMPT = `You are an expert prompt engineering evaluator. Your task is to evaluate BOTH the prompt AND its output in a single assessment.
-
-**PART 1: PROMPT EVALUATION (8 categories, 0-10 each)**
-
-Use the FULL 0-10 scale naturally. Most average prompts should score 5-6. Excellence (9-10) is rare.
-
-1. **Clarity (0-10)** - Is the goal/action immediately obvious?
-2. **Specificity (0-10)** - Concrete parameters, examples, measurable details?
-3. **Constraints (0-10)** - Format, tone, limits, requirements defined?
-4. **Elaboration (0-10)** - Context, rationale, background provided?
-5. **Efficiency (0-10)** - Concise without sacrificing clarity?
-6. **Structure (0-10)** - Logically organized?
-7. **Intent Alignment (0-10)** - Does prompt match what AI should do?
-8. **Adaptability (0-10)** - Can structure handle different contexts?
-
-**PART 2: OUTPUT EVALUATION (2 scores, 0-10 each)**
-
-CRITICAL: First evaluate the PROMPT quality before scoring output!
-
-1. **Quality (0-10)**: Score based on BOTH output coherence AND prompt validity
-   
-   Step 1 - Check the prompt first:
-   - Is it gibberish/nonsense/random characters? → Output quality MUST be 0-2 (hallucinated nonsense)
-   - Is it vague with no clear purpose? → Output quality capped at 3-5 (likely hallucination)
-   - Clear prompt with specific request? → Score output normally (0-10)
-   
-   Step 2 - For CLEAR prompts only, assess output:
-   - 0-4: Poor quality, incoherent, incomplete
-   - 5-6: Basic quality, functional (AVERAGE)
-   - 7-8: Good quality, well-formatted (GOOD)
-   - 9-10: Excellent quality, publication-ready (EXCEPTIONAL)
-   
-   STRICT RULE: Gibberish prompt = max 2 quality score, regardless of output coherence
-
-2. **Intent Alignment (0-10)**: How well does output match the prompt's request?
-   
-   - Gibberish/nonsense prompt: score 0 (no intent exists to align with)
-   - Vague prompt with no clear purpose: score 1-3 (weak intent, high hallucination risk)
-   - Clear prompt, output partially addresses it: score 4-7
-   - Clear prompt, output fully addresses it: score 8-10
-   
-   BE STRICT: No clear user intent in prompt = score 0-1
-
-**OUTPUT FORMAT:**
-Return a valid JSON object:
-{
-  "prompt": {
-    "clarity": { "score": X, "reasoning": "..." },
-    "specificity": { "score": X, "reasoning": "..." },
-    "constraints": { "score": X, "reasoning": "..." },
-    "elaboration": { "score": X, "reasoning": "..." },
-    "efficiency": { "score": X, "reasoning": "..." },
-    "structure": { "score": X, "reasoning": "..." },
-    "intentAlignment": { "score": X, "reasoning": "..." },
-    "adaptability": { "score": X, "reasoning": "..." }
-  },
-  "output": {
-    "quality": X,
-    "intentAlignment": X
-  }
-}`;
+// Compile once at module load for efficiency
+const COMBINED_GRADING_PROMPT = compileGradingPrompt('combined');
 
 /**
  * Score both prompt and output in a single API call
@@ -203,22 +145,13 @@ Assess both the prompt quality (8 categories) and output quality (2 scores).`;
 }
 
 /**
- * Calculate overall prompt score from category scores
+ * Calculate overall prompt score from category scores using unified weights
  */
 export function calculatePromptScore(scores: CategoryScores): number {
-  const weights = {
-    clarity: 1.5,
-    specificity: 1.3,
-    constraints: 1.2,
-    elaboration: 1.3,
-    efficiency: 1.0,
-    structure: 1.2,
-    intent_alignment: 1.4,
-    adaptability: 0.4,
-  };
+  const weights = getWeights();
 
   const weightedSum = Object.entries(scores).reduce((sum, [key, value]) => {
-    const weight = weights[key as keyof CategoryScores];
+    const weight = weights[key] || 1.0;
     return sum + (value * weight);
   }, 0);
 
