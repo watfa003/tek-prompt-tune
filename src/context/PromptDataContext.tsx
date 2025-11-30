@@ -324,16 +324,16 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       // Calculate analytics from current history items
       if (historyItems.length > 0) {
-        // Calculate score distribution
+        // Calculate score distribution (scores are 0-10 scale)
         const scoreDistribution = {
-          excellent: historyItems.filter(item => item.score >= 0.8).length,
-          good: historyItems.filter(item => item.score >= 0.6 && item.score < 0.8).length,
-          average: historyItems.filter(item => item.score >= 0.4 && item.score < 0.6).length,
-          poor: historyItems.filter(item => item.score < 0.4).length,
+          excellent: historyItems.filter(item => item.score >= 8).length,
+          good: historyItems.filter(item => item.score >= 6 && item.score < 8).length,
+          average: historyItems.filter(item => item.score >= 4 && item.score < 6).length,
+          poor: historyItems.filter(item => item.score < 4).length,
         };
 
-        // Calculate success rate (score >= 0.6)
-        const successfulPrompts = historyItems.filter(item => item.score >= 0.6).length;
+        // Calculate success rate (score >= 6 on 0-10 scale)
+        const successfulPrompts = historyItems.filter(item => item.score >= 6).length;
         const successRate = historyItems.length > 0 ? (successfulPrompts / historyItems.length) * 100 : 0;
 
         // Calculate provider stats
@@ -379,11 +379,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         , { name: '', score: 0 });
         
         if (topProvider.name) {
-          insights.push(`Your best performing AI provider is ${topProvider.name} with an average score of ${(topProvider.score * 100).toFixed(1)}%`);
+          insights.push(`Your best performing AI provider is ${topProvider.name} with an average score of ${topProvider.score.toFixed(1)}/10`);
         }
         
         if (successRate > 80) {
-          insights.push(`Excellent work! ${successRate.toFixed(1)}% of your prompts score above 60%`);
+          insights.push(`Excellent work! ${successRate.toFixed(1)}% of your prompts score above 6/10`);
         } else if (successRate < 50) {
           insights.push(`Consider experimenting with different optimization strategies to improve your success rate (currently ${successRate.toFixed(1)}%)`);
         }

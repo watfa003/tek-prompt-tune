@@ -82,7 +82,7 @@ const Index = () => {
     },
     {
       label: "Avg Success Rate",
-      value: analytics.averageScore ? `${(analytics.averageScore * 100).toFixed(0)}%` : "—",
+      value: analytics.averageScore ? `${(analytics.averageScore).toFixed(1)}/10` : "—",
       change: "+8%",
       icon: TrendingUp,
     },
@@ -244,7 +244,7 @@ const Index = () => {
                     <div className="flex items-center gap-2 md:gap-4 ml-2 flex-shrink-0">
                       <div className="text-right">
                         <div className="text-xl md:text-2xl font-bold gradient-text">
-                          {(item.score * 100).toFixed(0)}%
+                          {(item.score || 0).toFixed(1)}/10
                         </div>
                         <div className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Score</div>
                       </div>
