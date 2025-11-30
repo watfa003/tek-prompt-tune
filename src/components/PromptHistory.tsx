@@ -106,10 +106,10 @@ export const PromptHistory = () => {
       
       const s = typeof item.score === 'number' ? item.score : 0;
       const matchesScore = (filterScore === "all") || 
-        (filterScore === "excellent" && s >= 0.8) ||
-        (filterScore === "good" && s >= 0.6 && s < 0.8) ||
-        (filterScore === "fair" && s >= 0.4 && s < 0.6) ||
-        (filterScore === "needs-work" && s < 0.4);
+        (filterScore === "excellent" && s >= 8) ||
+        (filterScore === "good" && s >= 6 && s < 8) ||
+        (filterScore === "fair" && s >= 4 && s < 6) ||
+        (filterScore === "needs-work" && s < 4);
       
       return matchesSearch && matchesProvider && matchesOutputType && matchesScore;
     });
@@ -187,9 +187,9 @@ export const PromptHistory = () => {
 
   const renderHistoryItem = (item: PromptHistoryItem, index: number) => {
     const score = typeof item.score === 'number' ? item.score : 0;
-    const scoreColor = score >= 0.8 ? "text-green-400" : score >= 0.6 ? "text-yellow-400" : "text-orange-400";
-    const scoreBg = score >= 0.8 ? "bg-green-500/10 border-green-500/20" : score >= 0.6 ? "bg-yellow-500/10 border-yellow-500/20" : "bg-orange-500/10 border-orange-500/20";
-    const scoreLabel = score >= 0.8 ? "Excellent" : score >= 0.6 ? "Good" : score >= 0.4 ? "Average" : "Poor";
+    const scoreColor = score >= 8 ? "text-green-400" : score >= 6 ? "text-yellow-400" : "text-orange-400";
+    const scoreBg = score >= 8 ? "bg-green-500/10 border-green-500/20" : score >= 6 ? "bg-yellow-500/10 border-yellow-500/20" : "bg-orange-500/10 border-orange-500/20";
+    const scoreLabel = score >= 8 ? "Excellent" : score >= 6 ? "Good" : score >= 4 ? "Average" : "Poor";
     
     // Format date safely
     const formatDate = (timestamp: any) => {
@@ -238,7 +238,7 @@ export const PromptHistory = () => {
               </div>
               <Badge className={`text-xs ${scoreBg} ${scoreColor} border`}>
                 <TrendingUp className="h-3 w-3 mr-1" />
-                {(score * 100).toFixed(0)}% {scoreLabel}
+                {score.toFixed(1)}/10 {scoreLabel}
               </Badge>
             </div>
           </div>
