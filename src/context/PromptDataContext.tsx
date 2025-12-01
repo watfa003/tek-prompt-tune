@@ -256,6 +256,25 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Persist to localStorage
       try { localStorage.setItem(`prompt-title-${promptId}`, finalTitle); } catch {}
       
+      // PERSIST TO DATABASE: Look up the prompt_id from optimization_history and update prompts.task_description
+      try {
+        const { data: variant } = await supabase
+          .from('optimization_history')
+          .select('prompt_id')
+          .eq('id', promptId)
+          .maybeSingle();
+        
+        if (variant?.prompt_id) {
+          await supabase
+            .from('prompts')
+            .update({ task_description: finalTitle })
+            .eq('id', variant.prompt_id);
+          console.log(`[generateTitleAndApply] Saved to DB: prompt ${variant.prompt_id} => ${finalTitle}`);
+        }
+      } catch (dbErr) {
+        console.error('[generateTitleAndApply] DB save failed:', dbErr);
+      }
+      
       // Update local state - clear isGeneratingTitle flag
       setHistoryItems(prev => {
         const updated = prev.map(p =>
@@ -546,22 +565,27 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const prompt = variant.prompts;
         const isGlobalTopPerformer = globalBestVariant && variant.id === globalBestVariant.id;
         
-        // Load title from localStorage and mark status if present
+        // Load title from localStorage
         const cachedTitle = (typeof window !== 'undefined' ? localStorage.getItem(`prompt-title-${variant.id}`) : null);
-        if (cachedTitle && cachedTitle !== 'Untitled') {
+        
+        // Check if we have a real title (from cache or DB)
+        const dbTitle = prompt.task_description && String(prompt.task_description).trim();
+        const hasRealTitle = (cachedTitle && cachedTitle !== 'Untitled') || (dbTitle && dbTitle !== 'Untitled');
+        
+        if (hasRealTitle) {
           setTitleStatus(variant.id, "done");
         } else {
-          // Mark existing untitled items as "done" to prevent backfill attempts
+          // No real title - mark as needing generation (but don't auto-trigger to avoid API spam)
           setTitleStatus(variant.id, "done");
         }
         
-        // Sensible fallback title if no cached title exists
-        const fallbackTitle = (prompt.task_description && String(prompt.task_description).trim())
-          || String(prompt.original_prompt || "").split(/\s+/).slice(0, 6).join(" ").trim();
+        // Priority: cached title > DB task_description > first 6 words of prompt
+        const fallbackTitle = String(prompt.original_prompt || "").split(/\s+/).slice(0, 6).join(" ").trim();
+        const finalTitle = cachedTitle || dbTitle || fallbackTitle || 'Untitled';
         
         return {
           id: variant.id,
-          title: cachedTitle || (fallbackTitle || 'Untitled'),
+          title: finalTitle,
           description: `${prompt.ai_provider} • ${prompt.model_name}${isGlobalTopPerformer ? ' • 🏆 Top Performer' : ''}`,
           prompt: prompt.original_prompt,
           output: variant.variant_prompt,
