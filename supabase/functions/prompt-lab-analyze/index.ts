@@ -2,18 +2,12 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { 
-  scorePromptStatic, 
-  scorePromptTested,
   scorePromptAndOutput,
-  calculateTotalScore, 
-  getContextualWeights,
   detectPromptType,
-  scoreOutputQualityWithAI,
   type CategoryScores,
   type PromptType
 } from '../shared/master-grader.ts';
-import { scorePromptWithAI, calculateOverallScore } from '../shared/ai-grader.ts';
-import { scoreCombined, calculatePromptScore } from '../shared/combined-grader.ts';
+import { scoreCombined, calculatePromptScore, type AnalysisResult } from '../shared/combined-grader.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,7 +29,6 @@ interface LabRequest {
   prompt_a: string;
   prompt_b?: string;
   output_type?: string;
-  skip_analysis?: boolean; // If true, skip AI analysis generation for faster results
   prompts?: Array<{
     id: string;
     prompt: string;
@@ -194,250 +187,7 @@ async function callAIModel(prompt: string, targetLLM: string, outputType?: strin
   return "Unable to generate response.";
 }
 
-// Removed - now using master-grader.ts
-
-// Generate AI-powered analysis with output-based diagnostic
-async function generateAnalysis(
-  prompt: string, 
-  scores: CategoryScores, 
-  output?: string,
-  aiReasoning?: Record<keyof CategoryScores, string>
-): Promise<any> {
-  const systemPrompt = `You are the PromptTek Lab Calibration Model, an expert evaluator of AI prompt quality.
-Your purpose is to provide actionable recommendations for improving the PROMPT itself (not the output).
-
-**CRITICAL INSTRUCTION:**
-- Users can only change the PROMPT, not the output
-- All recommendations must focus on how to REWRITE or IMPROVE the prompt text
-- Suggest specific changes to the prompt's wording, structure, or instructions
-- Do NOT suggest changes to the output format or content unless you're telling them to ADD those instructions to the prompt
-
-You must follow the numeric scale faithfully and never downgrade a prompt solely because it is long — evaluate efficiency of instruction, not word count.
-
-⚙️ INPUT CONTEXT
-PROMPT:
-{prompt}
-
-MODEL OUTPUT:
-{model_output}
-
-CATEGORY SCORES (0–10):
-Clarity: {clarity}
-Specificity: {specificity}
-Efficiency: {efficiency}
-Structure: {structure}
-Constraints: {constraints}
-Elaboration: {elaboration}
-Intent Alignment: {intent_alignment}
-Adaptability: {adaptability}
-
-🎯 CALIBRATION RULES
-1. True Numeric Scale
-Range	Meaning	Description
-0–2	Failing	Incoherent, aimless, or unusable.
-3–4	Weak	Vague or inconsistent; model must guess intent.
-5–6	Adequate	Functional but lacks precision or structure.
-7–8	Strong	Clear, organized, practical for general use.
-9–10	Expert-Level	Highly optimized, professional, publication-ready.
-
-2. Category Calibration
-
-Clarity: Judge by presence of explicit action verbs and well-defined goal.
-
-Do not reward "brevity" if intent is ambiguous.
-
-Specificity: Reward measurable or example-based details.
-
-Penalize only if the user's task could be interpreted multiple ways.
-
-Efficiency:
-
-CRITICAL: Length is NOT a penalty. Efficiency measures wasted words, not total words.
-A 200-word prompt with zero fluff = 10/10 efficiency.
-A 20-word prompt with vague filler = 3/10 efficiency.
-Only penalize when you detect: repetition, contradictions, meaningless filler words, or redundant instructions.
-Comprehensive, detailed prompts with all necessary context should score 9-10.
-
-Structure: Look for numbered or sectioned format; explicit step flow.
-
-10 = clear, hierarchical organization.
-
-Constraints: EXPANDED RECOGNITION CRITERIA
-
-✅ Credit ALL of these as constraints:
-• Numerical limits (word counts, token limits, character counts)
-• Tone or style definitions ("professional," "casual," "technical")
-• Format requirements ("Markdown," "JSON," "bullet points," "numbered list")
-• Implicit structural limits ("three sections," "five examples," "step-by-step")
-• Negative constraints ("avoid," "exclude," "don't use")
-• Quality bounds ("concise," "detailed," "brief")
-
-A prompt with 3+ of these = 9–10 for constraints.
-Do NOT require every type to be present.
-
-Elaboration: EXPANDED RECOGNITION CRITERIA — BE GENEROUS
-
-✅ Credit ALL of these as elaboration (even minimal presence counts):
-• Background context ("this is for X audience," "the purpose is Y")
-• Reasoning or justification ("because," "in order to," "to help")
-• Examples or use cases ("such as," "for instance," "e.g.")
-• Instructional context (explaining what good output looks like)
-• ANY contextual detail beyond the bare instruction
-
-Elaboration does NOT require narrative prose or extensive explanation.
-A prompt with 1+ of these = 8–9 for elaboration.
-A prompt with 2+ of these = 9–10 for elaboration.
-Even a brief "for X purpose" or single example qualifies as elaboration ≥ 7.
-
-Intent Alignment: Measure how well the model output matched what the prompt asked for.
-
-Adaptability: EXPANDED RECOGNITION CRITERIA
-
-✅ Adaptability = reusability across similar domains with minimal edits.
-
-Examples of adaptable prompts:
-• Policy brief prompt → could work for education, healthcare, business
-• Product description prompt → could work for software, hardware, services
-• Analysis prompt → could work for different data types or topics
-
-Only penalize if the prompt is so domain-specific it cannot transfer (e.g., "analyze THIS specific dataset with THIS unique ID").
-
-Flexibility markers ("if," "depending," "consider") boost adaptability.
-General structure + swappable details = 9–10 adaptability.
-
-3. High-Quality Handling — MAINTAIN NUMERIC INTEGRITY
-
-CRITICAL: Do NOT cap categories at 6 or 7 "for balance."
-
-If a prompt demonstrates excellence in a category, it must score 9–10.
-
-If ≥5 categories are 9 or higher, explicitly acknowledge the prompt as "Expert-Level" or "Publication-Ready."
-
-Only apply deductions when there is a clear, measurable shortcoming—not to "balance out" high scores.
-
-4. Textual Explanation Behavior
-
-Explain scores truthfully but proportionally:
-
-Low scores → analytical and corrective.
-
-High scores → validating and professional.
-
-Always include a one-sentence summary_comment that captures overall performance.
-
-🧾 OUTPUT FORMAT (JSON Only)
-{
-  "strengths": ["..."],          // optional, omit if none - focus on what the PROMPT does well
-  "weaknesses": ["..."],         // optional - focus on what the PROMPT lacks
-  "suggested_fixes": ["..."],    // 3–4 ACTIONABLE prompt rewrites (e.g., "Add specific constraints like...", "Restructure the prompt to...", "Include examples such as...")
-  "explanation": {
-    "clarity": "...",            // Explain the prompt's clarity (not output's)
-    "specificity": "...",        // Explain the prompt's specificity (not output's)
-    "efficiency": "...",         // Explain the prompt's efficiency (not output's)
-    "structure": "...",          // Explain the prompt's structure (not output's)
-    "constraints": "...",        // Explain the prompt's constraints (not output's)
-    "elaboration": "...",        // Explain the prompt's elaboration (not output's)
-    "intent_alignment": "...",   // Explain if the prompt aligns with its intent (considering output quality)
-    "adaptability": "..."
-  },
-  "summary_comment": "..."
-}
-
-🧩 Behavioral Rules for Edge Cases
-
-If a prompt is nonsense or single-word, every category ≤ 3.
-
-CRITICAL: If a prompt is comprehensive and detailed without fluff or repetition, efficiency must be 9-10 regardless of length.
-
-CRITICAL: If a prompt has 3+ constraint types (format + tone + limits), constraints must be ≥ 9.
-
-CRITICAL: If a prompt provides ANY context, reasoning, or examples (even brief), elaboration must be ≥ 7. If it has multiple forms of context, elaboration must be ≥ 9.
-
-CRITICAL: If a prompt structure is generalizable to similar domains, adaptability must be ≥ 8.
-
-If the model output matches all instructions, boost Intent Alignment +0.5.
-
-Never contradict the provided numeric scores; your explanations must support them.
-
-Never artificially cap scores at 7 or 8 when excellence is demonstrated.
-
-⚙️ Model Settings
-
-Model: gpt-4o or gpt-4o-mini
-
-Temperature: 0.25
-
-Response Format: json_object
-
-Max Output Tokens: 700`;
-
-  // Apply score floor for low-quality prompts
-  const numericValues = Object.values(scores);
-  const avg = numericValues.reduce((a, b) => a + b, 0) / numericValues.length;
-  if (avg < 3.5) {
-    scores.clarity = Math.min(scores.clarity, 2);
-    scores.specificity = Math.min(scores.specificity, 2);
-    scores.intent_alignment = Math.min(scores.intent_alignment, 3);
-  }
-
-  const trimmedOutput = output ? output.substring(0, 1200) : "No output available";
-  
-  const analysisPrompt = `**PROMPT TO EVALUATE:**
-${prompt}
-
-${output ? `**ACTUAL OUTPUT GENERATED:**
-${trimmedOutput}
-
-**IMPORTANT:** The output helps you assess if the prompt achieved its goals (for scoring), but all recommendations must focus on IMPROVING THE PROMPT TEXT ITSELF, not the output.` : ''}
-
-**CATEGORY SCORES (0-10):**
-- Clarity: ${scores.clarity.toFixed(1)}
-- Specificity: ${scores.specificity.toFixed(1)}
-- Efficiency: ${scores.efficiency.toFixed(1)}
-- Structure: ${scores.structure.toFixed(1)}
-- Constraints: ${scores.constraints.toFixed(1)}
-- Elaboration: ${scores.elaboration.toFixed(1)}
-- Intent Alignment: ${scores.intent_alignment.toFixed(1)}
-- Adaptability: ${scores.adaptability.toFixed(1)}
-
-**YOUR TASK:**
-1. Evaluate how well the PROMPT is written (use output to validate effectiveness)
-2. Provide strengths/weaknesses of the PROMPT itself
-3. Suggest 3-4 specific ways to REWRITE or IMPROVE the prompt
-
-Return only the JSON object with strengths, weaknesses, suggested_fixes, explanation, and summary_comment.`;
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: analysisPrompt }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.5, // Universal temperature for consistent grading across all features
-        max_tokens: 3000,
-      }),
-    });
-    
-    const data = await response.json();
-    return JSON.parse(data.choices[0].message.content);
-  } catch (error) {
-    console.error('Error generating analysis:', error);
-    return {
-      strengths: ["Analysis unavailable"],
-      weaknesses: ["Analysis unavailable"],
-      suggested_fixes: ["Please try again"],
-      explanation: {}
-    };
-  }
-}
+// Analysis is now included in combined-grader.ts scoreCombined() for single API call efficiency
 
 // Handle single prompt test - Using AI-powered scoring with prompt type detection
 async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
@@ -450,17 +200,17 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
   // Call AI model to get real output with output type guidance
   const output = await callAIModel(req.prompt_a, req.target_llm, req.output_type);
   
-  // Use COMBINED AI-powered scoring (single API call for both prompt + output)
+  // Use COMBINED AI-powered scoring + analysis (SINGLE API call for grading + analysis)
   let scores: CategoryScores;
-  let aiReasoning: Record<keyof CategoryScores, string> | undefined;
   let finalScore: number;
   let promptScore: number;
   let outputScore: number;
+  let analysis: AnalysisResult;
   
   try {
     const combined = await scoreCombined(req.prompt_a, output, openAIApiKey);
     scores = combined.promptScores;
-    aiReasoning = combined.promptReasoning;
+    analysis = combined.analysis;
     
     // Calculate prompt score from categories
     promptScore = calculatePromptScore(scores);
@@ -471,7 +221,7 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     // Final score (50/50: prompt + output)
     finalScore = Math.round(((promptScore * 0.5) + (outputScore * 0.5)) * 10) / 10;
     
-    console.log(`✅ Combined AI scoring (1 API call): prompt=${promptScore.toFixed(1)}, output=${outputScore.toFixed(1)}, final=${finalScore.toFixed(1)}`);
+    console.log(`✅ Combined AI scoring + analysis (1 API call): prompt=${promptScore.toFixed(1)}, output=${outputScore.toFixed(1)}, final=${finalScore.toFixed(1)}, time=${Date.now() - startTime}ms`);
   } catch (error) {
     console.error('Combined AI grading failed, using fallback:', error);
     const result = scorePromptAndOutput(req.prompt_a, output);
@@ -479,13 +229,16 @@ async function handleSingleTest(req: LabRequest): Promise<DiagnoseResult> {
     promptScore = result.promptScore;
     outputScore = result.outputScore;
     finalScore = result.finalScore;
+    // Fallback analysis
+    analysis = {
+      strengths: ["Analysis unavailable - using fallback scoring"],
+      weaknesses: [],
+      suggested_fixes: ["Please try again for full analysis"],
+      explanation: {},
+      summary_comment: "Fallback scoring used due to API error"
+    };
     console.log('⚠️ Using fallback rule-based scoring');
   }
-  
-  // Generate AI analysis ONLY if not skipped (for lazy loading)
-  const analysis = req.skip_analysis 
-    ? { strengths: [], weaknesses: [], suggested_fixes: ["Analysis not generated"] }
-    : await generateAnalysis(req.prompt_a, scores, output, aiReasoning);
   
   return {
     total_score: finalScore,
