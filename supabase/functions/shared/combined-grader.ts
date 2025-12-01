@@ -1,7 +1,7 @@
 /**
  * Combined AI Grading System
  * 
- * Scores both prompt AND output in a single API call for faster lab results.
+ * Scores prompt, output, AND generates analysis in a SINGLE API call for maximum speed.
  */
 
 export interface CategoryScores {
@@ -20,6 +20,14 @@ interface CategoryEvaluation {
   reasoning: string;
 }
 
+export interface AnalysisResult {
+  strengths: string[];
+  weaknesses: string[];
+  suggested_fixes: string[];
+  explanation: Record<string, string>;
+  summary_comment: string;
+}
+
 interface CombinedGradingResponse {
   prompt: {
     clarity: CategoryEvaluation;
@@ -35,9 +43,15 @@ interface CombinedGradingResponse {
     quality: number;
     intentAlignment: number;
   };
+  analysis: {
+    strengths: string[];
+    weaknesses: string[];
+    suggestedFixes: string[];
+    summaryComment: string;
+  };
 }
 
-const COMBINED_GRADING_PROMPT = `You are an expert prompt engineering evaluator. Your task is to evaluate BOTH the prompt AND its output in a single assessment.
+const COMBINED_GRADING_PROMPT = `You are an expert prompt engineering evaluator. Your task is to evaluate BOTH the prompt AND its output, PLUS provide actionable analysis - ALL IN ONE RESPONSE.
 
 **PART 1: PROMPT EVALUATION (8 categories, 0-10 each)**
 
@@ -46,39 +60,36 @@ Use the FULL 0-10 scale naturally. Most average prompts should score 5-6. Excell
 1. **Clarity (0-10)** - Is the goal/action immediately obvious?
 2. **Specificity (0-10)** - Concrete parameters, examples, measurable details?
 3. **Constraints (0-10)** - Format, tone, limits, requirements defined?
+   ✅ Credit: format reqs, structural limits, tone/style, negative constraints, quality bounds, numerical limits
 4. **Elaboration (0-10)** - Context, rationale, background provided?
-5. **Efficiency (0-10)** - Concise without sacrificing clarity?
+   ✅ Credit: "for X purpose", examples, use cases, reasoning (even brief)
+5. **Efficiency (0-10)** - Concise without sacrificing clarity? Length is NOT a penalty - only penalize wasted words/redundancy.
 6. **Structure (0-10)** - Logically organized?
 7. **Intent Alignment (0-10)** - Does prompt match what AI should do?
-8. **Adaptability (0-10)** - Can structure handle different contexts?
+8. **Adaptability (0-10)** - Can structure handle different contexts? Look for placeholders, variables, reusable structure.
 
 **PART 2: OUTPUT EVALUATION (2 scores, 0-10 each)**
 
 CRITICAL: First evaluate the PROMPT quality before scoring output!
 
 1. **Quality (0-10)**: Score based on BOTH output coherence AND prompt validity
-   
-   Step 1 - Check the prompt first:
-   - Is it gibberish/nonsense/random characters? → Output quality MUST be 0-2 (hallucinated nonsense)
-   - Is it vague with no clear purpose? → Output quality capped at 3-5 (likely hallucination)
-   - Clear prompt with specific request? → Score output normally (0-10)
-   
-   Step 2 - For CLEAR prompts only, assess output:
-   - 0-4: Poor quality, incoherent, incomplete
-   - 5-6: Basic quality, functional (AVERAGE)
-   - 7-8: Good quality, well-formatted (GOOD)
-   - 9-10: Excellent quality, publication-ready (EXCEPTIONAL)
-   
-   STRICT RULE: Gibberish prompt = max 2 quality score, regardless of output coherence
+   - Gibberish/nonsense prompt → Output quality MUST be 0-2
+   - Vague prompt with no clear purpose → Output quality capped at 3-5
+   - Clear prompt with specific request → Score output normally (0-10)
 
 2. **Intent Alignment (0-10)**: How well does output match the prompt's request?
-   
-   - Gibberish/nonsense prompt: score 0 (no intent exists to align with)
-   - Vague prompt with no clear purpose: score 1-3 (weak intent, high hallucination risk)
-   - Clear prompt, output partially addresses it: score 4-7
-   - Clear prompt, output fully addresses it: score 8-10
-   
-   BE STRICT: No clear user intent in prompt = score 0-1
+   - Gibberish/nonsense prompt: score 0
+   - Vague prompt: score 1-3
+   - Clear prompt, output addresses it: score 4-10
+
+**PART 3: ANALYSIS (actionable recommendations)**
+
+CRITICAL: Users can only change the PROMPT, not the output. All recommendations must focus on IMPROVING THE PROMPT TEXT.
+
+- **strengths**: 2-3 things the PROMPT does well
+- **weaknesses**: 2-3 areas the PROMPT lacks (not the output)
+- **suggestedFixes**: 3-4 SPECIFIC, ACTIONABLE ways to rewrite/improve the prompt (e.g., "Add constraints like...", "Restructure to include...")
+- **summaryComment**: One sentence overall assessment
 
 **OUTPUT FORMAT:**
 Return a valid JSON object:
@@ -96,11 +107,17 @@ Return a valid JSON object:
   "output": {
     "quality": X,
     "intentAlignment": X
+  },
+  "analysis": {
+    "strengths": ["...", "..."],
+    "weaknesses": ["...", "..."],
+    "suggestedFixes": ["...", "...", "..."],
+    "summaryComment": "..."
   }
 }`;
 
 /**
- * Score both prompt and output in a single API call
+ * Score prompt, output, AND generate analysis in a SINGLE API call
  */
 export async function scoreCombined(
   prompt: string,
@@ -111,6 +128,7 @@ export async function scoreCombined(
   promptReasoning: Record<keyof CategoryScores, string>;
   outputQuality: number;
   outputIntentAlignment: number;
+  analysis: AnalysisResult;
 }> {
   
   const apiKey = openAIKey || Deno.env.get('OPENAI_API_KEY');
@@ -118,15 +136,17 @@ export async function scoreCombined(
     throw new Error('OpenAI API key required for AI grading');
   }
 
+  const trimmedOutput = output.length > 1500 ? output.substring(0, 1500) + '...' : output;
+
   const userPrompt = `Evaluate this prompt and its output:
 
 **PROMPT:**
 ${prompt}
 
 **OUTPUT:**
-${output}
+${trimmedOutput}
 
-Assess both the prompt quality (8 categories) and output quality (2 scores).`;
+Assess the prompt quality (8 categories), output quality (2 scores), AND provide actionable analysis for improving the prompt.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -142,7 +162,7 @@ Assess both the prompt quality (8 categories) and output quality (2 scores).`;
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.5,
-        max_tokens: 2000,
+        max_tokens: 3000,
         response_format: { type: "json_object" }
       }),
     });
@@ -156,7 +176,7 @@ Assess both the prompt quality (8 categories) and output quality (2 scores).`;
     const data = await response.json();
     const evaluation: CombinedGradingResponse = JSON.parse(data.choices[0].message.content);
 
-    // Return raw AI scores without curve
+    // Extract prompt scores
     const promptScores: CategoryScores = {
       clarity: Math.round(evaluation.prompt.clarity.score * 10) / 10,
       specificity: Math.round(evaluation.prompt.specificity.score * 10) / 10,
@@ -179,21 +199,41 @@ Assess both the prompt quality (8 categories) and output quality (2 scores).`;
       adaptability: evaluation.prompt.adaptability.reasoning,
     };
 
-    // Return raw AI scores for output without curve
+    // Extract output scores
     const outputQuality = Math.round(evaluation.output.quality * 10) / 10;
     const outputIntentAlignment = Math.round(evaluation.output.intentAlignment * 10) / 10;
 
-    console.log('Combined AI Grading Results:', {
-      promptScores,
+    // Extract analysis with proper field mapping
+    const analysis: AnalysisResult = {
+      strengths: evaluation.analysis.strengths || [],
+      weaknesses: evaluation.analysis.weaknesses || [],
+      suggested_fixes: evaluation.analysis.suggestedFixes || [],
+      explanation: {
+        clarity: evaluation.prompt.clarity.reasoning,
+        specificity: evaluation.prompt.specificity.reasoning,
+        constraints: evaluation.prompt.constraints.reasoning,
+        elaboration: evaluation.prompt.elaboration.reasoning,
+        efficiency: evaluation.prompt.efficiency.reasoning,
+        structure: evaluation.prompt.structure.reasoning,
+        intent_alignment: evaluation.prompt.intentAlignment.reasoning,
+        adaptability: evaluation.prompt.adaptability.reasoning,
+      },
+      summary_comment: evaluation.analysis.summaryComment || '',
+    };
+
+    console.log('✅ Combined AI Grading + Analysis (1 API call):', {
+      promptScore: Object.values(promptScores).reduce((a, b) => a + b, 0) / 8,
       outputQuality,
-      outputIntentAlignment
+      outputIntentAlignment,
+      analysisIncluded: true
     });
 
     return {
       promptScores,
       promptReasoning,
       outputQuality,
-      outputIntentAlignment
+      outputIntentAlignment,
+      analysis
     };
 
   } catch (error) {
