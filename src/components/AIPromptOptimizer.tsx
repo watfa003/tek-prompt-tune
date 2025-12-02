@@ -898,9 +898,9 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         toast={toast}
       />
 
-      {/* Optimization Progress Bar */}
+      {/* Optimization Progress Bar - ONLY for deep mode */}
       <AnimatePresence mode="wait">
-        {isOptimizing && !isCanceled && userId && currentSessionKeyRef.current && (
+        {isOptimizing && !isCanceled && userId && currentSessionKeyRef.current && optimizationModeForProgress === 'deep' && (
           <motion.div
             key="progress"
             initial={{ opacity: 0, y: -20 }}
@@ -934,8 +934,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
           </motion.div>
         )}
       </AnimatePresence>
-
-
+      
       {speedResult && (
         <div className="space-y-4" data-results-section>
           {/* Speed Mode Stats */}
