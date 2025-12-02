@@ -286,22 +286,30 @@ export const PromptResults = ({
 
           <TabsContent value="best" className="space-y-4">
             <Card className="p-4 bg-primary/5 border-primary/20">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <Star className="h-4 w-4 text-primary" />
-                  <span className="font-medium">Best Optimized Prompt</span>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Star className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Best Optimized Prompt</span>
+                    {/* Show strategy badge for best prompt */}
+                    {result.summary.bestStrategy && (
+                      <Badge variant="secondary" className="ml-2">
+                        {result.summary.bestStrategy}
+                      </Badge>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(result.bestOptimizedPrompt)}
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(result.bestOptimizedPrompt)}
-                >
-                  <Copy className="h-3 w-3 mr-1" />
-                  Copy Prompt
-                </Button>
-              </div>
-              <div className="bg-background/50 p-3 rounded-md mb-4">
-                <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
+                <div className="bg-background/50 p-3 rounded-md">
+                  <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
+                </div>
               </div>
               {settings.showScores && (
                 <div className="mt-3 flex items-center space-x-4 mb-4">
@@ -316,92 +324,105 @@ export const PromptResults = ({
               )}
             </Card>
             
-            {/* Sample Output from Best Prompt */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">Sample Output</span>
-                  <span className="text-xs text-muted-foreground">AI response to the optimized prompt</span>
+            {/* Sample Output from Best Prompt - only show in deep mode */}
+            {!isSpeedMode && (
+              <Card className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium">Sample Output</span>
+                      <span className="text-xs text-muted-foreground">AI response to the optimized prompt</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(result.variants.find(v => v.score === result.bestScore)?.response || '')}
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                  <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
+                    <p className="text-sm whitespace-pre-wrap">
+                      {formatOutput(
+                        result.variants.find(v => v.score === result.bestScore)?.response || 'No response available',
+                        outputType as OutputType
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(result.variants.find(v => v.score === result.bestScore)?.response || '')}
-                >
-                  <Copy className="h-3 w-3 mr-1" />
-                  Copy Output
-                </Button>
-              </div>
-              <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
-                <p className="text-sm whitespace-pre-wrap">
-                  {formatOutput(
-                    result.variants.find(v => v.score === result.bestScore)?.response || 'No response available',
-                    outputType as OutputType
-                  )}
-                </p>
-              </div>
-            </Card>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="variants" className="space-y-4">
             {result.variants.map((variant, index) => (
               <Card key={index} className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    {/* Strategy Badge */}
-                    <Badge variant="secondary" className="font-medium">
-                      {variant.strategy}
-                    </Badge>
-                    {settings.showScores && !isSpeedMode && (
-                      <span className={`text-sm font-medium ${getScoreColor(variant.score)}`}>
-                        {Math.round(variant.score * 10)}%
-                      </span>
-                    )}
+                <div className="space-y-4">
+                  {/* Header with Strategy Badge and Score */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="font-medium">
+                        {variant.strategy}
+                      </Badge>
+                      {settings.showScores && !isSpeedMode && (
+                        <span className={`text-sm font-medium ${getScoreColor(variant.score)}`}>
+                          {Math.round(variant.score * 10)}%
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(variant.prompt)}
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    Copy Prompt
-                  </Button>
+                  
+                  {/* Optimized Prompt */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Optimized Prompt:</h4>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(variant.prompt)}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <p className="text-sm whitespace-pre-wrap">{variant.prompt}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Sample Output - Only show in deep mode */}
+                  {!isSpeedMode && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium">Sample Output:</h4>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(variant.response)}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                      <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
+                        <p className="text-sm whitespace-pre-wrap">
+                          {formatOutput(variant.response, outputType as OutputType)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
-                {/* Optimized Prompt */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium mb-2">Optimized Prompt:</h4>
-                  <div className="bg-muted/50 p-3 rounded-md">
-                    <p className="text-sm whitespace-pre-wrap">{variant.prompt}</p>
+                {/* Metrics - only show in deep mode */}
+                {!isSpeedMode && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground pt-3 border-t">
+                    <div>Tokens: {variant.metrics.tokens_used}</div>
+                    <div>Response Length: {variant.metrics.response_length}</div>
+                    <div>Prompt Length: {variant.metrics.prompt_length}</div>
+                    <div>Strategy Weight: {variant.metrics.strategy_weight}%</div>
                   </div>
-                </div>
-                
-                {/* Sample Output - AI Response */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium">Sample Output:</h4>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(variant.response)}
-                    >
-                      <Copy className="h-3 w-3 mr-1" />
-                      Copy Output
-                    </Button>
-                  </div>
-                  <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
-                    <p className="text-sm whitespace-pre-wrap">
-                      {formatOutput(variant.response, outputType as OutputType)}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
-                  <div>Tokens: {variant.metrics.tokens_used}</div>
-                  <div>Response Length: {variant.metrics.response_length}</div>
-                  <div>Prompt Length: {variant.metrics.prompt_length}</div>
-                  <div>Strategy Weight: {variant.metrics.strategy_weight}%</div>
-                </div>
+                )}
               </Card>
             ))}
           </TabsContent>
@@ -419,9 +440,16 @@ export const PromptResults = ({
               </Card>
               
               <Card className="p-4 border-primary/20 bg-primary/5">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Star className="h-4 w-4 text-primary" />
-                  <span className="font-medium">AI Optimized Result</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Star className="h-4 w-4 text-primary" />
+                    <span className="font-medium">AI Optimized Result</span>
+                  </div>
+                  {result.summary.bestStrategy && (
+                    <Badge variant="secondary">
+                      {result.summary.bestStrategy}
+                    </Badge>
+                  )}
                 </div>
                 <div className="bg-background/50 p-3 rounded-md">
                   <p className="text-sm whitespace-pre-wrap">{result.bestOptimizedPrompt}</p>
