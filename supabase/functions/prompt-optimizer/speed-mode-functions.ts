@@ -2,6 +2,10 @@
 import { getOutputTypeSystemPrompt, getOutputTypeGuidance, OUTPUT_TYPE_STRATEGIES, type OutputType } from './output-type-strategies.ts';
 import { COMPILED_STRATEGIES, type StrategyKey } from './schema-compiler.ts';
 
+// Import OPTIMIZATION_STRATEGIES from index.ts for consistency with deep mode
+// This ensures variants use the exact same strategy system prompts as deep mode
+const OPTIMIZATION_STRATEGIES: Record<string, { name: string; systemPrompt: string; weight: number }> = COMPILED_STRATEGIES;
+
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
@@ -619,9 +623,9 @@ function calculateSpeedImprovement(original: string, optimized: string): any {
   };
 }
 
-// Build instruction using compact JSON format - matches deep mode
+// Build instruction using EXACT same format as deep mode for consistency
 function buildInstructionForStrategy(strategy: string, originalPrompt: string, taskDescription: string, outputType: string, insights: any, influence: string = '', influenceWeight: number = 0, maxTokens: number = 1024): string {
-  const strategyData = COMPILED_STRATEGIES[strategy as StrategyKey];
+  const strategyData = OPTIMIZATION_STRATEGIES[strategy as StrategyKey];
   if (!strategyData) {
     throw new Error(`Unknown strategy: ${strategy}`);
   }
@@ -629,8 +633,12 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
   const outputStrategy = OUTPUT_TYPE_STRATEGIES[outputType as OutputType];
   const outputDesc = outputStrategy?.description || 'clear and well-structured responses';
   
-  // Build compact meta object
-  const meta: any = { outputType, outputHint: outputDesc };
+  // Build compact meta object matching deep mode EXACTLY
+  const meta: any = { 
+    outputType, 
+    outputHint: outputDesc 
+  };
+  
   if (taskDescription) meta.context = taskDescription;
   if (maxTokens) meta.maxTokens = maxTokens;
   if (influence?.trim() && influenceWeight > 0) {
@@ -643,7 +651,7 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
     meta.patterns = strategyInsights.patterns.slice(0, 3);
   }
 
-  // Compact JSON format matching deep mode
+  // EXACT format from deep mode - ensures strong strategy differentiation
   return `CONFIG:${strategyData.systemPrompt}
 
 META:${JSON.stringify(meta)}
