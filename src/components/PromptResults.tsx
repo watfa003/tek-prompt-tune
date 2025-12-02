@@ -67,6 +67,7 @@ export const PromptResults = ({
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasInitialized = useRef(false);
+  const isSpeedMode = optimizationMode === 'speed';
 
   useEffect(() => {
     // Only run once on mount
@@ -151,7 +152,8 @@ export const PromptResults = ({
     return "text-red-500";
   };
 
-  if (isLoading) {
+  // Speed mode: don't show loading spinner, it should be fast
+  if (isLoading && !isSpeedMode) {
     return (
       <Card className="p-6 shadow-card">
         <div className="flex items-center justify-center space-x-3">
@@ -165,6 +167,11 @@ export const PromptResults = ({
         </div>
       </Card>
     );
+  }
+  
+  // Speed mode loading state - minimal, should be very fast
+  if (isLoading && isSpeedMode) {
+    return null; // No loading UI for speed mode - it's so fast users won't see it
   }
 
   if (error) {
@@ -340,8 +347,12 @@ export const PromptResults = ({
             {result.variants.map((variant, index) => (
               <Card key={index} className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    {settings.showScores && (
+                  <div className="flex items-center space-x-3">
+                    {/* Strategy Badge */}
+                    <Badge variant="secondary" className="font-medium">
+                      {variant.strategy}
+                    </Badge>
+                    {settings.showScores && !isSpeedMode && (
                       <span className={`text-sm font-medium ${getScoreColor(variant.score)}`}>
                         {Math.round(variant.score * 10)}%
                       </span>
