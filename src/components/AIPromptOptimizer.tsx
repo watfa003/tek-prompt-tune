@@ -46,6 +46,7 @@ import { useOptimizerSession } from '@/context/OptimizerSessionContext';
 import { detectOutputType } from '@/lib/output-formatters';
 import { OutputTypeSelector } from '@/components/ui/output-type-selector';
 import { ProgressBarWithETA } from '@/components/ProgressBarWithETA';
+import { PromptFileUpload, UploadedFile } from '@/components/PromptFileUpload';
 
 interface OptimizationResult {
   promptId: string;
@@ -78,6 +79,8 @@ const PromptOptimizerForm = ({
   setTaskDescription,
   originalPrompt,
   setOriginalPrompt,
+  uploadedFiles,
+  setUploadedFiles,
   selectedProvider,
   setSelectedProvider,
   selectedLLM,
@@ -109,6 +112,8 @@ const PromptOptimizerForm = ({
   setTaskDescription: (value: string) => void;
   originalPrompt?: string;
   setOriginalPrompt?: (value: string) => void;
+  uploadedFiles?: UploadedFile[];
+  setUploadedFiles?: (files: UploadedFile[]) => void;
   selectedProvider: string;
   setSelectedProvider: (value: string) => void;
   selectedLLM: string;
@@ -165,6 +170,19 @@ const PromptOptimizerForm = ({
             className="min-h-[120px] resize-none"
           />
         </div>
+
+        {/* File Upload Section */}
+        {setUploadedFiles && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Attachments (Optional)</Label>
+            <PromptFileUpload 
+              files={uploadedFiles || []}
+              onFilesChange={setUploadedFiles}
+              maxFiles={5}
+              maxSizeMB={10}
+            />
+          </div>
+        )}
 
         {/* Task Description */}
         <div className="space-y-2">
@@ -554,6 +572,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     const saved = localStorage.getItem('promptOptimizer_taskDescription');
     return saved || '';
   });
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [aiProvider, setAiProvider] = useState('openai');
   const [modelName, setModelName] = useState('gpt-4o-mini');
   const [outputType, setOutputType] = useState('text');
@@ -761,11 +780,38 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       currentSessionKeyRef.current = sessionKey;
       setOptimizationModeForProgress(optimizationMode);
 
+      // Extract context from uploaded files
+      let fileContext = '';
+      const imageUrls: string[] = [];
+      
+      for (const file of uploadedFiles) {
+        if (file.type === 'text' && file.extractedText) {
+          fileContext += `\n\n[Attached file: ${file.file.name}]\n${file.extractedText}`;
+        } else if (file.type === 'image' && file.preview) {
+          // Convert image to base64 for vision models
+          try {
+            const response = await fetch(file.preview);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            const base64 = await new Promise<string>((resolve) => {
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+            imageUrls.push(base64);
+            fileContext += `\n\n[Attached image: ${file.file.name}]`;
+          } catch (e) {
+            console.error('Error converting image:', e);
+          }
+        } else if (file.type === 'document') {
+          fileContext += `\n\n[Attached document: ${file.file.name} - Document parsing not yet implemented]`;
+        }
+      }
+
       // Start optimization - it will handle setting isOptimizing
       console.log('🚀 Starting optimization with sessionKey:', sessionKey);
       await startOptimization({
         originalPrompt,
-        taskDescription: optimizerTaskDescription,
+        taskDescription: optimizerTaskDescription + fileContext,
         aiProvider,
         modelName,
         outputType,
@@ -776,6 +822,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         influenceWeight: influenceWeight[0],
         mode: optimizationMode,
         sessionKey,
+        attachedImages: imageUrls.length > 0 ? imageUrls : undefined,
       });
     } catch (error) {
       console.error('❌ Optimization failed:', error);
@@ -800,6 +847,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     setOptimizerTaskDescription('');
     setSelectedInfluence('');
     setInfluenceType('');
+    setUploadedFiles([]); // Clear uploaded files
     
     // Clear localStorage
     localStorage.removeItem('promptOptimizer_originalPrompt');
@@ -870,6 +918,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         setTaskDescription={setOptimizerTaskDescription}
         originalPrompt={originalPrompt}
         setOriginalPrompt={setOriginalPrompt}
+        uploadedFiles={uploadedFiles}
+        setUploadedFiles={setUploadedFiles}
         selectedProvider={aiProvider}
         setSelectedProvider={setAiProvider}
         selectedLLM={modelName}
