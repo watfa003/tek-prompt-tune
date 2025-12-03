@@ -19,6 +19,7 @@ export interface OptimizerPayload {
   influenceWeight: number;
   mode: OptimizationMode;
   sessionKey?: string; // optional progress tracking key
+  attachedImages?: string[]; // base64 image data for vision models
 }
 
 export interface OptimizationResult {
@@ -359,6 +360,7 @@ export const OptimizerSessionProvider: React.FC<{ children: React.ReactNode }> =
           autoSave: settings.autoSave,
           speedMode: p.mode === 'speed',
           sessionKey: p.sessionKey,
+          attachedImages: p.attachedImages,
         }
       });
       
