@@ -966,21 +966,26 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
           {(speedResult.variants || []).map((variant: any, index: number) => (
             <Card key={index}>
               <CardContent className="pt-6">
-                <div className="relative">
-                  <Textarea
-                    value={variant.prompt}
-                    readOnly
-                    className="min-h-[120px] resize-none"
-                  />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Variant {index + 1}</span>
+                    {variant.strategy && (
+                      <Badge variant="secondary" className="font-medium">
+                        {variant.strategy}
+                      </Badge>
+                    )}
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="absolute top-2 right-2"
                     onClick={() => copyToClipboard(variant.prompt)}
                   >
                     <Copy className="h-3 w-3 mr-1" />
                     Copy
                   </Button>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-md">
+                  <p className="text-sm whitespace-pre-wrap">{variant.prompt}</p>
                 </div>
               </CardContent>
             </Card>
