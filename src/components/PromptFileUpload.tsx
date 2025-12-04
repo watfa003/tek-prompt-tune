@@ -2,9 +2,10 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, FileText, Image as ImageIcon, File, AlertCircle } from 'lucide-react';
+import { Upload, X, FileText, Image as ImageIcon, File, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface UploadedFile {
   id: string;
@@ -12,6 +13,7 @@ export interface UploadedFile {
   preview?: string;
   type: 'image' | 'document' | 'text';
   extractedText?: string;
+  isParsing?: boolean;
 }
 
 interface PromptFileUploadProps {
@@ -49,6 +51,35 @@ const formatFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+// Parse document using edge function
+const parseDocument = async (file: File): Promise<string | null> => {
+  try {
+    // Convert file to base64
+    const buffer = await file.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+
+    const { data, error } = await supabase.functions.invoke('parse-document', {
+      body: {
+        fileData: base64,
+        fileName: file.name,
+        mimeType: file.type
+      }
+    });
+
+    if (error) {
+      console.error('Document parsing error:', error);
+      return null;
+    }
+
+    return data?.text || null;
+  } catch (e) {
+    console.error('Error parsing document:', e);
+    return null;
+  }
+};
+
 export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
   files,
   onFilesChange,
@@ -58,6 +89,8 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const filesRef = useRef(files);
+  filesRef.current = files;
 
   const processFile = useCallback(async (file: File): Promise<UploadedFile | null> => {
     // Validate size
@@ -84,7 +117,8 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
     const uploadedFile: UploadedFile = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       file,
-      type: fileType
+      type: fileType,
+      isParsing: fileType === 'document' // Mark as parsing for documents
     };
 
     // Create preview for images
@@ -96,7 +130,7 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
     if (fileType === 'text') {
       try {
         const text = await file.text();
-        uploadedFile.extractedText = text.slice(0, 5000); // Limit to 5000 chars
+        uploadedFile.extractedText = text.slice(0, 10000); // Limit to 10000 chars
       } catch (e) {
         console.error('Error reading text file:', e);
       }
@@ -129,11 +163,33 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
     }
 
     if (processed.length > 0) {
-      onFilesChange([...files, ...processed]);
+      const newFiles = [...files, ...processed];
+      onFilesChange(newFiles);
       toast({
         title: "Files uploaded",
         description: `${processed.length} file(s) added successfully`
       });
+      
+      // Parse documents in background
+      for (const uploadedFile of processed) {
+        if (uploadedFile.type === 'document') {
+          parseDocument(uploadedFile.file).then((text) => {
+            const currentFiles = filesRef.current;
+            const updatedFiles = currentFiles.map(f => 
+              f.id === uploadedFile.id 
+                ? { ...f, extractedText: text || 'Unable to extract text from document', isParsing: false }
+                : f
+            );
+            onFilesChange(updatedFiles);
+            if (text) {
+              toast({
+                title: "Document parsed",
+                description: `${uploadedFile.file.name} content extracted`
+              });
+            }
+          });
+        }
+      }
     }
   }, [files, maxFiles, onFilesChange, processFile, toast]);
 
@@ -241,7 +297,7 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
                   exit={{ opacity: 0, x: 10, scale: 0.95 }}
                   layout
                 >
-                  <Card className="p-3 bg-muted/30">
+                <Card className="p-3 bg-muted/30">
                     <div className="flex items-center gap-3">
                       {/* Preview/Icon */}
                       <div className="flex-shrink-0">
@@ -253,7 +309,11 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
                           />
                         ) : (
                           <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
-                            <FileIcon className="h-5 w-5 text-primary" />
+                            {file.isParsing ? (
+                              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                            ) : (
+                              <FileIcon className="h-5 w-5 text-primary" />
+                            )}
                           </div>
                         )}
                       </div>
@@ -268,6 +328,14 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
                           <span className="text-xs text-muted-foreground">
                             {formatFileSize(file.file.size)}
                           </span>
+                          {file.isParsing && (
+                            <span className="text-xs text-primary">Parsing...</span>
+                          )}
+                          {file.type === 'document' && file.extractedText && !file.isParsing && (
+                            <Badge variant="outline" className="text-xs px-1.5 py-0 text-green-600">
+                              Parsed
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       
@@ -286,10 +354,11 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
                     </div>
                     
                     {/* Text Preview */}
-                    {file.extractedText && (
+                    {file.extractedText && !file.isParsing && (
                       <div className="mt-2 p-2 bg-background/50 rounded text-xs text-muted-foreground max-h-20 overflow-y-auto">
-                        {file.extractedText.slice(0, 200)}
-                        {file.extractedText.length > 200 && '...'}
+                        <span className="font-medium text-foreground">Content: </span>
+                        {file.extractedText.slice(0, 300)}
+                        {file.extractedText.length > 300 && '...'}
                       </div>
                     )}
                   </Card>
