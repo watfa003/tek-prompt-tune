@@ -520,23 +520,34 @@ const PromptOptimizerForm = ({
         </Collapsible>
 
         {/* Submit Button */}
-        <Button
-          onClick={onSubmit}
-          disabled={isLoading || !originalPrompt?.trim()}
-          className="w-full bg-gradient-primary"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Optimizing Prompt...
-            </>
-          ) : (
-            <>
-              <Target className="h-4 w-4 mr-2" />
-              Optimize Prompt
-            </>
-          )}
-        </Button>
+        {(() => {
+          const isDocumentParsing = uploadedFiles?.some(f => f.isParsing);
+          const isDisabled = isLoading || !originalPrompt?.trim() || isDocumentParsing;
+          return (
+            <Button
+              onClick={onSubmit}
+              disabled={isDisabled}
+              className="w-full bg-gradient-primary"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Optimizing Prompt...
+                </>
+              ) : isDocumentParsing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Parsing Documents...
+                </>
+              ) : (
+                <>
+                  <Target className="h-4 w-4 mr-2" />
+                  Optimize Prompt
+                </>
+              )}
+            </Button>
+          );
+        })()}
       </div>
     </Card>
   );
@@ -814,6 +825,15 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       if (hasDocumentContent) {
         fileContext += `\n\n[DOCUMENT CONTEXT INSTRUCTIONS: The attached document(s) contain reference material. The optimized prompt should incorporate and leverage this document content appropriately - use it as source material, context, examples, or data to inform the AI response. Even if not explicitly mentioned in the original prompt, the document content should guide and enrich the output.]`;
       }
+
+      // Log document content for debugging
+      console.log('📄 Document content being sent:', {
+        hasDocumentContent,
+        fileContextLength: fileContext.length,
+        fileContextPreview: fileContext.substring(0, 500),
+        uploadedFilesCount: uploadedFiles.length,
+        filesWithExtractedText: uploadedFiles.filter(f => f.extractedText).length
+      });
 
       // Start optimization - it will handle setting isOptimizing
       console.log('🚀 Starting optimization with sessionKey:', sessionKey);
