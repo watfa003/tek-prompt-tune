@@ -71,6 +71,9 @@ verify_jwt = false
 [functions.api-lab-battle]
 verify_jwt = false
 
+[functions.parse-document]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083

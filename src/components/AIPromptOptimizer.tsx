@@ -783,10 +783,12 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       // Extract context from uploaded files
       let fileContext = '';
       const imageUrls: string[] = [];
+      let hasDocumentContent = false;
       
       for (const file of uploadedFiles) {
         if (file.type === 'text' && file.extractedText) {
           fileContext += `\n\n[Attached file: ${file.file.name}]\n${file.extractedText}`;
+          hasDocumentContent = true;
         } else if (file.type === 'image' && file.preview) {
           // Convert image to base64 for vision models
           try {
@@ -802,9 +804,15 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
           } catch (e) {
             console.error('Error converting image:', e);
           }
-        } else if (file.type === 'document') {
-          fileContext += `\n\n[Attached document: ${file.file.name} - Document parsing not yet implemented]`;
+        } else if (file.type === 'document' && file.extractedText) {
+          fileContext += `\n\n[Attached document: ${file.file.name}]\n${file.extractedText}`;
+          hasDocumentContent = true;
         }
+      }
+      
+      // Add document usage instructions if documents are attached
+      if (hasDocumentContent) {
+        fileContext += `\n\n[DOCUMENT CONTEXT INSTRUCTIONS: The attached document(s) contain reference material. The optimized prompt should incorporate and leverage this document content appropriately - use it as source material, context, examples, or data to inform the AI response. Even if not explicitly mentioned in the original prompt, the document content should guide and enrich the output.]`;
       }
 
       // Start optimization - it will handle setting isOptimizing

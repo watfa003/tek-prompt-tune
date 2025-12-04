@@ -356,7 +356,14 @@ serve(async (req) => {
           outputHint: outputStrategy.description
         };
         
-        if (taskDescription) meta.context = taskDescription;
+        if (taskDescription) {
+          meta.context = taskDescription;
+          
+          // Check if document content is attached and add special handling instructions
+          if (taskDescription.includes('[Attached document:') || taskDescription.includes('[Attached file:')) {
+            meta.documentInstructions = 'IMPORTANT: Attached document content should be incorporated into the optimized prompt. Instruct the AI to reference, analyze, summarize, or use the document content as source material for the response. The document provides context that should inform the output even if not explicitly requested.';
+          }
+        }
         if (maxTokens) meta.maxTokens = maxTokens;
         
         // Add influence if set
