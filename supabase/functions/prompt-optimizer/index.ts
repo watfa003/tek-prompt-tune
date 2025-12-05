@@ -135,6 +135,14 @@ serve(async (req) => {
     } = await req.json();
 
     console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode, isTemplate, influenceWeight, speedMode });
+    
+    // Log taskDescription to verify document content is being received
+    console.log('📥 taskDescription received:', {
+      length: taskDescription?.length || 0,
+      hasDocumentContent: taskDescription?.includes('[Attached document:') || taskDescription?.includes('[Attached file:'),
+      hasDocumentInstructions: taskDescription?.includes('[DOCUMENT CONTEXT INSTRUCTIONS'),
+      preview: taskDescription?.substring(0, 800)
+    });
 
     if (!originalPrompt || !userId) {
       return new Response(

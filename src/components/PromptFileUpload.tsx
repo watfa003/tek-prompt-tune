@@ -174,12 +174,24 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
       for (const uploadedFile of processed) {
         if (uploadedFile.type === 'document') {
           parseDocument(uploadedFile.file).then((text) => {
+            console.log('📄 Document parsed successfully:', {
+              fileId: uploadedFile.id,
+              fileName: uploadedFile.file.name,
+              extractedTextLength: text?.length || 0,
+              extractedTextPreview: text?.substring(0, 200) || 'null'
+            });
             const currentFiles = filesRef.current;
             const updatedFiles = currentFiles.map(f => 
               f.id === uploadedFile.id 
                 ? { ...f, extractedText: text || 'Unable to extract text from document', isParsing: false }
                 : f
             );
+            console.log('📄 Calling onFilesChange with updated files:', updatedFiles.map(f => ({
+              id: f.id,
+              name: f.file.name,
+              hasExtractedText: !!f.extractedText,
+              isParsing: f.isParsing
+            })));
             onFilesChange(updatedFiles);
             if (text) {
               toast({
