@@ -5,57 +5,64 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple PDF text extraction (basic approach for common PDFs)
-function extractTextFromPDF(data: Uint8Array): string {
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
+// Use AI to extract text from document (works better for compressed/encoded PDFs)
+async function extractWithAI(base64Data: string, fileName: string, mimeType: string): Promise<string> {
+  if (!LOVABLE_API_KEY) {
+    console.error('LOVABLE_API_KEY not configured');
+    return '';
+  }
+
   try {
-    const decoder = new TextDecoder('utf-8', { fatal: false });
-    const text = decoder.decode(data);
+    // For PDFs and documents, ask AI to describe/extract the content
+    const isImage = mimeType.startsWith('image/');
+    const dataUrl = `data:${mimeType};base64,${base64Data}`;
     
-    // Extract text between stream/endstream markers (common PDF text encoding)
-    const textBlocks: string[] = [];
-    
-    // Look for text in PDF streams
-    const streamRegex = /stream\s*([\s\S]*?)\s*endstream/g;
-    let match;
-    while ((match = streamRegex.exec(text)) !== null) {
-      const content = match[1];
-      // Try to extract readable text
-      const readable = content
-        .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if (readable.length > 10) {
-        textBlocks.push(readable);
-      }
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Extract ALL text content from this document (${fileName}). Return ONLY the extracted text, preserving the original structure, headings, paragraphs, and formatting as much as possible. Do not add any commentary, just the document text content.`
+              },
+              {
+                type: 'image_url',
+                image_url: { url: dataUrl }
+              }
+            ]
+          }
+        ],
+        max_tokens: 8000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('AI extraction failed:', response.status, errorText);
+      return '';
     }
-    
-    // Also look for text in parentheses (PDF string literals)
-    const textStrings: string[] = [];
-    const stringRegex = /\(([^)]+)\)/g;
-    while ((match = stringRegex.exec(text)) !== null) {
-      const str = match[1].replace(/\\./g, ' ').trim();
-      if (str.length > 2 && /[a-zA-Z]{2,}/.test(str)) {
-        textStrings.push(str);
-      }
-    }
-    
-    // Combine extracted text
-    const combined = [...textBlocks, ...textStrings.join(' ')].join('\n');
-    
-    // Clean up the result
-    const cleaned = combined
-      .replace(/\s+/g, ' ')
-      .replace(/[^\x20-\x7E\n]/g, '')
-      .trim();
-    
-    return cleaned.slice(0, 15000); // Limit to 15k chars
+
+    const data = await response.json();
+    const extractedText = data.choices?.[0]?.message?.content || '';
+    console.log(`✅ AI extracted ${extractedText.length} chars from ${fileName}`);
+    return extractedText;
   } catch (e) {
-    console.error('PDF extraction error:', e);
+    console.error('AI extraction error:', e);
     return '';
   }
 }
 
-// Extract text from DOCX (simplified - looks for text in XML)
+// Fallback: Extract text from DOCX (simplified - looks for text in XML)
 function extractTextFromDOCX(data: Uint8Array): string {
   try {
     const decoder = new TextDecoder('utf-8', { fatal: false });
@@ -106,24 +113,36 @@ serve(async (req) => {
 
     console.log(`📄 Parsing document: ${fileName} (${mimeType})`);
 
-    // Decode base64 to bytes
-    const binaryString = atob(fileData);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
     let extractedText = '';
 
+    // Use AI for PDF extraction (handles compression properly)
     if (mimeType === 'application/pdf') {
-      extractedText = extractTextFromPDF(bytes);
+      console.log('📋 Using AI to extract PDF content...');
+      extractedText = await extractWithAI(fileData, fileName, mimeType);
     } else if (
       mimeType === 'application/msword' || 
       mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ) {
+      // Decode base64 to bytes for DOCX
+      const binaryString = atob(fileData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
       extractedText = extractTextFromDOCX(bytes);
+      
+      // If DOCX extraction fails, try AI
+      if (!extractedText || extractedText.length < 50) {
+        console.log('📋 DOCX extraction weak, trying AI...');
+        extractedText = await extractWithAI(fileData, fileName, mimeType);
+      }
     } else {
-      // Try generic text extraction
+      // Try generic text extraction for other formats
+      const binaryString = atob(fileData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
       const decoder = new TextDecoder('utf-8', { fatal: false });
       extractedText = decoder.decode(bytes).slice(0, 15000);
     }
@@ -131,10 +150,10 @@ serve(async (req) => {
     // Clean up extracted text
     extractedText = extractedText
       .replace(/\s+/g, ' ')
-      .replace(/[^\x20-\x7E\n\r]/g, '')
       .trim();
 
-    console.log(`✅ Extracted ${extractedText.length} characters from ${fileName}`);
+    console.log(`✅ Final extracted ${extractedText.length} characters from ${fileName}`);
+    console.log(`📝 Preview: ${extractedText.substring(0, 200)}...`);
 
     return new Response(
       JSON.stringify({ 
