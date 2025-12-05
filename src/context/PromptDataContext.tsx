@@ -47,6 +47,8 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const seenOptimizationIdsRef = useRef<Set<string>>(new Set());
   const titlesInFlightRef = useRef<Set<string>>(new Set());
   const titleStatusRef = useRef<Record<string, "pending" | "done">>({});
+  // Track title generation by prompt_id (parent) to avoid generating for each variant
+  const titleByPromptIdRef = useRef<Record<string, "pending" | "done" | string>>({});
   // Keep a live ref of history items for polling without stale closures
   useEffect(() => {
     historyRef.current = historyItems;
@@ -843,30 +845,65 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const isRecent = isRecentPrompt(no.created_at);
             let finalTitle = 'Untitled';
 
+            // Check by prompt_id (parent) - only generate title ONCE per prompt group
+            const promptIdStatus = titleByPromptIdRef.current[no.prompt_id];
+            
             if (!isRecent) {
               // Old prompt - skip title generation entirely
               const ageInMinutes = Math.floor((Date.now() - new Date(no.created_at).getTime()) / 1000 / 60);
               console.log(`[Realtime] Skipping title generation for old prompt ${no.id} (${ageInMinutes} minutes old)`);
               setTitleStatus(no.id, "done");
               
-              // Check if there's a cached title from before
-              const cached = localStorage.getItem(`prompt-title-${no.id}`);
+              // Check if there's a cached title from before (by prompt_id)
+              const cachedByPromptId = localStorage.getItem(`prompt-title-group-${no.prompt_id}`);
+              const cachedByVariantId = localStorage.getItem(`prompt-title-${no.id}`);
+              if (cachedByPromptId && cachedByPromptId !== 'Untitled') {
+                finalTitle = cachedByPromptId;
+              } else if (cachedByVariantId && cachedByVariantId !== 'Untitled') {
+                finalTitle = cachedByVariantId;
+              }
+            } else if (promptIdStatus === "pending") {
+              // Another variant is already generating the title - wait for it
+              console.log(`[Realtime] Title already pending for prompt_id ${no.prompt_id}, waiting...`);
+              // Poll for the cached title to appear
+              for (let i = 0; i < 20; i++) {
+                await new Promise(r => setTimeout(r, 500));
+                const cached = localStorage.getItem(`prompt-title-group-${no.prompt_id}`);
+                if (cached && cached !== 'Untitled') {
+                  finalTitle = cached;
+                  console.log(`[Realtime] Got title from sibling for ${no.id}: ${finalTitle}`);
+                  break;
+                }
+              }
+              setTitleStatus(no.id, "done");
+            } else if (typeof promptIdStatus === "string" && promptIdStatus !== "done") {
+              // Title already generated - use it
+              finalTitle = promptIdStatus;
+              console.log(`[Realtime] Reusing title for ${no.id} from prompt_id: ${finalTitle}`);
+              setTitleStatus(no.id, "done");
+            } else if (promptIdStatus === "done") {
+              // Check cache
+              const cached = localStorage.getItem(`prompt-title-group-${no.prompt_id}`);
               if (cached && cached !== 'Untitled') {
                 finalTitle = cached;
-                console.log(`[Realtime] Using existing cached title for ${no.id}: ${finalTitle}`);
+                console.log(`[Realtime] Using cached group title for ${no.id}: ${finalTitle}`);
               }
+              setTitleStatus(no.id, "done");
             } else {
-              // Recent prompt - generate title using the centralized function
-              console.log(`[Realtime] Calling generateTitleAndApply for recent prompt ${no.id}`);
+              // First variant for this prompt_id - generate title
+              titleByPromptIdRef.current[no.prompt_id] = "pending";
+              console.log(`[Realtime] First variant for prompt_id ${no.prompt_id}, generating title...`);
               await generateTitleAndApply(no.id, promptData.original_prompt);
               
-              // Read the generated title from localStorage
+              // Read the generated title and cache by prompt_id
               const cached = localStorage.getItem(`prompt-title-${no.id}`);
               if (cached && cached !== 'Untitled') {
                 finalTitle = cached;
-                console.log(`[Realtime] Using generated title for ${no.id}: ${finalTitle}`);
+                titleByPromptIdRef.current[no.prompt_id] = cached;
+                try { localStorage.setItem(`prompt-title-group-${no.prompt_id}`, cached); } catch {}
+                console.log(`[Realtime] Generated title for prompt_id ${no.prompt_id}: ${finalTitle}`);
               } else {
-                console.warn(`[Realtime] No title found in cache after generation for ${no.id}`);
+                titleByPromptIdRef.current[no.prompt_id] = "done";
               }
             }
 
@@ -970,30 +1007,60 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               const isRecent = isRecentPrompt(no.created_at);
               let finalTitle = 'Untitled';
 
+              // Check by prompt_id (parent) - only generate title ONCE per prompt group
+              const promptIdStatus = titleByPromptIdRef.current[no.prompt_id];
+              
               if (!isRecent) {
                 // Old prompt - skip title generation entirely
                 const ageInMinutes = Math.floor((Date.now() - new Date(no.created_at).getTime()) / 1000 / 60);
                 console.log(`[Poller] Skipping title generation for old prompt ${no.id} (${ageInMinutes} minutes old)`);
                 setTitleStatus(no.id, "done");
                 
-                // Check if there's a cached title from before
-                const cached = localStorage.getItem(`prompt-title-${no.id}`);
+                // Check if there's a cached title from before (by prompt_id)
+                const cachedByPromptId = localStorage.getItem(`prompt-title-group-${no.prompt_id}`);
+                const cachedByVariantId = localStorage.getItem(`prompt-title-${no.id}`);
+                if (cachedByPromptId && cachedByPromptId !== 'Untitled') {
+                  finalTitle = cachedByPromptId;
+                } else if (cachedByVariantId && cachedByVariantId !== 'Untitled') {
+                  finalTitle = cachedByVariantId;
+                }
+              } else if (promptIdStatus === "pending") {
+                // Another variant is already generating the title - just use cached when available
+                console.log(`[Poller] Title pending for prompt_id ${no.prompt_id}, checking cache...`);
+                const cached = localStorage.getItem(`prompt-title-group-${no.prompt_id}`);
                 if (cached && cached !== 'Untitled') {
                   finalTitle = cached;
-                  console.log(`[Poller] Using existing cached title for ${no.id}: ${finalTitle}`);
+                  console.log(`[Poller] Got title from cache for ${no.id}: ${finalTitle}`);
                 }
+                setTitleStatus(no.id, "done");
+              } else if (typeof promptIdStatus === "string" && promptIdStatus !== "done") {
+                // Title already generated - use it
+                finalTitle = promptIdStatus;
+                console.log(`[Poller] Reusing title for ${no.id} from prompt_id: ${finalTitle}`);
+                setTitleStatus(no.id, "done");
+              } else if (promptIdStatus === "done") {
+                // Check cache
+                const cached = localStorage.getItem(`prompt-title-group-${no.prompt_id}`);
+                if (cached && cached !== 'Untitled') {
+                  finalTitle = cached;
+                  console.log(`[Poller] Using cached group title for ${no.id}: ${finalTitle}`);
+                }
+                setTitleStatus(no.id, "done");
               } else {
-                // Recent prompt - generate title using the centralized function
-                console.log(`[Poller] Calling generateTitleAndApply for recent prompt ${no.id}`);
+                // First variant for this prompt_id - generate title
+                titleByPromptIdRef.current[no.prompt_id] = "pending";
+                console.log(`[Poller] First variant for prompt_id ${no.prompt_id}, generating title...`);
                 await generateTitleAndApply(no.id, (promptData as any).original_prompt);
                 
-                // Read the generated title from localStorage
+                // Read the generated title and cache by prompt_id
                 const cached = localStorage.getItem(`prompt-title-${no.id}`);
                 if (cached && cached !== 'Untitled') {
                   finalTitle = cached;
-                  console.log(`[Poller] Using generated title for ${no.id}: ${finalTitle}`);
+                  titleByPromptIdRef.current[no.prompt_id] = cached;
+                  try { localStorage.setItem(`prompt-title-group-${no.prompt_id}`, cached); } catch {}
+                  console.log(`[Poller] Generated title for prompt_id ${no.prompt_id}: ${finalTitle}`);
                 } else {
-                  console.warn(`[Poller] No title found in cache after generation for ${no.id}`);
+                  titleByPromptIdRef.current[no.prompt_id] = "done";
                 }
               }
 
