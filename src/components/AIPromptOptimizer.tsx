@@ -584,6 +584,19 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     return saved || '';
   });
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  // Ref to always have latest uploadedFiles in async functions (fixes stale closure)
+  const uploadedFilesRef = useRef<UploadedFile[]>([]);
+  useEffect(() => {
+    uploadedFilesRef.current = uploadedFiles;
+    console.log('📁 uploadedFiles state updated:', uploadedFiles.map(f => ({
+      id: f.id,
+      name: f.file.name,
+      type: f.type,
+      hasExtractedText: !!f.extractedText,
+      extractedTextLength: f.extractedText?.length || 0,
+      isParsing: f.isParsing
+    })));
+  }, [uploadedFiles]);
   const [aiProvider, setAiProvider] = useState('openai');
   const [modelName, setModelName] = useState('gpt-4o-mini');
   const [outputType, setOutputType] = useState('text');
@@ -791,12 +804,22 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       currentSessionKeyRef.current = sessionKey;
       setOptimizationModeForProgress(optimizationMode);
 
-      // Extract context from uploaded files
+      // Extract context from uploaded files - USE REF to avoid stale closure
+      const currentUploadedFiles = uploadedFilesRef.current;
+      console.log('📁 Using uploadedFilesRef.current:', currentUploadedFiles.map(f => ({
+        id: f.id,
+        name: f.file.name,
+        type: f.type,
+        hasExtractedText: !!f.extractedText,
+        extractedTextLength: f.extractedText?.length || 0,
+        isParsing: f.isParsing
+      })));
+      
       let fileContext = '';
       const imageUrls: string[] = [];
       let hasDocumentContent = false;
       
-      for (const file of uploadedFiles) {
+      for (const file of currentUploadedFiles) {
         if (file.type === 'text' && file.extractedText) {
           fileContext += `\n\n[Attached file: ${file.file.name}]\n${file.extractedText}`;
           hasDocumentContent = true;
@@ -831,8 +854,9 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         hasDocumentContent,
         fileContextLength: fileContext.length,
         fileContextPreview: fileContext.substring(0, 500),
-        uploadedFilesCount: uploadedFiles.length,
-        filesWithExtractedText: uploadedFiles.filter(f => f.extractedText).length
+        uploadedFilesCount: currentUploadedFiles.length,
+        filesWithExtractedText: currentUploadedFiles.filter(f => f.extractedText).length,
+        allExtractedTexts: currentUploadedFiles.map(f => ({ name: f.file.name, textLength: f.extractedText?.length || 0 }))
       });
 
       // Start optimization - it will handle setting isOptimizing
