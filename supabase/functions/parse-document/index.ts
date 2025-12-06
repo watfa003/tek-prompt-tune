@@ -15,9 +15,24 @@ async function extractWithAI(base64Data: string, fileName: string, mimeType: str
   }
 
   try {
-    // For PDFs and documents, ask AI to describe/extract the content
     const isImage = mimeType.startsWith('image/');
     const dataUrl = `data:${mimeType};base64,${base64Data}`;
+    
+    // Different prompts for images vs documents
+    const prompt = isImage
+      ? `Analyze this image (${fileName}) and provide:
+
+1. **VISUAL DESCRIPTION**: Describe what you see in detail - objects, people, scenes, colors, composition, style, mood, and any notable visual elements.
+
+2. **TEXT CONTENT**: If there is any text visible in the image, extract it exactly as shown.
+
+Format your response as:
+[VISUAL]
+(detailed visual description here)
+
+[TEXT]
+(extracted text here, or "No text detected" if none)`
+      : `Extract ALL text content from this document (${fileName}). Return ONLY the extracted text, preserving the original structure, headings, paragraphs, and formatting as much as possible. Do not add any commentary, just the document text content.`;
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -31,14 +46,8 @@ async function extractWithAI(base64Data: string, fileName: string, mimeType: str
           {
             role: 'user',
             content: [
-              {
-                type: 'text',
-                text: `Extract ALL text content from this document (${fileName}). Return ONLY the extracted text, preserving the original structure, headings, paragraphs, and formatting as much as possible. Do not add any commentary, just the document text content.`
-              },
-              {
-                type: 'image_url',
-                image_url: { url: dataUrl }
-              }
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: dataUrl } }
             ]
           }
         ],
