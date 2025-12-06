@@ -823,20 +823,28 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
         if (file.type === 'text' && file.extractedText) {
           fileContext += `\n\n[Attached file: ${file.file.name}]\n${file.extractedText}`;
           hasDocumentContent = true;
-        } else if (file.type === 'image' && file.preview) {
+        } else if (file.type === 'image') {
           // Convert image to base64 for vision models
-          try {
-            const response = await fetch(file.preview);
-            const blob = await response.blob();
-            const reader = new FileReader();
-            const base64 = await new Promise<string>((resolve) => {
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
-            });
-            imageUrls.push(base64);
-            fileContext += `\n\n[Attached image: ${file.file.name}]`;
-          } catch (e) {
-            console.error('Error converting image:', e);
+          if (file.preview) {
+            try {
+              const response = await fetch(file.preview);
+              const blob = await response.blob();
+              const reader = new FileReader();
+              const base64 = await new Promise<string>((resolve) => {
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+              });
+              imageUrls.push(base64);
+              // Include visual description if available
+              if (file.extractedText) {
+                fileContext += `\n\n[Attached image: ${file.file.name}]\n[Visual Analysis]\n${file.extractedText}`;
+                hasDocumentContent = true;
+              } else {
+                fileContext += `\n\n[Attached image: ${file.file.name}]`;
+              }
+            } catch (e) {
+              console.error('Error converting image:', e);
+            }
           }
         } else if (file.type === 'document' && file.extractedText) {
           fileContext += `\n\n[Attached document: ${file.file.name}]\n${file.extractedText}`;
