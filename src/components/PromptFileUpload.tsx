@@ -118,7 +118,7 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       file,
       type: fileType,
-      isParsing: fileType === 'document' // Mark as parsing for documents
+      isParsing: fileType === 'document' || fileType === 'image' // Mark as parsing for documents and images
     };
 
     // Create preview for images
@@ -170,11 +170,11 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
         description: `${processed.length} file(s) added successfully`
       });
       
-      // Parse documents in background
+      // Parse documents and images in background
       for (const uploadedFile of processed) {
-        if (uploadedFile.type === 'document') {
+        if (uploadedFile.type === 'document' || uploadedFile.type === 'image') {
           parseDocument(uploadedFile.file).then((text) => {
-            console.log('📄 Document parsed successfully:', {
+            console.log(`📄 ${uploadedFile.type} parsed successfully:`, {
               fileId: uploadedFile.id,
               fileName: uploadedFile.file.name,
               extractedTextLength: text?.length || 0,
@@ -183,19 +183,13 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
             const currentFiles = filesRef.current;
             const updatedFiles = currentFiles.map(f => 
               f.id === uploadedFile.id 
-                ? { ...f, extractedText: text || 'Unable to extract text from document', isParsing: false }
+                ? { ...f, extractedText: text || `Unable to extract text from ${uploadedFile.type}`, isParsing: false }
                 : f
             );
-            console.log('📄 Calling onFilesChange with updated files:', updatedFiles.map(f => ({
-              id: f.id,
-              name: f.file.name,
-              hasExtractedText: !!f.extractedText,
-              isParsing: f.isParsing
-            })));
             onFilesChange(updatedFiles);
             if (text) {
               toast({
-                title: "Document parsed",
+                title: `${uploadedFile.type === 'image' ? 'Image' : 'Document'} parsed`,
                 description: `${uploadedFile.file.name} content extracted`
               });
             }
@@ -343,7 +337,7 @@ export const PromptFileUpload: React.FC<PromptFileUploadProps> = ({
                           {file.isParsing && (
                             <span className="text-xs text-primary">Parsing...</span>
                           )}
-                          {file.type === 'document' && file.extractedText && !file.isParsing && (
+                          {(file.type === 'document' || file.type === 'image') && file.extractedText && !file.isParsing && (
                             <Badge variant="outline" className="text-xs px-1.5 py-0 text-green-600">
                               Parsed
                             </Badge>
