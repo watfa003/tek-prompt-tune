@@ -115,8 +115,13 @@ serve(async (req) => {
 
     let extractedText = '';
 
+    // Use AI for images (OCR)
+    if (mimeType.startsWith('image/')) {
+      console.log('🖼️ Using AI to extract text from image...');
+      extractedText = await extractWithAI(fileData, fileName, mimeType);
+    }
     // Use AI for PDF extraction (handles compression properly)
-    if (mimeType === 'application/pdf') {
+    else if (mimeType === 'application/pdf') {
       console.log('📋 Using AI to extract PDF content...');
       extractedText = await extractWithAI(fileData, fileName, mimeType);
     } else if (
