@@ -123,6 +123,7 @@ serve(async (req) => {
       mode = 'deep',
       autoSave = true,
       speedMode = false, // NEW: Speed mode skips testing for 30% speedup
+      attachedImages = [], // NEW: Array of base64 image data URLs for multimodal testing
       // New template functionality
       isTemplate = false,
       templateId = null,
@@ -134,7 +135,7 @@ serve(async (req) => {
       sessionKey = null
     } = await req.json();
 
-    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode, isTemplate, influenceWeight, speedMode });
+    console.log('prompt-optimizer received:', { maxTokens, modelName, aiProvider, temperature, variants, outputType, mode, isTemplate, influenceWeight, speedMode, attachedImagesCount: attachedImages?.length || 0 });
     
     // Log taskDescription to verify document content is being received
     console.log('📥 taskDescription received:', {
@@ -476,7 +477,7 @@ ${optimizedPrompt}`;
           await updateProgress(testProgressPercent, 2, `Testing variant ${startPosition} of ${totalVariants} (${strategyName})...`);
           
           try {
-            console.log(`Testing optimized prompt with user's selected model: ${modelName}`);
+            console.log(`Testing optimized prompt with user's selected model: ${modelName}${attachedImages?.length ? ` with ${attachedImages.length} image(s)` : ''}`);
             // Use 1024 tokens for testing when no limit is set (faster responses), otherwise respect user's limit
             const testTokens = maxTokens ? Math.max(512, Math.min(maxTokens, 4096)) : 1024;
             const testResponse = await callAIProvider(
@@ -484,7 +485,8 @@ ${optimizedPrompt}`;
               modelName,
               optimizedPrompt,
               testTokens,
-              temperature
+              temperature,
+              attachedImages // Pass images for multimodal testing
             );
           
             if (testResponse) {
@@ -802,7 +804,7 @@ function getModelFriendlyName(provider: string, model: string): string {
 
 
 // Optimized AI provider calls
-async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string | null> {
+async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number, images: string[] = []): Promise<string | null> {
   const providerConfig = AI_PROVIDERS[provider as keyof typeof AI_PROVIDERS];
   if (!providerConfig || !providerConfig.apiKey) {
     throw new Error(`Provider ${provider} not configured`);
@@ -822,13 +824,13 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
       case 'openai':
       case 'groq':
       case 'mistral':
-        return await callOpenAICompatible(providerConfig, modelConfig.name, prompt, maxTokens, temperature);
+        return await callOpenAICompatible(providerConfig, modelConfig.name, prompt, maxTokens, temperature, images);
       
       case 'anthropic':
-        return await callAnthropic(providerConfig, modelConfig.name, prompt, maxTokens);
+        return await callAnthropic(providerConfig, modelConfig.name, prompt, maxTokens, images);
       
       case 'google':
-        return await callGoogle(providerConfig, modelConfig.name, prompt, maxTokens);
+        return await callGoogle(providerConfig, modelConfig.name, prompt, maxTokens, images);
       
       default:
         throw new Error(`Unsupported provider: ${provider}`);
@@ -840,13 +842,29 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
   }
 }
 
-async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number): Promise<string> {
-  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}`);
+async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number, images: string[] = []): Promise<string> {
+  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}${images.length ? `, ${images.length} image(s)` : ''}`);
   
   const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
+  
+  // Build message content - multimodal if images are provided
+  let messageContent: any;
+  if (images.length > 0) {
+    messageContent = [
+      { type: 'text', text: prompt },
+      ...images.map(img => ({
+        type: 'image_url',
+        image_url: { url: img.startsWith('data:') ? img : `data:image/png;base64,${img}` }
+      }))
+    ];
+    console.log(`📷 Including ${images.length} image(s) in OpenAI request`);
+  } else {
+    messageContent = prompt;
+  }
+  
   const payload: any = {
     model: model,
-    messages: [{ role: 'user', content: prompt }],
+    messages: [{ role: 'user', content: messageContent }],
   };
   
   if (isNewerModel) {
@@ -857,7 +875,7 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
     // Ignore temperature; style is enforced via prompt wording
   }
 
-  console.log('📦 OpenAI Payload:', { model, isNewerModel, maxTokens, temp: payload.temperature });
+  console.log('📦 OpenAI Payload:', { model, isNewerModel, maxTokens, hasImages: images.length > 0 });
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
@@ -885,10 +903,35 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
   return data.choices[0].message.content;
 }
 
-async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
-  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}`);
+async function callAnthropic(providerConfig: any, model: string, prompt: string, maxTokens: number, images: string[] = []): Promise<string> {
+  console.log(`🟣 Anthropic API call: ${model} with maxTokens: ${maxTokens}${images.length ? `, ${images.length} image(s)` : ''}`);
   
-  console.log('📦 Anthropic Payload:', { model, maxTokens });
+  // Build message content - multimodal if images are provided
+  let messageContent: any;
+  if (images.length > 0) {
+    messageContent = [
+      { type: 'text', text: prompt },
+      ...images.map(img => {
+        // Extract base64 data and media type from data URL
+        const match = img.match(/^data:([^;]+);base64,(.+)$/);
+        const mediaType = match ? match[1] : 'image/png';
+        const base64Data = match ? match[2] : img;
+        return {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType,
+            data: base64Data
+          }
+        };
+      })
+    ];
+    console.log(`📷 Including ${images.length} image(s) in Anthropic request`);
+  } else {
+    messageContent = prompt;
+  }
+  
+  console.log('📦 Anthropic Payload:', { model, maxTokens, hasImages: images.length > 0 });
   
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
@@ -902,7 +945,7 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
     body: JSON.stringify({
       model: model,
       max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: messageContent }],
     }),
     signal: controller.signal,
   });
@@ -921,10 +964,29 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
   return data.content[0].text;
 }
 
-async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number): Promise<string> {
-  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}`);
+async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number, images: string[] = []): Promise<string> {
+  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}${images.length ? `, ${images.length} image(s)` : ''}`);
   
-  console.log('📦 Google Payload:', { model, maxOutputTokens: maxTokens });
+  // Build parts array - multimodal if images are provided
+  const parts: any[] = [{ text: prompt }];
+  
+  if (images.length > 0) {
+    for (const img of images) {
+      // Extract base64 data and media type from data URL
+      const match = img.match(/^data:([^;]+);base64,(.+)$/);
+      const mimeType = match ? match[1] : 'image/png';
+      const base64Data = match ? match[2] : img;
+      parts.push({
+        inline_data: {
+          mime_type: mimeType,
+          data: base64Data
+        }
+      });
+    }
+    console.log(`📷 Including ${images.length} image(s) in Google request`);
+  }
+  
+  console.log('📦 Google Payload:', { model, maxOutputTokens: maxTokens, hasImages: images.length > 0 });
   
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
@@ -935,7 +997,7 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
     },
     body: JSON.stringify({
       contents: [{
-        parts: [{ text: prompt }]
+        parts: parts
       }],
       generationConfig: {
         maxOutputTokens: maxTokens,
