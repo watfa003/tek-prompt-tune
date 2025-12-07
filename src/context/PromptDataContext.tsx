@@ -54,15 +54,28 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     historyRef.current = historyItems;
   }, [historyItems]);
 
-  // Load title status map from localStorage on mount
+  // Load persisted state from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('prompt_title_status_map');
-      if (stored) {
-        titleStatusRef.current = JSON.parse(stored);
+      // Load title status map
+      const storedStatus = localStorage.getItem('prompt_title_status_map');
+      if (storedStatus) {
+        titleStatusRef.current = JSON.parse(storedStatus);
+      }
+      // Load seen optimization IDs to prevent duplicate processing across sessions
+      const storedSeen = localStorage.getItem('seen_optimization_ids');
+      if (storedSeen) {
+        const parsed = JSON.parse(storedSeen);
+        // Only load recent IDs (last 24 hours worth) to prevent memory bloat
+        seenOptimizationIdsRef.current = new Set(parsed.slice(-500));
+      }
+      // Load title by prompt_id map
+      const storedTitleByPromptId = localStorage.getItem('title_by_prompt_id_map');
+      if (storedTitleByPromptId) {
+        titleByPromptIdRef.current = JSON.parse(storedTitleByPromptId);
       }
     } catch (e) {
-      console.error('Failed to load title status map:', e);
+      console.error('Failed to load persisted state:', e);
     }
   }, []);
 
@@ -78,6 +91,23 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (e) {
       console.error('Failed to save title status:', e);
     }
+  }, []);
+
+  // Helper to persist seen optimization IDs
+  const markAsSeen = useCallback((id: string) => {
+    seenOptimizationIdsRef.current.add(id);
+    try {
+      const ids = Array.from(seenOptimizationIdsRef.current).slice(-500);
+      localStorage.setItem('seen_optimization_ids', JSON.stringify(ids));
+    } catch {}
+  }, []);
+
+  // Helper to persist title by prompt_id map
+  const setTitleByPromptId = useCallback((promptId: string, value: "pending" | "done" | string) => {
+    titleByPromptIdRef.current[promptId] = value;
+    try {
+      localStorage.setItem('title_by_prompt_id_map', JSON.stringify(titleByPromptIdRef.current));
+    } catch {}
   }, []);
 
   const acquireTitleLock = useCallback((id: string): boolean => {
@@ -825,7 +855,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             // De-duplicate processing and skip if already present
             if (processingOptimizationsRef.current.has(no.id) || historyRef.current.some(h => h.id === no.id)) {
               console.log('[Realtime] Skipping already processed optimization:', no.id);
-              seenOptimizationIdsRef.current.add(no.id);
+              markAsSeen(no.id);
               return;
             }
             processingOptimizationsRef.current.add(no.id);
@@ -891,7 +921,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               setTitleStatus(no.id, "done");
             } else {
               // First variant for this prompt_id - generate title
-              titleByPromptIdRef.current[no.prompt_id] = "pending";
+              setTitleByPromptId(no.prompt_id, "pending");
               console.log(`[Realtime] First variant for prompt_id ${no.prompt_id}, generating title...`);
               await generateTitleAndApply(no.id, promptData.original_prompt);
               
@@ -899,11 +929,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               const cached = localStorage.getItem(`prompt-title-${no.id}`);
               if (cached && cached !== 'Untitled') {
                 finalTitle = cached;
-                titleByPromptIdRef.current[no.prompt_id] = cached;
+                setTitleByPromptId(no.prompt_id, cached);
                 try { localStorage.setItem(`prompt-title-group-${no.prompt_id}`, cached); } catch {}
                 console.log(`[Realtime] Generated title for prompt_id ${no.prompt_id}: ${finalTitle}`);
               } else {
-                titleByPromptIdRef.current[no.prompt_id] = "done";
+                setTitleByPromptId(no.prompt_id, "done");
               }
             }
 
@@ -959,7 +989,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               saveToCache(user.user.id, 'history', finalUpdated);
               return finalUpdated;
             });
-            seenOptimizationIdsRef.current.add(no.id);
+            markAsSeen(no.id);
             processingOptimizationsRef.current.delete(no.id);
           })
           .subscribe();
@@ -987,7 +1017,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               }
               
               if (historyRef.current.some(h => h.id === no.id) || processingOptimizationsRef.current.has(no.id)) {
-                seenOptimizationIdsRef.current.add(no.id);
+                markAsSeen(no.id);
                 continue;
               }
               processingOptimizationsRef.current.add(no.id);
@@ -1048,7 +1078,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setTitleStatus(no.id, "done");
               } else {
                 // First variant for this prompt_id - generate title
-                titleByPromptIdRef.current[no.prompt_id] = "pending";
+                setTitleByPromptId(no.prompt_id, "pending");
                 console.log(`[Poller] First variant for prompt_id ${no.prompt_id}, generating title...`);
                 await generateTitleAndApply(no.id, (promptData as any).original_prompt);
                 
@@ -1056,11 +1086,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 const cached = localStorage.getItem(`prompt-title-${no.id}`);
                 if (cached && cached !== 'Untitled') {
                   finalTitle = cached;
-                  titleByPromptIdRef.current[no.prompt_id] = cached;
+                  setTitleByPromptId(no.prompt_id, cached);
                   try { localStorage.setItem(`prompt-title-group-${no.prompt_id}`, cached); } catch {}
                   console.log(`[Poller] Generated title for prompt_id ${no.prompt_id}: ${finalTitle}`);
                 } else {
-                  titleByPromptIdRef.current[no.prompt_id] = "done";
+                  setTitleByPromptId(no.prompt_id, "done");
                 }
               }
 
@@ -1114,7 +1144,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 saveToCache(cur.id, 'history', finalUpdated);
                 return finalUpdated;
               });
-              seenOptimizationIdsRef.current.add(no.id);
+              markAsSeen(no.id);
               processingOptimizationsRef.current.delete(no.id);
             }
           } catch (e) {
@@ -1135,7 +1165,7 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (optimizationChannel) supabase.removeChannel(optimizationChannel);
       if (poller) clearInterval(poller);
     };
-  }, [loadInitialData, saveToCache, generateTitleAndApply, isRecentPrompt, setTitleStatus]);
+  }, [loadInitialData, saveToCache, generateTitleAndApply, isRecentPrompt, setTitleStatus, markAsSeen, setTitleByPromptId]);
 
   const favorites = useMemo(
     () => historyItems.filter(item => item.isFavorite),
