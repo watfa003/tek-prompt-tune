@@ -345,10 +345,10 @@ const Lab = () => {
     setIsAutoOptimizing(true);
     setAutoOptimizeResult(null);
     setOptimizationComparison(null);
-    setOptimizationProgress({ step: 1, message: 'Analyzing your prompt...', progress: 25 });
+    setOptimizationProgress({ step: 1, message: 'Generating optimized prompt...', progress: 20 });
 
     try {
-      // Step 1: Optimize the prompt
+      // Step 1: Optimize the prompt (no grading yet)
       console.log('[Auto-Optimize] Step 1: Calling lab-auto-optimize edge function...');
       const { data, error } = await supabase.functions.invoke('lab-auto-optimize', {
         body: {
@@ -357,7 +357,8 @@ const Lab = () => {
           aiRecommendations: result.ai_analysis?.suggested_fixes,
           outputType: outputType,
           promptType: result.prompt_type,
-          target_llm: `${selectedProvider}/${selectedLLM}`, // Pass the target LLM for unified scoring
+          target_llm: `${selectedProvider}/${selectedLLM}`,
+          skipGrading: true, // NEW: Skip grading in first call to show prompt faster
         }
       });
 
@@ -369,28 +370,45 @@ const Lab = () => {
         throw new Error('Failed to generate optimized prompt');
       }
 
+      // Immediately show the optimized prompt so user can view it
       setAutoOptimizeResult(data);
-      setOptimizationProgress({ step: 2, message: 'Generated optimized version...', progress: 50 });
-      
-      // Step 2: Use the actual re-graded scores from the optimizer
-      console.log('[Auto-Optimize] Step 2: Using re-graded scores from optimizer...');
+      setOptimizationProgress({ step: 2, message: 'Testing optimized prompt...', progress: 50 });
+      setIsAutoOptimizing(false); // Allow user to see the prompt
+      setIsRetesting(true); // Show we're now testing
+
+      // Step 2: Now grade the optimized prompt in the background
+      console.log('[Auto-Optimize] Step 2: Grading the optimized prompt...');
+      const { data: gradeData, error: gradeError } = await supabase.functions.invoke('lab-auto-optimize', {
+        body: {
+          prompt: data.optimizedPrompt,
+          scores: result.category_breakdown,
+          aiRecommendations: result.ai_analysis?.suggested_fixes,
+          outputType: outputType,
+          promptType: result.prompt_type,
+          target_llm: `${selectedProvider}/${selectedLLM}`,
+          onlyGrade: true, // NEW: Only grade, don't re-optimize
+        }
+      });
+
+      if (gradeError) throw gradeError;
+
       setOptimizationProgress({ step: 3, message: 'Analyzing improvements...', progress: 90 });
       
       // Build the before/after comparison using the actual graded scores
       const beforeResult = result;
       
-      // Use the unified 50/50 scores from the optimizer response (matches Lab exactly)
-      const actualNewScore = data.newFinalScore ?? data.newTotalScore ?? 10;
-      const actualNewScores = data.newScores || beforeResult.category_breakdown;
-      const newPromptScore = data.newPromptScore;
-      const newOutputScore = data.newOutputScore;
+      // Use the unified 50/50 scores from the grader response
+      const actualNewScore = gradeData?.newFinalScore ?? gradeData?.newTotalScore ?? data.newFinalScore ?? data.newTotalScore ?? 10;
+      const actualNewScores = gradeData?.newScores || data.newScores || beforeResult.category_breakdown;
+      const newPromptScore = gradeData?.newPromptScore ?? data.newPromptScore;
+      const newOutputScore = gradeData?.newOutputScore ?? data.newOutputScore;
       
       const afterResult = { 
         total_score: actualNewScore,
         tested_prompt: data.optimizedPrompt,
         category_breakdown: actualNewScores,
-        prompt_score: newPromptScore, // Store prompt score separately
-        output_score: newOutputScore, // Store output score separately
+        prompt_score: newPromptScore,
+        output_score: newOutputScore,
         ai_analysis: {
           ...beforeResult.ai_analysis,
           suggested_fixes: data.improvementAreas?.length > 0 
@@ -400,6 +418,15 @@ const Lab = () => {
         estimated: !!data.fallbackReason,
         fallback_reason: data.fallbackReason
       };
+
+      // Update the autoOptimizeResult with scores
+      setAutoOptimizeResult({
+        ...data,
+        newFinalScore: actualNewScore,
+        newScores: actualNewScores,
+        newPromptScore,
+        newOutputScore,
+      });
 
       setOptimizationComparison({
         before: beforeResult,
@@ -422,8 +449,8 @@ const Lab = () => {
       });
     } finally {
       setIsAutoOptimizing(false);
-      setTimeout(() => setOptimizationProgress(null), 1000); // Clear progress after 1 second
       setIsRetesting(false);
+      setTimeout(() => setOptimizationProgress(null), 1000);
     }
   };
 
@@ -1197,20 +1224,20 @@ const Lab = () => {
                     )}
                   </AnimatePresence>
 
-                  {/* Optimization Comparison Results - NEW */}
+                  {/* Optimization Comparison Results - Show prompt immediately, scores update when ready */}
                   <AnimatePresence>
-                    {optimizationComparison && autoOptimizeResult && !isRetesting && (
+                    {optimizationComparison && autoOptimizeResult && (
                       <OptimizationComparison
                         comparison={optimizationComparison}
                         optimizedPrompt={autoOptimizeResult.optimizedPrompt}
                         onAccept={handleAcceptOptimization}
                         onReject={handleRejectOptimization}
-                        isLoading={false}
+                        isLoading={isRetesting}
                       />
                     )}
                   </AnimatePresence>
 
-                  {/* Auto-Optimize Result (Legacy - keep for backwards compatibility) */}
+                  {/* Show optimized prompt preview while testing (before comparison data is ready) */}
                   <AnimatePresence>
                     {autoOptimizeResult && !optimizationComparison && (
                       <motion.div
@@ -1220,29 +1247,26 @@ const Lab = () => {
                         transition={{ duration: 0.4, ease: "easeOut" }}
                         className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-primary/5 via-accent/5 to-[hsl(330,100%,69%)/5] border-2 border-primary/30 relative overflow-hidden"
                       >
-                        {/* Animated background effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 animate-pulse opacity-30" />
                         
                         <div className="relative z-10 space-y-4">
                           <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold flex items-center gap-2">
                               <SparklesIcon className="h-5 w-5 text-accent" />
-                              Auto-Optimized Prompt
+                              Optimized Prompt Generated
                             </h3>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setAutoOptimizeResult(null)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            {isRetesting && (
+                              <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary animate-pulse">
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                Testing...
+                              </Badge>
+                            )}
                           </div>
 
                           {autoOptimizeResult.improvementAreas && autoOptimizeResult.improvementAreas.length > 0 && (
                             <div className="flex flex-wrap gap-2">
                               <span className="text-xs text-muted-foreground">Improved:</span>
-                              {autoOptimizeResult.improvementAreas.map((area, idx) => (
+                              {autoOptimizeResult.improvementAreas.map((area: string, idx: number) => (
                                 <Badge key={idx} variant="secondary" className="text-xs">
                                   {area}
                                 </Badge>
@@ -1251,7 +1275,6 @@ const Lab = () => {
                           )}
 
                           <div className="grid md:grid-cols-2 gap-4">
-                            {/* Original Prompt */}
                             <div className="space-y-2">
                               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                 <FileText className="h-4 w-4" />
@@ -1262,7 +1285,6 @@ const Lab = () => {
                               </div>
                             </div>
 
-                            {/* Optimized Prompt */}
                             <div className="space-y-2">
                               <div className="flex items-center gap-2 text-sm font-medium text-primary">
                                 <SparklesIcon className="h-4 w-4" />
@@ -1274,36 +1296,17 @@ const Lab = () => {
                             </div>
                           </div>
 
-                          <div className="flex gap-2 pt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => copyToClipboard(autoOptimizeResult.optimizedPrompt)}
-                              className="flex-1"
-                            >
-                              <Copy className="h-4 w-4 mr-2" />
-                              Copy Optimized
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setPromptA(autoOptimizeResult.optimizedPrompt);
-                                setAutoOptimizeResult(null);
-                                toast({
-                                  title: "Prompt Updated",
-                                  description: "Optimized prompt has been loaded into Prompt A",
-                                });
-                              }}
-                              className="flex-1 bg-gradient-to-r from-primary to-accent"
-                            >
-                              <ArrowRight className="h-4 w-4 mr-2" />
-                              Use This Prompt
-                            </Button>
-                          </div>
+                          {isRetesting && (
+                            <div className="text-center text-sm text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                              Running tests to compare scores...
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
+
                 </CardContent>
               </Card>
             </motion.div>
