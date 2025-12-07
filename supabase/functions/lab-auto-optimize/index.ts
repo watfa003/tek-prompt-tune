@@ -24,7 +24,9 @@ serve(async (req) => {
       aiRecommendations,
       outputType = 'text',
       promptType,
-      target_llm = 'openai/gpt-4o-mini'
+      target_llm = 'openai/gpt-4o-mini',
+      skipGrading = false,  // NEW: Skip grading to return prompt faster
+      onlyGrade = false,    // NEW: Only grade, don't optimize
     } = await req.json();
 
     if (!prompt) {
@@ -40,8 +42,62 @@ serve(async (req) => {
       hasRecommendations: !!aiRecommendations,
       outputType,
       promptType,
-      target_llm
+      target_llm,
+      skipGrading,
+      onlyGrade,
     });
+
+    // If onlyGrade mode, skip optimization and just grade the provided prompt
+    if (onlyGrade) {
+      console.log('[lab-auto-optimize] onlyGrade mode - skipping optimization, just grading...');
+      
+      let newScores = null;
+      let newPromptScore = 10;
+      let newOutputScore = 10;
+      let newFinalScore = 10;
+      let fallbackReason: string | undefined;
+      
+      try {
+        // Generate output using the same target_llm as Lab
+        const output = await callAIModel(prompt, target_llm, outputType);
+        console.log('[lab-auto-optimize] Generated output length:', output.length);
+        
+        // Compute AI category scores
+        const { scores: gradedScores } = await scorePromptWithAI(prompt, output, OPENAI_API_KEY);
+        newScores = gradedScores;
+        
+        // 50% - Prompt quality score
+        newPromptScore = Math.round(calculateOverallScore(gradedScores) * 10) / 10;
+        
+        // 50% - Output quality score (with prompt for intent validation)
+        newOutputScore = Math.round(await scoreOutputQualityWithAI(output, prompt, OPENAI_API_KEY) * 10) / 10;
+        
+        // 50/50 combined final score (matches Lab exactly)
+        newFinalScore = Math.round(((newPromptScore * 0.5) + (newOutputScore * 0.5)) * 10) / 10;
+        
+        console.log('[lab-auto-optimize] Grading complete:', { 
+          promptScore: newPromptScore, 
+          outputScore: newOutputScore, 
+          finalScore: newFinalScore,
+        });
+      } catch (gradingError) {
+        console.error('[lab-auto-optimize] Grading failed:', gradingError);
+        fallbackReason = 'Grading failed';
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          newScores,
+          newPromptScore,
+          newOutputScore,
+          newFinalScore,
+          newTotalScore: newFinalScore,
+          fallbackReason,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Build comprehensive optimization instructions
     const optimizationInstructions = buildOptimizationInstructions(scores, aiRecommendations, outputType, promptType);
@@ -204,6 +260,20 @@ Return ONLY the optimized prompt text. No explanations, no meta-commentary. The 
     }
 
     console.log('[lab-auto-optimize] Success! Optimized prompt length:', optimizedPrompt.length);
+
+    // If skipGrading mode, return immediately without grading
+    if (skipGrading) {
+      console.log('[lab-auto-optimize] skipGrading mode - returning optimized prompt without grading...');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          optimizedPrompt,
+          originalPrompt: prompt,
+          improvementAreas: extractImprovementAreas(scores),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Generate reference output and compute 50/50 final score (unified with Lab)
     console.log('[lab-auto-optimize] Generating reference output and computing unified 50/50 score...');
