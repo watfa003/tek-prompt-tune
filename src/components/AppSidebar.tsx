@@ -278,7 +278,7 @@ export function AppSidebar() {
                         </div>
                         <div className="flex items-center">
                           <span className="text-sm font-medium text-primary">
-                            {(item.score || 0).toFixed(1)}/10
+                            {Math.round((item.score || 0) * 10)}%
                           </span>
                         </div>
                       </div>

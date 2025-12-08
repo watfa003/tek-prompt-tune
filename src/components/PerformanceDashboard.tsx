@@ -67,13 +67,15 @@ export const PerformanceDashboard = () => {
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-500";
     if (score >= 6) return "text-yellow-500";
+    if (score >= 4) return "text-orange-500";
     return "text-red-500";
   };
 
   const getScoreBadge = (score: number) => {
     if (score >= 8) return <Badge className="bg-green-500">Excellent</Badge>;
     if (score >= 6) return <Badge className="bg-yellow-500">Good</Badge>;
-    return <Badge variant="destructive">Needs Work</Badge>;
+    if (score >= 4) return <Badge className="bg-orange-500">Fair</Badge>;
+    return <Badge variant="destructive">Poor</Badge>;
   };
 
   const getBestProvider = () => {
@@ -175,7 +177,7 @@ export const PerformanceDashboard = () => {
                 <div className="flex items-center space-x-2">
                   <Progress value={stats.avgScore * 10} className="flex-1" />
                   <span className={`text-sm font-medium ${getScoreColor(stats.avgScore)}`}>
-                    {stats.avgScore.toFixed(1)}/10
+                    {Math.round(stats.avgScore * 10)}%
                   </span>
                 </div>
               </div>
@@ -205,7 +207,7 @@ export const PerformanceDashboard = () => {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{stats.count} prompts</span>
                 <span className={`text-sm font-medium ${getScoreColor(stats.avgScore)}`}>
-                  {stats.avgScore.toFixed(1)} avg
+                  {Math.round(stats.avgScore * 10)}% avg
                 </span>
               </div>
             </div>

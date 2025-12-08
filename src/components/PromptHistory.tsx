@@ -34,6 +34,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { AmbientParticles } from "@/components/ui/ambient-particles";
 import { format, parseISO, isValid as isValidDate } from "date-fns";
+import { getScoreLabel, getScoreColorClass, getScoreBgClass, formatScoreAsPercentage } from "@/lib/score-utils";
 
 export const PromptHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -187,9 +188,9 @@ export const PromptHistory = () => {
 
   const renderHistoryItem = (item: PromptHistoryItem, index: number) => {
     const score = typeof item.score === 'number' ? item.score : 0;
-    const scoreColor = score >= 8 ? "text-green-400" : score >= 6 ? "text-yellow-400" : "text-orange-400";
-    const scoreBg = score >= 8 ? "bg-green-500/10 border-green-500/20" : score >= 6 ? "bg-yellow-500/10 border-yellow-500/20" : "bg-orange-500/10 border-orange-500/20";
-    const scoreLabel = score >= 8 ? "Excellent" : score >= 6 ? "Good" : score >= 4 ? "Average" : "Poor";
+    const scoreColor = getScoreColorClass(score);
+    const scoreBg = getScoreBgClass(score);
+    const scoreLabel = getScoreLabel(score);
     
     // Format date safely
     const formatDate = (timestamp: any) => {
@@ -238,7 +239,7 @@ export const PromptHistory = () => {
               </div>
               <Badge className={`text-xs ${scoreBg} ${scoreColor} border`}>
                 <TrendingUp className="h-3 w-3 mr-1" />
-                {score.toFixed(1)}/10 {scoreLabel}
+                {formatScoreAsPercentage(score)} {scoreLabel}
               </Badge>
             </div>
           </div>

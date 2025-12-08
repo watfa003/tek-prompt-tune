@@ -933,17 +933,17 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 8) return "text-green-600";
-    if (score >= 6) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 8) return "text-green-500";
+    if (score >= 6) return "text-yellow-500";
+    if (score >= 4) return "text-orange-500";
+    return "text-red-500";
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 9) return <Badge className="bg-green-500 text-white">Excellent</Badge>;
-    if (score >= 8) return <Badge className="bg-blue-500 text-white">Great</Badge>;
-    if (score >= 7) return <Badge className="bg-yellow-500 text-white">Good</Badge>;
-    if (score >= 6) return <Badge className="bg-orange-500 text-white">Fair</Badge>;
-    return <Badge className="bg-red-500 text-white">Needs Work</Badge>;
+    if (score >= 8) return <Badge className="bg-green-500 text-white">Excellent</Badge>;
+    if (score >= 6) return <Badge className="bg-yellow-500 text-white">Good</Badge>;
+    if (score >= 4) return <Badge className="bg-orange-500 text-white">Fair</Badge>;
+    return <Badge className="bg-red-500 text-white">Poor</Badge>;
   };
 
   return (
