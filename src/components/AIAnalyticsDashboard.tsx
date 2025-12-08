@@ -173,7 +173,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Average Score</p>
-              <p className="text-2xl font-bold">{(analytics.overview.averageScore || 0).toFixed(1)}/10</p>
+              <p className="text-2xl font-bold">{Math.round((analytics.overview.averageScore || 0) * 10)}%</p>
             </div>
             <Award className="h-8 w-8 text-primary" />
           </div>
@@ -304,7 +304,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                     <div className="text-right">
                       <div className="text-sm font-semibold">{stats.count}</div>
                       <div className="text-xs text-muted-foreground">
-                        {(stats.avgScore || 0).toFixed(1)}/10 avg
+                        {Math.round((stats.avgScore || 0) * 10)}% avg
                       </div>
                     </div>
                   </div>
@@ -322,7 +322,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                     <div className="text-right">
                       <div className="text-sm font-semibold">{stats.count}</div>
                       <div className="text-xs text-muted-foreground">
-                        {(stats.avgScore || 0).toFixed(1)}/10 avg
+                        {Math.round((stats.avgScore || 0) * 10)}% avg
                       </div>
                     </div>
                   </div>
@@ -340,7 +340,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                     <div className="text-right">
                       <div className="text-sm font-semibold">{stats.count}</div>
                       <div className="text-xs text-muted-foreground">
-                        {(stats.avgScore || 0).toFixed(1)}/10 avg
+                        {Math.round((stats.avgScore || 0) * 10)}% avg
                       </div>
                     </div>
                   </div>
@@ -384,7 +384,7 @@ export const AIAnalyticsDashboard: React.FC = () => {
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="text-sm text-muted-foreground">
-                      {(day.avgScore || 0).toFixed(1)}/10 avg score
+                      {Math.round((day.avgScore || 0) * 10)}% avg score
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {Math.round(day.avgGenerationTime)}ms avg time
@@ -419,8 +419,8 @@ export const AIAnalyticsDashboard: React.FC = () => {
                         </Badge>
                       )}
                       {activity.score != null && (
-                        <div className="text-sm font-semibold">
-                          {(activity.score || 0).toFixed(1)}/10
+                      <div className="text-sm font-semibold">
+                          {Math.round((activity.score || 0) * 10)}%
                         </div>
                       )}
                     </div>

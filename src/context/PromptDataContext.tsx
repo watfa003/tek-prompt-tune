@@ -430,11 +430,11 @@ export const PromptDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         , { name: '', score: 0 });
         
         if (topProvider.name) {
-          insights.push(`Your best performing AI provider is ${topProvider.name} with an average score of ${topProvider.score.toFixed(1)}/10`);
+          insights.push(`Your best performing AI provider is ${topProvider.name} with an average score of ${Math.round(topProvider.score * 10)}%`);
         }
         
         if (successRate > 80) {
-          insights.push(`Excellent work! ${successRate.toFixed(1)}% of your prompts score above 6/10`);
+          insights.push(`Excellent work! ${successRate.toFixed(1)}% of your prompts score above 60%`);
         } else if (successRate < 50) {
           insights.push(`Consider experimenting with different optimization strategies to improve your success rate (currently ${successRate.toFixed(1)}%)`);
         }

@@ -105,7 +105,7 @@ export function ScoreGauge({ score, maxScore = 10, size = "md" }: ScoreGaugeProp
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          {displayScore.toFixed(1)}
+          {Math.round(displayScore * 10)}%
         </motion.div>
         <motion.div
           className="text-sm text-muted-foreground mt-1"
@@ -113,7 +113,7 @@ export function ScoreGauge({ score, maxScore = 10, size = "md" }: ScoreGaugeProp
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
         >
-          / {maxScore}
+          {displayScore >= 8 ? 'Excellent' : displayScore >= 6 ? 'Good' : displayScore >= 4 ? 'Fair' : 'Poor'}
         </motion.div>
       </div>
       

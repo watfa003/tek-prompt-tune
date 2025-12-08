@@ -140,15 +140,15 @@ export const PromptResults = ({
 
   const getScoreBadge = (score: number) => {
     if (score >= 8) return <Badge className="bg-green-500">Excellent</Badge>;
-    if (score >= 6) return <Badge className="bg-blue-500">Good</Badge>;
-    if (score >= 4) return <Badge className="bg-yellow-500">Fair</Badge>;
-    return <Badge className="bg-red-500">Needs Work</Badge>;
+    if (score >= 6) return <Badge className="bg-yellow-500">Good</Badge>;
+    if (score >= 4) return <Badge className="bg-orange-500">Fair</Badge>;
+    return <Badge className="bg-red-500">Poor</Badge>;
   };
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-500";
-    if (score >= 6) return "text-blue-500";
-    if (score >= 4) return "text-yellow-500";
+    if (score >= 6) return "text-yellow-500";
+    if (score >= 4) return "text-orange-500";
     return "text-red-500";
   };
 

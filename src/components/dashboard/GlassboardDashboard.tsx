@@ -367,7 +367,7 @@ export const GlassboardDashboard = () => {
                         <div className="text-right">
                           {settings.showScores && (
                             <div className="text-2xl font-bold font-heading tracking-tighter gradient-text transition-transform duration-250 group-hover:scale-110">
-                              {((activity.score || 0)).toFixed(1)}/10
+                              {Math.round((activity.score || 0) * 10)}%
                             </div>
                           )}
                         </div>

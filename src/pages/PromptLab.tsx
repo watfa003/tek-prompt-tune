@@ -538,15 +538,15 @@ const Lab = () => {
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'text-green-400';
     if (score >= 6) return 'text-yellow-400';
-    if (score >= 3) return 'text-orange-400';
+    if (score >= 4) return 'text-orange-400';
     return 'text-red-400';
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 8) return 'Optimized';
-    if (score >= 6) return 'Functional but Weak';
-    if (score >= 3) return 'Needs Major Fixing';
-    return 'Unusable / Unintelligible';
+    if (score >= 8) return 'Excellent';
+    if (score >= 6) return 'Good';
+    if (score >= 4) return 'Fair';
+    return 'Poor';
   };
 
   const getScoreRingColor = (score: number) => {
