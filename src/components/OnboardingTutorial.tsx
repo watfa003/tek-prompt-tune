@@ -47,10 +47,10 @@ const TUTORIAL_STEPS = [
     },
     placement: 'bottom' as const,
   },
-  // Step 3: Optimizer Overview
+  // Step 3: Optimizer Overview - now goes to /app/ai-agent
   {
     target: '[data-tutorial="optimizer-form"]',
-    route: '/app',
+    route: '/app/ai-agent',
     content: {
       step: 4,
       total: 10,
@@ -58,12 +58,12 @@ const TUTORIAL_STEPS = [
       title: '⚡ AI Optimizer',
       description: 'Generate production-ready prompts. Enter your task, select AI provider and model, then optimize!',
     },
-    placement: 'right' as const,
+    placement: 'bottom' as const,
   },
   // Step 4: Provider/Model Selection
   {
     target: '[data-tutorial="optimizer-provider-select"]',
-    route: '/app',
+    route: '/app/ai-agent',
     content: {
       step: 5,
       total: 10,
@@ -71,12 +71,12 @@ const TUTORIAL_STEPS = [
       title: 'Choose Your AI',
       description: 'Select from OpenAI, Anthropic, Google, Groq, or Mistral. Each provider offers different models optimized for various tasks.',
     },
-    placement: 'right' as const,
+    placement: 'bottom' as const,
   },
   // Step 5: Variants
   {
     target: '[data-tutorial="optimizer-variants"]',
-    route: '/app',
+    route: '/app/ai-agent',
     content: {
       step: 6,
       total: 10,
@@ -84,7 +84,7 @@ const TUTORIAL_STEPS = [
       title: '🎲 Generate Variants',
       description: 'Create 2-7 different prompt versions. Start with 3-5 variants for the best balance of options and speed.',
     },
-    placement: 'right' as const,
+    placement: 'bottom' as const,
   },
   // Step 6: History
   {
