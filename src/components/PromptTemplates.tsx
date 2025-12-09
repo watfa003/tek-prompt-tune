@@ -75,7 +75,7 @@ export const PromptTemplates = () => {
         </div>
       </div>;
   }
-  return <div className="w-full max-w-full space-y-6 pb-8 relative overflow-hidden box-border">
+  return <div className="w-full max-w-full space-y-6 pb-8 relative overflow-hidden box-border" data-tutorial="templates-grid">
       {/* Floating Gradient Orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <motion.div className="absolute top-20 left-10 w-96 h-96 bg-primary/10 rounded-full blur-[100px]" animate={{
