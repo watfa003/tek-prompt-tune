@@ -148,7 +148,7 @@ const PromptOptimizerForm = ({
   };
 
   return (
-    <Card className="p-6 shadow-card">
+    <Card className="p-6 shadow-card" data-tutorial="optimizer-form">
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold mb-2">
@@ -200,7 +200,7 @@ const PromptOptimizerForm = ({
 
         {/* Provider and Model Selection */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-2" data-tutorial="optimizer-provider-select">
             <Label className="text-sm font-medium">AI Provider</Label>
             <Select value={selectedProvider} onValueChange={setSelectedProvider}>
               <SelectTrigger className="optimizer-provider-select">
@@ -276,7 +276,7 @@ const PromptOptimizerForm = ({
         </div>
 
         {/* Variants Selection */}
-        <div className="space-y-2 optimizer-variants-slider">
+        <div className="space-y-2 optimizer-variants-slider" data-tutorial="optimizer-variants">
           <Label className="text-sm font-medium">Variants to Generate</Label>
           <Select value={variants.toString()} onValueChange={(value) => setVariants(parseInt(value))}>
             <SelectTrigger>

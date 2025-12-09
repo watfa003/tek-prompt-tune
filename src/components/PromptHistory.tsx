@@ -352,7 +352,7 @@ export const PromptHistory = () => {
   const scores = ["all", "excellent", "good", "fair", "needs-work"];
 
   return (
-    <div className="w-full max-w-full space-y-6 relative overflow-hidden box-border">
+    <div className="w-full max-w-full space-y-6 relative overflow-hidden box-border" data-tutorial="history-list">
       {/* Ambient Background Particles */}
       <AmbientParticles />
 

@@ -557,7 +557,7 @@ const Lab = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden" data-tutorial="lab-main">
       {/* Ambient Background */}
       <AmbientParticles />
       
@@ -600,8 +600,8 @@ const Lab = () => {
                   setMode(v as 'single' | 'compare');
                 }
               }}>
-                <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
-                  <TabsTrigger 
+                <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1" data-tutorial="lab-tabs">
+                  <TabsTrigger
                     value="single"
                     disabled={isLoading && testingMode === 'compare'}
                     className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"

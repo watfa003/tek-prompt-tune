@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Joyride, { CallBackProps, STATUS, Step, Styles, ACTIONS, EVENTS } from 'react-joyride';
+import Joyride, { CallBackProps, STATUS, Step, ACTIONS, EVENTS } from 'react-joyride';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -8,32 +8,175 @@ interface OnboardingTutorialProps {
   onComplete?: () => void;
 }
 
+const TUTORIAL_STEPS = [
+  // Step 0: Welcome
+  {
+    target: 'body',
+    route: '/app',
+    content: {
+      step: 1,
+      total: 10,
+      title: 'Welcome to PrompTek 👋',
+      description: "Let's walk you through every feature. This tour takes about 2 minutes.",
+    },
+    placement: 'center' as const,
+  },
+  // Step 1: Lab Overview
+  {
+    target: '[data-tutorial="lab-main"]',
+    route: '/app/lab',
+    content: {
+      step: 2,
+      total: 10,
+      section: 'Lab',
+      title: '🧪 PromptTek Lab',
+      description: 'Your prompt testing ground. Test single prompts, compare two prompts head-to-head in Battle Mode, or use Auto-Optimize for AI improvements.',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 2: Lab Tabs
+  {
+    target: '[data-tutorial="lab-tabs"]',
+    route: '/app/lab',
+    content: {
+      step: 3,
+      total: 10,
+      section: 'Lab',
+      title: 'Test Modes',
+      description: 'Switch between Single Test (analyze one prompt) and Battle Mode (compare two prompts).',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 3: Optimizer Overview
+  {
+    target: '[data-tutorial="optimizer-form"]',
+    route: '/app',
+    content: {
+      step: 4,
+      total: 10,
+      section: 'Optimizer',
+      title: '⚡ AI Optimizer',
+      description: 'Generate production-ready prompts. Enter your task, select AI provider and model, then optimize!',
+    },
+    placement: 'right' as const,
+  },
+  // Step 4: Provider/Model Selection
+  {
+    target: '[data-tutorial="optimizer-provider-select"]',
+    route: '/app',
+    content: {
+      step: 5,
+      total: 10,
+      section: 'Optimizer',
+      title: 'Choose Your AI',
+      description: 'Select from OpenAI, Anthropic, Google, Groq, or Mistral. Each provider offers different models optimized for various tasks.',
+    },
+    placement: 'right' as const,
+  },
+  // Step 5: Variants
+  {
+    target: '[data-tutorial="optimizer-variants"]',
+    route: '/app',
+    content: {
+      step: 6,
+      total: 10,
+      section: 'Optimizer',
+      title: '🎲 Generate Variants',
+      description: 'Create 2-7 different prompt versions. Start with 3-5 variants for the best balance of options and speed.',
+    },
+    placement: 'right' as const,
+  },
+  // Step 6: History
+  {
+    target: '[data-tutorial="history-list"]',
+    route: '/app/history',
+    content: {
+      step: 7,
+      total: 10,
+      section: 'History',
+      title: '📚 Prompt History',
+      description: 'Every optimized prompt is automatically saved. Search, filter, star favorites, and reuse as templates.',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 7: Templates
+  {
+    target: '[data-tutorial="templates-grid"]',
+    route: '/app/templates',
+    content: {
+      step: 8,
+      total: 10,
+      section: 'Templates',
+      title: '📋 Template Library',
+      description: 'Browse professionally crafted templates by category: Writing, Business, Analytics, Code, Marketing & more!',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 8: Settings
+  {
+    target: '[data-tutorial="settings-panel"]',
+    route: '/app/settings',
+    content: {
+      step: 9,
+      total: 10,
+      section: 'Settings',
+      title: '⚙️ Settings',
+      description: 'Customize your experience: profile, theme preferences, notifications, and default AI settings.',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 9: Finish
+  {
+    target: 'body',
+    route: '/app',
+    content: {
+      step: 10,
+      total: 10,
+      title: "You're All Set! 🚀",
+      description: 'Start optimizing prompts and unlock the full potential of AI. Happy prompting!',
+    },
+    placement: 'center' as const,
+  },
+];
+
 export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComplete }) => {
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
   const navigationInProgress = useRef(false);
+  const retryCount = useRef(0);
 
   useEffect(() => {
     checkAndStartTutorial();
   }, []);
 
   const checkAndStartTutorial = async () => {
+    // Check localStorage first
     const localComplete = localStorage.getItem('promptek_tutorial_completed');
     if (localComplete === 'true') {
       return;
     }
 
+    // Check for saved progress
+    const savedStep = localStorage.getItem('promptek_tutorial_step');
+    if (savedStep) {
+      const step = parseInt(savedStep, 10);
+      if (!isNaN(step) && step >= 0 && step < TUTORIAL_STEPS.length) {
+        setStepIndex(step);
+      }
+    }
+
+    // Check database
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', user.id)
+        .select('tutorial_completed')
+        .eq('user_id', user.id)
         .single();
 
-      if (profile && (profile as any).tutorial_completed) {
+      if (profile?.tutorial_completed) {
         localStorage.setItem('promptek_tutorial_completed', 'true');
         return;
       }
@@ -42,38 +185,30 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     setRun(true);
   };
 
-  // Helper function to wait for element to be present in DOM
-  const waitForElement = (selector: string, timeout = 3000): Promise<Element | null> => {
-    return new Promise((resolve) => {
+  // Wait for element with retry logic
+  const waitForTutorialElement = async (
+    selector: string,
+    maxAttempts = 15,
+    interval = 200
+  ): Promise<boolean> => {
+    for (let i = 0; i < maxAttempts; i++) {
       const element = document.querySelector(selector);
       if (element) {
-        return resolve(element);
-      }
-      
-      const observer = new MutationObserver(() => {
-        const element = document.querySelector(selector);
-        if (element) {
-          observer.disconnect();
-          resolve(element);
+        const rect = element.getBoundingClientRect();
+        if (rect.height > 0 && rect.width > 0) {
+          return true;
         }
-      });
-      
-      observer.observe(document.body, { 
-        childList: true, 
-        subtree: true 
-      });
-      
-      setTimeout(() => {
-        observer.disconnect();
-        resolve(null);
-      }, timeout);
-    });
+      }
+      await new Promise(r => setTimeout(r, interval));
+    }
+    return false;
   };
 
   const handleJoyrideCallback = async (data: CallBackProps) => {
-    const { status, action, index, type, lifecycle } = data;
+    const { status, action, index, type } = data;
 
-    console.log('Joyride callback:', { status, action, index, type, lifecycle });
+    // Save progress
+    localStorage.setItem('promptek_tutorial_step', index.toString());
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       await completeTutorial();
@@ -82,116 +217,95 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       return;
     }
 
-    // Handle TARGET_NOT_FOUND - try to continue anyway
+    // Handle TARGET_NOT_FOUND - skip to next step
     if (type === EVENTS.TARGET_NOT_FOUND) {
-      console.warn('Tutorial target not found at step', index);
-      // Don't stop the tour, just skip this highlight
+      console.warn('Tutorial target not found at step', index, '- skipping');
+      retryCount.current++;
+      
+      // After 3 retries, skip to next step
+      if (retryCount.current >= 3) {
+        retryCount.current = 0;
+        const nextStep = index + 1;
+        if (nextStep < TUTORIAL_STEPS.length) {
+          setRun(false);
+          const nextRoute = TUTORIAL_STEPS[nextStep].route;
+          navigate(nextRoute);
+          await waitForTutorialElement(TUTORIAL_STEPS[nextStep].target);
+          setStepIndex(nextStep);
+          setTimeout(() => setRun(true), 300);
+        }
+      }
       return;
     }
 
-    // Prevent rapid clicking during navigation
-    if (navigationInProgress.current) {
-      console.log('Navigation in progress, ignoring action');
-      return;
-    }
+    if (navigationInProgress.current) return;
 
-    // Handle step navigation - only on STEP_AFTER to prevent double triggers
+    // Handle step navigation
     if (type === EVENTS.STEP_AFTER && action === ACTIONS.NEXT) {
+      retryCount.current = 0;
       const nextStepIndex = index + 1;
       
-      console.log('Moving to step', nextStepIndex);
-      
-      // Navigation logic
-      if (nextStepIndex === 1) {
+      if (nextStepIndex >= TUTORIAL_STEPS.length) {
+        await completeTutorial();
+        return;
+      }
+
+      const currentRoute = TUTORIAL_STEPS[index].route;
+      const nextRoute = TUTORIAL_STEPS[nextStepIndex].route;
+
+      // Navigate if needed
+      if (nextRoute !== currentRoute) {
         navigationInProgress.current = true;
         setRun(false);
-        navigate('/app/lab');
-        setTimeout(async () => {
-          await waitForElement('main', 3000);
-          setStepIndex(nextStepIndex);
-          setTimeout(() => {
-            setRun(true);
-            navigationInProgress.current = false;
-          }, 300);
-        }, 1500);
-      } else if (nextStepIndex === 5) {
-        navigationInProgress.current = true;
-        setRun(false);
-        navigate('/app');
-        setTimeout(async () => {
-          await waitForElement('textarea', 3000);
-          setStepIndex(nextStepIndex);
-          setTimeout(() => {
-            setRun(true);
-            navigationInProgress.current = false;
-          }, 300);
-        }, 1500);
-      } else if (nextStepIndex === 11) {
-        navigationInProgress.current = true;
-        setRun(false);
-        navigate('/app/history');
-        setTimeout(async () => {
-          await waitForElement('main', 3000);
-          setStepIndex(nextStepIndex);
-          setTimeout(() => {
-            setRun(true);
-            navigationInProgress.current = false;
-          }, 300);
-        }, 1500);
-      } else if (nextStepIndex === 12) {
-        navigationInProgress.current = true;
-        setRun(false);
-        navigate('/app/templates');
-        setTimeout(async () => {
-          await waitForElement('main', 3000);
-          setStepIndex(nextStepIndex);
-          setTimeout(() => {
-            setRun(true);
-            navigationInProgress.current = false;
-          }, 300);
-        }, 1500);
-      } else if (nextStepIndex === 13) {
-        navigationInProgress.current = true;
-        setRun(false);
-        navigate('/app/settings');
-        setTimeout(async () => {
-          await waitForElement('main', 3000);
-          setStepIndex(nextStepIndex);
-          setTimeout(() => {
-            setRun(true);
-            navigationInProgress.current = false;
-          }, 300);
-        }, 1500);
-      } else if (nextStepIndex === 14 || nextStepIndex === 15) {
-        // Return to main app for final steps
-        navigationInProgress.current = true;
-        setRun(false);
-        navigate('/app');
+        navigate(nextRoute);
+        
+        const targetSelector = TUTORIAL_STEPS[nextStepIndex].target;
+        await waitForTutorialElement(targetSelector);
+        
+        setStepIndex(nextStepIndex);
         setTimeout(() => {
-          setStepIndex(nextStepIndex);
-          setTimeout(() => {
-            setRun(true);
-            navigationInProgress.current = false;
-          }, 300);
-        }, 1500);
+          setRun(true);
+          navigationInProgress.current = false;
+        }, 300);
       } else {
         setStepIndex(nextStepIndex);
       }
     } else if (type === EVENTS.STEP_AFTER && action === ACTIONS.PREV) {
+      retryCount.current = 0;
       const prevStepIndex = index - 1;
-      setStepIndex(prevStepIndex);
+      if (prevStepIndex < 0) return;
+
+      const currentRoute = TUTORIAL_STEPS[index].route;
+      const prevRoute = TUTORIAL_STEPS[prevStepIndex].route;
+
+      if (prevRoute !== currentRoute) {
+        navigationInProgress.current = true;
+        setRun(false);
+        navigate(prevRoute);
+        
+        await waitForTutorialElement(TUTORIAL_STEPS[prevStepIndex].target);
+        
+        setStepIndex(prevStepIndex);
+        setTimeout(() => {
+          setRun(true);
+          navigationInProgress.current = false;
+        }, 300);
+      } else {
+        setStepIndex(prevStepIndex);
+      }
     }
   };
 
   const completeTutorial = async () => {
     localStorage.setItem('promptek_tutorial_completed', 'true');
+    localStorage.removeItem('promptek_tutorial_step');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase
         .from('profiles')
         .update({ tutorial_completed: true } as any)
-        .eq('id', user.id);
+        .eq('user_id', user.id);
     }
 
     toast({
@@ -202,381 +316,67 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
     onComplete?.();
   };
 
-  const steps: Step[] = [
-    {
-      target: 'body',
-      content: (
-        <div className="text-center space-y-3">
-          <div className="text-xs font-semibold text-primary mb-1">Step 1 of 16</div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Welcome to PrompTek 👋
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Let's walk you through every feature. This tour takes about 2-3 minutes.
-          </p>
+  // Convert config to Joyride steps
+  const steps: Step[] = TUTORIAL_STEPS.map((step) => ({
+    target: step.target,
+    content: (
+      <div className={step.placement === 'center' ? 'text-center space-y-3' : 'space-y-2'}>
+        <div className="text-xs font-semibold text-primary mb-1">
+          Step {step.content.step} of {step.content.total}
+          {step.content.section && ` • ${step.content.section}`}
         </div>
-      ),
-      placement: 'center',
-      disableBeacon: true,
-      spotlightClicks: false,
-    },
-    // === LAB SECTION ===
-    {
-      target: 'main',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 2 of 16 • Lab</div>
-          <h3 className="font-bold text-lg">🧪 PromptTek Lab</h3>
-          <p className="text-sm">
-            The Lab is your <strong className="text-primary">prompt testing ground</strong>. Here you can:
-          </p>
-          <ul className="text-xs space-y-1.5 ml-4 list-disc">
-            <li><strong>Test single prompts</strong> with detailed scores</li>
-            <li><strong>Battle Mode:</strong> Compare two prompts head-to-head</li>
-            <li><strong>Auto-Optimize:</strong> Get AI improvements</li>
-          </ul>
-        </div>
-      ),
-      placement: 'bottom',
-      spotlightClicks: false,
-    },
-    {
-      target: 'main',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 3 of 16 • Lab</div>
-          <h3 className="font-bold text-lg">Single Test Mode</h3>
-          <p className="text-sm">
-            Paste any prompt and click <strong className="text-primary">"Analyze Prompt"</strong>.
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            You'll get overall scores, pillar breakdowns, and improvement suggestions.
-          </p>
-        </div>
-      ),
-      placement: 'bottom',
-      spotlightClicks: false,
-    },
-    {
-      target: 'main',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 4 of 16 • Lab</div>
-          <h3 className="font-bold text-lg">Battle Mode</h3>
-          <p className="text-sm">
-            <strong className="text-accent">A/B test two prompts</strong> side-by-side to see which performs better.
-          </p>
-        </div>
-      ),
-      placement: 'bottom',
-      spotlightClicks: false,
-    },
-    // === OPTIMIZER SECTION ===
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-2 text-center">
-          <div className="text-xs font-semibold text-primary mb-1">Step 5 of 16</div>
-          <h3 className="font-bold text-lg">⚡ AI Agent (Optimizer)</h3>
-          <p className="text-sm text-muted-foreground">
-            Generate production-ready prompts from scratch.
-          </p>
-        </div>
-      ),
-      placement: 'center',
-      disableBeacon: true,
-      spotlightClicks: false,
-    },
-    {
-      target: 'textarea',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 6 of 16 • Optimizer</div>
-          <h3 className="font-bold text-lg">📝 Task Description</h3>
-          <p className="text-sm">
-            Describe <strong>what you want the AI to do</strong>.
-          </p>
-          <div className="mt-2 p-2 bg-primary/10 rounded text-xs">
-            <strong>Example:</strong> "Write a professional email to request a meeting about our SaaS product"
-          </div>
-        </div>
-      ),
-      placement: 'right',
-      spotlightClicks: false,
-    },
-    {
-      target: 'select, [role="combobox"]',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 7 of 16 • Optimizer</div>
-          <h3 className="font-bold text-lg">🏢 AI Provider</h3>
-          <p className="text-sm">
-            Choose which company's AI models to use:
-          </p>
-          <div className="mt-2 space-y-1 text-xs">
-            <div className="p-1.5 bg-muted/50 rounded">
-              <strong className="text-primary">OpenAI:</strong> GPT models - Complex reasoning
-            </div>
-            <div className="p-1.5 bg-muted/50 rounded">
-              <strong className="text-accent">Anthropic:</strong> Claude - Creative writing
-            </div>
-          </div>
-        </div>
-      ),
-      placement: 'right',
-      spotlightClicks: false,
-    },
-    {
-      target: 'select, [role="combobox"]',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 8 of 16 • Optimizer</div>
-          <h3 className="font-bold text-lg">🤖 Model Version</h3>
-          <p className="text-sm">
-            Select the specific model. Consider:
-          </p>
-          <ul className="text-xs space-y-1 ml-4 mt-2 list-disc">
-            <li><strong className="text-primary">Speed:</strong> Smaller models = faster</li>
-            <li><strong className="text-accent">Quality:</strong> Larger models = smarter</li>
-          </ul>
-        </div>
-      ),
-      placement: 'right',
-      spotlightClicks: false,
-    },
-    {
-      target: 'select, [role="combobox"]',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 9 of 16 • Optimizer</div>
-          <h3 className="font-bold text-lg">📋 Output Type</h3>
-          <p className="text-sm">
-            Choose the format: Text, Code, JSON, List, or Essay.
-          </p>
-          <p className="text-xs text-primary mt-2">
-            Each type uses different prompting techniques!
-          </p>
-        </div>
-      ),
-      placement: 'right',
-      spotlightClicks: false,
-    },
-    {
-      target: '[role="slider"], input[type="range"]',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 10 of 16 • Optimizer</div>
-          <h3 className="font-bold text-lg">🎲 Variants</h3>
-          <p className="text-sm">
-            Generate 1-10 different prompt versions.
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            💡 Tip: Start with 3-5 variants for the best balance!
-          </p>
-        </div>
-      ),
-      placement: 'right',
-      spotlightClicks: false,
-    },
-    // === HISTORY SECTION ===
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-2 text-center">
-          <div className="text-xs font-semibold text-primary mb-1">Step 11 of 16</div>
-          <h3 className="font-bold text-lg">📚 History</h3>
-          <p className="text-sm text-muted-foreground">
-            Your prompt library and past results.
-          </p>
-        </div>
-      ),
-      placement: 'center',
-      disableBeacon: true,
-      spotlightClicks: false,
-    },
-    {
-      target: 'main',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 12 of 16 • History</div>
-          <h3 className="font-bold text-lg">📚 Prompt History</h3>
-          <p className="text-sm">
-            Every optimized prompt is <strong className="text-primary">automatically saved</strong> here.
-          </p>
-          <div className="mt-2 space-y-1 text-xs">
-            <div className="flex items-center gap-2">
-              <span>🔍</span>
-              <span>Search & filter prompts</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>⭐</span>
-              <span>Star favorites for quick access</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>♻️</span>
-              <span>Reuse as templates</span>
-            </div>
-          </div>
-        </div>
-      ),
-      placement: 'bottom',
-      spotlightClicks: false,
-    },
-    // === TEMPLATES SECTION ===
-    {
-      target: 'main',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 13 of 16 • Templates</div>
-          <h3 className="font-bold text-lg">📋 Templates Library</h3>
-          <p className="text-sm">
-            Browse <strong className="text-primary">professionally crafted templates</strong> by category.
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Writing, Business, Analytics, Code, Marketing & more!
-          </p>
-        </div>
-      ),
-      placement: 'bottom',
-      spotlightClicks: false,
-    },
-    // === SETTINGS SECTION ===
-    {
-      target: 'main',
-      content: (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-primary mb-1">Step 14 of 16 • Settings</div>
-          <h3 className="font-bold text-lg">⚙️ Settings</h3>
-          <p className="text-sm">
-            Customize your PrompTek experience:
-          </p>
-          <div className="mt-2 space-y-1 text-xs">
-            <div className="flex items-center gap-2">
-              <span>👤</span>
-              <span>Profile settings</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>🎨</span>
-              <span>Theme preferences</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>🔔</span>
-              <span>Notifications</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>🔒</span>
-              <span>Privacy & security</span>
-            </div>
-          </div>
-        </div>
-      ),
-      placement: 'bottom',
-      spotlightClicks: false,
-    },
-    {
-      target: 'body',
-      content: (
-        <div className="text-center space-y-3">
-          <div className="text-xs font-semibold text-primary mb-1">Step 15 of 16</div>
-          <h3 className="font-bold text-lg">💡 Pro Tips</h3>
-          <ul className="text-sm space-y-2 text-left">
-            <li>✨ Use favorites to build your prompt library</li>
-            <li>🔄 Iterate on prompts in the Lab</li>
-            <li>📊 Check history to track improvements</li>
-            <li>⚡ Start with templates for quick results</li>
-          </ul>
-        </div>
-      ),
-      placement: 'center',
-      spotlightClicks: false,
-    },
-    {
-      target: 'body',
-      content: (
-        <div className="text-center space-y-3">
-          <div className="text-xs font-semibold text-primary mb-1">Step 16 of 16</div>
-          <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            You're All Set! 🚀
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Start creating amazing prompts with PrompTek!
-          </p>
-          <p className="text-xs text-primary mt-2">
-            You can restart this tutorial anytime from Settings.
-          </p>
-        </div>
-      ),
-      placement: 'center',
-      spotlightClicks: false,
-    },
-  ];
+        <h3 className={`font-bold ${step.placement === 'center' ? 'text-xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent' : 'text-lg'}`}>
+          {step.content.title}
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          {step.content.description}
+        </p>
+      </div>
+    ),
+    placement: step.placement,
+    disableBeacon: true,
+    spotlightClicks: false,
+  }));
 
-  const styles: Partial<Styles> = {
+  const styles = {
     options: {
-      zIndex: 10000,
+      arrowColor: 'hsl(var(--card))',
+      backgroundColor: 'hsl(var(--card))',
+      overlayColor: 'rgba(0, 0, 0, 0.7)',
       primaryColor: 'hsl(var(--primary))',
       textColor: 'hsl(var(--foreground))',
-      backgroundColor: 'hsl(var(--background))',
-      arrowColor: 'hsl(var(--background))',
-      overlayColor: 'rgba(0, 0, 0, 0.7)',
+      zIndex: 10000,
+    },
+    spotlight: {
+      borderRadius: '12px',
+      boxShadow: '0 0 0 4px hsl(var(--primary) / 0.3), 0 0 20px hsl(var(--primary) / 0.2)',
     },
     tooltip: {
-      borderRadius: '12px',
+      borderRadius: '16px',
       padding: '20px',
+      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
       border: '1px solid hsl(var(--border))',
-      fontSize: '14px',
-      maxWidth: '420px',
-      animation: 'none',
-      transition: 'none',
     },
     tooltipContainer: {
-      textAlign: 'left',
-      animation: 'none',
-      transition: 'none',
-    },
-    tooltipContent: {
-      animation: 'none',
-      transition: 'none',
+      textAlign: 'left' as const,
     },
     buttonNext: {
       backgroundColor: 'hsl(var(--primary))',
       color: 'hsl(var(--primary-foreground))',
-      borderRadius: '6px',
-      padding: '8px 16px',
+      borderRadius: '8px',
+      padding: '8px 20px',
       fontSize: '14px',
-      fontWeight: '500',
-      transition: 'none',
-      animation: 'none',
+      fontWeight: 600,
     },
     buttonBack: {
       color: 'hsl(var(--muted-foreground))',
       marginRight: '8px',
-      fontSize: '14px',
-      transition: 'none',
-      animation: 'none',
     },
     buttonSkip: {
       color: 'hsl(var(--muted-foreground))',
-      fontSize: '14px',
-      transition: 'none',
-      animation: 'none',
     },
-    spotlight: {
-      borderRadius: '8px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 0 3px hsl(var(--primary))',
-      transition: 'none',
-      animation: 'none',
-    },
-    overlay: {
-      mixBlendMode: 'normal',
-      transition: 'none',
-      animation: 'none',
-    },
-    beacon: {
-      animation: 'none',
-      transition: 'none',
+    buttonClose: {
+      color: 'hsl(var(--muted-foreground))',
     },
   };
 
@@ -588,6 +388,8 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       continuous
       showProgress
       showSkipButton
+      disableScrolling={false}
+      spotlightPadding={8}
       callback={handleJoyrideCallback}
       styles={styles}
       locale={{
@@ -595,34 +397,14 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
         close: 'Close',
         last: 'Finish',
         next: 'Next',
-        skip: 'Skip',
+        skip: 'Skip Tutorial',
       }}
-      floaterProps={{
-        disableAnimation: true,
-        disableFlip: false,
-        styles: {
-          arrow: {
-            length: 8,
-            spread: 16,
-          },
-          floater: {
-            transition: 'none',
-            animation: 'none',
-          },
-        },
-      }}
-      disableScrolling={true}
-      disableScrollParentFix={true}
-      spotlightClicks={false}
-      disableOverlayClose={false}
-      spotlightPadding={4}
-      scrollOffset={100}
-      scrollDuration={0}
     />
   );
 };
 
 export const restartTutorial = () => {
   localStorage.removeItem('promptek_tutorial_completed');
+  localStorage.removeItem('promptek_tutorial_step');
   window.location.reload();
 };
