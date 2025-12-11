@@ -403,8 +403,20 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
   );
 };
 
-export const restartTutorial = () => {
+export const restartTutorial = async () => {
+  // Clear localStorage
   localStorage.removeItem('promptek_tutorial_completed');
   localStorage.removeItem('promptek_tutorial_step');
+  
+  // Reset database flag
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await supabase
+      .from('profiles')
+      .update({ tutorial_completed: false } as any)
+      .eq('user_id', user.id);
+  }
+  
+  // Reload to start fresh
   window.location.reload();
 };
