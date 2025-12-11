@@ -1,6 +1,6 @@
 import { DocsLayout } from '@/components/docs/DocsLayout';
 import { Card } from '@/components/ui/card';
-import { Code, Workflow, Settings, Zap } from 'lucide-react';
+import { Code, Key, Zap, FileJson } from 'lucide-react';
 import { useEffect } from 'react';
 
 export default function Documentation() {
@@ -8,141 +8,133 @@ export default function Documentation() {
     document.title = 'Technical Documentation | PrompTek';
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute('content', 'Complete technical documentation for PrompTek including installation, setup, workflow integration, and advanced features.');
+      meta.setAttribute('content', 'Complete technical documentation for PrompTek API including endpoints, authentication, and integration examples.');
     }
   }, []);
 
   return (
     <DocsLayout
       title="Documentation"
-      description="Complete technical reference for integrating and using PrompTek in your development workflow."
+      description="Complete technical reference for integrating PrompTek into your applications via API."
     >
       <div className="space-y-12">
         <section>
           <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Quick Start
+            Getting Started
           </h2>
           <Card className="p-6 glass-card border-primary/20">
-            <h3 className="text-lg font-semibold mb-3 text-foreground">Installation</h3>
-            <div className="bg-muted/30 p-4 rounded-lg border border-primary/10 font-mono text-sm mb-4">
-              <pre className="text-foreground">
-{`# Using npm
-npm install @promptek/sdk
-
-# Using yarn
-yarn add @promptek/sdk
-
-# Using pnpm
-pnpm add @promptek/sdk`}
-              </pre>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Or use PrompTek directly through the web interface at{' '}
-              <code className="text-primary">app.promptek.ai</code>
+            <h3 className="text-lg font-semibold mb-3 text-foreground">Quick Start</h3>
+            <p className="text-muted-foreground mb-4">
+              PrompTek provides a REST API for programmatic access to prompt optimization, testing, and analysis.
+              All API endpoints are available through Supabase Edge Functions.
             </p>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>1. Create an account at PrompTek</p>
+              <p>2. Navigate to the <strong>API</strong> tab in your dashboard</p>
+              <p>3. Generate a User API Key</p>
+              <p>4. Use your API key to authenticate requests</p>
+            </div>
           </Card>
         </section>
 
         <section>
           <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Basic Usage
+            Authentication
           </h2>
-          <div className="bg-muted/30 p-4 rounded-lg border border-primary/10 font-mono text-sm">
-            <pre className="text-foreground overflow-x-auto">
-{`import { PrompTek } from '@promptek/sdk';
-
-// Initialize client
-const promptek = new PrompTek({
-  apiKey: process.env.PROMPTEK_API_KEY
-});
-
-// Optimize a prompt
-const result = await promptek.optimize({
-  prompt: "Write a function to reverse a string",
-  models: ["gpt-4", "claude-3.5-sonnet"],
-  options: {
-    temperature: 0.7,
-    maxTokens: 500
-  }
-});
-
-console.log(result.score);        // Quality score
-console.log(result.suggestions);  // Improvement tips
-console.log(result.outputs);      // Model responses`}
-            </pre>
-          </div>
+          <Card className="p-6 glass-card border-primary/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Key className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">API Key Authentication</h3>
+            </div>
+            <p className="text-muted-foreground mb-4 text-sm">
+              Include your API key in the <code className="text-primary">x-api-key</code> header with every request.
+            </p>
+            <div className="bg-muted/30 p-4 rounded-lg border border-primary/10 font-mono text-sm">
+              <pre className="text-foreground overflow-x-auto">
+{`curl -X POST https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/api-lab-test \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: YOUR_API_KEY" \\
+  -d '{"prompt": "Your prompt here"}'`}
+              </pre>
+            </div>
+          </Card>
         </section>
 
         <section>
           <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Core Concepts
+            API Endpoints
           </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card className="p-5 glass-card border-primary/20">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Code className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Prompt Templates</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Reusable prompt structures with variables
-                  </p>
-                </div>
-              </div>
-              <div className="bg-muted/30 p-2 rounded text-xs font-mono">
-                <code className="text-primary">{'{{variable}}'}</code> syntax
-              </div>
-            </Card>
-
-            <Card className="p-5 glass-card border-primary/20">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Workflow className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Test Suites</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Batch testing with multiple inputs
-                  </p>
-                </div>
-              </div>
-              <div className="bg-muted/30 p-2 rounded text-xs font-mono">
-                Run variations in parallel
-              </div>
-            </Card>
-
-            <Card className="p-5 glass-card border-primary/20">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Settings className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Configuration</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Model parameters and behavior
-                  </p>
-                </div>
-              </div>
-              <div className="bg-muted/30 p-2 rounded text-xs font-mono">
-                Temperature, tokens, format
-              </div>
-            </Card>
-
+          <div className="space-y-4">
             <Card className="p-5 glass-card border-primary/20">
               <div className="flex items-start gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Zap className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Analytics</h3>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground">POST /api-lab-test</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Performance tracking and insights
+                    Test a single prompt and receive detailed 8-pillar scoring and analysis
                   </p>
                 </div>
               </div>
-              <div className="bg-muted/30 p-2 rounded text-xs font-mono">
-                Historical data & trends
+              <div className="bg-muted/30 p-3 rounded text-xs font-mono overflow-x-auto">
+                <pre className="text-foreground">
+{`{
+  "prompt": "Your prompt to test",
+  "model": "gpt-4o-mini",       // optional
+  "outputType": "text"           // text, code, json, list, essay
+}`}
+                </pre>
+              </div>
+            </Card>
+
+            <Card className="p-5 glass-card border-primary/20">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Code className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground">POST /api-lab-battle</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Compare two prompt variations side-by-side with detailed analysis
+                  </p>
+                </div>
+              </div>
+              <div className="bg-muted/30 p-3 rounded text-xs font-mono overflow-x-auto">
+                <pre className="text-foreground">
+{`{
+  "promptA": "First prompt variation",
+  "promptB": "Second prompt variation",
+  "model": "gpt-4o-mini",
+  "outputType": "text"
+}`}
+                </pre>
+              </div>
+            </Card>
+
+            <Card className="p-5 glass-card border-primary/20">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <FileJson className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground">POST /prompt-optimizer</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Optimize a prompt using PrompTek's 8-strategy optimization engine
+                  </p>
+                </div>
+              </div>
+              <div className="bg-muted/30 p-3 rounded text-xs font-mono overflow-x-auto">
+                <pre className="text-foreground">
+{`{
+  "prompt": "Your prompt to optimize",
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "outputType": "text",
+  "variants": 3,
+  "speedMode": false     // true for fast, false for deep optimization
+}`}
+                </pre>
               </div>
             </Card>
           </div>
@@ -150,64 +142,82 @@ console.log(result.outputs);      // Model responses`}
 
         <section>
           <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Advanced Features
+            Response Format
           </h2>
-          <div className="space-y-6 text-muted-foreground">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Batch Processing</h3>
-              <p className="mb-3">
-                Test multiple prompt variations simultaneously for A/B testing and optimization:
-              </p>
-              <div className="bg-muted/30 p-4 rounded-lg border border-primary/10 font-mono text-sm">
-                <pre className="text-foreground overflow-x-auto">
-{`const batch = await promptek.batch({
-  prompts: [variation1, variation2, variation3],
-  testCases: inputSamples,
-  models: ["gpt-4"]
-});`}
-                </pre>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Webhook Integration</h3>
-              <p className="mb-3">
-                Receive real-time notifications when optimization jobs complete:
-              </p>
-              <div className="bg-muted/30 p-4 rounded-lg border border-primary/10 font-mono text-sm">
-                <pre className="text-foreground overflow-x-auto">
-{`await promptek.setWebhook({
-  url: "https://your-app.com/webhook",
-  events: ["optimization.complete"]
-});`}
-                </pre>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Custom Scoring</h3>
-              <p>
-                Define custom evaluation criteria for domain-specific optimization requirements.
-              </p>
-            </div>
+          <p className="text-muted-foreground mb-4 text-sm">
+            All API responses include detailed scoring across 8 quality pillars:
+          </p>
+          <div className="bg-muted/30 p-4 rounded-lg border border-primary/10 font-mono text-sm">
+            <pre className="text-foreground overflow-x-auto">
+{`{
+  "success": true,
+  "totalScore": 85,
+  "categoryBreakdown": {
+    "clarity": 90,
+    "specificity": 85,
+    "efficiency": 80,
+    "structure": 88,
+    "constraints": 82,
+    "elaboration": 84,
+    "intentAlignment": 87,
+    "adaptability": 78
+  },
+  "analysis": {
+    "strengths": ["Clear role definition", "Specific output format"],
+    "weaknesses": ["Could add more context"],
+    "suggestedFixes": ["Add example outputs", "Specify tone"]
+  },
+  "output": "Generated response from the AI model"
+}`}
+            </pre>
           </div>
         </section>
 
         <section>
           <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Environment Variables
+            JavaScript Example
           </h2>
           <div className="bg-muted/30 p-4 rounded-lg border border-primary/10 font-mono text-sm">
-            <pre className="text-foreground">
-{`# Required
-PROMPTEK_API_KEY=your_api_key_here
+            <pre className="text-foreground overflow-x-auto">
+{`// Test a prompt via API
+const response = await fetch(
+  'https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/api-lab-test',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      prompt: 'You are a helpful assistant. Explain quantum computing in simple terms.',
+      model: 'gpt-4o-mini',
+      outputType: 'text'
+    })
+  }
+);
 
-# Optional
-PROMPTEK_BASE_URL=https://api.promptek.ai
-PROMPTEK_TIMEOUT=30000
-PROMPTEK_LOG_LEVEL=info`}
+const result = await response.json();
+console.log('Score:', result.totalScore);
+console.log('Breakdown:', result.categoryBreakdown);
+console.log('Analysis:', result.analysis);`}
             </pre>
           </div>
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-semibold mb-4 text-foreground">
+            Rate Limits
+          </h2>
+          <Card className="p-6 glass-card border-primary/20">
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>• <strong>Free tier:</strong> 50 API requests per day</li>
+              <li>• <strong>Pro tier:</strong> 1,000 API requests per day</li>
+              <li>• <strong>Enterprise:</strong> Custom limits available</li>
+            </ul>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Rate limit headers are included in all responses: <code className="text-primary">X-RateLimit-Remaining</code>
+            </p>
+          </Card>
         </section>
       </div>
     </DocsLayout>

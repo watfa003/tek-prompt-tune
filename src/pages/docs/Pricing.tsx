@@ -12,7 +12,7 @@ export default function Pricing() {
     document.title = 'Pricing | PrompTek';
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute('content', 'Transparent pricing for PrompTek prompt optimization platform. Free tier for getting started, Pro for teams and enterprises.');
+      meta.setAttribute('content', 'Transparent pricing for PrompTek prompt optimization platform. Free tier for getting started, Pro for teams and power users.');
     }
   }, []);
 
@@ -24,9 +24,10 @@ export default function Pricing() {
       description: 'Perfect for getting started with prompt optimization',
       features: [
         '50 optimizations per month',
-        'Access to GPT-4 & Claude',
-        'Basic scoring & metrics',
+        'Access to all AI models',
+        '8-pillar scoring system',
         'Community templates',
+        'Lab testing (Single & Battle)',
         'Email support',
       ],
       cta: 'Get Started Free',
@@ -36,14 +37,14 @@ export default function Pricing() {
       name: 'Pro',
       price: '$29',
       period: 'per month',
-      description: 'For professionals and teams optimizing at scale',
+      description: 'For professionals optimizing prompts at scale',
       features: [
         'Unlimited optimizations',
-        'All AI models (GPT-4, Claude, Gemini)',
+        'All AI models (GPT-5, Claude Opus 4, etc.)',
         'Advanced analytics & insights',
         'Custom templates & sharing',
         'API access & integrations',
-        'Adaptive learning',
+        'Speed Mode & Deep Mode',
         'Priority support',
         'Team collaboration',
       ],
@@ -57,7 +58,7 @@ export default function Pricing() {
       description: 'For organizations with advanced requirements',
       features: [
         'Everything in Pro',
-        'Custom model endpoints',
+        'Custom API rate limits',
         'SSO & advanced security',
         'Dedicated infrastructure',
         'SLA guarantees',
@@ -155,7 +156,16 @@ export default function Pricing() {
               <h3 className="font-semibold text-foreground mb-2">What about AI model costs?</h3>
               <p className="text-sm text-muted-foreground">
                 PrompTek subscription covers platform access. AI model API costs are separate and billed
-                by the respective providers (OpenAI, Anthropic, etc.) based on your usage.
+                by the respective providers (OpenAI, Anthropic, etc.) based on your usage. You'll need
+                to add your own API keys in Settings.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">What's included in 8-pillar scoring?</h3>
+              <p className="text-sm text-muted-foreground">
+                Every optimization and test includes scoring across 8 quality dimensions: Clarity, 
+                Specificity, Constraints, Elaboration, Efficiency, Structure, Intent Alignment, and 
+                Adaptability. This is available on all plans.
               </p>
             </div>
           </div>
