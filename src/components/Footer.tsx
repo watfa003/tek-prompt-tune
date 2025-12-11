@@ -14,7 +14,6 @@ export const Footer = () => {
       { label: "Documentation", href: "/docs/documentation" },
       { label: "API Reference", href: "/docs/api" },
       { label: "Templates", href: "/docs/templates" },
-      { label: "Blog", href: "/docs/blog" },
     ],
     company: [
       { label: "About", href: "/docs/about" },

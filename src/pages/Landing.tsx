@@ -97,8 +97,8 @@ const Landing = () => {
               <Link to="/docs/api" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 API
               </Link>
-              <Link to="/docs/blog" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Blog
+              <Link to="/docs/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Contact
               </Link>
             </div>
             

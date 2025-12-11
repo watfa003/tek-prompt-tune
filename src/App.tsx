@@ -19,7 +19,7 @@ import Pricing from "./pages/docs/Pricing";
 import Documentation from "./pages/docs/Documentation";
 import APIReference from "./pages/docs/APIReference";
 import PromptTemplates from "./pages/docs/PromptTemplates";
-import Blog from "./pages/docs/Blog";
+
 import About from "./pages/docs/About";
 import Contact from "./pages/docs/Contact";
 import Privacy from "./pages/docs/Privacy";
@@ -80,7 +80,7 @@ const App = () => (
           <Route path="/docs/api" element={<APIReference />} />
           <Route path="/docs/api-examples" element={<APIExamples />} />
           <Route path="/docs/templates" element={<PromptTemplates />} />
-          <Route path="/docs/blog" element={<Blog />} />
+          
           <Route path="/docs/about" element={<About />} />
           <Route path="/docs/contact" element={<Contact />} />
           <Route path="/docs/privacy" element={<Privacy />} />
