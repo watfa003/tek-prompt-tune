@@ -47,13 +47,13 @@ export default function Documentation() {
               <h3 className="text-lg font-semibold text-foreground">API Key Authentication</h3>
             </div>
             <p className="text-muted-foreground mb-4 text-sm">
-              Include your API key in the <code className="text-primary">x-api-key</code> header with every request.
+              Include your API key in the <code className="text-primary">Authorization</code> header as a Bearer token.
             </p>
             <div className="bg-muted/30 p-4 rounded-lg border border-primary/10 font-mono text-sm">
               <pre className="text-foreground overflow-x-auto">
 {`curl -X POST https://tnlthzzjtjvnaqafddnj.supabase.co/functions/v1/api-lab-test \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: YOUR_API_KEY" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{"prompt": "Your prompt here"}'`}
               </pre>
             </div>
@@ -186,7 +186,7 @@ const response = await fetch(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': 'YOUR_API_KEY'
+      'Authorization': 'Bearer YOUR_API_KEY'
     },
     body: JSON.stringify({
       prompt: 'You are a helpful assistant. Explain quantum computing in simple terms.',
@@ -202,22 +202,6 @@ console.log('Breakdown:', result.categoryBreakdown);
 console.log('Analysis:', result.analysis);`}
             </pre>
           </div>
-        </section>
-
-        <section>
-          <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Rate Limits
-          </h2>
-          <Card className="p-6 glass-card border-primary/20">
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• <strong>Free tier:</strong> 50 API requests per day</li>
-              <li>• <strong>Pro tier:</strong> 1,000 API requests per day</li>
-              <li>• <strong>Enterprise:</strong> Custom limits available</li>
-            </ul>
-            <p className="mt-4 text-xs text-muted-foreground">
-              Rate limit headers are included in all responses: <code className="text-primary">X-RateLimit-Remaining</code>
-            </p>
-          </Card>
         </section>
       </div>
     </DocsLayout>

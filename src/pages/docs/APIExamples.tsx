@@ -87,7 +87,7 @@ export default function APIExamples() {
     "input": "Generate a haiku about AI",
     "overrides": {
       "temperature": 0.9,
-      "output_type": "creative",
+      "output_type": "text",
       "max_tokens": 500
     }
   }'`)}
@@ -103,7 +103,7 @@ export default function APIExamples() {
     "input": "Generate a haiku about AI",
     "overrides": {
       "temperature": 0.9,
-      "output_type": "creative",
+      "output_type": "text",
       "max_tokens": 500
     }
   }'`}
@@ -463,7 +463,7 @@ async function labTest(prompt: string, targetLlm: string = "gpt-4o-mini") {
     // Invoke with overrides
     const result = await invokeAgent(
       "Write a haiku about coding",
-      { temperature: 0.9, output_type: "creative" }
+      { temperature: 0.9, output_type: "text" }
     );
     console.log(\`Output: \${result.output}\`);
 
