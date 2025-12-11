@@ -15,9 +15,9 @@ const TUTORIAL_STEPS = [
     route: '/app',
     content: {
       step: 1,
-      total: 10,
-      title: 'Welcome to PrompTek 👋',
-      description: "Let's walk you through every feature. This tour takes about 2 minutes.",
+      total: 18,
+      title: 'Welcome to PrompTek! 👋',
+      description: "Your AI prompt engineering powerhouse. Let's walk through every feature so you can master prompt optimization.",
     },
     placement: 'center' as const,
   },
@@ -27,10 +27,10 @@ const TUTORIAL_STEPS = [
     route: '/app/lab',
     content: {
       step: 2,
-      total: 10,
+      total: 18,
       section: 'Lab',
-      title: '🧪 PromptTek Lab',
-      description: 'Your prompt testing ground. Test single prompts, compare two prompts head-to-head in Battle Mode, or use Auto-Optimize for AI improvements.',
+      title: '🧪 Welcome to the Lab',
+      description: 'This is your prompt testing headquarters. Test individual prompts, compare two prompts head-to-head, or let AI auto-optimize your work.',
     },
     placement: 'bottom' as const,
   },
@@ -40,100 +40,204 @@ const TUTORIAL_STEPS = [
     route: '/app/lab',
     content: {
       step: 3,
-      total: 10,
+      total: 18,
       section: 'Lab',
-      title: 'Test Modes',
-      description: 'Switch between Single Test (analyze one prompt) and Battle Mode (compare two prompts).',
+      title: 'Choose Your Test Mode',
+      description: 'Single Test: Analyze one prompt deeply. Battle Mode: Pit two prompts against each other to find the winner. Each mode gives you detailed scores and insights.',
     },
     placement: 'bottom' as const,
   },
-  // Step 3: Optimizer Overview - now goes to /app/ai-agent
+  // Step 3: Lab Prompt Input
+  {
+    target: '[data-tutorial="lab-prompt-input"]',
+    route: '/app/lab',
+    content: {
+      step: 4,
+      total: 18,
+      section: 'Lab',
+      title: 'Enter Your Prompt',
+      description: 'Paste or type any prompt here. It can be simple ("Write a poem") or complex with instructions, context, and constraints. We\'ll score it across 8 quality dimensions.',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 4: Lab Model Selection
+  {
+    target: '[data-tutorial="lab-model-selection"]',
+    route: '/app/lab',
+    content: {
+      step: 5,
+      total: 18,
+      section: 'Lab',
+      title: 'Select AI Provider & Model',
+      description: 'Choose which AI will execute your prompt. Each provider (OpenAI, Anthropic, Google, etc.) has different models with varying capabilities and speeds. Output Type tells the AI what format to produce (text, JSON, code, etc.).',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 5: Lab Test Button
+  {
+    target: '[data-tutorial="lab-test-button"]',
+    route: '/app/lab',
+    content: {
+      step: 6,
+      total: 18,
+      section: 'Lab',
+      title: 'Run Your Test',
+      description: 'Click "Run Test & Score" to analyze your prompt. You\'ll get: a total score (0-10), breakdown across 8 pillars (Clarity, Specificity, Efficiency, etc.), strengths, weaknesses, and specific improvement suggestions.',
+    },
+    placement: 'top' as const,
+  },
+  // Step 6: Optimizer Overview
   {
     target: '[data-tutorial="optimizer-form"]',
     route: '/app/ai-agent',
     content: {
-      step: 4,
-      total: 10,
+      step: 7,
+      total: 18,
       section: 'Optimizer',
-      title: '⚡ AI Optimizer',
-      description: 'Generate production-ready prompts. Enter your task, select AI provider and model, then optimize!',
+      title: '⚡ The AI Optimizer',
+      description: 'This is where magic happens. Enter any prompt and our AI will generate multiple optimized versions using different strategies. Each variant is scored and the best one is automatically selected.',
     },
     placement: 'bottom' as const,
   },
-  // Step 4: Provider/Model Selection
+  // Step 7: Original Prompt Input
+  {
+    target: '[data-tutorial="optimizer-form"]',
+    route: '/app/ai-agent',
+    content: {
+      step: 8,
+      total: 18,
+      section: 'Optimizer',
+      title: 'Your Original Prompt',
+      description: 'Enter your existing prompt here - it can be rough, incomplete, or already decent. You can also add attachments (images, PDFs, documents) to give the optimizer more context about your task.',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 8: Provider/Model Selection
   {
     target: '[data-tutorial="optimizer-provider-select"]',
     route: '/app/ai-agent',
     content: {
-      step: 5,
-      total: 10,
+      step: 9,
+      total: 18,
       section: 'Optimizer',
       title: 'Choose Your AI',
-      description: 'Select from OpenAI, Anthropic, Google, Groq, or Mistral. Each provider offers different models optimized for various tasks.',
+      description: 'Select the AI provider and model that will optimize your prompt. GPT-4o and Claude 4 are great for complex prompts. Gemini Flash and Groq are faster for quick iterations.',
     },
     placement: 'bottom' as const,
   },
-  // Step 5: Variants
+  // Step 9: Output Type
+  {
+    target: '[data-tutorial="optimizer-output-type"]',
+    route: '/app/ai-agent',
+    content: {
+      step: 10,
+      total: 18,
+      section: 'Optimizer',
+      title: 'Output Type Matters',
+      description: 'Tell the optimizer what kind of output your prompt should produce: Text (general writing), JSON (structured data), Code (programming), Analysis (research), Creative (stories/art), or Lists. This helps create better-targeted optimizations.',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 10: Variants
   {
     target: '[data-tutorial="optimizer-variants"]',
     route: '/app/ai-agent',
     content: {
-      step: 6,
-      total: 10,
+      step: 11,
+      total: 18,
       section: 'Optimizer',
-      title: '🎲 Generate Variants',
-      description: 'Create 2-7 different prompt versions. Start with 3-5 variants for the best balance of options and speed.',
+      title: 'Generate Multiple Versions',
+      description: 'Choose how many prompt variants to generate (2-7). Each variant uses a different optimization strategy: some focus on clarity, others on specificity, structure, or efficiency. More variants = more options but longer processing.',
     },
     placement: 'bottom' as const,
   },
-  // Step 6: History
+  // Step 11: Advanced Settings
+  {
+    target: '[data-tutorial="optimizer-advanced"]',
+    route: '/app/ai-agent',
+    content: {
+      step: 12,
+      total: 18,
+      section: 'Optimizer',
+      title: 'Advanced Settings',
+      description: 'Expand this for power-user options: Speed Mode (fast, ~10s) vs Deep Mode (thorough, ~45s), temperature control, max tokens, and influence settings to blend your prompt with existing templates.',
+    },
+    placement: 'top' as const,
+  },
+  // Step 12: History
   {
     target: '[data-tutorial="history-list"]',
     route: '/app/history',
     content: {
-      step: 7,
-      total: 10,
+      step: 13,
+      total: 18,
       section: 'History',
-      title: '📚 Prompt History',
-      description: 'Every optimized prompt is automatically saved. Search, filter, star favorites, and reuse as templates.',
+      title: '📚 Your Prompt History',
+      description: 'Every optimization is automatically saved here. Search by keywords, filter by score or date, star your favorites, and one-click copy any prompt. Use the menu to save prompts as reusable templates.',
     },
     placement: 'bottom' as const,
   },
-  // Step 7: Templates
+  // Step 13: History Features
+  {
+    target: '[data-tutorial="history-list"]',
+    route: '/app/history',
+    content: {
+      step: 14,
+      total: 18,
+      section: 'History',
+      title: 'Work With Your History',
+      description: 'Click any prompt to expand and see the full optimized version, scores, and AI response. Star prompts to mark favorites. Use "Re-optimize" to further improve any prompt, or "Use as Template" to save it for future use.',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 14: Templates
   {
     target: '[data-tutorial="templates-grid"]',
     route: '/app/templates',
     content: {
-      step: 8,
-      total: 10,
+      step: 15,
+      total: 18,
       section: 'Templates',
       title: '📋 Template Library',
-      description: 'Browse professionally crafted templates by category: Writing, Business, Analytics, Code, Marketing & more!',
+      description: 'Browse professionally-crafted prompt templates organized by category: Writing, Business, Analytics, Code, Marketing, Education, and more. Each template is optimized and ready to use.',
     },
     placement: 'bottom' as const,
   },
-  // Step 8: Settings
+  // Step 15: Using Templates
+  {
+    target: '[data-tutorial="templates-grid"]',
+    route: '/app/templates',
+    content: {
+      step: 16,
+      total: 18,
+      section: 'Templates',
+      title: 'Make Templates Work For You',
+      description: 'Click any template to preview it, then "Use Template" to load it into the optimizer. You can also create your own templates from your best prompts, share them publicly, or keep them private.',
+    },
+    placement: 'bottom' as const,
+  },
+  // Step 16: Settings
   {
     target: '[data-tutorial="settings-panel"]',
     route: '/app/settings',
     content: {
-      step: 9,
-      total: 10,
+      step: 17,
+      total: 18,
       section: 'Settings',
-      title: '⚙️ Settings',
-      description: 'Customize your experience: profile, theme preferences, notifications, and default AI settings.',
+      title: '⚙️ Customize Your Experience',
+      description: 'Set your defaults: preferred AI provider/model, theme (light/dark), notification preferences, and performance options. Enable "Low Motion Mode" if animations feel heavy on your device.',
     },
     placement: 'bottom' as const,
   },
-  // Step 9: Finish
+  // Step 17: Finish
   {
     target: 'body',
     route: '/app',
     content: {
-      step: 10,
-      total: 10,
-      title: "You're All Set! 🚀",
-      description: 'Start optimizing prompts and unlock the full potential of AI. Happy prompting!',
+      step: 18,
+      total: 18,
+      title: "You're Ready to Go! 🚀",
+      description: 'Start by testing a prompt in the Lab, then optimize it to perfection. Your prompt engineering journey begins now!',
     },
     placement: 'center' as const,
   },

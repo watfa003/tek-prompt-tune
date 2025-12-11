@@ -636,7 +636,7 @@ const Lab = () => {
                     animate={{ opacity: 1 }}
                     className="space-y-4"
                   >
-                     <div className="space-y-2">
+                     <div className="space-y-2" data-tutorial="lab-prompt-input">
                       <Label className="text-sm font-medium flex items-center gap-2">
                         <SparklesIcon className="h-4 w-4 text-primary" />
                         Your Prompt
@@ -657,7 +657,7 @@ const Lab = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tutorial="lab-model-selection">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">AI Provider</Label>
                         <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={testingMode === 'single'}>
@@ -733,7 +733,7 @@ const Lab = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3" data-tutorial="lab-test-button">
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
                         <Button 
                           onClick={handleRunTest} 
