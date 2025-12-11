@@ -7,7 +7,6 @@ import {
   BookOpen, 
   FileCode, 
   FileText, 
-  PenTool,
   Building,
   Mail,
   Shield,
@@ -32,7 +31,6 @@ const docsSections = [
       { title: 'API Reference', href: '/docs/api', icon: FileCode },
       { title: 'API Examples', href: '/docs/api-examples', icon: Code },
       { title: 'Prompt Templates', href: '/docs/templates', icon: FileText },
-      { title: 'Blog', href: '/docs/blog', icon: PenTool },
     ],
   },
   {
