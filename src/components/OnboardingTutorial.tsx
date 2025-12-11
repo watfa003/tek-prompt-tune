@@ -498,6 +498,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
       disableScrolling={false}
       spotlightPadding={8}
       callback={handleJoyrideCallback}
+      floaterProps={{
+        disableAnimation: true,
+      }}
       styles={styles}
       locale={{
         back: 'Back',
