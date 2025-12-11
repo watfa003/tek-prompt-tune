@@ -297,6 +297,9 @@ export const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComple
   };
 
   const completeTutorial = async () => {
+    // Close popup immediately
+    setRun(false);
+    
     localStorage.setItem('promptek_tutorial_completed', 'true');
     localStorage.removeItem('promptek_tutorial_step');
 
