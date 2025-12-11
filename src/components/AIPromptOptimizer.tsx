@@ -264,7 +264,7 @@ const PromptOptimizerForm = ({
             </Select>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3" data-tutorial="optimizer-output-type">
             <Label className="text-sm font-medium">Output Type</Label>
             <div className="optimizer-output-select">
               <OutputTypeSelector 
@@ -295,7 +295,7 @@ const PromptOptimizerForm = ({
         {/* Advanced Settings */}
         <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full justify-between">
+            <Button variant="outline" className="w-full justify-between" data-tutorial="optimizer-advanced">
               <div className="flex items-center space-x-2">
                 <Settings className="h-4 w-4" />
                 <span>Advanced Settings</span>
@@ -303,7 +303,7 @@ const PromptOptimizerForm = ({
               <ChevronDown className={`h-4 w-4 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 mt-4">
+          <CollapsibleContent className="space-y-4 mt-4" data-tutorial="optimizer-advanced-content">
             {/* Optimization Mode */}
             {setOptimizationMode && optimizationMode && (
               <div className="space-y-4">
