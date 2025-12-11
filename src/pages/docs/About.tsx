@@ -126,13 +126,12 @@ export default function About() {
 
         <section className="border-t border-primary/10 pt-8">
           <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Join Us
+            Get in Touch
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            We're always looking for passionate engineers, researchers, and designers who share our vision
-            of making AI more accessible and reliable. Check out our{' '}
-            <span className="text-primary font-semibold">careers page</span> or reach out to{' '}
-            <span className="text-primary font-semibold">careers@promptek.ai</span>.
+            Have questions, feedback, or want to learn more about PrompTek? Visit our{' '}
+            <a href="/docs/contact" className="text-primary font-semibold hover:underline">Contact page</a>{' '}
+            to get in touch with our team.
           </p>
         </section>
       </div>
