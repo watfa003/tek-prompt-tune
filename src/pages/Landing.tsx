@@ -155,7 +155,7 @@ const Landing = () => {
             >
               <span className="relative inline-block">
                 <span className="bg-gradient-to-r from-foreground via-primary to-accent bg-clip-text text-transparent animate-gradient-shift">
-                  Prompt Optimizer
+                  Transform Your AI Prompts
                 </span>
                 {/* Animated sheen effect */}
                 <motion.span
@@ -173,12 +173,12 @@ const Landing = () => {
                 />
                 {/* Soft neon glow */}
                 <span className="absolute inset-0 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent blur-xl opacity-30" aria-hidden="true">
-                  Prompt Optimizer
+                  Transform Your AI Prompts
                 </span>
               </span>
               <br />
               <span className="bg-gradient-to-r from-foreground to-primary/80 bg-clip-text text-transparent">
-                for AI Prompts. Instantly.
+                Into Precision Results
               </span>
             </motion.h1>
             
@@ -838,31 +838,6 @@ const Landing = () => {
           </ol>
         </div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="text-center mt-20 relative z-10"
-        >
-          <Button 
-            size="lg" 
-            className="bg-gradient-to-r from-primary via-accent to-primary-glow hover:opacity-90 transition-all hover:scale-105 shadow-2xl shadow-primary/30 group"
-            asChild
-          >
-            <Link to="/auth">
-              Start Optimizing Now 
-              <motion.span
-                animate={{ x: [0, 5, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="inline-block ml-2"
-              >
-                <ArrowRight className="h-5 w-5" />
-              </motion.span>
-            </Link>
-          </Button>
-        </motion.div>
       </section>
 
       {/* Social Proof & Testimonials - SEO Optimized */}
