@@ -1074,18 +1074,21 @@ const Landing = () => {
                   variant="outline" 
                   size="lg" 
                   className="relative hover:bg-primary/10 transition-all border-border/60 hover:border-primary/50 group min-w-[200px] h-14 text-lg rounded-full backdrop-blur-sm"
+                  asChild
                 >
-                  <span className="relative z-10">View Documentation</span>
-                  
-                  {/* Slide-up hover effect */}
-                  <motion.div
-                    className="absolute bottom-0 left-0 right-0 h-0 bg-gradient-to-t from-primary/20 to-transparent group-hover:h-full transition-all duration-300 rounded-full"
-                  />
-                  
-                  {/* Animated underline */}
-                  <motion.div
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 h-[2px] bg-gradient-to-r from-primary to-accent w-0 group-hover:w-3/4 transition-all duration-300 rounded-full"
-                  />
+                  <Link to="/docs/documentation">
+                    <span className="relative z-10">View Documentation</span>
+                    
+                    {/* Slide-up hover effect */}
+                    <motion.div
+                      className="absolute bottom-0 left-0 right-0 h-0 bg-gradient-to-t from-primary/20 to-transparent group-hover:h-full transition-all duration-300 rounded-full"
+                    />
+                    
+                    {/* Animated underline */}
+                    <motion.div
+                      className="absolute bottom-4 left-1/2 -translate-x-1/2 h-[2px] bg-gradient-to-r from-primary to-accent w-0 group-hover:w-3/4 transition-all duration-300 rounded-full"
+                    />
+                  </Link>
                 </Button>
               </motion.div>
             </motion.div>
