@@ -1,43 +1,62 @@
-// PrompTek V5 Elite - Ultra-Compact JSON Schema
-// Optimized for GPT-4o Mini parsing speed
+// PrompTek V5.3 Hybrid - Dynamic Role Synthesis + Multi-Strategy Architecture
+// Merges V5.2's intelligence with V5's variant diversity
 
 export const PROMPTEK_JSON = {
-  id: "PrompTek_V5",
-  mission: "Transform prompts to EXCEPTIONAL quality",
+  id: "PrompTek_V5.3",
+  mission: "Transform prompts to EXCEPTIONAL quality by inferring the optimal expert role dynamically while preserving exact user intent.",
   targets: { min: 9.0, avg: 9.2 },
   
   rules: {
     do: [
-      "Start with 'You are a [role]'",
       "Preserve exact user intent",
+      "Infer and construct the most suitable expert role based on content and task",
+      "Express the role as a clear one-sentence persona",
       "ALL pillars ≥9.0",
-      "Be AGGRESSIVE"
+      "Be AGGRESSIVE but precise"
     ],
     dont: [
       "Answer the prompt",
       "Change core request",
       "Use vague terms",
-      "Score <9.0"
+      "Score <9.0",
+      "Force predefined roles or labels",
+      "Inject ideology or bias",
+      "Invent facts or statistics",
+      "Overconstrain when not justified"
     ]
   },
 
-  roles: {
-    essay: "historian",
-    marketing: "marketing strategist", 
-    code: "senior software engineer",
-    creative: "creative writer",
-    data: "data analyst"
+  role_synthesis: {
+    instruction: "Derive the most appropriate expert role by analyzing the task type, domain knowledge required, audience, and depth. Construct a concise role description that naturally fits the task (e.g., 'a climate science educator explaining policy-relevant impacts to a general audience'). Do not reuse generic role labels unless they precisely fit.",
+    constraints: [
+      "Role must be task-specific, not generic",
+      "Role must match required expertise",
+      "Role must justify authority without exaggeration"
+    ]
   },
 
   pillars: {
     clarity:     { t: 9, d: "Zero ambiguity, explicit verbs, single interpretation", f: ["vague→precise", "passive→active", "break >20 words"] },
-    specificity: { t: 9, d: "Quantified params, 3-5 examples, exact metrics", f: ["some→3-5", "detailed→300-500w", "add format schema"] },
+    specificity: { t: 9, d: "Concrete scope, parameters, and expectations", f: ["define scope", "require examples", "quantify where appropriate"] },
     efficiency:  { t: 9, d: "Max meaning/token, zero redundancy", f: ["eliminate filler", "compress phrases", "power verbs"] },
-    structure:   { t: 9, d: "Context→Task→Method→Constraints→Format", f: ["numbered steps", "section headers", "hierarchical bullets"] },
-    constraints: { t: 9, d: "Exact format, length, tone, exclusions", f: ["define ALL boundaries", "precise length", "explicit tone"] },
-    elaboration: { t: 9, d: "Audience, use-case, examples, background", f: ["add audience", "context", "2-3 examples"] },
-    intent:      { t: 9, d: "TRUE goal clear, success criteria measurable", f: ["success criteria", "measurable outcome", "clarify why"] },
-    adaptability:{ t: 9, d: "Works across GPT/Claude/Gemini/Mistral", f: ["model-agnostic", "edge cases", "conditionals"] }
+    structure:   { t: 9, d: "Clear logical flow from context to output", f: ["numbered steps", "section headers", "hierarchical bullets"] },
+    constraints: { t: 9, d: "Explicit but intent-safe boundaries", f: ["define tone", "define format", "define exclusions only if needed"] },
+    elaboration: { t: 9, d: "Adds background, audience, context without altering intent", f: ["add audience", "context", "2-3 examples"] },
+    intent:      { t: 9, d: "TRUE goal explicit with measurable success criteria", f: ["success criteria", "measurable outcome", "clarify why"] },
+    adaptability:{ t: 9, d: "Model-agnostic and context-robust", f: ["avoid model-specific phrasing", "handle uncertainty", "remain valid across LLMs"] }
+  },
+
+  length_policy: {
+    default: "Do not enforce length unless user requests it or task inherently requires it",
+    guidance: "If length is helpful, suggest a range instead of a fixed count"
+  },
+
+  reliability_rules: {
+    statistics: [
+      "If precise statistics are requested, require authoritative sources",
+      "If sources are not specified, instruct use of approximate ranges",
+      "Never fabricate exact figures"
+    ]
   },
 
   replace: {
@@ -65,6 +84,7 @@ export const STRATEGIES = {
     targets: { clarity: 9, structure: 9, intent: 9 },
     w: 0.3,
     apply: [
+      "Dynamic role synthesis based on task analysis",
       "Replace ALL vague words",
       "Explicit power verbs",
       "Passive→active",
@@ -80,6 +100,7 @@ export const STRATEGIES = {
     targets: { specificity: 9, constraints: 9, clarity: 9 },
     w: 0.25,
     apply: [
+      "Dynamic role synthesis based on task analysis",
       "Quantify EVERYTHING",
       "Replace vague descriptors",
       "Exact numerical constraints",
@@ -95,6 +116,7 @@ export const STRATEGIES = {
     targets: { efficiency: 7.8, specificity: 7.5, clarity: 7.5 },
     w: 0.2,
     apply: [
+      "Dynamic role synthesis based on task analysis",
       "Active voice only",
       "Compress redundant phrases",
       "Eliminate filler words",
@@ -109,6 +131,7 @@ export const STRATEGIES = {
     targets: { structure: 7.8, clarity: 7.5, constraints: 7.5 },
     w: 0.15,
     apply: [
+      "Dynamic role synthesis based on task analysis",
       "Context→Task→Method→Constraints→Output",
       "Numbered steps",
       "Section headers",
@@ -124,13 +147,14 @@ export const STRATEGIES = {
     targets: { constraints: 9, elaboration: 9, specificity: 9 },
     w: 0.1,
     apply: [
-      "Exact format schema",
-      "Precise length (150-200w)",
+      "Dynamic role synthesis based on task analysis",
+      "Intent-safe boundaries only",
+      "Precise length ranges (not fixed counts)",
       "Explicit tone",
       "Style rules",
-      "Exclusions & edge cases"
+      "Exclusions only when justified"
     ],
-    fix: "If constraints<9: format schema, length limits, explicit tone, exclusions, quality criteria"
+    fix: "If constraints<9: format schema, length ranges, explicit tone, justify exclusions, quality criteria"
   },
 
   elaboration: {
@@ -140,10 +164,12 @@ export const STRATEGIES = {
     w: 0.12,
     cond: { type: "length", op: "<", val: 200 },
     apply: [
+      "Dynamic role synthesis based on task analysis",
       "Audience awareness",
       "Use-case context",
       "Relevant background",
-      "1-2 examples"
+      "1-2 examples",
+      "Statistics require authoritative sources or ranges"
     ],
     fix: "If elaboration<8.6: specify audience, add context, provide examples, include background"
   },
@@ -155,10 +181,12 @@ export const STRATEGIES = {
     w: 0.12,
     cond: { type: "regex", pattern: "\\b(improve|better|fix|enhance|optimize|analyze|make)\\b" },
     apply: [
+      "Dynamic role synthesis based on task analysis",
       "Identify TRUE goal",
       "Explicit success criteria",
       "Define outcome precisely",
-      "Preserve exact verb"
+      "Preserve exact verb",
+      "Never fabricate statistics"
     ],
     fix: "If intent<9: add success criteria, define outcome, state primary goal, anchor terms"
   },
@@ -169,10 +197,12 @@ export const STRATEGIES = {
     targets: { adaptability: 8.6, intent: 8.5, clarity: 8.5 },
     w: 0.08,
     apply: [
+      "Dynamic role synthesis based on task analysis",
       "Model-agnostic language",
       "Conditional phrasing",
       "Fallback options",
-      "Handle variations"
+      "Handle variations",
+      "Avoid LLM-specific phrasing"
     ],
     fix: "If adaptability<8.6: add if/when clauses, fallbacks, avoid model-specific terms"
   }
