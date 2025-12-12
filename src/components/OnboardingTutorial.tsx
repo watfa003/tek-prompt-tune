@@ -97,7 +97,7 @@ const TUTORIAL_STEPS = [
       title: '⚡ The AI Optimizer',
       description: 'This is where magic happens. Enter any prompt and our AI will generate multiple optimized versions using different strategies. Each variant is scored and the best one is automatically selected.',
     },
-    placement: 'bottom' as const,
+    placement: 'top' as const,
   },
   // Step 7: Original Prompt Input
   {
@@ -110,7 +110,7 @@ const TUTORIAL_STEPS = [
       title: 'Your Original Prompt',
       description: 'Enter your existing prompt here - it can be rough, incomplete, or already decent. You can also add attachments (images, PDFs, documents) to give the optimizer more context about your task.',
     },
-    placement: 'bottom' as const,
+    placement: 'top' as const,
   },
   // Step 8: Provider/Model Selection
   {
@@ -123,7 +123,7 @@ const TUTORIAL_STEPS = [
       title: 'Choose Your AI',
       description: 'Select the AI provider and model that will optimize your prompt. GPT-4o and Claude 4 are great for complex prompts. Gemini Flash and Groq are faster for quick iterations.',
     },
-    placement: 'bottom' as const,
+    placement: 'top' as const,
   },
   // Step 9: Output Type
   {
@@ -136,7 +136,7 @@ const TUTORIAL_STEPS = [
       title: 'Output Type Matters',
       description: 'Tell the optimizer what kind of output your prompt should produce: Text (general writing), JSON (structured data), Code (programming), Analysis (research), Creative (stories/art), or Lists. This helps create better-targeted optimizations.',
     },
-    placement: 'bottom' as const,
+    placement: 'top' as const,
   },
   // Step 10: Variants
   {
@@ -149,7 +149,7 @@ const TUTORIAL_STEPS = [
       title: 'Generate Multiple Versions',
       description: 'Choose how many prompt variants to generate (2-7). Each variant uses a different optimization strategy: some focus on clarity, others on specificity, structure, or efficiency. More variants = more options but longer processing.',
     },
-    placement: 'bottom' as const,
+    placement: 'top' as const,
   },
   // Step 11: Advanced Settings
   {
