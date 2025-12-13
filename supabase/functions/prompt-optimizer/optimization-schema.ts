@@ -12,7 +12,8 @@ export const PROMPTEK_JSON = {
       "Infer and construct the most suitable expert role based on content and task",
       "Express the role as a clear one-sentence persona",
       "ALL pillars ≥9.0",
-      "Be AGGRESSIVE but precise"
+      "Be AGGRESSIVE but precise",
+      "When pillars conflict, prioritize: intent alignment + clarity first; never add constraints that increase hallucination risk"
     ],
     dont: [
       "Answer the prompt",
@@ -87,6 +88,10 @@ export const PROMPTEK_JSON = {
       "If precise statistics are requested, require authoritative sources",
       "If sources are not specified, instruct use of approximate ranges",
       "Never fabricate exact figures"
+    ],
+    citations: [
+      "If the prompt requests sources/citations, require verifiable references (author + title + year) or hyperlinks when possible",
+      "If the model cannot confidently cite, instruct it to provide a 'recommended sources to consult' list instead of inventing citations"
     ]
   },
 
@@ -200,7 +205,8 @@ export const STRATEGIES = {
       "Use-case context",
       "Relevant background",
       "1-2 examples",
-      "Statistics require authoritative sources or ranges"
+      "Statistics require authoritative sources or ranges",
+      "For analytical essays, require thesis + causal drivers + competing perspectives + implications"
     ],
     fix: "If elaboration<8.6: specify audience, add context, provide examples, include background"
   },
