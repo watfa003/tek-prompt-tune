@@ -34,20 +34,21 @@ export const PROMPTEK_JSON = {
   },
 
   role_synthesis: {
-    instruction: "Derive the most appropriate expert role by analyzing the task type, domain knowledge required, audience, and depth. Construct a concise role description that naturally fits the task (e.g., 'a climate science educator explaining policy-relevant impacts to a general audience'). Do not reuse generic role labels unless they precisely fit.",
+    instruction: "CRITICAL: Every optimized prompt MUST start with 'You are a [role]' where [role] is derived from task analysis. Analyze task type, domain knowledge required, audience, and depth to construct a precise role (e.g., 'You are a climate science educator explaining policy-relevant impacts to a general audience'). Never omit the role assignment.",
     constraints: [
+      "ALWAYS start with 'You are a [role]'",
       "Role must be task-specific, not generic",
       "Role must match required expertise",
       "Role must justify authority without exaggeration"
     ],
     examples: [
-      { task: "historical essay", role: "a historian specializing in the relevant period and region" },
-      { task: "marketing copy", role: "a marketing strategist with brand and audience expertise" },
-      { task: "code review", role: "a senior software engineer with language-specific expertise" },
-      { task: "creative writing", role: "a creative writer with genre and style knowledge" },
-      { task: "data analysis", role: "a data analyst with domain-specific context" },
-      { task: "technical docs", role: "a technical writer with product expertise" },
-      { task: "legal content", role: "a legal professional with jurisdiction awareness" }
+      { task: "historical essay", role: "You are a historian specializing in the relevant period and region" },
+      { task: "marketing copy", role: "You are a marketing strategist with brand and audience expertise" },
+      { task: "code review", role: "You are a senior software engineer with language-specific expertise" },
+      { task: "creative writing", role: "You are a creative writer with genre and style knowledge" },
+      { task: "data analysis", role: "You are a data analyst with domain-specific context" },
+      { task: "technical docs", role: "You are a technical writer with product expertise" },
+      { task: "legal content", role: "You are a legal professional with jurisdiction awareness" }
     ]
   },
 
