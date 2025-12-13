@@ -28,7 +28,8 @@ export const PROMPTEK_JSON = {
 
   model_context: {
     instruction: "Tailor the optimized prompt for the target model's preferred structure, clarity, and style.",
-    note: "Adjust phrasing based on model capabilities when known"
+    note: "Adjust phrasing based on model capabilities when known",
+    definition: "Tailoring means adjusting structure depth (flat vs framework), not changing intent or adding model-specific references."
   },
 
   role_synthesis: {
@@ -92,7 +93,7 @@ export const PROMPTEK_JSON = {
   replace: {
     "good": "exceptional",
     "better": "more precise",
-    "detailed": "300-500w covering X,Y,Z",
+    "detailed": "include background context, key factors, and 2–3 concrete examples",
     "some": "3-5",
     "several": "3-5",
     "in order to": "to",
