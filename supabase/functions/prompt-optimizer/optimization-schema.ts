@@ -54,19 +54,46 @@ export const PROMPTEK_JSON = {
     ]
   },
 
-  structure_patterns: {
-    recommended: [
-      "# TASK OVERVIEW - Clear 2-4 sentence summary of objective, purpose, and scope",
-      "# METHODOLOGICAL STEPS - Numbered/bulleted logical workflow with actionable steps",
-      "# OUTPUT SPECIFICATIONS - Format, tone, length, style, and constraint definitions",
-      "# VERIFICATION PROTOCOL - Final checks for completeness, coherence, and alignment"
-    ],
-    note: "These are INSPIRATIONAL patterns, not mandatory. Adapt to fit the task naturally.",
-    flexibility: [
-      "Section headers are optional - use only when they improve clarity",
-      "Simple prompts may not need formal sections at all",
-      "Complex prompts benefit from organization, but format should be organic",
-      "Goal is professional, publication-grade structure that fits the use case"
+  structure_templates: {
+    instruction: "Select the template that BEST FITS the task type. Use it as INSPIRATION only - vary section names, organization, and depth based on the specific prompt. Never copy templates verbatim.",
+    templates: {
+      procedural: {
+        use_when: "step-by-step instructions, tutorials, guides, how-to content",
+        inspiration: ["Role → Objective → Steps (numbered) → Expected Output → Tips"],
+        vary: "Rename sections contextually (e.g., 'Steps' → 'Process', 'Workflow', 'Method')"
+      },
+      analytical: {
+        use_when: "research, analysis, comparisons, evaluations, essays",
+        inspiration: ["Role → Context → Analysis Framework → Key Considerations → Deliverable"],
+        vary: "Adapt framework depth to complexity; simple analyses need fewer sections"
+      },
+      creative: {
+        use_when: "stories, marketing copy, brainstorming, ideation",
+        inspiration: ["Role → Creative Brief → Tone/Style → Boundaries → Output"],
+        vary: "Use flowing prose over rigid sections; let creativity guide structure"
+      },
+      conversational: {
+        use_when: "chatbots, Q&A, dialogue, customer support",
+        inspiration: ["Role → Persona → Response Guidelines → Tone → Boundaries"],
+        vary: "Keep structure minimal; focus on voice and interaction style"
+      },
+      technical: {
+        use_when: "code, documentation, specifications, system design",
+        inspiration: ["Role → Requirements → Technical Constraints → Format → Validation"],
+        vary: "Match structure to technical domain conventions"
+      },
+      minimal: {
+        use_when: "simple requests, single-task prompts, quick queries",
+        inspiration: ["Role → Task → Output Format"],
+        vary: "Resist over-structuring; simplicity is strength for simple tasks"
+      }
+    },
+    anti_patterns: [
+      "NEVER use the exact same section names for every prompt",
+      "NEVER force procedural structure on non-procedural tasks",
+      "NEVER add sections just to have sections",
+      "Simple prompts should remain simple - don't bloat them",
+      "Match structure complexity to task complexity"
     ]
   },
 
