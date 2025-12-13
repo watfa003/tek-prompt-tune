@@ -49,8 +49,8 @@ export const OutputTypeSelector: React.FC<OutputTypeSelectorProps> = ({
           
           {/* Tooltip panel that appears when hovering items */}
           {hoveredConfig && (
-            <div className="absolute right-0 bottom-full mb-2 z-[200] pointer-events-none">
-              <div className="bg-popover text-popover-foreground border border-border rounded-lg p-3 shadow-lg w-[220px] animate-in fade-in-0 zoom-in-95 duration-150">
+            <div className="absolute left-0 bottom-full mb-2 z-[200] pointer-events-none">
+              <div className="bg-popover text-popover-foreground border border-border rounded-lg p-3 shadow-lg w-[220px] max-w-[220px] animate-in fade-in-0 zoom-in-95 duration-150">
                 <p className="text-xs font-medium mb-1">{hoveredConfig.label}</p>
                 <p className="text-xs text-muted-foreground">{hoveredConfig.tooltip}</p>
               </div>
