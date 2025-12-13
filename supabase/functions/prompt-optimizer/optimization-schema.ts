@@ -14,8 +14,7 @@ export const PROMPTEK_JSON = {
       "Express the role as a clear one-sentence persona",
       "ALL pillars ≥9.0",
       "Be AGGRESSIVE but precise",
-      "When pillars conflict, prioritize: intent alignment + clarity first; never add constraints that increase hallucination risk",
-      "Match structure to task type - not all prompts need formal sections"
+      "When pillars conflict, prioritize: intent alignment + clarity first; never add constraints that increase hallucination risk"
     ],
     dont: [
       "Answer the prompt",
@@ -26,8 +25,7 @@ export const PROMPTEK_JSON = {
       "Force predefined roles or labels",
       "Inject ideology or bias",
       "Invent facts or statistics",
-      "Overconstrain when not justified",
-      "Force procedural steps/phases on non-procedural prompts (creative, conversational, simple tasks)"
+      "Overconstrain when not justified"
     ]
   },
 
@@ -56,49 +54,19 @@ export const PROMPTEK_JSON = {
     ]
   },
 
-  structure_templates: {
-    instruction: "Select the MOST APPROPRIATE structure style for the task. These are INSPIRATIONAL patterns - take the spirit, not the exact format. Vary section names, ordering, and depth organically.",
-    
-    templates: {
-      procedural: {
-        when: "How-to guides, tutorials, setup processes, step-by-step tasks",
-        inspiration: ["objective/goal section", "sequential numbered steps", "output specification", "verification/validation"],
-        vary: "Use different section names (e.g., 'Goal' vs 'Objective', 'Process' vs 'Steps', 'Deliverable' vs 'Output')"
-      },
-      analytical: {
-        when: "Essays, research, comparisons, evaluations, deep analysis",
-        inspiration: ["context/background framing", "analysis framework or lenses", "structured argument flow", "conclusion requirements"],
-        vary: "Adapt to analytical depth - light analysis needs less structure than research papers"
-      },
-      creative: {
-        when: "Stories, content, marketing, brainstorming, ideation",
-        inspiration: ["creative direction in natural prose", "tone and voice guidance", "constraints woven in naturally"],
-        vary: "Minimal formal sections - let creative prompts breathe with flowing instructions"
-      },
-      conversational: {
-        when: "Chatbots, Q&A, support dialogue, interactive agents",
-        inspiration: ["persona definition", "interaction guidelines", "response boundaries"],
-        vary: "Focus on behavior and voice rather than procedural steps"
-      },
-      technical: {
-        when: "Code, APIs, documentation, specifications, configurations",
-        inspiration: ["precise requirements spec", "format/schema definitions", "technical constraints"],
-        vary: "Match technical domain conventions - code prompts differ from doc prompts"
-      },
-      minimal: {
-        when: "Simple requests, short prompts, single-focus tasks, quick questions",
-        inspiration: ["role + task + output in flowing prose", "no formal sections needed"],
-        vary: "Keep it elegant and direct - resist the urge to over-structure simple requests"
-      }
-    },
-    
-    core_rules: [
-      "NEVER copy template section names verbatim - create contextually appropriate headers",
-      "Match structure complexity to task complexity",
-      "Simple prompts should stay simple and elegant",
-      "Section headers are tools, not requirements",
-      "Procedural structure (steps/phases) is ONE option, not the default",
-      "Creative and conversational prompts rarely need numbered steps"
+  structure_patterns: {
+    recommended: [
+      "# TASK OVERVIEW - Clear 2-4 sentence summary of objective, purpose, and scope",
+      "# METHODOLOGICAL STEPS - Numbered/bulleted logical workflow with actionable steps",
+      "# OUTPUT SPECIFICATIONS - Format, tone, length, style, and constraint definitions",
+      "# VERIFICATION PROTOCOL - Final checks for completeness, coherence, and alignment"
+    ],
+    note: "These are INSPIRATIONAL patterns, not mandatory. Adapt to fit the task naturally.",
+    flexibility: [
+      "Section headers are optional - use only when they improve clarity",
+      "Simple prompts may not need formal sections at all",
+      "Complex prompts benefit from organization, but format should be organic",
+      "Goal is professional, publication-grade structure that fits the use case"
     ]
   },
 
@@ -106,7 +74,7 @@ export const PROMPTEK_JSON = {
     clarity:     { t: 9, d: "Zero ambiguity, explicit verbs, single interpretation", f: ["vague→precise", "passive→active", "break >20 words"] },
     specificity: { t: 9, d: "Concrete scope, parameters, and expectations", f: ["define scope", "require examples", "quantify where appropriate"] },
     efficiency:  { t: 9, d: "Max meaning/token, zero redundancy", f: ["eliminate filler", "compress phrases", "power verbs"] },
-    structure:   { t: 9, d: "Task-appropriate organization that aids clarity", f: ["match structure to task type", "use sections only when they add value", "simple tasks stay simple"] },
+    structure:   { t: 9, d: "Clear logical flow from context to output", f: ["numbered steps", "section headers", "hierarchical bullets"] },
     constraints: { t: 9, d: "Explicit but intent-safe boundaries", f: ["define tone", "define format", "define exclusions only if needed"] },
     elaboration: { t: 9, d: "Adds background, audience, context without altering intent", f: ["add audience", "context", "2-3 examples"] },
     intent:      { t: 9, d: "TRUE goal explicit with measurable success criteria", f: ["success criteria", "measurable outcome", "clarify why"] },
@@ -223,15 +191,13 @@ export const STRATEGIES = {
     w: 0.15,
     apply: [
       "Dynamic role synthesis based on task analysis",
-      "Select structure template that matches task type",
-      "Procedural tasks → numbered steps with varied section names",
-      "Creative tasks → flowing prose with embedded constraints",
-      "Technical tasks → specification-style format",
-      "Simple tasks → minimal elegant structure",
-      "Never over-structure simple requests",
-      "Vary section headers - don't reuse same names across prompts"
+      "Context→Task→Method→Constraints→Output",
+      "Numbered steps",
+      "Section headers",
+      "Hierarchical bullets",
+      "Explicit dependencies"
     ],
-    fix: "If structure<7.8: ensure structure matches task type, add organization only where it adds clarity"
+    fix: "If structure<7.8: add numbered steps, section headers, hierarchical bullets, state order"
   },
 
   constraints: {
