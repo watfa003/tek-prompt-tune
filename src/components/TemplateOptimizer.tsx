@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProviderSelector } from "@/components/ui/provider-selector";
+import { ModelSelector } from "@/components/ui/model-selector";
+import { OutputTypeSelector } from "@/components/ui/output-type-selector";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -333,52 +336,29 @@ export const TemplateOptimizer = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>AI Provider</Label>
-                <Select value={aiProvider} onValueChange={setAiProvider}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {providers.map(provider => (
-                      <SelectItem key={provider.value} value={provider.value}>
-                        {provider.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ProviderSelector
+                  value={aiProvider}
+                  onChange={setAiProvider}
+                />
               </div>
               
               <div>
                 <Label>Model</Label>
-                <Select value={modelName} onValueChange={setModelName}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getModelOptions().map(model => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ModelSelector
+                  value={modelName}
+                  onChange={setModelName}
+                  provider={aiProvider}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Output Type</Label>
-                <Select value={outputType} onValueChange={setOutputType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="code">Code</SelectItem>
-                    <SelectItem value="json">JSON</SelectItem>
-                    <SelectItem value="essay">Essay</SelectItem>
-                    <SelectItem value="list">List</SelectItem>
-                  </SelectContent>
-                </Select>
+                <OutputTypeSelector
+                  value={outputType as any}
+                  onChange={setOutputType}
+                />
               </div>
               
               <div>
