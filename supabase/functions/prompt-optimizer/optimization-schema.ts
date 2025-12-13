@@ -26,12 +26,42 @@ export const PROMPTEK_JSON = {
     ]
   },
 
+  model_context: {
+    instruction: "Tailor the optimized prompt for the target model's preferred structure, clarity, and style.",
+    note: "Adjust phrasing based on model capabilities when known"
+  },
+
   role_synthesis: {
     instruction: "Derive the most appropriate expert role by analyzing the task type, domain knowledge required, audience, and depth. Construct a concise role description that naturally fits the task (e.g., 'a climate science educator explaining policy-relevant impacts to a general audience'). Do not reuse generic role labels unless they precisely fit.",
     constraints: [
       "Role must be task-specific, not generic",
       "Role must match required expertise",
       "Role must justify authority without exaggeration"
+    ],
+    examples: [
+      { task: "historical essay", role: "a historian specializing in the relevant period and region" },
+      { task: "marketing copy", role: "a marketing strategist with brand and audience expertise" },
+      { task: "code review", role: "a senior software engineer with language-specific expertise" },
+      { task: "creative writing", role: "a creative writer with genre and style knowledge" },
+      { task: "data analysis", role: "a data analyst with domain-specific context" },
+      { task: "technical docs", role: "a technical writer with product expertise" },
+      { task: "legal content", role: "a legal professional with jurisdiction awareness" }
+    ]
+  },
+
+  structure_patterns: {
+    recommended: [
+      "# TASK OVERVIEW - Clear 2-4 sentence summary of objective, purpose, and scope",
+      "# METHODOLOGICAL STEPS - Numbered/bulleted logical workflow with actionable steps",
+      "# OUTPUT SPECIFICATIONS - Format, tone, length, style, and constraint definitions",
+      "# VERIFICATION PROTOCOL - Final checks for completeness, coherence, and alignment"
+    ],
+    note: "These are INSPIRATIONAL patterns, not mandatory. Adapt to fit the task naturally.",
+    flexibility: [
+      "Section headers are optional - use only when they improve clarity",
+      "Simple prompts may not need formal sections at all",
+      "Complex prompts benefit from organization, but format should be organic",
+      "Goal is professional, publication-grade structure that fits the use case"
     ]
   },
 

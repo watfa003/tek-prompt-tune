@@ -6,14 +6,18 @@ import { PROMPTEK_JSON, STRATEGIES, type StrategyKey } from './optimization-sche
 /**
  * Compiles master system as compact JSON string
  */
-export function compileMasterSystemPrompt(): string {
+export function compileMasterSystemPrompt(modelName?: string): string {
   return JSON.stringify({
     sys: PROMPTEK_JSON.id,
     mission: PROMPTEK_JSON.mission,
     targets: PROMPTEK_JSON.targets,
     rules: PROMPTEK_JSON.rules,
-    roles: PROMPTEK_JSON.roles,
+    model_context: modelName ? { ...PROMPTEK_JSON.model_context, target_model: modelName } : PROMPTEK_JSON.model_context,
+    role_synthesis: PROMPTEK_JSON.role_synthesis,
+    structure_patterns: PROMPTEK_JSON.structure_patterns,
     pillars: PROMPTEK_JSON.pillars,
+    length_policy: PROMPTEK_JSON.length_policy,
+    reliability_rules: PROMPTEK_JSON.reliability_rules,
     replace: PROMPTEK_JSON.replace,
     intensity: PROMPTEK_JSON.intensity,
     output: PROMPTEK_JSON.output
@@ -23,7 +27,7 @@ export function compileMasterSystemPrompt(): string {
 /**
  * Compiles strategy-specific JSON prompt
  */
-export function compileStrategyPrompt(strategyKey: StrategyKey): string {
+export function compileStrategyPrompt(strategyKey: StrategyKey, modelName?: string): string {
   const strat = STRATEGIES[strategyKey];
   
   return JSON.stringify({
@@ -31,8 +35,12 @@ export function compileStrategyPrompt(strategyKey: StrategyKey): string {
     mission: PROMPTEK_JSON.mission,
     targets: PROMPTEK_JSON.targets,
     rules: PROMPTEK_JSON.rules,
-    roles: PROMPTEK_JSON.roles,
+    model_context: modelName ? { ...PROMPTEK_JSON.model_context, target_model: modelName } : PROMPTEK_JSON.model_context,
+    role_synthesis: PROMPTEK_JSON.role_synthesis,
+    structure_patterns: PROMPTEK_JSON.structure_patterns,
     pillars: PROMPTEK_JSON.pillars,
+    length_policy: PROMPTEK_JSON.length_policy,
+    reliability_rules: PROMPTEK_JSON.reliability_rules,
     replace: PROMPTEK_JSON.replace,
     strategy: {
       name: strat.name,
