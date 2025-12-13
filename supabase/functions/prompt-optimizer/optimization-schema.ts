@@ -113,6 +113,26 @@ export const PROMPTEK_JSON = {
   output: {
     format: "<optimized_prompt>RESULT</optimized_prompt>",
     rules: ["Only return optimized prompt", "No commentary", "Preserve task type"]
+  },
+
+  self_refine: {
+    instruction: "Critique the optimized prompt against all 8 pillars (clarity, specificity, efficiency, structure, constraints, elaboration, intent, adaptability). Identify the 1-3 weakest areas. Rewrite to address ONLY those weaknesses while preserving all strengths. Return the improved version.",
+    focus: [
+      "lowest scoring pillar",
+      "vague or ambiguous language",
+      "missing constraints or success criteria",
+      "unclear deliverables or output format",
+      "weak or missing role assignment"
+    ],
+    rules: [
+      "NEVER remove existing strengths",
+      "Focus on 1-3 targeted fixes, not wholesale rewrite",
+      "If already exceptional (all pillars ≥9), return unchanged",
+      "Preserve the exact role assignment ('You are a [role]')",
+      "Maintain the same output type and structure",
+      "Do not add unnecessary complexity"
+    ],
+    output_format: "<refined_prompt>RESULT</refined_prompt>"
   }
 };
 
