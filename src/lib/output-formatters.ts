@@ -12,6 +12,7 @@ export interface OutputTypeConfig {
   label: string;
   icon: typeof FileText;
   description: string;
+  tooltip: string; // "Why choose this" explanation
   promptInstructions: string;
   formatResponse: (content: string) => string;
   validateResponse: (content: string) => boolean;
@@ -160,6 +161,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     label: 'Text',
     icon: FileText,
     description: 'Generates short, natural language responses or summaries.',
+    tooltip: 'Best for quick answers, summaries, and conversational responses. Keeps things simple without heavy formatting.',
     promptInstructions: 'Write a clear, concise response in natural paragraph form. Keep sentences short and readable. Use a professional yet approachable tone. No headings or excessive structure - just well-written text.',
     formatResponse: (content: string) => {
       // Clean up excessive line breaks
@@ -184,6 +186,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     label: 'Essay',
     icon: BookOpen,
     description: 'Creates structured long-form content with intro, body, and conclusion.',
+    tooltip: 'Best for articles, analysis, and academic writing. Enforces intro → body → conclusion structure with logical flow.',
     promptInstructions: 'Write a well-structured essay with clear introduction, body paragraphs, and conclusion. Use coherent transitions between sections. Maintain logical flow and academic tone. Support arguments with clear reasoning.',
     formatResponse: (content: string) => {
       // Ensure proper paragraph spacing
@@ -210,6 +213,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     label: 'List',
     icon: List,
     description: 'Outputs clean, ordered or bulleted lists of key points or steps.',
+    tooltip: 'Best for step-by-step guides, features, pros/cons, or any content that benefits from bullet points or numbered items.',
     promptInstructions: 'Create a clean, structured list with consistent formatting. Use bullets for unordered items, numbers for sequential steps. Ensure each item is concise and parallel in structure. Support nested lists when needed.',
     formatResponse: formatList,
     validateResponse: (content: string) => {
@@ -233,6 +237,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     label: 'Code',
     icon: Code,
     description: 'Generates syntax-highlighted, valid programming code with minimal comments.',
+    tooltip: 'Best for generating functions, scripts, or code snippets. Outputs clean, properly indented code with syntax highlighting.',
     promptInstructions: 'Generate clean, well-formatted code with proper indentation and syntax. Include minimal inline comments only when necessary. Follow best practices for the specific language. Use fenced code blocks with language specification.',
     formatResponse: formatCodeBlock,
     validateResponse: (content: string) => {
@@ -257,6 +262,7 @@ export const OUTPUT_TYPE_CONFIGS: Record<OutputType, OutputTypeConfig> = {
     label: 'JSON',
     icon: FileJson,
     description: 'Returns valid, parsable JSON objects — perfect for API use.',
+    tooltip: 'Best for API responses, data structures, or machine-readable output. Returns valid, parsable JSON with no extra text.',
     promptInstructions: 'Return valid, properly formatted JSON only. No additional commentary or explanation. Use consistent key naming (camelCase or snake_case). Include clear type structure. Support nested objects and arrays.',
     formatResponse: formatJSON,
     validateResponse: (content: string) => {
