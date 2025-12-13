@@ -18,8 +18,6 @@ export const OutputTypeSelector: React.FC<OutputTypeSelectorProps> = ({
   disabled = false
 }) => {
   const outputTypes = getAllOutputTypes();
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const hoveredConfig = outputTypes.find(c => c.id === hoveredItem);
 
   return (
     <div className="relative">
@@ -32,30 +30,27 @@ export const OutputTypeSelector: React.FC<OutputTypeSelectorProps> = ({
             const Icon = config.icon;
             
             return (
-              <SelectItem 
-                key={config.id}
-                value={config.id} 
-                className="cursor-pointer"
-                onMouseEnter={() => setHoveredItem(config.id)}
-                onMouseLeave={() => setHoveredItem(null)}
-              >
-                <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4" />
-                  <span>{config.label}</span>
-                </div>
-              </SelectItem>
+              <TooltipProvider key={config.id} delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SelectItem 
+                      value={config.id} 
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span>{config.label}</span>
+                      </div>
+                    </SelectItem>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" align="center" className="max-w-xs">
+                    <p className="text-xs font-medium mb-1">{config.label}</p>
+                    <p className="text-xs text-muted-foreground">{config.tooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
-          
-          {/* Tooltip panel that appears when hovering items */}
-          {hoveredConfig && (
-            <div className="absolute left-0 bottom-full mb-2 z-[200] pointer-events-none">
-              <div className="bg-popover text-popover-foreground border border-border rounded-lg p-3 shadow-lg w-[220px] max-w-[220px] animate-in fade-in-0 zoom-in-95 duration-150">
-                <p className="text-xs font-medium mb-1">{hoveredConfig.label}</p>
-                <p className="text-xs text-muted-foreground">{hoveredConfig.tooltip}</p>
-              </div>
-            </div>
-          )}
         </SelectContent>
       </Select>
       
