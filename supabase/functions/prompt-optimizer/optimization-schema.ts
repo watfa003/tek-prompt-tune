@@ -54,46 +54,26 @@ export const PROMPTEK_JSON = {
     ]
   },
 
-  structure_templates: {
-    instruction: "Select the template that BEST FITS the task type. Use it as INSPIRATION only - vary section names, organization, and depth based on the specific prompt. Never copy templates verbatim.",
-    templates: {
-      procedural: {
-        use_when: "step-by-step instructions, tutorials, guides, how-to content",
-        inspiration: ["Role → Objective → Steps (numbered) → Expected Output → Tips"],
-        vary: "Rename sections contextually (e.g., 'Steps' → 'Process', 'Workflow', 'Method')"
-      },
-      analytical: {
-        use_when: "research, analysis, comparisons, evaluations, essays",
-        inspiration: ["Role → Context → Analysis Framework → Key Considerations → Deliverable"],
-        vary: "Adapt framework depth to complexity; simple analyses need fewer sections"
-      },
-      creative: {
-        use_when: "stories, marketing copy, brainstorming, ideation",
-        inspiration: ["Role → Creative Brief → Tone/Style → Boundaries → Output"],
-        vary: "Use flowing prose over rigid sections; let creativity guide structure"
-      },
-      conversational: {
-        use_when: "chatbots, Q&A, dialogue, customer support",
-        inspiration: ["Role → Persona → Response Guidelines → Tone → Boundaries"],
-        vary: "Keep structure minimal; focus on voice and interaction style"
-      },
-      technical: {
-        use_when: "code, documentation, specifications, system design",
-        inspiration: ["Role → Requirements → Technical Constraints → Format → Validation"],
-        vary: "Match structure to technical domain conventions"
-      },
-      minimal: {
-        use_when: "simple requests, single-task prompts, quick queries",
-        inspiration: ["Role → Task → Output Format"],
-        vary: "Resist over-structuring; simplicity is strength for simple tasks"
-      }
-    },
-    anti_patterns: [
-      "NEVER use the exact same section names for every prompt",
-      "NEVER force procedural structure on non-procedural tasks",
-      "NEVER add sections just to have sections",
-      "Simple prompts should remain simple - don't bloat them",
-      "Match structure complexity to task complexity"
+  structure_guidance: {
+    critical: "DO NOT COPY ANY STRUCTURE EXACTLY. Every optimized prompt must have UNIQUE organization tailored to its specific task. The patterns below show ONE POSSIBLE approach - your output should look DIFFERENT.",
+    principle: "Invent section names, headers, and organization that fit THIS prompt naturally. If a prompt is about cooking, use cooking-relevant sections. If about coding, use dev-relevant sections. NEVER use generic template headers.",
+    examples_are_not_templates: [
+      "These examples show possible flows, NOT formats to copy",
+      "Your output should have DIFFERENT section names every time",
+      "Simple tasks = no sections, just clear prose",
+      "Complex tasks = custom sections that match the domain"
+    ],
+    possible_flows: [
+      "Role → Objective → Method → Output (procedural tasks)",
+      "Role → Context → Analysis → Deliverable (analytical tasks)",
+      "Role → Brief → Creative Direction → Boundaries (creative tasks)",
+      "Role → Task → Format (simple tasks - often enough)"
+    ],
+    mandatory_rules: [
+      "NEVER reuse the same section headers across different prompts",
+      "NEVER force structure on simple prompts - let them breathe",
+      "ALWAYS invent domain-specific organization",
+      "Section names must reflect the ACTUAL content, not generic labels"
     ]
   },
 
