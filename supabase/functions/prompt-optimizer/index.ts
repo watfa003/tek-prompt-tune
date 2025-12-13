@@ -634,9 +634,45 @@ ${optimizedPrompt}`;
     }
 
     // Find best variant
-    const bestVariant = optimizedVariants.reduce((best, current) => 
+    let bestVariant = optimizedVariants.reduce((best, current) => 
       current.score > best.score ? current : best
     );
+
+    // Update progress - self-refinement pass (92%)
+    await updateProgress(92, 3, 'Self-refining best variant...');
+    
+    // Self-refinement pass: critique and improve the best variant
+    try {
+      const refinedVariant = await selfRefineOptimizedPrompt(
+        bestVariant.prompt,
+        originalPrompt,
+        aiProvider,
+        modelName,
+        outputType,
+        maxTokens,
+        temperature
+      );
+      
+      if (refinedVariant && refinedVariant.score > bestVariant.score) {
+        console.log(`🔄 Self-refinement improved score: ${bestVariant.score.toFixed(3)} → ${refinedVariant.score.toFixed(3)}`);
+        bestVariant = {
+          ...bestVariant,
+          prompt: refinedVariant.prompt,
+          score: refinedVariant.score,
+          strategy: `${bestVariant.strategy} + Self-Refined`,
+          metrics: {
+            ...bestVariant.metrics,
+            self_refined: true,
+            original_score: bestVariant.score,
+            refinement_improvement: refinedVariant.score - bestVariant.score
+          }
+        };
+      } else {
+        console.log(`✅ Best variant already optimal, no refinement needed`);
+      }
+    } catch (refineError) {
+      console.error('Self-refinement failed, keeping original best variant:', refineError);
+    }
 
     const processingTime = Date.now() - startTime;
     
@@ -800,6 +836,108 @@ function getModelFriendlyName(provider: string, model: string): string {
   };
 
   return modelMap[provider]?.[model] || model;
+}
+
+
+// Self-refinement function: critique and improve the best variant
+async function selfRefineOptimizedPrompt(
+  optimizedPrompt: string,
+  originalPrompt: string,
+  aiProvider: string,
+  modelName: string,
+  outputType: string,
+  maxTokens: number | null,
+  temperature: number
+): Promise<{ prompt: string; score: number } | null> {
+  try {
+    const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
+    
+    // Import self_refine config from schema
+    const selfRefineConfig = {
+      instruction: "Critique the optimized prompt against all 8 pillars (clarity, specificity, efficiency, structure, constraints, elaboration, intent, adaptability). Identify the 1-3 weakest areas. Rewrite to address ONLY those weaknesses while preserving all strengths.",
+      focus: ["lowest scoring pillar", "vague language", "missing constraints", "unclear success criteria", "weak role assignment"],
+      rules: [
+        "NEVER remove existing strengths",
+        "Focus on 1-3 targeted fixes, not wholesale rewrite",
+        "If already exceptional, return unchanged",
+        "Preserve the role assignment ('You are a [role]')",
+        "Maintain same output type and structure"
+      ]
+    };
+    
+    const selfRefinePrompt = `TASK: Self-critique and refine this optimized prompt.
+
+ORIGINAL USER REQUEST:
+"${originalPrompt}"
+
+CURRENT OPTIMIZED PROMPT:
+"${optimizedPrompt}"
+
+SELF-REFINE INSTRUCTIONS:
+${JSON.stringify(selfRefineConfig)}
+
+ANALYSIS STEPS:
+1. Score each of the 8 pillars (clarity, specificity, efficiency, structure, constraints, elaboration, intent, adaptability) from 1-10
+2. Identify the 1-3 WEAKEST pillars (score < 9)
+3. For each weak pillar, identify the SPECIFIC text causing the weakness
+4. Rewrite ONLY the weak sections to address those specific issues
+5. Preserve ALL existing strengths - do not remove or weaken anything that works
+
+OUTPUT TYPE: ${outputType}
+
+CRITICAL RULES:
+- If ALL pillars are already ≥9, return the prompt UNCHANGED
+- Never remove the "You are a [role]" opening
+- Focus on targeted surgical fixes, NOT wholesale rewrites
+- The refined prompt should be equal or shorter in length (more efficient)
+
+Return ONLY the refined prompt wrapped in: <refined_prompt>RESULT</refined_prompt>`;
+
+    const refinedRaw = await callAIProvider(
+      aiProvider,
+      optimizationModel,
+      selfRefinePrompt,
+      maxTokens ? Math.max(1024, Math.min(maxTokens, 4096)) : 2048,
+      Math.max(0.2, temperature * 0.5) // Lower temperature for refinement (more deterministic)
+    );
+    
+    if (!refinedRaw) {
+      console.log('Self-refinement returned null, keeping original');
+      return null;
+    }
+    
+    // Extract refined prompt from response
+    const refinedMatch = refinedRaw.match(/<refined_prompt>([\s\S]*?)<\/refined_prompt>/i);
+    const refinedPrompt = refinedMatch ? refinedMatch[1].trim() : refinedRaw.trim();
+    
+    // Validate: refined prompt should still have role assignment
+    if (!refinedPrompt.toLowerCase().includes('you are')) {
+      console.log('Refined prompt missing role assignment, keeping original');
+      return null;
+    }
+    
+    // Validate: refined prompt shouldn't be drastically different in length (within 50%)
+    const lengthRatio = refinedPrompt.length / optimizedPrompt.length;
+    if (lengthRatio < 0.5 || lengthRatio > 1.5) {
+      console.log(`Refined prompt length ratio ${lengthRatio.toFixed(2)} out of bounds, keeping original`);
+      return null;
+    }
+    
+    // Quick score the refined prompt using static evaluation
+    const { scorePromptAndOutput } = await import('../shared/master-grader.ts');
+    const refinedEval = scorePromptAndOutput(refinedPrompt, "");
+    const refinedScore = refinedEval.finalScore / 10; // Normalize to 0-1
+    
+    console.log(`🔍 Self-refinement evaluation: ${refinedEval.finalScore.toFixed(1)}/10`);
+    
+    return {
+      prompt: refinedPrompt,
+      score: refinedScore
+    };
+  } catch (error) {
+    console.error('Self-refinement error:', error);
+    return null;
+  }
 }
 
 
