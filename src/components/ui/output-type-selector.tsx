@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getAllOutputTypes, OutputType } from '@/lib/output-formatters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HelpCircle } from 'lucide-react';
@@ -18,6 +18,8 @@ export const OutputTypeSelector: React.FC<OutputTypeSelectorProps> = ({
   disabled = false
 }) => {
   const outputTypes = getAllOutputTypes();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const hoveredConfig = outputTypes.find(c => c.id === hoveredItem);
 
   return (
     <div className="relative">
@@ -25,32 +27,39 @@ export const OutputTypeSelector: React.FC<OutputTypeSelectorProps> = ({
         <SelectTrigger className={className} disabled={disabled}>
           <SelectValue placeholder="Select output type" />
         </SelectTrigger>
-        <SelectContent className="bg-background border-border shadow-lg z-50">
-          {outputTypes.map((config) => {
-            const Icon = config.icon;
+        <SelectContent className="bg-background border-border shadow-lg z-50 overflow-visible">
+          <div className="relative">
+            {outputTypes.map((config) => {
+              const Icon = config.icon;
+              
+              return (
+                <SelectItem 
+                  key={config.id}
+                  value={config.id} 
+                  className="cursor-pointer"
+                  onMouseEnter={() => setHoveredItem(config.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4" />
+                    <span>{config.label}</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
             
-            return (
-              <TooltipProvider key={config.id} delayDuration={150}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SelectItem 
-                      value={config.id} 
-                      className="cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <span>{config.label}</span>
-                      </div>
-                    </SelectItem>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="start" sideOffset={4} className="max-w-xs">
-                    <p className="text-xs font-medium mb-1">{config.label}</p>
-                    <p className="text-xs text-muted-foreground">{config.tooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            );
-          })}
+            {/* Tooltip that sits directly under the dropdown content */}
+            {hoveredConfig && (
+              <div 
+                className="absolute top-full left-0 right-0 mt-1 z-[200] pointer-events-none"
+              >
+                <div className="bg-popover text-popover-foreground border border-border rounded-md p-2.5 shadow-md w-full animate-in fade-in-0 duration-100">
+                  <p className="text-xs font-medium mb-0.5">{hoveredConfig.label}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{hoveredConfig.tooltip}</p>
+                </div>
+              </div>
+            )}
+          </div>
         </SelectContent>
       </Select>
       
