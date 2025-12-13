@@ -8,6 +8,7 @@ export const PROMPTEK_JSON = {
   
   rules: {
     do: [
+      "ALWAYS start optimized prompt with 'You are a [role]' - this is MANDATORY",
       "Preserve exact user intent",
       "Infer and construct the most suitable expert role based on content and task",
       "Express the role as a clear one-sentence persona",
@@ -20,6 +21,7 @@ export const PROMPTEK_JSON = {
       "Change core request",
       "Use vague terms",
       "Score <9.0",
+      "Omit the 'You are a [role]' opening",
       "Force predefined roles or labels",
       "Inject ideology or bias",
       "Invent facts or statistics",
