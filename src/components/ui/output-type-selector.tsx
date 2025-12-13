@@ -43,7 +43,7 @@ export const OutputTypeSelector: React.FC<OutputTypeSelectorProps> = ({
                       </div>
                     </SelectItem>
                   </TooltipTrigger>
-                  <TooltipContent side="left" align="center" className="max-w-xs">
+                  <TooltipContent side="bottom" align="start" sideOffset={4} className="max-w-xs">
                     <p className="text-xs font-medium mb-1">{config.label}</p>
                     <p className="text-xs text-muted-foreground">{config.tooltip}</p>
                   </TooltipContent>
