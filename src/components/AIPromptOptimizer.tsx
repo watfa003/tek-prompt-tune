@@ -45,6 +45,8 @@ import { usePromptData } from '@/context/PromptDataContext';
 import { useOptimizerSession } from '@/context/OptimizerSessionContext';
 import { detectOutputType } from '@/lib/output-formatters';
 import { OutputTypeSelector } from '@/components/ui/output-type-selector';
+import { ProviderSelector } from '@/components/ui/provider-selector';
+import { ModelSelector } from '@/components/ui/model-selector';
 import { ProgressBarWithETA } from '@/components/ProgressBarWithETA';
 import { PromptFileUpload, UploadedFile } from '@/components/PromptFileUpload';
 
@@ -202,66 +204,21 @@ const PromptOptimizerForm = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2" data-tutorial="optimizer-provider-select">
             <Label className="text-sm font-medium">AI Provider</Label>
-            <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-              <SelectTrigger className="optimizer-provider-select">
-                <SelectValue placeholder="Select AI provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="openai">OpenAI</SelectItem>
-                <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                <SelectItem value="google">Google (Gemini)</SelectItem>
-                <SelectItem value="groq">Groq</SelectItem>
-                <SelectItem value="mistral">Mistral</SelectItem>
-              </SelectContent>
-            </Select>
+            <ProviderSelector 
+              value={selectedProvider} 
+              onChange={setSelectedProvider}
+              className="optimizer-provider-select"
+            />
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">LLM Model</Label>
-            <Select value={selectedLLM} onValueChange={setSelectedLLM}>
-              <SelectTrigger className="optimizer-model-select">
-                <SelectValue placeholder="Select LLM model" />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedProvider === "openai" && (
-                  <>
-                    <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
-                    <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 mini</SelectItem>
-                    <SelectItem value="gpt-5-nano-2025-08-07">GPT-5 nano</SelectItem>
-                    <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                  </>
-                )}
-                {selectedProvider === "anthropic" && (
-                  <>
-                    <SelectItem value="claude-opus-4-1-20250805">Claude 4 Opus</SelectItem>
-                    <SelectItem value="claude-sonnet-4-20250514">Claude 4 Sonnet</SelectItem>
-                    <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
-                  </>
-                )}
-                {selectedProvider === "google" && (
-                  <>
-                    <SelectItem value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite</SelectItem>
-                    <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                    <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</SelectItem>
-                    <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                    <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                  </>
-                )}
-                {selectedProvider === "groq" && (
-                  <>
-                    <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
-                  </>
-                )}
-                {selectedProvider === "mistral" && (
-                  <>
-                    <SelectItem value="mistral-large">Mistral Large</SelectItem>
-                    <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
+            <ModelSelector 
+              value={selectedLLM} 
+              onChange={setSelectedLLM}
+              provider={selectedProvider}
+              className="optimizer-model-select"
+            />
           </div>
 
           <div className="space-y-3" data-tutorial="optimizer-output-type">

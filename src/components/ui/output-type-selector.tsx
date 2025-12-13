@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { getAllOutputTypes, OutputType } from '@/lib/output-formatters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HelpCircle } from 'lucide-react';
