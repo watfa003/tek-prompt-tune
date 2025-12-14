@@ -23,7 +23,8 @@ import {
   Copy,
   ArrowRight,
   X,
-  FileText
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import { 
   FlaskIcon, 
@@ -1178,61 +1179,84 @@ const Lab = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -20, scale: 0.95 }}
                         transition={{ duration: 0.4, ease: "easeOut" }}
-                        className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-primary/5 via-accent/5 to-[hsl(330,100%,69%)/5] border-2 border-primary/30 relative overflow-hidden"
+                        className="mt-8 rounded-[24px] bg-gradient-to-br from-primary/5 via-background to-accent/5 border-2 border-primary/30 relative overflow-hidden shadow-[0_0_40px_rgba(110,231,255,0.1)]"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 animate-pulse opacity-30" />
-                        
-                        <div className="relative z-10 space-y-4">
+                        {/* Header */}
+                        <div className="p-6 border-b border-primary/10 bg-gradient-to-r from-primary/10 via-accent/5 to-transparent">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                              <SparklesIcon className="h-5 w-5 text-accent" />
+                            <h3 className="text-xl font-semibold flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-accent/20">
+                                <SparklesIcon className="h-5 w-5 text-accent" />
+                              </div>
                               Optimized Prompt Generated
                             </h3>
                             {isRetesting && (
-                              <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary animate-pulse">
-                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                Testing...
+                              <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary animate-pulse px-4 py-1.5">
+                                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                Grading in progress...
                               </Badge>
                             )}
                           </div>
 
                           {autoOptimizeResult.improvementAreas && autoOptimizeResult.improvementAreas.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              <span className="text-xs text-muted-foreground">Improved:</span>
+                            <div className="flex flex-wrap gap-2 mt-4">
+                              <span className="text-sm text-muted-foreground">Improvements:</span>
                               {autoOptimizeResult.improvementAreas.map((area: string, idx: number) => (
-                                <Badge key={idx} variant="secondary" className="text-xs">
+                                <Badge key={idx} variant="secondary" className="text-xs bg-primary/10 border-primary/20">
                                   {area}
                                 </Badge>
                               ))}
                             </div>
                           )}
-
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <FileText className="h-4 w-4" />
-                                Original
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="p-6 md:p-8 space-y-6">
+                          {/* Optimized Prompt - Full Width, Prominent */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-base font-semibold text-primary">
+                                <SparklesIcon className="h-5 w-5" />
+                                Your Optimized Prompt
                               </div>
-                              <div className="p-4 rounded-lg bg-background/50 border border-border/50 text-sm leading-relaxed max-h-[300px] overflow-y-auto">
-                                {autoOptimizeResult.originalPrompt}
-                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigator.clipboard.writeText(autoOptimizeResult.optimizedPrompt)}
+                                className="gap-2"
+                              >
+                                <Copy className="h-4 w-4" /> Copy
+                              </Button>
                             </div>
-
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                                <SparklesIcon className="h-4 w-4" />
-                                Optimized
+                            <div className="relative rounded-xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-background to-accent/10 overflow-hidden">
+                              <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+                              <div className="p-6 max-h-[450px] overflow-y-auto">
+                                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground">
+                                  {autoOptimizeResult.optimizedPrompt}
+                                </pre>
                               </div>
-                              <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30 text-sm leading-relaxed max-h-[300px] overflow-y-auto">
-                                {autoOptimizeResult.optimizedPrompt}
-                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
                             </div>
                           </div>
 
+                          {/* Original Prompt - Collapsible/Smaller */}
+                          <details className="group">
+                            <summary className="flex items-center gap-2 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                              <FileText className="h-4 w-4" />
+                              View Original Prompt
+                              <ChevronDown className="h-4 w-4 group-open:rotate-180 transition-transform" />
+                            </summary>
+                            <div className="mt-3 p-4 rounded-lg bg-muted/30 border border-border/50 text-sm leading-relaxed max-h-[200px] overflow-y-auto">
+                              <pre className="whitespace-pre-wrap font-sans text-muted-foreground">
+                                {autoOptimizeResult.originalPrompt}
+                              </pre>
+                            </div>
+                          </details>
+
                           {isRetesting && (
-                            <div className="text-center text-sm text-muted-foreground">
-                              <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                              Running tests to compare scores...
+                            <div className="text-center py-4 text-sm text-muted-foreground glass-panel rounded-lg">
+                              <Loader2 className="h-5 w-5 animate-spin inline mr-3" />
+                              Testing optimized prompt to calculate score improvements...
                             </div>
                           )}
                         </div>
