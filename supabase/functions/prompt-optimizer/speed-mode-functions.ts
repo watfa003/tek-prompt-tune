@@ -68,7 +68,7 @@ const OPTIMIZATION_MODELS: Record<string, string> = {
 
 export async function handleSpeedMode(
   supabase: any,
-  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = 1024, temperature = 0.7, influence = '', influenceWeight = 0, autoSave = true, sessionKey = null }: any
+  { originalPrompt, taskDescription, outputType, userId, startTime, variants: requestedVariants = 3, aiProvider = 'openai', modelName = 'gpt-4o-mini', maxTokens = null, temperature = 0.7, influence = '', influenceWeight = 0, autoSave = true, sessionKey = null }: any
 ) {
   console.log('🚀 Running Speed Mode optimization...');
   console.log(`📋 Config: provider=${aiProvider}, model=${modelName}, variants=${requestedVariants}, maxTokens=${maxTokens}`);
@@ -661,7 +661,10 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
       meta.documentInstructions = 'IMPORTANT: Attached document content should be incorporated into the optimized prompt. Instruct the AI to reference, analyze, summarize, or use the document content as source material for the response. The document provides context that should inform the output even if not explicitly requested.';
     }
   }
-  if (maxTokens) meta.maxTokens = maxTokens;
+  // Only add maxTokens to meta if user explicitly set it (not null/undefined/0)
+  if (maxTokens && maxTokens > 0) {
+    meta.maxTokens = maxTokens;
+  }
   if (influence?.trim() && influenceWeight > 0) {
     meta.influence = { template: influence, weight: influenceWeight };
   }
@@ -672,8 +675,8 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
     meta.patterns = strategyInsights.patterns.slice(0, 3);
   }
 
-  // Build TASK instruction with maxTokens guidance if specified
-  const maxTokensTask = maxTokens 
+  // Build TASK instruction with maxTokens guidance ONLY if user explicitly set it
+  const maxTokensTask = (maxTokens && maxTokens > 0)
     ? ` CRITICAL: The user has specified a max token limit of ${maxTokens}. You MUST add an explicit instruction in the optimized prompt telling the target AI to keep its response under approximately ${maxTokens} tokens (e.g., "Keep your response under ${maxTokens} tokens" or "Limit output to approximately ${maxTokens} tokens").`
     : '';
 

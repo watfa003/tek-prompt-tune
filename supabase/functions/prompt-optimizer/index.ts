@@ -373,7 +373,10 @@ serve(async (req) => {
             meta.documentInstructions = 'IMPORTANT: Attached document content should be incorporated into the optimized prompt. Instruct the AI to reference, analyze, summarize, or use the document content as source material for the response. The document provides context that should inform the output even if not explicitly requested.';
           }
         }
-        if (maxTokens) meta.maxTokens = maxTokens;
+        // Only add maxTokens to meta if user explicitly set it (not null/undefined/0)
+        if (maxTokens && maxTokens > 0) {
+          meta.maxTokens = maxTokens;
+        }
         
         // Add influence if set
         if (influence?.trim() && influenceWeight > 0) {
@@ -391,8 +394,8 @@ serve(async (req) => {
         }
         
         // Compact prompt format: JSON config + minimal wrapper
-        // Build TASK instruction with maxTokens guidance if specified
-        const maxTokensTask = maxTokens 
+        // Build TASK instruction with maxTokens guidance ONLY if user explicitly set it
+        const maxTokensTask = (maxTokens && maxTokens > 0)
           ? ` CRITICAL: The user has specified a max token limit of ${maxTokens}. You MUST add an explicit instruction in the optimized prompt telling the target AI to keep its response under approximately ${maxTokens} tokens (e.g., "Keep your response under ${maxTokens} tokens" or "Limit output to approximately ${maxTokens} tokens").`
           : '';
         
