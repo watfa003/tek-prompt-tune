@@ -62,15 +62,19 @@ serve(async (req) => {
         const output = await callAIModel(prompt, target_llm, outputType);
         console.log('[lab-auto-optimize] Generated output length:', output.length);
         
-        // Compute AI category scores
-        const { scores: gradedScores } = await scorePromptWithAI(prompt, output, OPENAI_API_KEY);
-        newScores = gradedScores;
+        // Run prompt scoring and output scoring in PARALLEL for speed
+        const [promptGradingResult, outputScoreResult] = await Promise.all([
+          scorePromptWithAI(prompt, output, OPENAI_API_KEY),
+          scoreOutputQualityWithAI(output, prompt, OPENAI_API_KEY)
+        ]);
+        
+        newScores = promptGradingResult.scores;
         
         // 50% - Prompt quality score
-        newPromptScore = Math.round(calculateOverallScore(gradedScores) * 10) / 10;
+        newPromptScore = Math.round(calculateOverallScore(newScores) * 10) / 10;
         
         // 50% - Output quality score (with prompt for intent validation)
-        newOutputScore = Math.round(await scoreOutputQualityWithAI(output, prompt, OPENAI_API_KEY) * 10) / 10;
+        newOutputScore = Math.round(outputScoreResult * 10) / 10;
         
         // 50/50 combined final score (matches Lab exactly)
         newFinalScore = Math.round(((newPromptScore * 0.5) + (newOutputScore * 0.5)) * 10) / 10;
