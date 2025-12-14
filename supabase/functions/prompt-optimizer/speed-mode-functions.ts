@@ -1,6 +1,6 @@
 // Speed Mode: Optimizes via API calls (like deep mode) but skips testing responses
 import { getOutputTypeSystemPrompt, getOutputTypeGuidance, OUTPUT_TYPE_STRATEGIES, type OutputType } from './output-type-strategies.ts';
-import { COMPILED_STRATEGIES, type StrategyKey } from './schema-compiler.ts';
+import { COMPILED_STRATEGIES, getStrategyName, getStrategyWeight, type StrategyKey } from './schema-compiler.ts';
 
 // Import OPTIMIZATION_STRATEGIES from index.ts for consistency with deep mode
 // This ensures variants use the exact same strategy system prompts as deep mode
@@ -426,13 +426,13 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
     
     return {
       prompt: cleanedPrompt,
-      strategy: getStrategyDisplayName(strategy),
+      strategy: getStrategyName(strategy as StrategyKey),
       strategyKey: strategy,
-      response: `Optimization completed using ${getStrategyDisplayName(strategy)} strategy`,
+      response: `Optimization completed using ${getStrategyName(strategy as StrategyKey)} strategy`,
       metrics: {
         tokens_used: cleanedPrompt.length,
         prompt_length: originalPrompt.length,
-        strategy_weight: getStrategyWeight(strategy) * 100
+        strategy_weight: getStrategyWeight(strategy as StrategyKey) * 100
       }
     };
   })());
@@ -445,12 +445,13 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
   // If some failed, fill with deterministic fallbacks to keep count
   while (variants.length < numVariants) {
     const missingIdx = variants.length;
-    const strategy = selectedStrategies[missingIdx] || 'clarity';
+    const strategy = (selectedStrategies[missingIdx] || 'clarity') as StrategyKey;
     const fallback = applyDeepModeClarityOptimization(originalPrompt, taskDescription, outputType);
     variants.push({
       prompt: fallback,
-      strategy: getStrategyDisplayName(strategy),
-      response: `Optimization completed using ${getStrategyDisplayName(strategy)} strategy (fallback)`,
+      strategy: getStrategyName(strategy),
+      strategyKey: strategy,
+      response: `Optimization completed using ${getStrategyName(strategy)} strategy (fallback)`,
       metrics: {
         tokens_used: fallback.length,
         prompt_length: originalPrompt.length,
@@ -612,30 +613,8 @@ function calculateDeepModeStyleScore(optimized: string, original: string, strate
   return Math.min(1.0, Math.max(0.6, score));
 }
 
-function getStrategyDisplayName(strategy: string): string {
-  const names = {
-    'clarity': 'Clarity Enhancement',
-    'specificity': 'Specificity Improvement',
-    'structure': 'Structure and Steps',
-    'efficiency': 'Efficiency Optimization',
-    'constraints': 'Constraints and Format'
-  };
-  return names[strategy as keyof typeof names] || strategy;
-}
-
-function getStrategyWeight(strategy: string): number {
-  const weights = {
-    'clarity': 0.3,
-    'specificity': 0.25,
-    'structure': 0.15,
-    'efficiency': 0.2,
-    'constraints': 0.1,
-    'elaboration': 0.12,
-    'intent': 0.12,
-    'adaptability': 0.10
-  };
-  return weights[strategy as keyof typeof weights] || 0.2;
-}
+// Note: strategy display names and weights now come directly from the V5.3 STRATEGIES
+// via getStrategyName and getStrategyWeight imported from schema-compiler.ts.
 
 function hasGoodStructure(prompt: string): boolean {
   const structureIndicators = [
