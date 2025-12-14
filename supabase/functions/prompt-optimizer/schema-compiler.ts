@@ -14,13 +14,14 @@ export function compileMasterSystemPrompt(modelName?: string): string {
     rules: PROMPTEK_JSON.rules,
     model_context: modelName ? { ...PROMPTEK_JSON.model_context, target_model: modelName } : PROMPTEK_JSON.model_context,
     role_synthesis: PROMPTEK_JSON.role_synthesis,
-    structure_patterns: PROMPTEK_JSON.structure_patterns,
+    structure_guidance: PROMPTEK_JSON.structure_guidance,
     pillars: PROMPTEK_JSON.pillars,
     length_policy: PROMPTEK_JSON.length_policy,
     reliability_rules: PROMPTEK_JSON.reliability_rules,
     replace: PROMPTEK_JSON.replace,
     intensity: PROMPTEK_JSON.intensity,
-    output: PROMPTEK_JSON.output
+    output: PROMPTEK_JSON.output,
+    self_refine: PROMPTEK_JSON.self_refine
   });
 }
 
@@ -37,7 +38,7 @@ export function compileStrategyPrompt(strategyKey: StrategyKey, modelName?: stri
     rules: PROMPTEK_JSON.rules,
     model_context: modelName ? { ...PROMPTEK_JSON.model_context, target_model: modelName } : PROMPTEK_JSON.model_context,
     role_synthesis: PROMPTEK_JSON.role_synthesis,
-    structure_patterns: PROMPTEK_JSON.structure_patterns,
+    structure_guidance: PROMPTEK_JSON.structure_guidance,
     pillars: PROMPTEK_JSON.pillars,
     length_policy: PROMPTEK_JSON.length_policy,
     reliability_rules: PROMPTEK_JSON.reliability_rules,
@@ -49,7 +50,8 @@ export function compileStrategyPrompt(strategyKey: StrategyKey, modelName?: stri
       apply: strat.apply,
       fix: strat.fix
     },
-    output: PROMPTEK_JSON.output
+    output: PROMPTEK_JSON.output,
+    self_refine: PROMPTEK_JSON.self_refine
   });
 }
 
