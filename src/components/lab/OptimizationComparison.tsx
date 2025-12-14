@@ -296,20 +296,26 @@ export const OptimizationComparison: React.FC<OptimizationComparisonProps> = ({
           </div>
 
           {/* Optimized Prompt Preview */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-lg">Optimized Prompt</h3>
-            <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30 text-sm leading-relaxed max-h-[300px] overflow-y-auto">
-              {optimizedPrompt}
-            </div>
-            <div className="flex justify-end">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Optimized Prompt</h3>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigator.clipboard.writeText(optimizedPrompt)}
                 className="gap-2"
               >
-                <Copy className="h-4 w-4" /> Copy Optimized Prompt
+                <Copy className="h-4 w-4" /> Copy
               </Button>
+            </div>
+            <div className="relative rounded-xl border-2 border-green-500/30 bg-gradient-to-br from-green-500/5 via-background to-emerald-500/5 overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-green-500/10 to-transparent pointer-events-none" />
+              <div className="p-6 max-h-[400px] overflow-y-auto">
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground/90">
+                  {optimizedPrompt}
+                </pre>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none" />
             </div>
           </div>
 
