@@ -391,13 +391,18 @@ serve(async (req) => {
         }
         
         // Compact prompt format: JSON config + minimal wrapper
+        // Build TASK instruction with maxTokens guidance if specified
+        const maxTokensTask = maxTokens 
+          ? ` CRITICAL: The user has specified a max token limit of ${maxTokens}. You MUST add an explicit instruction in the optimized prompt telling the target AI to keep its response under approximately ${maxTokens} tokens (e.g., "Keep your response under ${maxTokens} tokens" or "Limit output to approximately ${maxTokens} tokens").`
+          : '';
+        
         let optimizationPrompt = `CONFIG:${strategy.systemPrompt}
 
 META:${JSON.stringify(meta)}
 
 INPUT:"${enhancedPrompt}"
 
-TASK:Optimize INPUT using CONFIG. Apply strategy "${strategy.name}". Preserve intent. Output ${outputType}.
+TASK:Optimize INPUT using CONFIG. Apply strategy "${strategy.name}". Preserve intent. Output ${outputType}.${maxTokensTask}
 OUTPUT:<optimized_prompt>RESULT</optimized_prompt>`;
         const optimizationModel = OPTIMIZATION_MODELS[aiProvider as keyof typeof OPTIMIZATION_MODELS] || modelName;
         // Ensure higher token budget for Google to avoid MAX_TOKENS errors with long prompts

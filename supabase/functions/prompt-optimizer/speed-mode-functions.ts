@@ -658,6 +658,11 @@ function buildInstructionForStrategy(strategy: string, originalPrompt: string, t
     meta.patterns = strategyInsights.patterns.slice(0, 3);
   }
 
+  // Build TASK instruction with maxTokens guidance if specified
+  const maxTokensTask = maxTokens 
+    ? ` CRITICAL: The user has specified a max token limit of ${maxTokens}. You MUST add an explicit instruction in the optimized prompt telling the target AI to keep its response under approximately ${maxTokens} tokens (e.g., "Keep your response under ${maxTokens} tokens" or "Limit output to approximately ${maxTokens} tokens").`
+    : '';
+
   // EXACT format from deep mode - ensures strong strategy differentiation
   return `CONFIG:${strategyData.systemPrompt}
 
@@ -665,7 +670,7 @@ META:${JSON.stringify(meta)}
 
 INPUT:"${originalPrompt}"
 
-TASK:Optimize INPUT using CONFIG. Apply strategy "${strategyData.name}". Preserve intent. Output ${outputType}.
+TASK:Optimize INPUT using CONFIG. Apply strategy "${strategyData.name}". Preserve intent. Output ${outputType}.${maxTokensTask}
 OUTPUT:<optimized_prompt>RESULT</optimized_prompt>`;
 }
 
