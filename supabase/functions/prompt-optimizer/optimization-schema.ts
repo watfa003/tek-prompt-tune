@@ -90,7 +90,8 @@ export const PROMPTEK_JSON = {
 
   length_policy: {
     default: "Do not enforce length unless user requests it or task inherently requires it",
-    guidance: "If length is helpful, suggest a range instead of a fixed count"
+    guidance: "If length is helpful, suggest a range instead of a fixed count",
+    maxTokens_handling: "When META.maxTokens is specified, ADD an explicit instruction in the optimized prompt telling the AI to limit its response to approximately that token count. Example: 'Keep your response under [X] tokens.' or 'Limit output to approximately [X] tokens.' This ensures the end user's token budget is respected by the target model."
   },
 
   reliability_rules: {
