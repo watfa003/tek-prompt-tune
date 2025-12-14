@@ -6,6 +6,44 @@ import { COMPILED_STRATEGIES, type StrategyKey } from './schema-compiler.ts';
 // This ensures variants use the exact same strategy system prompts as deep mode
 const OPTIMIZATION_STRATEGIES: Record<string, { name: string; systemPrompt: string; weight: number }> = COMPILED_STRATEGIES;
 
+// Clean up optimized prompt by removing XML tags, markdown blocks, and template artifacts
+function cleanOptimizedPrompt(rawPrompt: string): string {
+  if (!rawPrompt) return '';
+  
+  let cleaned = rawPrompt.toString();
+  
+  // First, try to extract content from XML tags if present
+  const tagMatch = cleaned.match(/<optimized_prompt>([\s\S]*?)<\/optimized_prompt>/i);
+  if (tagMatch) {
+    cleaned = tagMatch[1];
+  } else {
+    // Remove any remaining XML-like tags
+    cleaned = cleaned
+      .replace(/<optimized_prompt>/gi, '')
+      .replace(/<\/optimized_prompt>/gi, '')
+      .replace(/<refined_prompt>/gi, '')
+      .replace(/<\/refined_prompt>/gi, '');
+  }
+  
+  // Remove markdown code blocks (```...```)
+  const fenceMatch = cleaned.match(/```(?:\w+)?\s*([\s\S]*?)\s*```/);
+  if (fenceMatch) {
+    cleaned = fenceMatch[1];
+  }
+  // Also remove standalone ``` markers
+  cleaned = cleaned.replace(/```/g, '');
+  
+  // Remove common AI preamble/postamble artifacts
+  cleaned = cleaned
+    .replace(/^\s*Optimized Prompt:\s*/i, '')
+    .replace(/^\s*(Here is|Here's|Sure,|Certainly,|I can|As an AI)\b[:,]?\s*/i, '')
+    .replace(/\s*RESULT\s*$/i, '') // Remove trailing "RESULT" from template
+    .replace(/^\s*RESULT\s*/i, '') // Remove leading "RESULT" from template
+    .replace(/\bRESULT\b/g, '') // Remove any stray "RESULT" in the middle
+    .trim();
+  
+  return cleaned;
+}
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
@@ -383,11 +421,8 @@ async function generateSpeedVariants(originalPrompt: string, taskDescription: st
 
     seen.add(normalizeText(optimizedPrompt));
     
-    // Remove XML tags from optimized prompt
-    const cleanedPrompt = optimizedPrompt
-      .replace(/<optimized_prompt>/gi, '')
-      .replace(/<\/optimized_prompt>/gi, '')
-      .trim();
+    // Clean the optimized prompt - remove XML tags, markdown blocks, and leftover template artifacts
+    const cleanedPrompt = cleanOptimizedPrompt(optimizedPrompt);
     
     return {
       prompt: cleanedPrompt,
