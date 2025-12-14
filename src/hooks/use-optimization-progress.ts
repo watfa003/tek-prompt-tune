@@ -40,28 +40,27 @@ export const useOptimizationProgress = ({
   const animationFrameRef = useRef<number>();
   const channelRef = useRef<any>(null);
 
-  // Mode-aware total seconds
-  const totalSeconds = mode === 'speed' ? 15 : 40;
+  // Mode-aware total seconds (speed mode typically 3-5s, deep mode 30-45s)
+  const totalSeconds = mode === 'speed' ? 5 : 40;
 
   // Calculate perceived floor based on elapsed time
   const getPerceivedFloor = useCallback(() => {
     const elapsed = (Date.now() - startTimeRef.current) / 1000;
-    const progress = elapsed / totalSeconds;
     
     if (mode === 'speed') {
-      // Reach 50% by 8s, 85% by 14s, then gradually to 93% by 18s
-      if (elapsed < 8) return Math.min(50, (elapsed / 8) * 50);
-      if (elapsed < 14) return 50 + Math.min(35, ((elapsed - 8) / 6) * 35);
-      if (elapsed < 18) return 85 + Math.min(8, ((elapsed - 14) / 4) * 8);
+      // Speed mode: Fast progression - 50% by 1.5s, 85% by 3s, 93% by 4.5s
+      if (elapsed < 1.5) return Math.min(50, (elapsed / 1.5) * 50);
+      if (elapsed < 3) return 50 + Math.min(35, ((elapsed - 1.5) / 1.5) * 35);
+      if (elapsed < 4.5) return 85 + Math.min(8, ((elapsed - 3) / 1.5) * 8);
       return 93;
     } else {
-      // Reach 50% by 18s, 85% by 35s, then gradually to 93% by 42s
+      // Deep mode: Slower progression - 50% by 18s, 85% by 35s, 93% by 42s
       if (elapsed < 18) return Math.min(50, (elapsed / 18) * 50);
       if (elapsed < 35) return 50 + Math.min(35, ((elapsed - 18) / 17) * 35);
       if (elapsed < 42) return 85 + Math.min(8, ((elapsed - 35) / 7) * 8);
       return 93;
     }
-  }, [mode, totalSeconds]);
+  }, [mode]);
 
   // Get phase and message based on progress
   const getPhaseInfo = useCallback((progress: number) => {
