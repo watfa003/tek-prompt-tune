@@ -204,6 +204,51 @@ export type Database = {
         }
         Relationships: []
       }
+      extracted_patterns: {
+        Row: {
+          applicable_domains: string[] | null
+          applicable_models: string[] | null
+          confidence: number | null
+          discovered_at: string
+          effectiveness_score: number
+          id: string
+          is_active: boolean | null
+          last_validated: string | null
+          metadata: Json | null
+          pattern_type: string
+          pattern_value: string
+          sample_size: number
+        }
+        Insert: {
+          applicable_domains?: string[] | null
+          applicable_models?: string[] | null
+          confidence?: number | null
+          discovered_at?: string
+          effectiveness_score: number
+          id?: string
+          is_active?: boolean | null
+          last_validated?: string | null
+          metadata?: Json | null
+          pattern_type: string
+          pattern_value: string
+          sample_size: number
+        }
+        Update: {
+          applicable_domains?: string[] | null
+          applicable_models?: string[] | null
+          confidence?: number | null
+          discovered_at?: string
+          effectiveness_score?: number
+          id?: string
+          is_active?: boolean | null
+          last_validated?: string | null
+          metadata?: Json | null
+          pattern_type?: string
+          pattern_value?: string
+          sample_size?: number
+        }
+        Relationships: []
+      }
       optimization_history: {
         Row: {
           ai_response: string | null
@@ -548,6 +593,116 @@ export type Database = {
         }
         Relationships: []
       }
+      research_experiments: {
+        Row: {
+          completed_at: string | null
+          completed_tests: number | null
+          config: Json
+          created_at: string
+          description: string | null
+          experiment_type: string
+          id: string
+          name: string
+          status: string
+          total_tests: number | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_tests?: number | null
+          config?: Json
+          created_at?: string
+          description?: string | null
+          experiment_type: string
+          id?: string
+          name: string
+          status?: string
+          total_tests?: number | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_tests?: number | null
+          config?: Json
+          created_at?: string
+          description?: string | null
+          experiment_type?: string
+          id?: string
+          name?: string
+          status?: string
+          total_tests?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      research_results: {
+        Row: {
+          base_prompt: string
+          base_score: number | null
+          category_scores: Json | null
+          created_at: string
+          experiment_id: string
+          id: string
+          latency_ms: number | null
+          metadata: Json | null
+          model_used: string
+          modification_applied: string
+          modified_prompt: string
+          modified_score: number | null
+          output: string | null
+          provider: string
+          score_delta: number | null
+          test_type: string
+          tokens_used: number | null
+        }
+        Insert: {
+          base_prompt: string
+          base_score?: number | null
+          category_scores?: Json | null
+          created_at?: string
+          experiment_id: string
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json | null
+          model_used: string
+          modification_applied: string
+          modified_prompt: string
+          modified_score?: number | null
+          output?: string | null
+          provider: string
+          score_delta?: number | null
+          test_type: string
+          tokens_used?: number | null
+        }
+        Update: {
+          base_prompt?: string
+          base_score?: number | null
+          category_scores?: Json | null
+          created_at?: string
+          experiment_id?: string
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json | null
+          model_used?: string
+          modification_applied?: string
+          modified_prompt?: string
+          modified_score?: number | null
+          output?: string | null
+          provider?: string
+          score_delta?: number | null
+          test_type?: string
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_results_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "research_experiments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speed_optimizations: {
         Row: {
           ai_provider: string
@@ -596,6 +751,39 @@ export type Database = {
           strategy?: string
           user_id?: string
           variants_count?: number | null
+        }
+        Relationships: []
+      }
+      token_intelligence: {
+        Row: {
+          category: string | null
+          created_at: string
+          efficient_alternatives: Json | null
+          id: string
+          model_family: string
+          power_score: number | null
+          token_count: number
+          word: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          efficient_alternatives?: Json | null
+          id?: string
+          model_family: string
+          power_score?: number | null
+          token_count: number
+          word: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          efficient_alternatives?: Json | null
+          id?: string
+          model_family?: string
+          power_score?: number | null
+          token_count?: number
+          word?: string
         }
         Relationships: []
       }
