@@ -74,6 +74,18 @@ verify_jwt = false
 [functions.parse-document]
 verify_jwt = false
 
+[functions.research-behavioral-test]
+verify_jwt = true
+
+[functions.research-extract-patterns]
+verify_jwt = true
+
+[functions.research-run-experiment]
+verify_jwt = true
+
+[functions.research-apply-patterns]
+verify_jwt = true
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083
