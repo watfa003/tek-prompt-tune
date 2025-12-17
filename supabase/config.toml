@@ -87,7 +87,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.research-collect-data]
-verify_jwt = true
+verify_jwt = false
 
 [edge_runtime]
 policy = "per_worker"

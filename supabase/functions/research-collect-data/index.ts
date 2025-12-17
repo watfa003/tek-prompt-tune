@@ -279,7 +279,20 @@ const POWER_WORDS = [
 // API CALLING
 // ============================================================================
 
-async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant"): Promise<{
+// Rate limiting for Groq free tier (6000 TPM = ~10 requests/min)
+let lastCallTime = 0;
+const MIN_DELAY_MS = 6000; // 6 seconds between calls to stay under limit
+
+async function rateLimitedDelay() {
+  const now = Date.now();
+  const elapsed = now - lastCallTime;
+  if (elapsed < MIN_DELAY_MS && lastCallTime > 0) {
+    await new Promise(r => setTimeout(r, MIN_DELAY_MS - elapsed));
+  }
+  lastCallTime = Date.now();
+}
+
+async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", retries = 3): Promise<{
   output: string;
   latency_ms: number;
   tokens_used: number;
@@ -287,6 +300,8 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant"):
   output_tokens: number;
   finish_reason: string;
 }> {
+  await rateLimitedDelay();
+  
   const startTime = Date.now();
   const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
   
@@ -303,7 +318,7 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant"):
     body: JSON.stringify({
       model,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1024,
+      max_tokens: 512, // Reduced to stay under TPM
       temperature: 0.7,
     }),
   });
@@ -312,6 +327,12 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant"):
   
   if (!response.ok) {
     const error = await response.text();
+    // Retry on rate limit
+    if (response.status === 429 && retries > 0) {
+      console.log(`Rate limited, waiting 10s and retrying... (${retries} left)`);
+      await new Promise(r => setTimeout(r, 10000));
+      return callGroq(prompt, model, retries - 1);
+    }
     throw new Error(`Groq API error: ${error}`);
   }
 
@@ -541,7 +562,7 @@ serve(async (req) => {
     if (test_types.includes('trigger_phrases')) {
       console.log('Testing trigger phrases...');
       
-      for (let i = 0; i < Math.min(20, promptsToTest.length); i++) {
+      for (let i = 0; i < Math.min(5, promptsToTest.length); i++) { // Reduced from 20 to 5
         const prompt = promptsToTest[i];
         
         // Baseline
@@ -604,7 +625,6 @@ serve(async (req) => {
               },
             });
             completedTests++;
-            await new Promise(r => setTimeout(r, 50));
           } catch (e) {
             console.error(`Trigger test error:`, e);
           }
@@ -620,7 +640,7 @@ serve(async (req) => {
     if (test_types.includes('role_positions')) {
       console.log('Testing role positions...');
       
-      for (let i = 0; i < Math.min(15, promptsToTest.length); i++) {
+      for (let i = 0; i < Math.min(5, promptsToTest.length); i++) { // Reduced from 15 to 5
         const prompt = promptsToTest[i];
         
         for (const [posName, posFn] of Object.entries(ROLE_POSITIONS)) {
@@ -652,7 +672,6 @@ serve(async (req) => {
                 },
               });
               completedTests++;
-              await new Promise(r => setTimeout(r, 50));
             } catch (e) {
               console.error(`Role position error:`, e);
             }
@@ -668,7 +687,7 @@ serve(async (req) => {
     if (test_types.includes('structure_patterns')) {
       console.log('Testing structure patterns...');
       
-      for (let i = 0; i < Math.min(15, promptsToTest.length); i++) {
+      for (let i = 0; i < Math.min(5, promptsToTest.length); i++) { // Reduced from 15 to 5
         const prompt = promptsToTest[i];
         
         for (const [patternName, patternFn] of Object.entries(STRUCTURE_PATTERNS)) {
@@ -698,7 +717,6 @@ serve(async (req) => {
               },
             });
             completedTests++;
-            await new Promise(r => setTimeout(r, 50));
           } catch (e) {
             console.error(`Structure error:`, e);
           }
@@ -713,7 +731,7 @@ serve(async (req) => {
     if (test_types.includes('constraint_patterns')) {
       console.log('Testing constraint patterns...');
       
-      for (let i = 0; i < Math.min(15, promptsToTest.length); i++) {
+      for (let i = 0; i < Math.min(5, promptsToTest.length); i++) { // Reduced from 15 to 5
         const prompt = promptsToTest[i];
         
         for (const [constraintName, constraintFn] of Object.entries(CONSTRAINT_PATTERNS)) {
@@ -756,7 +774,6 @@ serve(async (req) => {
               },
             });
             completedTests++;
-            await new Promise(r => setTimeout(r, 50));
           } catch (e) {
             console.error(`Constraint error:`, e);
           }
@@ -771,7 +788,7 @@ serve(async (req) => {
     if (test_types.includes('cot_triggers')) {
       console.log('Testing CoT triggers...');
       
-      for (let i = 0; i < Math.min(15, promptsToTest.length); i++) {
+      for (let i = 0; i < Math.min(5, promptsToTest.length); i++) { // Reduced from 15 to 5
         const prompt = promptsToTest[i];
         
         for (const [cotName, cotPhrase] of Object.entries(COT_TRIGGERS)) {
@@ -802,7 +819,6 @@ serve(async (req) => {
               },
             });
             completedTests++;
-            await new Promise(r => setTimeout(r, 50));
           } catch (e) {
             console.error(`CoT error:`, e);
           }
@@ -817,7 +833,7 @@ serve(async (req) => {
     if (test_types.includes('output_formats')) {
       console.log('Testing output formats...');
       
-      for (let i = 0; i < Math.min(15, promptsToTest.length); i++) {
+      for (let i = 0; i < Math.min(5, promptsToTest.length); i++) { // Reduced from 15 to 5
         const prompt = promptsToTest[i];
         
         for (const [formatName, formatInstr] of Object.entries(OUTPUT_FORMATS)) {
@@ -861,7 +877,7 @@ serve(async (req) => {
               },
             });
             completedTests++;
-            await new Promise(r => setTimeout(r, 50));
+            
           } catch (e) {
             console.error(`Format error:`, e);
           }
