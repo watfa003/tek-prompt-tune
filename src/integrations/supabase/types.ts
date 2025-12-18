@@ -916,51 +916,6 @@ export type Database = {
         }
         Relationships: []
       }
-      wording_patterns: {
-        Row: {
-          applicable_domains: string[] | null
-          applicable_models: string[] | null
-          avg_score_improvement: number | null
-          confidence: number | null
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          last_tested: string | null
-          metadata: Json | null
-          original_phrase: string
-          test_count: number | null
-          winning_phrase: string
-        }
-        Insert: {
-          applicable_domains?: string[] | null
-          applicable_models?: string[] | null
-          avg_score_improvement?: number | null
-          confidence?: number | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_tested?: string | null
-          metadata?: Json | null
-          original_phrase: string
-          test_count?: number | null
-          winning_phrase: string
-        }
-        Update: {
-          applicable_domains?: string[] | null
-          applicable_models?: string[] | null
-          avg_score_improvement?: number | null
-          confidence?: number | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_tested?: string | null
-          metadata?: Json | null
-          original_phrase?: string
-          test_count?: number | null
-          winning_phrase?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
