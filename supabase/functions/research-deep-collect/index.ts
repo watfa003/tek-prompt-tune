@@ -673,419 +673,562 @@ function applyModification(
 // MAIN DATA COLLECTION LOOP
 // ============================================================================
 
+type DeepCollectMode = "sync" | "async";
+
+type DeepCollectRequest = {
+  num_prompts?: number;
+  test_types?: Array<"triggers" | "roles" | "cot" | "constraints" | "structures">;
+  model?: string;
+  mode?: DeepCollectMode;
+  trigger_phrases_per_category?: number;
+};
+
+function estimateTotalTests(params: {
+  numPrompts: number;
+  testTypes: DeepCollectRequest["test_types"];
+  triggerPhrasesPerCategory: number;
+}): number {
+  const testTypes = params.testTypes || [];
+
+  // Baseline per prompt
+  let perPrompt = 1;
+
+  if (testTypes.includes("triggers")) {
+    const categories = Object.keys(MODIFICATIONS.triggers).length;
+    perPrompt += categories * Math.max(1, params.triggerPhrasesPerCategory);
+  }
+  if (testTypes.includes("roles")) {
+    const roles = Object.keys(MODIFICATIONS.roles).length;
+    const positions = MODIFICATIONS.role_positions.length;
+    perPrompt += roles * positions;
+  }
+  if (testTypes.includes("cot")) {
+    const cotPatterns = Object.keys(MODIFICATIONS.cot).filter((k) => k !== "none").length;
+    perPrompt += cotPatterns;
+  }
+  if (testTypes.includes("constraints")) {
+    perPrompt += Object.keys(MODIFICATIONS.constraints).length;
+  }
+  if (testTypes.includes("structures")) {
+    perPrompt += Object.keys(MODIFICATIONS.structures).filter((k) => k !== "plain").length;
+  }
+
+  return params.numPrompts * perPrompt;
+}
+
+async function insertResearchResult(supabase: any, row: any): Promise<void> {
+  const { error } = await supabase.from("research_results").insert(row);
+  if (error) throw error;
+}
+
+async function updateExperiment(supabase: any, experimentId: string, patch: any): Promise<void> {
+  const { error } = await supabase.from("research_experiments").update(patch).eq("id", experimentId);
+  if (error) throw error;
+}
+
+async function runDeepCollection(params: {
+  supabase: any;
+  experiment: { id: string };
+  num_prompts: number;
+  test_types: NonNullable<DeepCollectRequest["test_types"]>;
+  model: string;
+  trigger_phrases_per_category: number;
+}): Promise<{
+  experiment_id: string;
+  total_prompts_tested: number;
+  total_tests_attempted: number;
+  successful_tests: number;
+  failures: number;
+}> {
+  const { supabase, experiment, num_prompts, test_types, model, trigger_phrases_per_category } = params;
+
+  const promptsToTest = TEST_PROMPTS.slice(0, num_prompts);
+
+  console.log(
+    `Starting deep behavioral collection: ${test_types.join(", ")} with ${promptsToTest.length} prompts (model: ${model})`
+  );
+
+  let totalTestsAttempted = 0;
+  let successfulTests = 0;
+  let failures = 0;
+
+  // Update experiment total upfront
+  const estimatedTotal = estimateTotalTests({
+    numPrompts: promptsToTest.length,
+    testTypes: test_types,
+    triggerPhrasesPerCategory: trigger_phrases_per_category,
+  });
+
+  try {
+    await updateExperiment(supabase, experiment.id, {
+      total_tests: estimatedTotal,
+      completed_tests: 0,
+      status: "running",
+    });
+  } catch (e) {
+    console.warn("Failed to set experiment totals:", e);
+  }
+
+  const maybeProgressUpdate = async () => {
+    // Keep this lightweight (don’t update on every row)
+    if (successfulTests % 10 !== 0) return;
+    try {
+      await updateExperiment(supabase, experiment.id, {
+        completed_tests: successfulTests,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn("Progress update failed:", e);
+    }
+  };
+
+  for (const promptData of promptsToTest) {
+    const basePrompt = promptData.text;
+    console.log(`\nTesting: "${basePrompt.substring(0, 50)}..."`);
+
+    // 1) Baseline
+    console.log("  Getting baseline...");
+    let baselineResponse: APIResponse;
+    let baselineBehavior: FullBehaviorProfile;
+
+    try {
+      baselineResponse = await callLLM(basePrompt, model);
+      baselineBehavior = analyzeDeep(baselineResponse.output, basePrompt);
+
+      totalTestsAttempted++;
+
+      await insertResearchResult(supabase, {
+        experiment_id: experiment.id,
+        test_type: "baseline",
+        base_prompt: basePrompt,
+        modified_prompt: basePrompt,
+        modification_applied: "baseline",
+        output: baselineResponse.output,
+        latency_ms: baselineResponse.latency_ms,
+        tokens_used: baselineResponse.total_tokens,
+        provider: "groq",
+        model_used: model,
+        metadata: {
+          domain: promptData.domain,
+          complexity: promptData.complexity,
+          behavior: baselineBehavior,
+          response_stats: {
+            input_tokens: baselineResponse.input_tokens,
+            output_tokens: baselineResponse.output_tokens,
+          },
+        },
+      });
+
+      successfulTests++;
+      await maybeProgressUpdate();
+
+      console.log(
+        `  Baseline saved: ${baselineBehavior.word_count} words, archetype: ${baselineBehavior.fingerprint.archetype}`
+      );
+    } catch (e) {
+      failures++;
+      console.error("  Baseline error:", e);
+      continue;
+    }
+
+    // 2) Triggers
+    if (test_types.includes("triggers")) {
+      for (const [category, phrases] of Object.entries(MODIFICATIONS.triggers)) {
+        for (const phrase of phrases.slice(0, Math.max(1, trigger_phrases_per_category))) {
+          totalTestsAttempted++;
+          const modifiedPrompt = applyModification(basePrompt, "trigger", phrase);
+          const tokensAdded = countTokens(phrase);
+
+          try {
+            console.log(`  Testing trigger [${category}]: ${phrase.substring(0, 30)}...`);
+            const response = await callLLM(modifiedPrompt, model);
+            const behavior = analyzeDeep(response.output, modifiedPrompt);
+            const delta = calculateComprehensiveDelta(
+              { behavior: baselineBehavior, response: baselineResponse },
+              { behavior, response },
+              tokensAdded
+            );
+
+            await insertResearchResult(supabase, {
+              experiment_id: experiment.id,
+              test_type: "trigger",
+              base_prompt: basePrompt,
+              modified_prompt: modifiedPrompt,
+              modification_applied: phrase,
+              output: response.output,
+              latency_ms: response.latency_ms,
+              tokens_used: response.total_tokens,
+              provider: "groq",
+              model_used: model,
+              metadata: {
+                domain: promptData.domain,
+                complexity: promptData.complexity,
+                trigger_category: category,
+                tokens_added: tokensAdded,
+                behavior,
+                delta,
+                power_score: delta.power_score,
+                is_regression: delta.is_regression,
+                regression_categories: delta.regression_categories,
+                tradeoffs: delta.tradeoffs,
+              },
+            });
+
+            successfulTests++;
+            await maybeProgressUpdate();
+
+            console.log(
+              `    Saved. Impact: ${delta.behavioral_impact.toFixed(2)}, Power: ${delta.power_score.toFixed(2)}, Regression: ${delta.is_regression}`
+            );
+          } catch (e) {
+            failures++;
+            console.error(`    Trigger error: ${e}`);
+          }
+        }
+      }
+    }
+
+    // 3) Roles
+    if (test_types.includes("roles")) {
+      for (const [roleName, roleText] of Object.entries(MODIFICATIONS.roles)) {
+        for (const position of MODIFICATIONS.role_positions) {
+          totalTestsAttempted++;
+          const modifiedPrompt = applyModification(basePrompt, `role_${position}`, roleText);
+          const tokensAdded = countTokens(roleText);
+
+          try {
+            console.log(`  Testing role [${roleName}] at ${position}...`);
+            const response = await callLLM(modifiedPrompt, model);
+            const behavior = analyzeDeep(response.output, modifiedPrompt);
+            const delta = calculateComprehensiveDelta(
+              { behavior: baselineBehavior, response: baselineResponse },
+              { behavior, response },
+              tokensAdded
+            );
+
+            await insertResearchResult(supabase, {
+              experiment_id: experiment.id,
+              test_type: "role",
+              base_prompt: basePrompt,
+              modified_prompt: modifiedPrompt,
+              modification_applied: `${roleName}_${position}`,
+              output: response.output,
+              latency_ms: response.latency_ms,
+              tokens_used: response.total_tokens,
+              provider: "groq",
+              model_used: model,
+              metadata: {
+                domain: promptData.domain,
+                complexity: promptData.complexity,
+                role_name: roleName,
+                role_position: position,
+                tokens_added: tokensAdded,
+                behavior,
+                delta,
+                power_score: delta.power_score,
+                is_regression: delta.is_regression,
+                regression_categories: delta.regression_categories,
+                tradeoffs: delta.tradeoffs,
+              },
+            });
+
+            successfulTests++;
+            await maybeProgressUpdate();
+
+            console.log(`    Saved. Power: ${delta.power_score.toFixed(2)}, Regression: ${delta.is_regression}`);
+          } catch (e) {
+            failures++;
+            console.error(`    Role error: ${e}`);
+          }
+        }
+      }
+    }
+
+    // 4) CoT
+    if (test_types.includes("cot")) {
+      for (const [cotName, cotPhrase] of Object.entries(MODIFICATIONS.cot)) {
+        if (cotName === "none") continue;
+        totalTestsAttempted++;
+
+        const modifiedPrompt = applyModification(basePrompt, "cot", cotPhrase);
+        const tokensAdded = countTokens(cotPhrase);
+
+        try {
+          console.log(`  Testing CoT [${cotName}]...`);
+          const response = await callLLM(modifiedPrompt, model);
+          const behavior = analyzeDeep(response.output, modifiedPrompt);
+          const delta = calculateComprehensiveDelta(
+            { behavior: baselineBehavior, response: baselineResponse },
+            { behavior, response },
+            tokensAdded
+          );
+
+          await insertResearchResult(supabase, {
+            experiment_id: experiment.id,
+            test_type: "cot",
+            base_prompt: basePrompt,
+            modified_prompt: modifiedPrompt,
+            modification_applied: cotName,
+            output: response.output,
+            latency_ms: response.latency_ms,
+            tokens_used: response.total_tokens,
+            provider: "groq",
+            model_used: model,
+            metadata: {
+              domain: promptData.domain,
+              complexity: promptData.complexity,
+              cot_type: cotName,
+              cot_phrase: cotPhrase,
+              tokens_added: tokensAdded,
+              behavior,
+              delta,
+              power_score: delta.power_score,
+              is_regression: delta.is_regression,
+              regression_categories: delta.regression_categories,
+              tradeoffs: delta.tradeoffs,
+            },
+          });
+
+          successfulTests++;
+          await maybeProgressUpdate();
+
+          console.log(
+            `    Saved. Impact: ${delta.behavioral_impact.toFixed(2)}, Steps Δ: ${delta.step_delta}, Regression: ${delta.is_regression}`
+          );
+        } catch (e) {
+          failures++;
+          console.error(`    CoT error: ${e}`);
+        }
+      }
+    }
+
+    // 5) Constraints
+    if (test_types.includes("constraints")) {
+      for (const [constraintName, constraintText] of Object.entries(MODIFICATIONS.constraints)) {
+        totalTestsAttempted++;
+        const modifiedPrompt = applyModification(basePrompt, "constraint", constraintText);
+        const tokensAdded = countTokens(constraintText);
+
+        try {
+          console.log(`  Testing constraint [${constraintName}]...`);
+          const response = await callLLM(modifiedPrompt, model);
+          const behavior = analyzeDeep(response.output, modifiedPrompt);
+          const delta = calculateComprehensiveDelta(
+            { behavior: baselineBehavior, response: baselineResponse },
+            { behavior, response },
+            tokensAdded
+          );
+
+          await insertResearchResult(supabase, {
+            experiment_id: experiment.id,
+            test_type: "constraint",
+            base_prompt: basePrompt,
+            modified_prompt: modifiedPrompt,
+            modification_applied: constraintName,
+            output: response.output,
+            latency_ms: response.latency_ms,
+            tokens_used: response.total_tokens,
+            provider: "groq",
+            model_used: model,
+            metadata: {
+              domain: promptData.domain,
+              complexity: promptData.complexity,
+              constraint_type: constraintName,
+              tokens_added: tokensAdded,
+              behavior,
+              delta,
+              power_score: delta.power_score,
+              is_regression: delta.is_regression,
+              regression_categories: delta.regression_categories,
+              tradeoffs: delta.tradeoffs,
+            },
+          });
+
+          successfulTests++;
+          await maybeProgressUpdate();
+
+          console.log(`    Saved. Word Δ: ${delta.word_count_delta}, Regression: ${delta.is_regression}`);
+        } catch (e) {
+          failures++;
+          console.error(`    Constraint error: ${e}`);
+        }
+      }
+    }
+
+    // 6) Structures
+    if (test_types.includes("structures")) {
+      for (const [structName, structFn] of Object.entries(MODIFICATIONS.structures)) {
+        if (structName === "plain") continue;
+        totalTestsAttempted++;
+
+        const modifiedPrompt = (structFn as any)(basePrompt);
+        const tokensAdded = countTokens(modifiedPrompt) - countTokens(basePrompt);
+
+        try {
+          console.log(`  Testing structure [${structName}]...`);
+          const response = await callLLM(modifiedPrompt, model);
+          const behavior = analyzeDeep(response.output, modifiedPrompt);
+          const delta = calculateComprehensiveDelta(
+            { behavior: baselineBehavior, response: baselineResponse },
+            { behavior, response },
+            tokensAdded
+          );
+
+          await insertResearchResult(supabase, {
+            experiment_id: experiment.id,
+            test_type: "structure",
+            base_prompt: basePrompt,
+            modified_prompt: modifiedPrompt,
+            modification_applied: structName,
+            output: response.output,
+            latency_ms: response.latency_ms,
+            tokens_used: response.total_tokens,
+            provider: "groq",
+            model_used: model,
+            metadata: {
+              domain: promptData.domain,
+              complexity: promptData.complexity,
+              structure_type: structName,
+              tokens_added: tokensAdded,
+              behavior,
+              delta,
+              power_score: delta.power_score,
+              is_regression: delta.is_regression,
+              regression_categories: delta.regression_categories,
+              tradeoffs: delta.tradeoffs,
+            },
+          });
+
+          successfulTests++;
+          await maybeProgressUpdate();
+
+          console.log(`    Saved. Format changed: ${delta.format_changed}, Regression: ${delta.is_regression}`);
+        } catch (e) {
+          failures++;
+          console.error(`    Structure error: ${e}`);
+        }
+      }
+    }
+  }
+
+  await updateExperiment(supabase, experiment.id, {
+    status: "completed",
+    completed_tests: successfulTests,
+    total_tests: estimatedTotal,
+    completed_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  console.log(`\n=== COLLECTION COMPLETE ===`);
+  console.log(`Saved rows: ${successfulTests}/${totalTestsAttempted} (failures: ${failures})`);
+
+  return {
+    experiment_id: experiment.id,
+    total_prompts_tested: promptsToTest.length,
+    total_tests_attempted: totalTestsAttempted,
+    successful_tests: successfulTests,
+    failures,
+  };
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { 
-      num_prompts = 5, 
-      test_types = ['triggers', 'roles', 'cot'],
-      model = 'llama-3.1-8b-instant'
-    } = await req.json();
-    
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const body: DeepCollectRequest = await req.json().catch(() => ({}));
+
+    const num_prompts = Math.max(1, Math.min(body.num_prompts ?? 1, TEST_PROMPTS.length));
+    const test_types = (body.test_types ?? ["triggers", "cot"]).filter(Boolean);
+    const model = body.model ?? "llama-3.1-8b-instant";
+    const mode: DeepCollectMode = body.mode ?? "async";
+    const trigger_phrases_per_category = Math.max(1, Math.min(body.trigger_phrases_per_category ?? 2, 4));
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
+
     // Create experiment
     const { data: experiment, error: expError } = await supabase
-      .from('research_experiments')
+      .from("research_experiments")
       .insert({
         name: `Deep Behavioral Collection - ${new Date().toISOString()}`,
-        description: `Testing ${test_types.join(', ')} with comprehensive behavioral deltas`,
-        experiment_type: 'deep_behavioral',
-        status: 'running',
-        config: { num_prompts, test_types, model },
+        description: `Testing ${test_types.join(", ")} with comprehensive behavioral deltas (no absolute grading)`,
+        experiment_type: "deep_behavioral",
+        status: "running",
+        config: { num_prompts, test_types, model, mode, trigger_phrases_per_category },
       })
       .select()
       .single();
-    
+
     if (expError) throw expError;
-    
-    const results: any[] = [];
-    const promptsToTest = TEST_PROMPTS.slice(0, num_prompts);
-    
-    console.log(`Starting deep behavioral collection: ${test_types.join(', ')} with ${promptsToTest.length} prompts`);
-    
-    let totalTests = 0;
-    let successfulTests = 0;
-    
-    for (const promptData of promptsToTest) {
-      const basePrompt = promptData.text;
-      console.log(`\nTesting: "${basePrompt.substring(0, 50)}..."`);
-      
-      // 1. GET BASELINE
-      console.log("  Getting baseline...");
-      let baselineResponse: APIResponse;
-      let baselineBehavior: FullBehaviorProfile;
-      
+
+    const task = async () => {
       try {
-        baselineResponse = await callLLM(basePrompt, model);
-        baselineBehavior = analyzeDeep(baselineResponse.output, basePrompt);
-        
-        // Save baseline
-        results.push({
-          experiment_id: experiment.id,
-          test_type: 'baseline',
-          base_prompt: basePrompt,
-          modified_prompt: basePrompt,
-          modification_applied: 'baseline',
-          output: baselineResponse.output,
-          latency_ms: baselineResponse.latency_ms,
-          tokens_used: baselineResponse.total_tokens,
-          provider: 'groq',
-          model_used: model,
-          metadata: {
-            domain: promptData.domain,
-            complexity: promptData.complexity,
-            behavior: baselineBehavior,
-            response_stats: {
-              input_tokens: baselineResponse.input_tokens,
-              output_tokens: baselineResponse.output_tokens,
-            },
-          },
+        await runDeepCollection({
+          supabase,
+          experiment,
+          num_prompts,
+          test_types,
+          model,
+          trigger_phrases_per_category,
         });
-        
-        console.log(`  Baseline: ${baselineBehavior.word_count} words, ${baselineBehavior.reasoning_indicators} reasoning, archetype: ${baselineBehavior.fingerprint.archetype}`);
       } catch (e) {
-        console.error("  Baseline error:", e);
-        continue;
-      }
-      
-      // 2. TEST TRIGGERS
-      if (test_types.includes('triggers')) {
-        for (const [category, phrases] of Object.entries(MODIFICATIONS.triggers)) {
-          for (const phrase of phrases.slice(0, 2)) { // Test 2 per category
-            totalTests++;
-            const modifiedPrompt = applyModification(basePrompt, 'trigger', phrase);
-            const tokensAdded = countTokens(phrase);
-            
-            try {
-              console.log(`  Testing trigger [${category}]: ${phrase.substring(0, 30)}...`);
-              const response = await callLLM(modifiedPrompt, model);
-              const behavior = analyzeDeep(response.output, modifiedPrompt);
-              const delta = calculateComprehensiveDelta(
-                { behavior: baselineBehavior, response: baselineResponse },
-                { behavior, response },
-                tokensAdded
-              );
-              
-              results.push({
-                experiment_id: experiment.id,
-                test_type: 'trigger',
-                base_prompt: basePrompt,
-                modified_prompt: modifiedPrompt,
-                modification_applied: phrase,
-                output: response.output,
-                latency_ms: response.latency_ms,
-                tokens_used: response.total_tokens,
-                provider: 'groq',
-                model_used: model,
-                metadata: {
-                  domain: promptData.domain,
-                  complexity: promptData.complexity,
-                  trigger_category: category,
-                  tokens_added: tokensAdded,
-                  behavior: behavior,
-                  delta: delta,
-                  power_score: delta.power_score,
-                  is_regression: delta.is_regression,
-                  regression_categories: delta.regression_categories,
-                  tradeoffs: delta.tradeoffs,
-                },
-              });
-              
-              successfulTests++;
-              console.log(`    Impact: ${delta.behavioral_impact.toFixed(2)}, Power: ${delta.power_score.toFixed(2)}, Regression: ${delta.is_regression}`);
-            } catch (e) {
-              console.error(`    Error: ${e}`);
-            }
-          }
+        console.error("Deep collection background task failed:", e);
+        try {
+          await updateExperiment(supabase, experiment.id, {
+            status: "failed",
+            updated_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+            config: {
+              ...(experiment as any)?.config,
+              last_error: e instanceof Error ? e.message : String(e),
+            },
+          });
+        } catch (inner) {
+          console.error("Failed to mark experiment as failed:", inner);
         }
       }
-      
-      // 3. TEST ROLES
-      if (test_types.includes('roles')) {
-        for (const [roleName, roleText] of Object.entries(MODIFICATIONS.roles)) {
-          for (const position of MODIFICATIONS.role_positions) {
-            totalTests++;
-            const modifiedPrompt = applyModification(basePrompt, `role_${position}`, roleText);
-            const tokensAdded = countTokens(roleText);
-            
-            try {
-              console.log(`  Testing role [${roleName}] at ${position}...`);
-              const response = await callLLM(modifiedPrompt, model);
-              const behavior = analyzeDeep(response.output, modifiedPrompt);
-              const delta = calculateComprehensiveDelta(
-                { behavior: baselineBehavior, response: baselineResponse },
-                { behavior, response },
-                tokensAdded
-              );
-              
-              results.push({
-                experiment_id: experiment.id,
-                test_type: 'role',
-                base_prompt: basePrompt,
-                modified_prompt: modifiedPrompt,
-                modification_applied: `${roleName}_${position}`,
-                output: response.output,
-                latency_ms: response.latency_ms,
-                tokens_used: response.total_tokens,
-                provider: 'groq',
-                model_used: model,
-                metadata: {
-                  domain: promptData.domain,
-                  complexity: promptData.complexity,
-                  role_name: roleName,
-                  role_position: position,
-                  tokens_added: tokensAdded,
-                  behavior: behavior,
-                  delta: delta,
-                  power_score: delta.power_score,
-                  is_regression: delta.is_regression,
-                  tradeoffs: delta.tradeoffs,
-                },
-              });
-              
-              successfulTests++;
-              console.log(`    Impact: ${delta.behavioral_impact.toFixed(2)}, Power: ${delta.power_score.toFixed(2)}`);
-            } catch (e) {
-              console.error(`    Error: ${e}`);
-            }
-          }
-        }
-      }
-      
-      // 4. TEST COT PATTERNS
-      if (test_types.includes('cot')) {
-        for (const [cotName, cotPhrase] of Object.entries(MODIFICATIONS.cot)) {
-          if (cotName === 'none') continue;
-          totalTests++;
-          
-          const modifiedPrompt = applyModification(basePrompt, 'cot', cotPhrase);
-          const tokensAdded = countTokens(cotPhrase);
-          
-          try {
-            console.log(`  Testing CoT [${cotName}]...`);
-            const response = await callLLM(modifiedPrompt, model);
-            const behavior = analyzeDeep(response.output, modifiedPrompt);
-            const delta = calculateComprehensiveDelta(
-              { behavior: baselineBehavior, response: baselineResponse },
-              { behavior, response },
-              tokensAdded
-            );
-            
-            results.push({
-              experiment_id: experiment.id,
-              test_type: 'cot',
-              base_prompt: basePrompt,
-              modified_prompt: modifiedPrompt,
-              modification_applied: cotName,
-              output: response.output,
-              latency_ms: response.latency_ms,
-              tokens_used: response.total_tokens,
-              provider: 'groq',
-              model_used: model,
-              metadata: {
-                domain: promptData.domain,
-                complexity: promptData.complexity,
-                cot_type: cotName,
-                cot_phrase: cotPhrase,
-                tokens_added: tokensAdded,
-                behavior: behavior,
-                delta: delta,
-                power_score: delta.power_score,
-                is_regression: delta.is_regression,
-                tradeoffs: delta.tradeoffs,
-              },
-            });
-            
-            successfulTests++;
-            console.log(`    Impact: ${delta.behavioral_impact.toFixed(2)}, Step Δ: ${delta.step_delta}, Reasoning Δ: ${delta.reasoning_delta}`);
-          } catch (e) {
-            console.error(`    Error: ${e}`);
-          }
-        }
-      }
-      
-      // 5. TEST CONSTRAINTS
-      if (test_types.includes('constraints')) {
-        for (const [constraintName, constraintText] of Object.entries(MODIFICATIONS.constraints)) {
-          totalTests++;
-          const modifiedPrompt = applyModification(basePrompt, 'constraint', constraintText);
-          const tokensAdded = countTokens(constraintText);
-          
-          try {
-            console.log(`  Testing constraint [${constraintName}]...`);
-            const response = await callLLM(modifiedPrompt, model);
-            const behavior = analyzeDeep(response.output, modifiedPrompt);
-            const delta = calculateComprehensiveDelta(
-              { behavior: baselineBehavior, response: baselineResponse },
-              { behavior, response },
-              tokensAdded
-            );
-            
-            results.push({
-              experiment_id: experiment.id,
-              test_type: 'constraint',
-              base_prompt: basePrompt,
-              modified_prompt: modifiedPrompt,
-              modification_applied: constraintName,
-              output: response.output,
-              latency_ms: response.latency_ms,
-              tokens_used: response.total_tokens,
-              provider: 'groq',
-              model_used: model,
-              metadata: {
-                domain: promptData.domain,
-                complexity: promptData.complexity,
-                constraint_type: constraintName,
-                tokens_added: tokensAdded,
-                behavior: behavior,
-                delta: delta,
-                power_score: delta.power_score,
-                is_regression: delta.is_regression,
-                tradeoffs: delta.tradeoffs,
-              },
-            });
-            
-            successfulTests++;
-            console.log(`    Impact: ${delta.behavioral_impact.toFixed(2)}, Word Δ: ${delta.word_count_delta}`);
-          } catch (e) {
-            console.error(`    Error: ${e}`);
-          }
-        }
-      }
-      
-      // 6. TEST STRUCTURES
-      if (test_types.includes('structures')) {
-        for (const [structName, structFn] of Object.entries(MODIFICATIONS.structures)) {
-          if (structName === 'plain') continue;
-          totalTests++;
-          
-          const modifiedPrompt = structFn(basePrompt);
-          const tokensAdded = countTokens(modifiedPrompt) - countTokens(basePrompt);
-          
-          try {
-            console.log(`  Testing structure [${structName}]...`);
-            const response = await callLLM(modifiedPrompt, model);
-            const behavior = analyzeDeep(response.output, modifiedPrompt);
-            const delta = calculateComprehensiveDelta(
-              { behavior: baselineBehavior, response: baselineResponse },
-              { behavior, response },
-              tokensAdded
-            );
-            
-            results.push({
-              experiment_id: experiment.id,
-              test_type: 'structure',
-              base_prompt: basePrompt,
-              modified_prompt: modifiedPrompt,
-              modification_applied: structName,
-              output: response.output,
-              latency_ms: response.latency_ms,
-              tokens_used: response.total_tokens,
-              provider: 'groq',
-              model_used: model,
-              metadata: {
-                domain: promptData.domain,
-                complexity: promptData.complexity,
-                structure_type: structName,
-                tokens_added: tokensAdded,
-                behavior: behavior,
-                delta: delta,
-                power_score: delta.power_score,
-                is_regression: delta.is_regression,
-                tradeoffs: delta.tradeoffs,
-              },
-            });
-            
-            successfulTests++;
-            console.log(`    Impact: ${delta.behavioral_impact.toFixed(2)}, Format change: ${delta.format_changed}`);
-          } catch (e) {
-            console.error(`    Error: ${e}`);
-          }
-        }
-      }
-    }
-    
-    // Save all results to database
-    console.log(`\nSaving ${results.length} results to database...`);
-    
-    for (const result of results) {
-      await supabase.from('research_results').insert(result);
-    }
-    
-    // Update experiment status
-    await supabase
-      .from('research_experiments')
-      .update({ 
-        status: 'completed',
-        completed_tests: successfulTests,
-        total_tests: totalTests + promptsToTest.length, // Include baselines
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', experiment.id);
-    
-    // Generate summary
-    const summary = {
-      experiment_id: experiment.id,
-      total_prompts_tested: promptsToTest.length,
-      total_modifications_tested: totalTests,
-      successful_tests: successfulTests,
-      test_types_run: test_types,
-      model_used: model,
-      
-      // Aggregate insights (relative comparisons)
-      avg_power_score: results
-        .filter(r => r.metadata?.power_score)
-        .reduce((sum, r) => sum + r.metadata.power_score, 0) / 
-        Math.max(results.filter(r => r.metadata?.power_score).length, 1),
-      
-      regression_rate: results
-        .filter(r => r.metadata?.is_regression)
-        .length / Math.max(results.length - promptsToTest.length, 1),
-      
-      top_performers: results
-        .filter(r => r.metadata?.power_score && !r.metadata?.is_regression)
-        .sort((a, b) => (b.metadata?.power_score || 0) - (a.metadata?.power_score || 0))
-        .slice(0, 5)
-        .map(r => ({
-          modification: r.modification_applied,
-          test_type: r.test_type,
-          power_score: r.metadata?.power_score,
-          behavioral_impact: r.metadata?.delta?.behavioral_impact,
-        })),
-      
-      regressions_detected: results
-        .filter(r => r.metadata?.is_regression)
-        .map(r => ({
-          modification: r.modification_applied,
-          categories: r.metadata?.regression_categories,
-        })),
     };
-    
-    console.log("\n=== COLLECTION COMPLETE ===");
-    console.log(`Collected ${results.length} results with comprehensive behavioral data`);
-    
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Deep behavioral collection complete',
-      summary,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+
+    if (mode === "async") {
+      // Avoid client timeouts: return immediately, continue processing.
+      // This is the key fix: results are inserted incrementally, so data is not lost.
+      // @ts-ignore - EdgeRuntime is provided by Supabase Edge Runtime
+      EdgeRuntime.waitUntil(task());
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          started: true,
+          mode,
+          experiment_id: experiment.id,
+          message: "Started deep collection in background; rows will stream into research_results incrementally.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Sync mode: useful only for tiny runs.
+    const summary = await runDeepCollection({
+      supabase,
+      experiment,
+      num_prompts,
+      test_types,
+      model,
+      trigger_phrases_per_category,
     });
 
+    return new Response(JSON.stringify({ success: true, started: true, mode, summary }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('Deep collection error:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      success: false,
-    }), {
+    console.error("Deep collection error:", error);
+    return new Response(JSON.stringify({ error: error.message, success: false }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
