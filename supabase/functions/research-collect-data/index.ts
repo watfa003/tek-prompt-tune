@@ -166,26 +166,27 @@ function analyzeLogprobs(logprobs: any[]): LogprobAnalysis {
   };
 }
 
-async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", retries = 2): Promise<APIResponse> {
+// Use OpenAI directly for logprobs support
+async function callWithLogprobs(prompt: string, retries = 2): Promise<APIResponse> {
   await rateLimitedDelay();
   
   const startTime = Date.now();
-  const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
-  if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY not configured');
+  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model,
+      model: 'gpt-4o-mini',  // OpenAI model that supports logprobs
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 400,
       temperature: 0.7,
-      logprobs: true,        // Enable logprobs collection
-      top_logprobs: 3,       // Get top 3 alternatives per token
+      logprobs: true,
+      top_logprobs: 3,
     }),
   });
 
@@ -194,9 +195,9 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", 
     if (response.status === 429 && retries > 0) {
       console.log(`Rate limited, waiting 15s... (${retries} retries left)`);
       await new Promise(r => setTimeout(r, 15000));
-      return callGroq(prompt, model, retries - 1);
+      return callWithLogprobs(prompt, retries - 1);
     }
-    throw new Error(`Groq API error: ${error}`);
+    throw new Error(`OpenAI API error: ${error}`);
   }
 
   const data = await response.json();
@@ -204,6 +205,8 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", 
   // Extract and analyze logprobs
   const rawLogprobs = data.choices[0]?.logprobs?.content || [];
   const logprobAnalysis = analyzeLogprobs(rawLogprobs);
+  
+  console.log(`Logprobs captured: ${rawLogprobs.length} tokens, perplexity: ${logprobAnalysis.perplexity.toFixed(2)}, hallucination_risk: ${logprobAnalysis.hallucination_risk.toFixed(3)}`);
   
   return {
     output: data.choices[0]?.message?.content || '',
@@ -213,7 +216,7 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", 
     total_tokens: data.usage?.total_tokens || 0,
     finish_reason: data.choices[0]?.finish_reason || 'unknown',
     logprob_analysis: logprobAnalysis,
-    raw_logprobs: rawLogprobs.slice(0, 50), // Store first 50 tokens for analysis
+    raw_logprobs: rawLogprobs.slice(0, 50),
   };
 }
 
@@ -466,7 +469,7 @@ serve(async (req) => {
       let baselineBehavior: BehaviorProfile;
       
       try {
-        baselineResponse = await callGroq(basePrompt);
+        baselineResponse = await callWithLogprobs(basePrompt);
         baselineBehavior = analyzeBehavior(baselineResponse.output);
         
         // Save baseline
@@ -479,8 +482,8 @@ serve(async (req) => {
           output: baselineResponse.output,
           latency_ms: baselineResponse.latency_ms,
           tokens_used: baselineResponse.total_tokens,
-          provider: 'groq',
-          model_used: 'llama-3.1-8b-instant',
+          provider: 'openai',
+          model_used: 'gpt-5-mini',
           metadata: {
             domain: promptData.domain,
             complexity: promptData.complexity,
@@ -514,7 +517,7 @@ serve(async (req) => {
           
           try {
             console.log(`  Testing trigger: ${category}...`);
-            const response = await callGroq(modifiedPrompt);
+            const response = await callWithLogprobs(modifiedPrompt);
             const behavior = analyzeBehavior(response.output);
             const delta = calculateDelta(
               { behavior: baselineBehavior, response: baselineResponse },
@@ -531,8 +534,8 @@ serve(async (req) => {
               output: response.output,
               latency_ms: response.latency_ms,
               tokens_used: response.total_tokens,
-              provider: 'groq',
-              model_used: 'llama-3.1-8b-instant',
+              provider: 'openai',
+              model_used: 'gpt-5-mini',
               metadata: {
                 domain: promptData.domain,
                 complexity: promptData.complexity,
@@ -578,7 +581,7 @@ serve(async (req) => {
           
           try {
             console.log(`  Testing CoT: ${name}...`);
-            const response = await callGroq(modifiedPrompt);
+            const response = await callWithLogprobs(modifiedPrompt);
             const behavior = analyzeBehavior(response.output);
             const delta = calculateDelta(
               { behavior: baselineBehavior, response: baselineResponse },
@@ -595,8 +598,8 @@ serve(async (req) => {
               output: response.output,
               latency_ms: response.latency_ms,
               tokens_used: response.total_tokens,
-              provider: 'groq',
-              model_used: 'llama-3.1-8b-instant',
+              provider: 'openai',
+              model_used: 'gpt-5-mini',
               metadata: {
                 domain: promptData.domain,
                 complexity: promptData.complexity,
@@ -623,7 +626,7 @@ serve(async (req) => {
           
           try {
             console.log(`  Testing structure: ${name}...`);
-            const response = await callGroq(modifiedPrompt);
+            const response = await callWithLogprobs(modifiedPrompt);
             const behavior = analyzeBehavior(response.output);
             const delta = calculateDelta(
               { behavior: baselineBehavior, response: baselineResponse },
@@ -640,8 +643,8 @@ serve(async (req) => {
               output: response.output,
               latency_ms: response.latency_ms,
               tokens_used: response.total_tokens,
-              provider: 'groq',
-              model_used: 'llama-3.1-8b-instant',
+              provider: 'openai',
+              model_used: 'gpt-5-mini',
               metadata: {
                 domain: promptData.domain,
                 complexity: promptData.complexity,
@@ -666,7 +669,7 @@ serve(async (req) => {
           
           try {
             console.log(`  Testing role position: ${posName}...`);
-            const response = await callGroq(modifiedPrompt);
+            const response = await callWithLogprobs(modifiedPrompt);
             const behavior = analyzeBehavior(response.output);
             const delta = calculateDelta(
               { behavior: baselineBehavior, response: baselineResponse },
@@ -683,8 +686,8 @@ serve(async (req) => {
               output: response.output,
               latency_ms: response.latency_ms,
               tokens_used: response.total_tokens,
-              provider: 'groq',
-              model_used: 'llama-3.1-8b-instant',
+              provider: 'openai',
+              model_used: 'gpt-5-mini',
               metadata: {
                 domain: promptData.domain,
                 complexity: promptData.complexity,
