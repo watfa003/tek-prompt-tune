@@ -1105,7 +1105,11 @@ function analyzeLogprobs(logprobs: { tokens: string[]; logprobs: number[] } | nu
 
   const probs = logprobs.logprobs;
   const avgLogProb = probs.reduce((a, b) => a + b, 0) / probs.length;
-  const perplexity = Math.exp(-avgLogProb);
+  
+  // Clamp avgLogProb to prevent overflow: -9.21 → e^9.21 ≈ 10000 (max reasonable perplexity)
+  // This fixes the bug where extremely negative avgLogProb values caused astronomical perplexity
+  const clampedAvgLogProb = Math.max(avgLogProb, -9.21);
+  const perplexity = Math.exp(-clampedAvgLogProb);
   
   // Count low confidence tokens (logprob < -2 means <13% confidence)
   const lowConfidenceCount = probs.filter(lp => lp < -2).length;
