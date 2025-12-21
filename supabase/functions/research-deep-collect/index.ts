@@ -132,6 +132,24 @@ async function rateLimitedDelay() {
   lastCallTime = Date.now();
 }
 
+interface LogprobToken {
+  token: string;
+  logprob: number;
+  top_logprobs?: Array<{ token: string; logprob: number }>;
+}
+
+interface LogprobAnalysis {
+  avg_logprob: number;           // Average confidence (-0 = certain, -5+ = uncertain)
+  perplexity: number;            // exp(-avg_logprob) - higher = more uncertain
+  min_logprob: number;           // Lowest confidence token
+  max_logprob: number;           // Highest confidence token
+  variance: number;              // Consistency of confidence
+  low_confidence_tokens: number; // Count of tokens with logprob < -3
+  high_confidence_tokens: number;// Count of tokens with logprob > -0.5
+  hallucination_risk: number;    // 0-1 score based on confidence patterns
+  tokens_analyzed: number;
+}
+
 interface APIResponse {
   output: string;
   latency_ms: number;
@@ -139,6 +157,69 @@ interface APIResponse {
   output_tokens: number;
   total_tokens: number;
   finish_reason: string;
+  logprob_analysis?: LogprobAnalysis;
+  raw_logprobs?: LogprobToken[];
+}
+
+// Analyze logprobs to calculate perplexity and hallucination risk
+function analyzeLogprobs(logprobs: any[]): LogprobAnalysis {
+  if (!logprobs || logprobs.length === 0) {
+    return {
+      avg_logprob: 0,
+      perplexity: 1,
+      min_logprob: 0,
+      max_logprob: 0,
+      variance: 0,
+      low_confidence_tokens: 0,
+      high_confidence_tokens: 0,
+      hallucination_risk: 0,
+      tokens_analyzed: 0,
+    };
+  }
+
+  const probs = logprobs.map(t => t.logprob).filter(p => typeof p === 'number' && isFinite(p));
+  if (probs.length === 0) {
+    return {
+      avg_logprob: 0,
+      perplexity: 1,
+      min_logprob: 0,
+      max_logprob: 0,
+      variance: 0,
+      low_confidence_tokens: 0,
+      high_confidence_tokens: 0,
+      hallucination_risk: 0,
+      tokens_analyzed: 0,
+    };
+  }
+
+  const avg = probs.reduce((a, b) => a + b, 0) / probs.length;
+  const min = Math.min(...probs);
+  const max = Math.max(...probs);
+  const variance = probs.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) / probs.length;
+  
+  const lowConfidence = probs.filter(p => p < -3).length;
+  const highConfidence = probs.filter(p => p > -0.5).length;
+  const perplexity = Math.exp(-avg);
+  
+  // Hallucination risk: low confidence + high variance = higher risk
+  const lowConfidenceRatio = lowConfidence / probs.length;
+  const normalizedVariance = Math.min(variance / 5, 1);
+  const hallucination_risk = Math.min(
+    (lowConfidenceRatio * 0.6) + (normalizedVariance * 0.3) + (perplexity > 10 ? 0.1 : 0),
+    1
+  );
+
+  return {
+    avg_logprob: avg,
+    perplexity,
+    min_logprob: min,
+    max_logprob: max,
+    variance,
+    low_confidence_tokens: lowConfidence,
+    high_confidence_tokens: highConfidence,
+    hallucination_risk,
+    tokens_analyzed: probs.length,
+  };
 }
 
 async function callLLM(prompt: string, model: string = "llama-3.1-8b-instant", retries = 2): Promise<APIResponse> {
@@ -159,6 +240,8 @@ async function callLLM(prompt: string, model: string = "llama-3.1-8b-instant", r
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 500,
       temperature: 0.7,
+      logprobs: true,        // Enable logprobs collection
+      top_logprobs: 3,       // Get top 3 alternatives per token
     }),
   });
 
@@ -173,6 +256,11 @@ async function callLLM(prompt: string, model: string = "llama-3.1-8b-instant", r
   }
 
   const data = await response.json();
+  
+  // Extract and analyze logprobs
+  const rawLogprobs = data.choices[0]?.logprobs?.content || [];
+  const logprobAnalysis = analyzeLogprobs(rawLogprobs);
+  
   return {
     output: data.choices[0]?.message?.content || '',
     latency_ms: Date.now() - startTime,
@@ -180,6 +268,8 @@ async function callLLM(prompt: string, model: string = "llama-3.1-8b-instant", r
     output_tokens: data.usage?.completion_tokens || 0,
     total_tokens: data.usage?.total_tokens || 0,
     finish_reason: data.choices[0]?.finish_reason || 'unknown',
+    logprob_analysis: logprobAnalysis,
+    raw_logprobs: rawLogprobs.slice(0, 50), // Store first 50 for analysis
   };
 }
 
@@ -475,6 +565,19 @@ interface ComprehensiveDelta {
     neutral: string[];
   };
   
+  // Logprob/confidence deltas - NEW
+  logprob_delta: {
+    perplexity_delta: number;           // + = more uncertain after modification
+    hallucination_risk_delta: number;   // + = higher hallucination risk
+    avg_confidence_delta: number;       // - = less confident
+    low_confidence_tokens_delta: number;
+    variance_delta: number;             // + = more erratic confidence
+    baseline_perplexity: number;
+    modified_perplexity: number;
+    baseline_hallucination_risk: number;
+    modified_hallucination_risk: number;
+  } | null;
+  
   // Composite metrics (relative)
   behavioral_impact: number;      // Sum of absolute changes
   power_score: number;            // Impact per token added
@@ -583,6 +686,33 @@ function calculateComprehensiveDelta(
   const qualityGain = Math.max(0, reasoningDelta) + Math.max(0, exampleDelta) + Math.max(0, actionableDelta);
   const efficiencyScore = tokensAdded > 0 ? qualityGain / tokensAdded : qualityGain;
   
+  // Logprob delta calculation - NEW
+  let logprobDelta = null;
+  const bLogprob = baseline.response.logprob_analysis;
+  const mLogprob = modified.response.logprob_analysis;
+  
+  if (bLogprob && mLogprob && bLogprob.tokens_analyzed > 0 && mLogprob.tokens_analyzed > 0) {
+    logprobDelta = {
+      perplexity_delta: mLogprob.perplexity - bLogprob.perplexity,
+      hallucination_risk_delta: mLogprob.hallucination_risk - bLogprob.hallucination_risk,
+      avg_confidence_delta: mLogprob.avg_logprob - bLogprob.avg_logprob,
+      low_confidence_tokens_delta: mLogprob.low_confidence_tokens - bLogprob.low_confidence_tokens,
+      variance_delta: mLogprob.variance - bLogprob.variance,
+      baseline_perplexity: bLogprob.perplexity,
+      modified_perplexity: mLogprob.perplexity,
+      baseline_hallucination_risk: bLogprob.hallucination_risk,
+      modified_hallucination_risk: mLogprob.hallucination_risk,
+    };
+    
+    // Add hallucination risk increase to regression detection
+    if (logprobDelta.hallucination_risk_delta > 0.1) {
+      regressions.push('hallucination_risk_increased');
+    }
+    if (logprobDelta.perplexity_delta > 2) {
+      regressions.push('perplexity_increased');
+    }
+  }
+  
   return {
     word_count_delta: wordDelta,
     word_count_pct_change: b.word_count > 0 ? (wordDelta / b.word_count) * 100 : 0,
@@ -625,6 +755,8 @@ function calculateComprehensiveDelta(
     regression_categories: regressions,
     
     tradeoffs: { gained, lost, neutral },
+    
+    logprob_delta: logprobDelta,
     
     behavioral_impact: behavioralImpact,
     power_score: powerScore,
@@ -816,6 +948,14 @@ async function runDeepCollection(params: {
             input_tokens: baselineResponse.input_tokens,
             output_tokens: baselineResponse.output_tokens,
           },
+          // Logprob analysis for confidence/hallucination detection
+          logprob_analysis: baselineResponse.logprob_analysis,
+          confidence_metrics: baselineResponse.logprob_analysis ? {
+            perplexity: baselineResponse.logprob_analysis.perplexity,
+            hallucination_risk: baselineResponse.logprob_analysis.hallucination_risk,
+            avg_confidence: -baselineResponse.logprob_analysis.avg_logprob,
+            tokens_analyzed: baselineResponse.logprob_analysis.tokens_analyzed,
+          } : null,
         },
       });
 
@@ -871,6 +1011,14 @@ async function runDeepCollection(params: {
                 is_regression: delta.is_regression,
                 regression_categories: delta.regression_categories,
                 tradeoffs: delta.tradeoffs,
+                // Logprob analysis
+                logprob_analysis: response.logprob_analysis,
+                confidence_metrics: response.logprob_analysis ? {
+                  perplexity: response.logprob_analysis.perplexity,
+                  hallucination_risk: response.logprob_analysis.hallucination_risk,
+                  perplexity_delta: delta.logprob_delta?.perplexity_delta ?? null,
+                  hallucination_risk_delta: delta.logprob_delta?.hallucination_risk_delta ?? null,
+                } : null,
               },
             });
 
@@ -929,6 +1077,13 @@ async function runDeepCollection(params: {
                 is_regression: delta.is_regression,
                 regression_categories: delta.regression_categories,
                 tradeoffs: delta.tradeoffs,
+                logprob_analysis: response.logprob_analysis,
+                confidence_metrics: response.logprob_analysis ? {
+                  perplexity: response.logprob_analysis.perplexity,
+                  hallucination_risk: response.logprob_analysis.hallucination_risk,
+                  perplexity_delta: delta.logprob_delta?.perplexity_delta ?? null,
+                  hallucination_risk_delta: delta.logprob_delta?.hallucination_risk_delta ?? null,
+                } : null,
               },
             });
 
@@ -986,6 +1141,13 @@ async function runDeepCollection(params: {
               is_regression: delta.is_regression,
               regression_categories: delta.regression_categories,
               tradeoffs: delta.tradeoffs,
+              logprob_analysis: response.logprob_analysis,
+              confidence_metrics: response.logprob_analysis ? {
+                perplexity: response.logprob_analysis.perplexity,
+                hallucination_risk: response.logprob_analysis.hallucination_risk,
+                perplexity_delta: delta.logprob_delta?.perplexity_delta ?? null,
+                hallucination_risk_delta: delta.logprob_delta?.hallucination_risk_delta ?? null,
+              } : null,
             },
           });
 
@@ -1041,6 +1203,13 @@ async function runDeepCollection(params: {
               is_regression: delta.is_regression,
               regression_categories: delta.regression_categories,
               tradeoffs: delta.tradeoffs,
+              logprob_analysis: response.logprob_analysis,
+              confidence_metrics: response.logprob_analysis ? {
+                perplexity: response.logprob_analysis.perplexity,
+                hallucination_risk: response.logprob_analysis.hallucination_risk,
+                perplexity_delta: delta.logprob_delta?.perplexity_delta ?? null,
+                hallucination_risk_delta: delta.logprob_delta?.hallucination_risk_delta ?? null,
+              } : null,
             },
           });
 
@@ -1096,6 +1265,13 @@ async function runDeepCollection(params: {
               is_regression: delta.is_regression,
               regression_categories: delta.regression_categories,
               tradeoffs: delta.tradeoffs,
+              logprob_analysis: response.logprob_analysis,
+              confidence_metrics: response.logprob_analysis ? {
+                perplexity: response.logprob_analysis.perplexity,
+                hallucination_risk: response.logprob_analysis.hallucination_risk,
+                perplexity_delta: delta.logprob_delta?.perplexity_delta ?? null,
+                hallucination_risk_delta: delta.logprob_delta?.hallucination_risk_delta ?? null,
+              } : null,
             },
           });
 
