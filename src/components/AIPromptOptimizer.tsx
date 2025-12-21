@@ -34,7 +34,9 @@ import {
   Crown,
   Trophy,
   Save,
-  Wand2
+  Wand2,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import { OptimizerResetButton } from '@/components/OptimizerResetButton';
 import { supabase } from '@/integrations/supabase/client';
@@ -568,6 +570,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   const [showRating, setShowRating] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
   const [isCanceled, setIsCanceled] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<'positive' | 'negative' | null>(null);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const currentSessionKeyRef = useRef<string | null>(null);
 
   // Get user for realtime progress
@@ -858,6 +862,7 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     setResult(null);
     setSpeedResult(null);
     setShowRating(false);
+    setFeedbackSubmitted(null);
     
     // Clear form fields
     setOriginalPrompt('');
@@ -879,6 +884,55 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       title: "New Session Started",
       description: "Previous session cleared. You can now start a new optimization.",
     });
+  };
+
+  // Submit feedback for optimization results
+  const submitFeedback = async (feedback: 'positive' | 'negative') => {
+    if (isSubmittingFeedback || !result) return;
+    
+    setIsSubmittingFeedback(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to submit feedback",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await supabase.functions.invoke('submit-feedback', {
+        body: {
+          promptId: result.promptId,
+          feedback,
+          strategy: result.summary?.bestStrategy,
+          provider: aiProvider,
+          model: modelName
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to submit feedback');
+      }
+
+      setFeedbackSubmitted(feedback);
+      toast({
+        title: feedback === 'positive' ? "Thanks for the feedback!" : "We'll do better",
+        description: feedback === 'positive' 
+          ? "Your feedback helps improve our optimization strategies."
+          : "We've recorded your feedback to improve future results.",
+      });
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast({
+        title: "Feedback Error",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -1115,6 +1169,33 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                 <Zap className="h-6 w-6 mx-auto mb-2 text-primary" />
                 <div className="text-lg font-bold">{Math.round(((result.summary?.processingTimeMs ?? 0) / 1000))}s</div>
                 <div className="text-xs text-muted-foreground">Processing Time</div>
+              </div>
+            </div>
+
+            {/* User Feedback Section */}
+            <div className="flex items-center justify-center gap-4 p-4 rounded-lg bg-muted/30 border border-border/50">
+              <span className="text-sm text-muted-foreground">Was this optimization helpful?</span>
+              <div className="flex gap-2">
+                <Button
+                  variant={feedbackSubmitted === 'positive' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => submitFeedback('positive')}
+                  disabled={isSubmittingFeedback || feedbackSubmitted !== null}
+                  className={feedbackSubmitted === 'positive' ? 'bg-green-600 hover:bg-green-700' : ''}
+                >
+                  <ThumbsUp className={`h-4 w-4 ${feedbackSubmitted === 'positive' ? '' : 'mr-1'}`} />
+                  {feedbackSubmitted === 'positive' && <span className="ml-1">Thanks!</span>}
+                </Button>
+                <Button
+                  variant={feedbackSubmitted === 'negative' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => submitFeedback('negative')}
+                  disabled={isSubmittingFeedback || feedbackSubmitted !== null}
+                  className={feedbackSubmitted === 'negative' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                >
+                  <ThumbsDown className={`h-4 w-4 ${feedbackSubmitted === 'negative' ? '' : 'mr-1'}`} />
+                  {feedbackSubmitted === 'negative' && <span className="ml-1">Noted</span>}
+                </Button>
               </div>
             </div>
 
