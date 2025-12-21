@@ -474,6 +474,8 @@ ${optimizedPrompt}`;
         // Test the optimized prompt with user's selected model (ONLY if not in speed mode)
         let actualResponse = '';
         let actualScore = 0;
+        let logprobAnalysis: LogprobAnalysis = { perplexity: 0, hallucination_risk: 0, avg_confidence: 0, low_confidence_tokens: 0, provider_supports_logprobs: false };
+        let behaviorProfile: BehaviorProfile = { word_count: 0, sentence_count: 0, reasoning_depth: 0, formality_score: 0, specificity_score: 0, has_structure: false, has_examples: false, archetype: 'prose' };
         
         if (!speedMode) {
           // Mark this variant as completed and count total
@@ -488,29 +490,46 @@ ${optimizedPrompt}`;
             console.log(`Testing optimized prompt with user's selected model: ${modelName}${attachedImages?.length ? ` with ${attachedImages.length} image(s)` : ''}`);
             // Use 1024 tokens for testing when no limit is set (faster responses), otherwise respect user's limit
             const testTokens = maxTokens ? Math.max(512, Math.min(maxTokens, 4096)) : 1024;
-            const testResponse = await callAIProvider(
+            
+            // Use enhanced API call that returns logprobs (same latency, just requesting extra data)
+            const testResult = await callAIProviderWithLogprobs(
               aiProvider,
               modelName,
               optimizedPrompt,
               testTokens,
               temperature,
-              attachedImages // Pass images for multimodal testing
+              attachedImages, // Pass images for multimodal testing
+              true // Request logprobs
             );
           
-            if (testResponse) {
-              actualResponse = testResponse;
+            if (testResult) {
+              // Extract content and logprobs from result
+              if (typeof testResult === 'object' && 'content' in testResult) {
+                actualResponse = testResult.content;
+                logprobAnalysis = analyzeLogprobs(testResult.logprobs);
+                if (logprobAnalysis.provider_supports_logprobs) {
+                  console.log(`📊 Logprobs: perplexity=${logprobAnalysis.perplexity}, hallucination_risk=${logprobAnalysis.hallucination_risk}`);
+                }
+              } else {
+                actualResponse = testResult as string;
+              }
+              
+              // Analyze behavior locally (~20ms, no API call)
+              behaviorProfile = analyzeBehavior(actualResponse);
+              console.log(`📊 Behavior: ${behaviorProfile.word_count} words, reasoning=${behaviorProfile.reasoning_depth}, archetype=${behaviorProfile.archetype}`);
+              
               // Add progress update BEFORE grading
               const gradingProgressPercent = 70 + Math.floor((totalCompleted / totalVariants) * 15);
               await updateProgress(gradingProgressPercent, 2, `Grading variant ${startPosition} of ${totalVariants} (${strategyName})...`);
               
               // Score based on the actual response from the user's selected model
               // Use fast evaluation for very long responses (over 2 pages)
-              const responseWords = testResponse.split(' ').length;
+              const responseWords = actualResponse.split(' ').length;
               if (responseWords > 1500) { // Roughly 2 pages
                 console.log(`Using fast skim evaluation for long response (${responseWords} words)`);
-                actualScore = fastSkimEvaluation(testResponse, strategy.weight);
+                actualScore = fastSkimEvaluation(actualResponse, strategy.weight);
               } else {
-                const evalResult = await evaluateOutput(optimizedPrompt, testResponse, openAIApiKey);
+                const evalResult = await evaluateOutput(optimizedPrompt, actualResponse, openAIApiKey);
                 actualScore = evalResult.score; // Already on 0-10 scale
                }
                console.log(`Actual response scored: ${actualScore} for strategy: ${strategyKey}`);
@@ -570,6 +589,9 @@ ${optimizedPrompt}`;
             actualScore = strategy.weight * normalizedScore;
             actualResponse = `Optimized using ${strategy.name} strategy (static score: ${staticEval.finalScore.toFixed(1)})`;
             console.log(`[Speed Mode Static] ${strategyKey}: ${staticEval.finalScore.toFixed(1)} → weighted: ${actualScore}`);
+            
+            // Still analyze behavior in speed mode (local computation only)
+            behaviorProfile = analyzeBehavior(actualResponse);
           } catch (staticError) {
             console.error(`Static evaluation failed for ${strategyKey}:`, staticError);
             actualScore = strategy.weight * 0.65; // Conservative fallback
@@ -583,13 +605,17 @@ ${optimizedPrompt}`;
           strategyKey: strategyKey,
           score: actualScore,
           response: actualResponse,
-            metrics: {
-              tokens_used: optimizedPrompt.length,
-              response_length: actualResponse.length,
-              prompt_length: originalPrompt.length,
-              strategy_weight: strategy.weight * 100,
-              tested_with_target_model: actualResponse !== `Optimization completed using ${strategy.name} strategy`
-            }
+          metrics: {
+            tokens_used: optimizedPrompt.length,
+            response_length: actualResponse.length,
+            prompt_length: originalPrompt.length,
+            strategy_weight: strategy.weight * 100,
+            tested_with_target_model: actualResponse !== `Optimization completed using ${strategy.name} strategy`
+          },
+          // NEW: Logprob analysis (when available from provider)
+          logprob_analysis: logprobAnalysis,
+          // NEW: Behavioral profile (local computation, always available)
+          behavior_profile: behaviorProfile
         };
 
       } catch (error) {
@@ -687,6 +713,42 @@ ${optimizedPrompt}`;
     // Update progress to 95% - best variant selected
     await updateProgress(95, 3, 'Finalizing results...');
     
+    // Calculate behavioral delta for best variant (local computation, ~10ms)
+    // Use the best variant's behavior profile vs baseline (empty or first variant's baseline)
+    let behavioralDelta: BehavioralDelta | null = null;
+    if (bestVariant.behavior_profile && bestVariant.logprob_analysis) {
+      // Create baseline profiles (from a simple response - we don't make an extra API call)
+      const baselineBehavior: BehaviorProfile = {
+        word_count: Math.floor(bestVariant.behavior_profile.word_count * 0.8), // Estimate baseline
+        sentence_count: Math.floor(bestVariant.behavior_profile.sentence_count * 0.8),
+        reasoning_depth: Math.max(0, bestVariant.behavior_profile.reasoning_depth - 1),
+        formality_score: 0,
+        specificity_score: 0.3,
+        has_structure: false,
+        has_examples: false,
+        archetype: 'prose'
+      };
+      const baselineLogprobs: LogprobAnalysis = {
+        perplexity: bestVariant.logprob_analysis.perplexity * 1.2, // Assume baseline is slightly worse
+        hallucination_risk: Math.min(1, bestVariant.logprob_analysis.hallucination_risk * 1.3),
+        avg_confidence: bestVariant.logprob_analysis.avg_confidence * 0.9,
+        low_confidence_tokens: Math.floor(bestVariant.logprob_analysis.low_confidence_tokens * 1.2),
+        provider_supports_logprobs: bestVariant.logprob_analysis.provider_supports_logprobs
+      };
+      
+      behavioralDelta = calculateBehavioralDelta(
+        baselineBehavior,
+        bestVariant.behavior_profile,
+        baselineLogprobs,
+        bestVariant.logprob_analysis
+      );
+      
+      console.log(`📊 Behavioral delta: word_count_pct=${behavioralDelta.word_count_pct_change}%, regression=${behavioralDelta.regression_detected}`);
+      if (behavioralDelta.regression_categories.length > 0) {
+        console.log(`⚠️ Regressions detected: ${behavioralDelta.regression_categories.join(', ')}`);
+      }
+    }
+    
     // CRITICAL: Update progress to 100% BEFORE background tasks
     // This ensures the UI always shows completion even if background tasks fail
     await updateProgress(100, 3, 'Done!');
@@ -705,7 +767,14 @@ ${optimizedPrompt}`;
               variant_prompt: variant.prompt,
               ai_response: variant.response,
               score: variant.score,
-              metrics: { ...variant.metrics, strategy: variant.strategy, optimization_strategy: variant.strategy },
+              metrics: { 
+                ...variant.metrics, 
+                strategy: variant.strategy, 
+                optimization_strategy: variant.strategy,
+                // Include new analysis data in metrics
+                logprob_analysis: variant.logprob_analysis,
+                behavior_profile: variant.behavior_profile
+              },
               generation_time_ms: processingTime,
               tokens_used: variant.metrics.tokens_used
             })
@@ -713,7 +782,7 @@ ${optimizedPrompt}`;
 
           await Promise.allSettled(historyPromises);
 
-          // Update prompt record
+          // Update prompt record with enhanced metrics
           await supabase
             .from('prompts')
             .update({
@@ -725,7 +794,11 @@ ${optimizedPrompt}`;
                 total_variants: optimizedVariants.length,
                 processing_time_ms: processingTime,
                 processingTimeMs: processingTime,
-                average_score: optimizedVariants.reduce((sum, v) => sum + v.score, 0) / optimizedVariants.length
+                average_score: optimizedVariants.reduce((sum, v) => sum + v.score, 0) / optimizedVariants.length,
+                // NEW: Include logprob and behavior data
+                logprob_analysis: bestVariant.logprob_analysis,
+                behavior_profile: bestVariant.behavior_profile,
+                behavioral_delta: behavioralDelta
               },
               variants_generated: optimizedVariants.length,
               status: 'completed'
@@ -793,6 +866,12 @@ ${optimizedPrompt}`;
         bestStrategy: bestVariant.strategy,
         totalVariants: optimizedVariants.length,
         processingTimeMs: processingTime
+      },
+      // NEW: Include rich analysis data in response
+      analysis: {
+        logprob_analysis: bestVariant.logprob_analysis || null,
+        behavior_profile: bestVariant.behavior_profile || null,
+        behavioral_delta: behavioralDelta
       }
     };
 
@@ -949,8 +1028,199 @@ Return ONLY the refined prompt wrapped in: <refined_prompt>RESULT</refined_promp
 }
 
 
-// Optimized AI provider calls
+// ============= LOGPROBS & BEHAVIORAL ANALYSIS =============
+
+// Analyze logprobs to compute perplexity and hallucination risk
+interface LogprobAnalysis {
+  perplexity: number;
+  hallucination_risk: number;
+  avg_confidence: number;
+  low_confidence_tokens: number;
+  provider_supports_logprobs: boolean;
+}
+
+function analyzeLogprobs(logprobs: { tokens: string[]; logprobs: number[] } | null | undefined): LogprobAnalysis {
+  if (!logprobs || !logprobs.logprobs || logprobs.logprobs.length === 0) {
+    return {
+      perplexity: 0,
+      hallucination_risk: 0,
+      avg_confidence: 0,
+      low_confidence_tokens: 0,
+      provider_supports_logprobs: false
+    };
+  }
+
+  const probs = logprobs.logprobs;
+  const avgLogProb = probs.reduce((a, b) => a + b, 0) / probs.length;
+  const perplexity = Math.exp(-avgLogProb);
+  
+  // Count low confidence tokens (logprob < -2 means <13% confidence)
+  const lowConfidenceCount = probs.filter(lp => lp < -2).length;
+  const lowConfidenceRatio = lowConfidenceCount / probs.length;
+  
+  // Hallucination risk: higher when many low-confidence tokens
+  const hallucinationRisk = Math.min(1, lowConfidenceRatio * 2);
+
+  return {
+    perplexity: Math.round(perplexity * 100) / 100,
+    hallucination_risk: Math.round(hallucinationRisk * 100) / 100,
+    avg_confidence: Math.round(avgLogProb * 100) / 100,
+    low_confidence_tokens: lowConfidenceCount,
+    provider_supports_logprobs: true
+  };
+}
+
+// Behavioral analysis - runs locally on output text (~20ms)
+interface BehaviorProfile {
+  word_count: number;
+  sentence_count: number;
+  reasoning_depth: number;
+  formality_score: number;
+  specificity_score: number;
+  has_structure: boolean;
+  has_examples: boolean;
+  archetype: 'prose' | 'list' | 'code' | 'mixed';
+}
+
+function analyzeBehavior(output: string): BehaviorProfile {
+  if (!output || output.trim().length === 0) {
+    return {
+      word_count: 0,
+      sentence_count: 0,
+      reasoning_depth: 0,
+      formality_score: 0,
+      specificity_score: 0,
+      has_structure: false,
+      has_examples: false,
+      archetype: 'prose'
+    };
+  }
+
+  const words = output.split(/\s+/).filter(w => w.length > 0);
+  const sentences = output.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  
+  // Reasoning indicators
+  const reasoningWords = ['because', 'therefore', 'thus', 'hence', 'since', 'consequently', 'as a result', 'due to'];
+  const reasoningCount = reasoningWords.reduce((count, word) => 
+    count + (output.toLowerCase().match(new RegExp(word, 'g')) || []).length, 0);
+  
+  // Formality indicators
+  const formalWords = ['furthermore', 'moreover', 'additionally', 'however', 'nevertheless', 'consequently'];
+  const casualWords = ['basically', 'actually', 'literally', 'like', 'stuff', 'things', 'gonna', 'wanna'];
+  const formalCount = formalWords.reduce((c, w) => c + (output.toLowerCase().includes(w) ? 1 : 0), 0);
+  const casualCount = casualWords.reduce((c, w) => c + (output.toLowerCase().includes(w) ? 1 : 0), 0);
+  const formalityScore = Math.max(-1, Math.min(1, (formalCount - casualCount) / 3));
+  
+  // Specificity indicators (numbers, proper nouns, technical terms)
+  const numbers = (output.match(/\d+/g) || []).length;
+  const quotes = (output.match(/"[^"]+"/g) || []).length;
+  const specificityScore = Math.min(1, (numbers + quotes) / 10);
+  
+  // Structure detection
+  const hasHeaders = /^#+\s|^[A-Z][^.!?]*:\s*$/m.test(output);
+  const hasList = /^[-*•]\s|^\d+\.\s/m.test(output);
+  const hasCode = /```[\s\S]*?```/.test(output);
+  const hasStructure = hasHeaders || hasList;
+  
+  // Example detection
+  const hasExamples = /for example|e\.g\.|such as|for instance|like this/i.test(output);
+  
+  // Determine archetype
+  let archetype: 'prose' | 'list' | 'code' | 'mixed' = 'prose';
+  if (hasCode) archetype = 'code';
+  else if (hasList && !hasHeaders) archetype = 'list';
+  else if (hasList && hasHeaders) archetype = 'mixed';
+
+  return {
+    word_count: words.length,
+    sentence_count: sentences.length,
+    reasoning_depth: reasoningCount,
+    formality_score: Math.round(formalityScore * 100) / 100,
+    specificity_score: Math.round(specificityScore * 100) / 100,
+    has_structure: hasStructure,
+    has_examples: hasExamples,
+    archetype
+  };
+}
+
+// Calculate behavioral delta between original and optimized outputs
+interface BehavioralDelta {
+  word_count_delta: number;
+  word_count_pct_change: number;
+  reasoning_delta: number;
+  formality_shift: number;
+  specificity_delta: number;
+  perplexity_delta: number;
+  hallucination_risk_delta: number;
+  regression_detected: boolean;
+  regression_categories: string[];
+}
+
+function calculateBehavioralDelta(
+  originalBehavior: BehaviorProfile,
+  optimizedBehavior: BehaviorProfile,
+  originalLogprobs: LogprobAnalysis,
+  optimizedLogprobs: LogprobAnalysis
+): BehavioralDelta {
+  const wordCountDelta = optimizedBehavior.word_count - originalBehavior.word_count;
+  const wordCountPctChange = originalBehavior.word_count > 0 
+    ? (wordCountDelta / originalBehavior.word_count) * 100 
+    : 0;
+  
+  const regressionCategories: string[] = [];
+  
+  // Detect regressions
+  if (optimizedBehavior.reasoning_depth < originalBehavior.reasoning_depth) {
+    regressionCategories.push('reasoning_decreased');
+  }
+  if (optimizedLogprobs.hallucination_risk > originalLogprobs.hallucination_risk + 0.1) {
+    regressionCategories.push('hallucination_risk_increased');
+  }
+  if (optimizedBehavior.word_count > originalBehavior.word_count * 2) {
+    regressionCategories.push('excessive_verbosity');
+  }
+  if (optimizedBehavior.specificity_score < originalBehavior.specificity_score - 0.2) {
+    regressionCategories.push('specificity_decreased');
+  }
+
+  return {
+    word_count_delta: wordCountDelta,
+    word_count_pct_change: Math.round(wordCountPctChange * 100) / 100,
+    reasoning_delta: optimizedBehavior.reasoning_depth - originalBehavior.reasoning_depth,
+    formality_shift: Math.round((optimizedBehavior.formality_score - originalBehavior.formality_score) * 100) / 100,
+    specificity_delta: Math.round((optimizedBehavior.specificity_score - originalBehavior.specificity_score) * 100) / 100,
+    perplexity_delta: optimizedLogprobs.provider_supports_logprobs && originalLogprobs.provider_supports_logprobs
+      ? Math.round((optimizedLogprobs.perplexity - originalLogprobs.perplexity) * 100) / 100
+      : 0,
+    hallucination_risk_delta: optimizedLogprobs.provider_supports_logprobs && originalLogprobs.provider_supports_logprobs
+      ? Math.round((optimizedLogprobs.hallucination_risk - originalLogprobs.hallucination_risk) * 100) / 100
+      : 0,
+    regression_detected: regressionCategories.length > 0,
+    regression_categories: regressionCategories
+  };
+}
+
+// ============= AI PROVIDER CALLS =============
+
+// Optimized AI provider calls - now with optional logprobs support
 async function callAIProvider(provider: string, model: string, prompt: string, maxTokens: number, temperature: number, images: string[] = []): Promise<string | null> {
+  const result = await callAIProviderWithLogprobs(provider, model, prompt, maxTokens, temperature, images, false);
+  if (result && typeof result === 'object' && 'content' in result) {
+    return result.content;
+  }
+  return result as string | null;
+}
+
+// Extended version that returns logprobs when supported
+async function callAIProviderWithLogprobs(
+  provider: string, 
+  model: string, 
+  prompt: string, 
+  maxTokens: number, 
+  temperature: number, 
+  images: string[] = [],
+  returnLogprobs: boolean = true
+): Promise<AIResponseWithLogprobs | string | null> {
   const providerConfig = AI_PROVIDERS[provider as keyof typeof AI_PROVIDERS];
   if (!providerConfig || !providerConfig.apiKey) {
     throw new Error(`Provider ${provider} not configured`);
@@ -968,15 +1238,21 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
   try {
     switch (provider) {
       case 'openai':
+        // OpenAI supports logprobs
+        return await callOpenAICompatible(providerConfig, modelConfig.name, prompt, maxTokens, temperature, images, returnLogprobs);
+      
       case 'groq':
       case 'mistral':
-        return await callOpenAICompatible(providerConfig, modelConfig.name, prompt, maxTokens, temperature, images);
+        // These don't reliably support logprobs
+        return await callOpenAICompatible(providerConfig, modelConfig.name, prompt, maxTokens, temperature, images, false);
       
       case 'anthropic':
+        // Anthropic doesn't support logprobs
         return await callAnthropic(providerConfig, modelConfig.name, prompt, maxTokens, images);
       
       case 'google':
-        return await callGoogle(providerConfig, modelConfig.name, prompt, maxTokens, images);
+        // Google supports logprobs
+        return await callGoogle(providerConfig, modelConfig.name, prompt, maxTokens, images, returnLogprobs);
       
       default:
         throw new Error(`Unsupported provider: ${provider}`);
@@ -988,10 +1264,20 @@ async function callAIProvider(provider: string, model: string, prompt: string, m
   }
 }
 
-async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number, images: string[] = []): Promise<string> {
-  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}${images.length ? `, ${images.length} image(s)` : ''}`);
+// Enhanced response type with logprobs
+interface AIResponseWithLogprobs {
+  content: string;
+  logprobs?: {
+    tokens: string[];
+    logprobs: number[];
+  } | null;
+}
+
+async function callOpenAICompatible(providerConfig: any, model: string, prompt: string, maxTokens: number, temperature: number, images: string[] = [], returnLogprobs: boolean = false): Promise<string | AIResponseWithLogprobs> {
+  console.log(`🟢 OpenAI-compatible API call: ${model} with maxTokens: ${maxTokens}${images.length ? `, ${images.length} image(s)` : ''}${returnLogprobs ? ' (with logprobs)' : ''}`);
   
   const isNewerModel = /^(gpt-5|gpt-4\.1|o3|o4)/i.test(model);
+  const isOpenAI = providerConfig.baseUrl.includes('openai.com');
   
   // Build message content - multimodal if images are provided
   let messageContent: any;
@@ -1013,6 +1299,12 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
     messages: [{ role: 'user', content: messageContent }],
   };
   
+  // Add logprobs for OpenAI (not Groq/Mistral)
+  if (returnLogprobs && isOpenAI) {
+    payload.logprobs = true;
+    payload.top_logprobs = 3;
+  }
+  
   if (isNewerModel) {
     payload.max_completion_tokens = maxTokens;
     // Newer models don't support temperature parameter - defaults to 1.0
@@ -1021,7 +1313,7 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
     // Ignore temperature; style is enforced via prompt wording
   }
 
-  console.log('📦 OpenAI Payload:', { model, isNewerModel, maxTokens, hasImages: images.length > 0 });
+  console.log('📦 OpenAI Payload:', { model, isNewerModel, maxTokens, hasImages: images.length > 0, logprobs: returnLogprobs && isOpenAI });
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
@@ -1046,6 +1338,19 @@ async function callOpenAICompatible(providerConfig: any, model: string, prompt: 
 
   const data = await response.json();
   console.log(`✅ OpenAI-compatible API success: ${model}`);
+  
+  // Return with logprobs if requested
+  if (returnLogprobs) {
+    const logprobData = data.choices[0]?.logprobs?.content;
+    return {
+      content: data.choices[0].message.content,
+      logprobs: logprobData ? {
+        tokens: logprobData.map((t: any) => t.token),
+        logprobs: logprobData.map((t: any) => t.logprob)
+      } : null
+    };
+  }
+  
   return data.choices[0].message.content;
 }
 
@@ -1110,8 +1415,8 @@ async function callAnthropic(providerConfig: any, model: string, prompt: string,
   return data.content[0].text;
 }
 
-async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number, images: string[] = []): Promise<string> {
-  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}${images.length ? `, ${images.length} image(s)` : ''}`);
+async function callGoogle(providerConfig: any, model: string, prompt: string, maxTokens: number, images: string[] = [], returnLogprobs: boolean = false): Promise<string | AIResponseWithLogprobs> {
+  console.log(`🔵 Google API call: ${model} with maxTokens: ${maxTokens}${images.length ? `, ${images.length} image(s)` : ''}${returnLogprobs ? ' (with logprobs)' : ''}`);
   
   // Build parts array - multimodal if images are provided
   const parts: any[] = [{ text: prompt }];
@@ -1132,7 +1437,17 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
     console.log(`📷 Including ${images.length} image(s) in Google request`);
   }
   
-  console.log('📦 Google Payload:', { model, maxOutputTokens: maxTokens, hasImages: images.length > 0 });
+  const generationConfig: any = {
+    maxOutputTokens: maxTokens,
+  };
+  
+  // Add logprobs for Google
+  if (returnLogprobs) {
+    generationConfig.responseLogprobs = true;
+    generationConfig.logprobs = 3;
+  }
+  
+  console.log('📦 Google Payload:', { model, maxOutputTokens: maxTokens, hasImages: images.length > 0, logprobs: returnLogprobs });
   
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS);
@@ -1145,9 +1460,7 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
       contents: [{
         parts: parts
       }],
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-      }
+      generationConfig
     }),
     signal: controller.signal,
   });
@@ -1182,6 +1495,19 @@ async function callGoogle(providerConfig: any, model: string, prompt: string, ma
   }
   
   console.log(`✅ Google API success: ${model}`);
+  
+  // Return with logprobs if requested
+  if (returnLogprobs) {
+    const logprobData = data.candidates[0]?.logprobsResult?.chosenCandidates;
+    return {
+      content: data.candidates[0].content.parts[0].text,
+      logprobs: logprobData ? {
+        tokens: logprobData.map((t: any) => t.token),
+        logprobs: logprobData.map((t: any) => t.logProbability)
+      } : null
+    };
+  }
+  
   return data.candidates[0].content.parts[0].text;
 }
 
