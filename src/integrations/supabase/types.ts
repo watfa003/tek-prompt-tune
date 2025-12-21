@@ -410,6 +410,126 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_analysis: {
+        Row: {
+          ai_provider: string
+          archetype: string | null
+          avg_confidence: number | null
+          created_at: string
+          formality_score: number | null
+          formality_shift: number | null
+          hallucination_risk: number | null
+          hallucination_risk_delta: number | null
+          has_examples: boolean | null
+          has_structure: boolean | null
+          id: string
+          low_confidence_tokens: number | null
+          model_name: string
+          optimization_history_id: string | null
+          perplexity: number | null
+          perplexity_delta: number | null
+          processing_time_ms: number | null
+          prompt_id: string | null
+          provider_supports_logprobs: boolean | null
+          reasoning_delta: number | null
+          reasoning_depth: number | null
+          regression_categories: string[] | null
+          regression_detected: boolean | null
+          score: number | null
+          sentence_count: number | null
+          specificity_delta: number | null
+          specificity_score: number | null
+          strategy: string
+          user_id: string
+          word_count: number | null
+          word_count_delta: number | null
+          word_count_pct_change: number | null
+        }
+        Insert: {
+          ai_provider: string
+          archetype?: string | null
+          avg_confidence?: number | null
+          created_at?: string
+          formality_score?: number | null
+          formality_shift?: number | null
+          hallucination_risk?: number | null
+          hallucination_risk_delta?: number | null
+          has_examples?: boolean | null
+          has_structure?: boolean | null
+          id?: string
+          low_confidence_tokens?: number | null
+          model_name: string
+          optimization_history_id?: string | null
+          perplexity?: number | null
+          perplexity_delta?: number | null
+          processing_time_ms?: number | null
+          prompt_id?: string | null
+          provider_supports_logprobs?: boolean | null
+          reasoning_delta?: number | null
+          reasoning_depth?: number | null
+          regression_categories?: string[] | null
+          regression_detected?: boolean | null
+          score?: number | null
+          sentence_count?: number | null
+          specificity_delta?: number | null
+          specificity_score?: number | null
+          strategy: string
+          user_id: string
+          word_count?: number | null
+          word_count_delta?: number | null
+          word_count_pct_change?: number | null
+        }
+        Update: {
+          ai_provider?: string
+          archetype?: string | null
+          avg_confidence?: number | null
+          created_at?: string
+          formality_score?: number | null
+          formality_shift?: number | null
+          hallucination_risk?: number | null
+          hallucination_risk_delta?: number | null
+          has_examples?: boolean | null
+          has_structure?: boolean | null
+          id?: string
+          low_confidence_tokens?: number | null
+          model_name?: string
+          optimization_history_id?: string | null
+          perplexity?: number | null
+          perplexity_delta?: number | null
+          processing_time_ms?: number | null
+          prompt_id?: string | null
+          provider_supports_logprobs?: boolean | null
+          reasoning_delta?: number | null
+          reasoning_depth?: number | null
+          regression_categories?: string[] | null
+          regression_detected?: boolean | null
+          score?: number | null
+          sentence_count?: number | null
+          specificity_delta?: number | null
+          specificity_score?: number | null
+          strategy?: string
+          user_id?: string
+          word_count?: number | null
+          word_count_delta?: number | null
+          word_count_pct_change?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_analysis_optimization_history_id_fkey"
+            columns: ["optimization_history_id"]
+            isOneToOne: false
+            referencedRelation: "optimization_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompt_analysis_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prompt_counter: {
         Row: {
           created_at: string

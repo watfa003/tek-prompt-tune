@@ -780,7 +780,60 @@ ${optimizedPrompt}`;
             })
           );
 
-          await Promise.allSettled(historyPromises);
+          const historyResults = await Promise.allSettled(historyPromises);
+          
+          // Get the history IDs for linking to prompt_analysis
+          const historyIds = historyResults
+            .filter(r => r.status === 'fulfilled' && r.value?.data)
+            .map(r => (r as PromiseFulfilledResult<any>).value.data?.id);
+
+          // Save to dedicated prompt_analysis table for each variant
+          console.log('📊 Saving analysis data to prompt_analysis table...');
+          const analysisPromises = optimizedVariants.map((variant, index) => {
+            const logprob = variant.logprob_analysis || {};
+            const behavior = variant.behavior_profile || {};
+            const delta = index === optimizedVariants.indexOf(bestVariant) ? behavioralDelta : null;
+            
+            return supabase.from('prompt_analysis').insert({
+              user_id: userId,
+              prompt_id: promptRecord.id,
+              optimization_history_id: historyIds[index] || null,
+              strategy: variant.strategy,
+              ai_provider: aiProvider,
+              model_name: modelName,
+              // Logprob analysis
+              perplexity: logprob.perplexity || null,
+              hallucination_risk: logprob.hallucination_risk || null,
+              avg_confidence: logprob.avg_confidence || null,
+              low_confidence_tokens: logprob.low_confidence_tokens || null,
+              provider_supports_logprobs: logprob.provider_supports_logprobs || false,
+              // Behavioral profile
+              word_count: behavior.word_count || null,
+              sentence_count: behavior.sentence_count || null,
+              reasoning_depth: behavior.reasoning_depth || null,
+              formality_score: behavior.formality_score || null,
+              specificity_score: behavior.specificity_score || null,
+              has_structure: behavior.has_structure || false,
+              has_examples: behavior.has_examples || false,
+              archetype: behavior.archetype || null,
+              // Behavioral delta (only for best variant)
+              word_count_delta: delta?.word_count_delta || null,
+              word_count_pct_change: delta?.word_count_pct_change || null,
+              reasoning_delta: delta?.reasoning_delta || null,
+              formality_shift: delta?.formality_shift || null,
+              specificity_delta: delta?.specificity_delta || null,
+              perplexity_delta: delta?.perplexity_delta || null,
+              hallucination_risk_delta: delta?.hallucination_risk_delta || null,
+              regression_detected: delta?.regression_detected || false,
+              regression_categories: delta?.regression_categories || [],
+              // Metadata
+              score: variant.score,
+              processing_time_ms: processingTime
+            });
+          });
+          
+          await Promise.allSettled(analysisPromises);
+          console.log(`✅ Saved ${optimizedVariants.length} analysis records to prompt_analysis table`);
 
           // Update prompt record with enhanced metrics
           await supabase
