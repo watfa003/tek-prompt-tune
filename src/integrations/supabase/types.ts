@@ -416,6 +416,7 @@ export type Database = {
           archetype: string | null
           avg_confidence: number | null
           created_at: string
+          feedback_at: string | null
           formality_score: number | null
           formality_shift: number | null
           hallucination_risk: number | null
@@ -440,6 +441,7 @@ export type Database = {
           specificity_delta: number | null
           specificity_score: number | null
           strategy: string
+          user_feedback: string | null
           user_id: string
           word_count: number | null
           word_count_delta: number | null
@@ -450,6 +452,7 @@ export type Database = {
           archetype?: string | null
           avg_confidence?: number | null
           created_at?: string
+          feedback_at?: string | null
           formality_score?: number | null
           formality_shift?: number | null
           hallucination_risk?: number | null
@@ -474,6 +477,7 @@ export type Database = {
           specificity_delta?: number | null
           specificity_score?: number | null
           strategy: string
+          user_feedback?: string | null
           user_id: string
           word_count?: number | null
           word_count_delta?: number | null
@@ -484,6 +488,7 @@ export type Database = {
           archetype?: string | null
           avg_confidence?: number | null
           created_at?: string
+          feedback_at?: string | null
           formality_score?: number | null
           formality_shift?: number | null
           hallucination_risk?: number | null
@@ -508,6 +513,7 @@ export type Database = {
           specificity_delta?: number | null
           specificity_score?: number | null
           strategy?: string
+          user_feedback?: string | null
           user_id?: string
           word_count?: number | null
           word_count_delta?: number | null

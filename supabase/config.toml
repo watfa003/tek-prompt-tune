@@ -95,6 +95,9 @@ verify_jwt = false
 [functions.research-aggregate-patterns]
 verify_jwt = false
 
+[functions.submit-feedback]
+verify_jwt = true
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083
