@@ -72,6 +72,24 @@ async function rateLimitedDelay() {
   lastCallTime = Date.now();
 }
 
+interface LogprobToken {
+  token: string;
+  logprob: number;
+  top_logprobs?: Array<{ token: string; logprob: number }>;
+}
+
+interface LogprobAnalysis {
+  avg_logprob: number;           // Average confidence (-0 = certain, -5+ = uncertain)
+  perplexity: number;            // exp(-avg_logprob) - higher = more uncertain
+  min_logprob: number;           // Lowest confidence token
+  max_logprob: number;           // Highest confidence token
+  variance: number;              // Consistency of confidence
+  low_confidence_tokens: number; // Count of tokens with logprob < -3
+  high_confidence_tokens: number;// Count of tokens with logprob > -0.5
+  hallucination_risk: number;    // 0-1 score based on confidence patterns
+  tokens_analyzed: number;
+}
+
 interface APIResponse {
   output: string;
   latency_ms: number;
@@ -79,6 +97,73 @@ interface APIResponse {
   output_tokens: number;
   total_tokens: number;
   finish_reason: string;
+  logprob_analysis?: LogprobAnalysis;
+  raw_logprobs?: LogprobToken[];
+}
+
+// Analyze logprobs to calculate perplexity and hallucination risk
+function analyzeLogprobs(logprobs: any[]): LogprobAnalysis {
+  if (!logprobs || logprobs.length === 0) {
+    return {
+      avg_logprob: 0,
+      perplexity: 1,
+      min_logprob: 0,
+      max_logprob: 0,
+      variance: 0,
+      low_confidence_tokens: 0,
+      high_confidence_tokens: 0,
+      hallucination_risk: 0,
+      tokens_analyzed: 0,
+    };
+  }
+
+  const probs = logprobs.map(t => t.logprob).filter(p => typeof p === 'number' && isFinite(p));
+  if (probs.length === 0) {
+    return {
+      avg_logprob: 0,
+      perplexity: 1,
+      min_logprob: 0,
+      max_logprob: 0,
+      variance: 0,
+      low_confidence_tokens: 0,
+      high_confidence_tokens: 0,
+      hallucination_risk: 0,
+      tokens_analyzed: 0,
+    };
+  }
+
+  const avg = probs.reduce((a, b) => a + b, 0) / probs.length;
+  const min = Math.min(...probs);
+  const max = Math.max(...probs);
+  const variance = probs.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) / probs.length;
+  
+  // Count confidence levels
+  const lowConfidence = probs.filter(p => p < -3).length;
+  const highConfidence = probs.filter(p => p > -0.5).length;
+  
+  // Perplexity = exp(-avg_logprob)
+  const perplexity = Math.exp(-avg);
+  
+  // Hallucination risk: based on low confidence tokens and variance
+  // Higher variance + more low confidence = higher risk
+  const lowConfidenceRatio = lowConfidence / probs.length;
+  const normalizedVariance = Math.min(variance / 5, 1); // Cap at 1
+  const hallucination_risk = Math.min(
+    (lowConfidenceRatio * 0.6) + (normalizedVariance * 0.3) + (perplexity > 10 ? 0.1 : 0),
+    1
+  );
+
+  return {
+    avg_logprob: avg,
+    perplexity,
+    min_logprob: min,
+    max_logprob: max,
+    variance,
+    low_confidence_tokens: lowConfidence,
+    high_confidence_tokens: highConfidence,
+    hallucination_risk,
+    tokens_analyzed: probs.length,
+  };
 }
 
 async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", retries = 2): Promise<APIResponse> {
@@ -99,6 +184,8 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", 
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 400,
       temperature: 0.7,
+      logprobs: true,        // Enable logprobs collection
+      top_logprobs: 3,       // Get top 3 alternatives per token
     }),
   });
 
@@ -113,6 +200,11 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", 
   }
 
   const data = await response.json();
+  
+  // Extract and analyze logprobs
+  const rawLogprobs = data.choices[0]?.logprobs?.content || [];
+  const logprobAnalysis = analyzeLogprobs(rawLogprobs);
+  
   return {
     output: data.choices[0]?.message?.content || '',
     latency_ms: Date.now() - startTime,
@@ -120,6 +212,8 @@ async function callGroq(prompt: string, model: string = "llama-3.1-8b-instant", 
     output_tokens: data.usage?.completion_tokens || 0,
     total_tokens: data.usage?.total_tokens || 0,
     finish_reason: data.choices[0]?.finish_reason || 'unknown',
+    logprob_analysis: logprobAnalysis,
+    raw_logprobs: rawLogprobs.slice(0, 50), // Store first 50 tokens for analysis
   };
 }
 
@@ -396,6 +490,13 @@ serve(async (req) => {
               output_tokens: baselineResponse.output_tokens,
               finish_reason: baselineResponse.finish_reason,
             },
+            // Logprob analysis for confidence/hallucination detection
+            logprob_analysis: baselineResponse.logprob_analysis,
+            confidence_metrics: baselineResponse.logprob_analysis ? {
+              perplexity: baselineResponse.logprob_analysis.perplexity,
+              hallucination_risk: baselineResponse.logprob_analysis.hallucination_risk,
+              avg_confidence: -baselineResponse.logprob_analysis.avg_logprob, // Invert for readability
+            } : null,
           },
         });
         console.log(`  Baseline: ${baselineBehavior.word_count} words, ${baselineBehavior.reasoning_indicators} reasoning`);
@@ -446,6 +547,20 @@ serve(async (req) => {
                   output_tokens: response.output_tokens,
                   finish_reason: response.finish_reason,
                 },
+                // Logprob analysis for confidence/hallucination detection
+                logprob_analysis: response.logprob_analysis,
+                confidence_metrics: response.logprob_analysis ? {
+                  perplexity: response.logprob_analysis.perplexity,
+                  hallucination_risk: response.logprob_analysis.hallucination_risk,
+                  avg_confidence: -response.logprob_analysis.avg_logprob,
+                  // Compare to baseline
+                  perplexity_delta: baselineResponse.logprob_analysis 
+                    ? response.logprob_analysis.perplexity - baselineResponse.logprob_analysis.perplexity 
+                    : null,
+                  hallucination_risk_delta: baselineResponse.logprob_analysis
+                    ? response.logprob_analysis.hallucination_risk - baselineResponse.logprob_analysis.hallucination_risk
+                    : null,
+                } : null,
               },
             });
             
