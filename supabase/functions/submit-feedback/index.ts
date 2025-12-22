@@ -29,6 +29,7 @@ serve(async (req) => {
       promptId,
       analysisId,
       feedback,
+      reason,
       strategy,
       provider,
       model
@@ -75,6 +76,7 @@ serve(async (req) => {
         .from('prompt_analysis')
         .update({
           user_feedback: feedback,
+          feedback_reason: reason || null,
           feedback_at: new Date().toISOString()
         })
         .eq('id', analysisId)
@@ -96,6 +98,7 @@ serve(async (req) => {
         .from('prompt_analysis')
         .update({
           user_feedback: feedback,
+          feedback_reason: reason || null,
           feedback_at: new Date().toISOString()
         })
         .eq('prompt_id', promptId)
@@ -112,7 +115,7 @@ serve(async (req) => {
       updatedCount = data?.length || 0;
     }
 
-    // Log for future strategy performance analysis
+    // Log for future strategy performance analysis (feedback is an influence, not the sole factor)
     console.log(`✅ Recorded ${feedback} feedback for ${updatedCount} analysis record(s)`, {
       promptId,
       analysisId,
@@ -120,6 +123,7 @@ serve(async (req) => {
       provider,
       model,
       feedback,
+      reason: reason ? reason.substring(0, 100) : null,
       userId
     });
 

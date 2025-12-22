@@ -572,6 +572,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   const [isCanceled, setIsCanceled] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<'positive' | 'negative' | null>(null);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [showNegativeReasonInput, setShowNegativeReasonInput] = useState(false);
+  const [negativeFeedbackReason, setNegativeFeedbackReason] = useState('');
   const currentSessionKeyRef = useRef<string | null>(null);
 
   // Get user for realtime progress
@@ -863,6 +865,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
     setSpeedResult(null);
     setShowRating(false);
     setFeedbackSubmitted(null);
+    setShowNegativeReasonInput(false);
+    setNegativeFeedbackReason('');
     
     // Clear form fields
     setOriginalPrompt('');
@@ -887,8 +891,17 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
   };
 
   // Submit feedback for optimization results
-  const submitFeedback = async (feedback: 'positive' | 'negative') => {
-    if (isSubmittingFeedback || !result) return;
+  const submitFeedback = async (feedback: 'positive' | 'negative', reason?: string, promptIdOverride?: string) => {
+    if (isSubmittingFeedback) return;
+    
+    const targetPromptId = promptIdOverride || result?.promptId || speedResult?.promptId;
+    if (!targetPromptId) return;
+    
+    // For negative feedback without reason, show the input first
+    if (feedback === 'negative' && !reason && !showNegativeReasonInput) {
+      setShowNegativeReasonInput(true);
+      return;
+    }
     
     setIsSubmittingFeedback(true);
     try {
@@ -904,9 +917,10 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
 
       const response = await supabase.functions.invoke('submit-feedback', {
         body: {
-          promptId: result.promptId,
+          promptId: targetPromptId,
           feedback,
-          strategy: result.summary?.bestStrategy,
+          reason: reason || undefined,
+          strategy: result?.summary?.bestStrategy || speedResult?.strategy,
           provider: aiProvider,
           model: modelName
         }
@@ -917,6 +931,8 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
       }
 
       setFeedbackSubmitted(feedback);
+      setShowNegativeReasonInput(false);
+      setNegativeFeedbackReason('');
       toast({
         title: feedback === 'positive' ? "Thanks for the feedback!" : "We'll do better",
         description: feedback === 'positive' 
@@ -1078,8 +1094,75 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
                   <div className="text-xs text-muted-foreground">Best Strategy</div>
                 </div>
               </div>
-              <div className="text-center text-sm text-muted-foreground">
+              <div className="text-center text-sm text-muted-foreground mb-4">
                 Speed Mode: Fast optimization under 12 seconds
+              </div>
+              
+              {/* Speed Mode Feedback Section */}
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2">
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xs text-muted-foreground">Helpful?</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={feedbackSubmitted === 'positive' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => submitFeedback('positive', undefined, speedResult.promptId)}
+                      disabled={isSubmittingFeedback || feedbackSubmitted !== null}
+                      className={`h-7 ${feedbackSubmitted === 'positive' ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                    >
+                      <ThumbsUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant={feedbackSubmitted === 'negative' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => submitFeedback('negative', undefined, speedResult.promptId)}
+                      disabled={isSubmittingFeedback || feedbackSubmitted !== null}
+                      className={`h-7 ${feedbackSubmitted === 'negative' ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
+                    >
+                      <ThumbsDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Negative feedback reason for speed mode */}
+                <AnimatePresence>
+                  {showNegativeReasonInput && !feedbackSubmitted && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 pt-2"
+                    >
+                      <Textarea
+                        placeholder="What could be improved?"
+                        value={negativeFeedbackReason}
+                        onChange={(e) => setNegativeFeedbackReason(e.target.value)}
+                        className="min-h-[60px] resize-none text-sm"
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            setShowNegativeReasonInput(false);
+                            setNegativeFeedbackReason('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => submitFeedback('negative', negativeFeedbackReason, speedResult.promptId)}
+                          disabled={isSubmittingFeedback}
+                        >
+                          Submit
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </CardContent>
           </Card>
@@ -1173,30 +1256,74 @@ export const AIPromptOptimizer: React.FC<{ labRecommendations?: string }> = ({ l
             </div>
 
             {/* User Feedback Section */}
-            <div className="flex items-center justify-center gap-4 p-4 rounded-lg bg-muted/30 border border-border/50">
-              <span className="text-sm text-muted-foreground">Was this optimization helpful?</span>
-              <div className="flex gap-2">
-                <Button
-                  variant={feedbackSubmitted === 'positive' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => submitFeedback('positive')}
-                  disabled={isSubmittingFeedback || feedbackSubmitted !== null}
-                  className={feedbackSubmitted === 'positive' ? 'bg-green-600 hover:bg-green-700' : ''}
-                >
-                  <ThumbsUp className={`h-4 w-4 ${feedbackSubmitted === 'positive' ? '' : 'mr-1'}`} />
-                  {feedbackSubmitted === 'positive' && <span className="ml-1">Thanks!</span>}
-                </Button>
-                <Button
-                  variant={feedbackSubmitted === 'negative' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => submitFeedback('negative')}
-                  disabled={isSubmittingFeedback || feedbackSubmitted !== null}
-                  className={feedbackSubmitted === 'negative' ? 'bg-orange-600 hover:bg-orange-700' : ''}
-                >
-                  <ThumbsDown className={`h-4 w-4 ${feedbackSubmitted === 'negative' ? '' : 'mr-1'}`} />
-                  {feedbackSubmitted === 'negative' && <span className="ml-1">Noted</span>}
-                </Button>
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-3">
+              <div className="flex items-center justify-center gap-4">
+                <span className="text-sm text-muted-foreground">Was this optimization helpful?</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant={feedbackSubmitted === 'positive' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => submitFeedback('positive')}
+                    disabled={isSubmittingFeedback || feedbackSubmitted !== null}
+                    className={feedbackSubmitted === 'positive' ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    <ThumbsUp className={`h-4 w-4 ${feedbackSubmitted === 'positive' ? '' : 'mr-1'}`} />
+                    {feedbackSubmitted === 'positive' && <span className="ml-1">Thanks!</span>}
+                  </Button>
+                  <Button
+                    variant={feedbackSubmitted === 'negative' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => submitFeedback('negative')}
+                    disabled={isSubmittingFeedback || feedbackSubmitted !== null}
+                    className={feedbackSubmitted === 'negative' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                  >
+                    <ThumbsDown className={`h-4 w-4 ${feedbackSubmitted === 'negative' ? '' : 'mr-1'}`} />
+                    {feedbackSubmitted === 'negative' && <span className="ml-1">Noted</span>}
+                  </Button>
+                </div>
               </div>
+              
+              {/* Negative feedback reason input */}
+              <AnimatePresence>
+                {showNegativeReasonInput && !feedbackSubmitted && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2"
+                  >
+                    <Label className="text-sm text-muted-foreground">What could be improved?</Label>
+                    <Textarea
+                      placeholder="e.g., The prompt was too verbose, didn't capture the intent, missing key context..."
+                      value={negativeFeedbackReason}
+                      onChange={(e) => setNegativeFeedbackReason(e.target.value)}
+                      className="min-h-[80px] resize-none"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowNegativeReasonInput(false);
+                          setNegativeFeedbackReason('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => submitFeedback('negative', negativeFeedbackReason)}
+                        disabled={isSubmittingFeedback}
+                      >
+                        {isSubmittingFeedback ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : null}
+                        Submit Feedback
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <Separator />
