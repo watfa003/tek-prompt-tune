@@ -28,6 +28,7 @@ import {
   Key,
   BookOpen,
   FlaskConical,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,6 +70,9 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const [searchQuery, setSearchQuery] = useState("");
   const [userInfo, setUserInfo] = useState<{ email: string; displayName: string } | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  
+  const OWNER_EMAIL = 'watfa003@gmail.com';
   
   // Get favorite items from history
   const favoriteItems = historyItems.filter(item => item.isFavorite);
@@ -84,6 +88,7 @@ export function AppSidebar() {
             email: user.email || '',
             displayName: displayName
           });
+          setIsOwner(user.email === OWNER_EMAIL);
         }
       } catch (error) {
         console.error('Error loading user info:', error);
@@ -294,6 +299,32 @@ export function AppSidebar() {
                   </div>
                 )}
               </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Admin Access - Owner Only */}
+        {isOwner && (
+          <SidebarGroup className="mt-4">
+            <SidebarGroupContent className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Button
+                      variant="ghost"
+                      onClick={() => navigate('/admin')}
+                      className={`w-full justify-start rounded-xl border-2 ${
+                        currentPath.startsWith('/admin')
+                          ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-500 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                          : 'border-transparent hover:bg-amber-500/10 hover:border-amber-500/20 text-amber-500'
+                      }`}
+                    >
+                      <Shield className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-sm font-medium transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">Admin Panel</span>
+                    </Button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
