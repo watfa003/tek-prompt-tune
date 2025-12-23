@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Plus, History, CheckCircle, Clock, RefreshCw, Save, Eye, Code, Layers, Target, Zap } from 'lucide-react';
+import { FileText, Plus, History, CheckCircle, Clock, RefreshCw, Save, Eye, Code, Target, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -165,150 +165,6 @@ const CURRENT_PROMPTEK_JSON = {
   }
 };
 
-// All strategies (including unused ones)
-const CURRENT_STRATEGIES = {
-  clarity: {
-    name: "Cognitive Fusion Elite",
-    focus: ["clarity", "structure", "intent"],
-    targets: { clarity: 9, structure: 9, intent: 9 },
-    w: 0.3,
-    apply: [
-      "Dynamic role synthesis based on task analysis",
-      "Replace ALL vague words",
-      "Explicit power verbs",
-      "Passive→active",
-      "Linear flow: context→task→method→output",
-      "Single interpretation only"
-    ],
-    fix: "If clarity<9: eliminate ambiguity, explicit deliverables, convert passive, break complex sentences"
-  },
-
-  specificity: {
-    name: "Precision Abstraction Elite",
-    focus: ["specificity", "constraints", "clarity"],
-    targets: { specificity: 9, constraints: 9, clarity: 9 },
-    w: 0.25,
-    apply: [
-      "Dynamic role synthesis based on task analysis",
-      "Quantify EVERYTHING",
-      "Replace vague descriptors",
-      "Exact numerical constraints",
-      "Format schemas",
-      "2-3 concrete examples"
-    ],
-    fix: "If specificity<9: quantify all (some→3-5), add format schema, include examples, measurable metrics"
-  },
-
-  efficiency: {
-    name: "Semantic Compression",
-    focus: ["efficiency", "specificity", "clarity"],
-    targets: { efficiency: 7.8, specificity: 7.5, clarity: 7.5 },
-    w: 0.2,
-    apply: [
-      "Dynamic role synthesis based on task analysis",
-      "Active voice only",
-      "Compress redundant phrases",
-      "Eliminate filler words",
-      "Dense meaning"
-    ],
-    fix: "If efficiency<7.8: convert passive→active, remove filler, consolidate, power verbs"
-  },
-
-  structure: {
-    name: "Directive Synthesis",
-    focus: ["structure", "clarity", "constraints"],
-    targets: { structure: 7.8, clarity: 7.5, constraints: 7.5 },
-    w: 0.15,
-    apply: [
-      "Dynamic role synthesis based on task analysis",
-      "Context→Task→Method→Constraints→Output",
-      "Numbered steps",
-      "Section headers",
-      "Hierarchical bullets",
-      "Explicit dependencies"
-    ],
-    fix: "If structure<7.8: add numbered steps, section headers, hierarchical bullets, state order"
-  },
-
-  constraints: {
-    name: "Constraint-Driven Creativity Elite",
-    focus: ["constraints", "elaboration", "specificity"],
-    targets: { constraints: 9, elaboration: 9, specificity: 9 },
-    w: 0.1,
-    apply: [
-      "Dynamic role synthesis based on task analysis",
-      "Intent-safe boundaries only",
-      "Precise length ranges (not fixed counts)",
-      "Explicit tone",
-      "Style rules",
-      "Exclusions only when justified"
-    ],
-    fix: "If constraints<9: format schema, length ranges, explicit tone, justify exclusions, quality criteria"
-  },
-
-  elaboration: {
-    name: "Contextual Intelligence Matrix",
-    focus: ["elaboration", "intent", "adaptability"],
-    targets: { elaboration: 8.6, intent: 8.5, adaptability: 8.5 },
-    w: 0.12,
-    cond: { type: "length", op: "<", val: 200 },
-    apply: [
-      "Dynamic role synthesis based on task analysis",
-      "Audience awareness",
-      "Use-case context",
-      "Relevant background",
-      "1-2 examples",
-      "Statistics require authoritative sources or ranges",
-      "For analytical essays, require thesis + causal drivers + competing perspectives + implications"
-    ],
-    fix: "If elaboration<8.6: specify audience, add context, provide examples, include background"
-  },
-
-  intent: {
-    name: "Semantic Anchoring Elite",
-    focus: ["intent", "specificity", "clarity"],
-    targets: { intent: 9, specificity: 8.5, clarity: 8.5 },
-    w: 0.12,
-    cond: { type: "regex", pattern: "\\b(improve|better|fix|enhance|optimize|analyze|make)\\b" },
-    apply: [
-      "Dynamic role synthesis based on task analysis",
-      "Identify TRUE goal",
-      "Explicit success criteria",
-      "Define outcome precisely",
-      "Preserve exact verb",
-      "Never fabricate statistics"
-    ],
-    fix: "If intent<9: add success criteria, define outcome, state primary goal, anchor terms"
-  },
-
-  adaptability: {
-    name: "Cognitive Elasticity",
-    focus: ["adaptability", "intent", "clarity"],
-    targets: { adaptability: 8.6, intent: 8.5, clarity: 8.5 },
-    w: 0.08,
-    apply: [
-      "Dynamic role synthesis based on task analysis",
-      "Model-agnostic language",
-      "Conditional phrasing",
-      "Fallback options",
-      "Handle variations",
-      "Avoid LLM-specific phrasing"
-    ],
-    fix: "If adaptability<8.6: add if/when clauses, fallbacks, avoid model-specific terms"
-  }
-};
-
-const STRATEGY_COLORS: Record<string, string> = {
-  clarity: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  specificity: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-  efficiency: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  structure: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  constraints: 'bg-red-500/10 text-red-400 border-red-500/30',
-  elaboration: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-  intent: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-  adaptability: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
-};
-
 const AdminMasterPrompt: React.FC = () => {
   const [versions, setVersions] = useState<MasterPromptVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<MasterPromptVersion | null>(null);
@@ -428,7 +284,7 @@ const AdminMasterPrompt: React.FC = () => {
   };
 
   const handleLoadCurrentAsNew = () => {
-    setNewContent(JSON.stringify({ promptek: CURRENT_PROMPTEK_JSON, strategies: CURRENT_STRATEGIES }, null, 2));
+    setNewContent(JSON.stringify(CURRENT_PROMPTEK_JSON, null, 2));
     setChangeSummary('Based on PrompTek V5.3 - Dynamic Role Synthesis + Multi-Strategy Architecture');
     setShowCreateForm(true);
     setActiveTab('versions');
@@ -473,10 +329,6 @@ const AdminMasterPrompt: React.FC = () => {
           <TabsTrigger value="current" className="flex items-center gap-2">
             <Zap className="w-4 h-4" />
             Current Schema
-          </TabsTrigger>
-          <TabsTrigger value="strategies" className="flex items-center gap-2">
-            <Layers className="w-4 h-4" />
-            All Strategies
           </TabsTrigger>
           <TabsTrigger value="versions" className="flex items-center gap-2">
             <History className="w-4 h-4" />
@@ -559,7 +411,7 @@ const AdminMasterPrompt: React.FC = () => {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle>Full Schema (JSON)</CardTitle>
-              <CardDescription>The complete PrompTek V5.3 configuration</CardDescription>
+              <CardDescription>The complete PrompTek V5.3 configuration (strategies are in Strategy Definitions)</CardDescription>
             </CardHeader>
             <CardContent>
               <pre className="text-xs font-mono bg-muted/50 rounded-lg p-4 overflow-auto max-h-96">
@@ -567,69 +419,6 @@ const AdminMasterPrompt: React.FC = () => {
               </pre>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* Strategies Tab */}
-        <TabsContent value="strategies" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Object.entries(CURRENT_STRATEGIES).map(([key, strategy]) => (
-              <Card key={key} className="bg-card border-border">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <Badge className={STRATEGY_COLORS[key]}>
-                      {key.toUpperCase()}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">Weight: {strategy.w}</span>
-                  </div>
-                  <CardTitle className="text-lg">{strategy.name}</CardTitle>
-                  <CardDescription className="flex flex-wrap gap-1">
-                    Focus: {strategy.focus.map(f => (
-                      <Badge key={f} variant="outline" className="text-xs">{f}</Badge>
-                    ))}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-foreground mb-2">Targets</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(strategy.targets).map(([t, v]) => (
-                        <Badge key={t} variant="outline" className="text-xs">
-                          {t}: {v}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {'cond' in strategy && strategy.cond && (
-                    <div>
-                      <h4 className="text-sm font-medium text-foreground mb-2">Condition</h4>
-                      <code className="text-xs bg-muted/50 rounded px-2 py-1 text-muted-foreground">
-                        {JSON.stringify(strategy.cond)}
-                      </code>
-                    </div>
-                  )}
-
-                  <div>
-                    <h4 className="text-sm font-medium text-foreground mb-2">Apply Steps</h4>
-                    <div className="space-y-1">
-                      {strategy.apply.map((step, i) => (
-                        <div key={i} className="text-xs text-muted-foreground bg-muted/20 rounded px-2 py-1">
-                          {i + 1}. {step}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-foreground mb-2">Fix Rule</h4>
-                    <p className="text-xs text-muted-foreground bg-yellow-500/10 rounded px-2 py-1 border-l-2 border-yellow-500/30">
-                      {strategy.fix}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </TabsContent>
 
         {/* Version History Tab */}
@@ -654,7 +443,7 @@ const AdminMasterPrompt: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Content (JSON or text)</label>
                   <Textarea
-                    placeholder='{"promptek": {...}, "strategies": {...}}'
+                    placeholder='{"id": "PrompTek_V5.3", "mission": "...", ...}'
                     value={newContent}
                     onChange={(e) => setNewContent(e.target.value)}
                     rows={12}
