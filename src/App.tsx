@@ -29,7 +29,7 @@ import APIExamples from "./pages/docs/APIExamples";
 // Admin imports
 import AdminRoute from "./components/admin/AdminRoute";
 import AdminLayout from "./components/admin/AdminLayout";
-import { AdminOverview, AdminChangeRequests, AdminAuditLog, AdminDataCollection } from "./pages/admin";
+import { AdminOverview, AdminChangeRequests, AdminAuditLog, AdminDataCollection, AdminLabAnalytics, AdminStrategyPerformance, AdminMasterPrompt, AdminStrategyDefinitions, AdminApprovals, AdminSettings } from "./pages/admin";
 
 const queryClient = new QueryClient();
 
@@ -80,8 +80,14 @@ const App = () => (
           <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route index element={<AdminOverview />} />
             <Route path="data-collection" element={<AdminDataCollection />} />
+            <Route path="lab-analytics" element={<AdminLabAnalytics />} />
+            <Route path="strategy-performance" element={<AdminStrategyPerformance />} />
             <Route path="change-requests" element={<AdminChangeRequests />} />
+            <Route path="master-prompt" element={<AdminMasterPrompt />} />
+            <Route path="strategy-definitions" element={<AdminStrategyDefinitions />} />
+            <Route path="approvals" element={<AdminApprovals />} />
             <Route path="audit-log" element={<AdminAuditLog />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
           
           {/* Documentation Routes */}
