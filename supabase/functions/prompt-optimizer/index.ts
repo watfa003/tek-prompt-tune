@@ -1104,12 +1104,23 @@ function analyzeLogprobs(logprobs: { tokens: string[]; logprobs: number[] } | nu
   }
 
   const probs = logprobs.logprobs;
+  
+  // Log probabilities from OpenAI are negative (e.g., -0.5, -2.0, -10.0)
+  // Perplexity formula: exp(avg(-logprob)) = exp(-avgLogProb) where avgLogProb is negative
+  // So if avgLogProb = -1.5, then perplexity = exp(1.5) ≈ 4.5 (reasonable)
+  // Problem: if avgLogProb = -50 (very uncertain), exp(50) explodes
+  
   const avgLogProb = probs.reduce((a, b) => a + b, 0) / probs.length;
   
-  // Clamp avgLogProb to prevent overflow: -9.21 → e^9.21 ≈ 10000 (max reasonable perplexity)
-  // This fixes the bug where extremely negative avgLogProb values caused astronomical perplexity
-  const clampedAvgLogProb = Math.max(avgLogProb, -9.21);
-  const perplexity = Math.exp(-clampedAvgLogProb);
+  // Calculate raw perplexity: exp(-avgLogProb)
+  // Since avgLogProb is negative, -avgLogProb is positive
+  const rawPerplexity = Math.exp(-avgLogProb);
+  
+  // Clamp perplexity to sensible range [1, 100]
+  // - Perplexity of 1 = perfect confidence (logprob ≈ 0)
+  // - Perplexity of 100 = very uncertain (logprob ≈ -4.6)
+  // Values above 100 indicate extremely low confidence and aren't meaningful
+  const perplexity = Math.min(100, Math.max(1, rawPerplexity));
   
   // Count low confidence tokens (logprob < -2 means <13% confidence)
   const lowConfidenceCount = probs.filter(lp => lp < -2).length;
@@ -1117,11 +1128,15 @@ function analyzeLogprobs(logprobs: { tokens: string[]; logprobs: number[] } | nu
   
   // Hallucination risk: higher when many low-confidence tokens
   const hallucinationRisk = Math.min(1, lowConfidenceRatio * 2);
+  
+  // Average confidence as a probability (0-1 scale)
+  // exp(avgLogProb) gives the geometric mean probability
+  const avgConfidence = Math.exp(avgLogProb);
 
   return {
     perplexity: Math.round(perplexity * 100) / 100,
     hallucination_risk: Math.round(hallucinationRisk * 100) / 100,
-    avg_confidence: Math.round(avgLogProb * 100) / 100,
+    avg_confidence: Math.round(avgConfidence * 100) / 100, // Now 0-1 scale instead of raw logprob
     low_confidence_tokens: lowConfidenceCount,
     provider_supports_logprobs: true
   };
