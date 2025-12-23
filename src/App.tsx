@@ -26,6 +26,11 @@ import Privacy from "./pages/docs/Privacy";
 import Terms from "./pages/docs/Terms";
 import APIExamples from "./pages/docs/APIExamples";
 
+// Admin imports
+import AdminRoute from "./components/admin/AdminRoute";
+import AdminLayout from "./components/admin/AdminLayout";
+import { AdminOverview, AdminChangeRequests, AdminAuditLog, AdminDataCollection } from "./pages/admin";
+
 const queryClient = new QueryClient();
 
 const ScrollToTop = () => {
@@ -70,6 +75,14 @@ const App = () => (
           <Route path="/app/history" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
           <Route path="/app/templates" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
           <Route path="/app/settings" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
+          
+          {/* Admin Routes - Owner Only */}
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route index element={<AdminOverview />} />
+            <Route path="data-collection" element={<AdminDataCollection />} />
+            <Route path="change-requests" element={<AdminChangeRequests />} />
+            <Route path="audit-log" element={<AdminAuditLog />} />
+          </Route>
           
           {/* Documentation Routes */}
           <Route path="/docs/features" element={<ProductFeatures />} />

@@ -14,6 +14,240 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_approvals: {
+        Row: {
+          approval_type: string
+          approved_at: string | null
+          approved_by: string | null
+          change_request_id: string | null
+          id: string
+          metadata: Json | null
+          rejection_reason: string | null
+          status: string
+        }
+        Insert: {
+          approval_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          change_request_id?: string | null
+          id?: string
+          metadata?: Json | null
+          rejection_reason?: string | null
+          status?: string
+        }
+        Update: {
+          approval_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          change_request_id?: string | null
+          id?: string
+          metadata?: Json | null
+          rejection_reason?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_approvals_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_email: string
+          actor_ip: string | null
+          actor_user_agent: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_email: string
+          actor_ip?: string | null
+          actor_user_agent?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string
+          actor_ip?: string | null
+          actor_user_agent?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      admin_dashboard_stats: {
+        Row: {
+          avg_latency_ms: number | null
+          avg_score: number | null
+          created_at: string | null
+          id: string
+          model_distribution: Json | null
+          negative_feedback_count: number | null
+          positive_feedback_count: number | null
+          stat_date: string
+          top_strategies: Json | null
+          total_optimizations: number | null
+          total_users: number | null
+          weak_pillars: Json | null
+        }
+        Insert: {
+          avg_latency_ms?: number | null
+          avg_score?: number | null
+          created_at?: string | null
+          id?: string
+          model_distribution?: Json | null
+          negative_feedback_count?: number | null
+          positive_feedback_count?: number | null
+          stat_date: string
+          top_strategies?: Json | null
+          total_optimizations?: number | null
+          total_users?: number | null
+          weak_pillars?: Json | null
+        }
+        Update: {
+          avg_latency_ms?: number | null
+          avg_score?: number | null
+          created_at?: string | null
+          id?: string
+          model_distribution?: Json | null
+          negative_feedback_count?: number | null
+          positive_feedback_count?: number | null
+          stat_date?: string
+          top_strategies?: Json | null
+          total_optimizations?: number | null
+          total_users?: number | null
+          weak_pillars?: Json | null
+        }
+        Relationships: []
+      }
+      admin_deployments: {
+        Row: {
+          change_request_id: string | null
+          deployed_at: string | null
+          deployed_by: string
+          deployment_type: string
+          error_message: string | null
+          id: string
+          master_prompt_version_id: string | null
+          metadata: Json | null
+          rollback_at: string | null
+          rollback_by: string | null
+          status: string
+          strategy_version_id: string | null
+        }
+        Insert: {
+          change_request_id?: string | null
+          deployed_at?: string | null
+          deployed_by: string
+          deployment_type: string
+          error_message?: string | null
+          id?: string
+          master_prompt_version_id?: string | null
+          metadata?: Json | null
+          rollback_at?: string | null
+          rollback_by?: string | null
+          status?: string
+          strategy_version_id?: string | null
+        }
+        Update: {
+          change_request_id?: string | null
+          deployed_at?: string | null
+          deployed_by?: string
+          deployment_type?: string
+          error_message?: string | null
+          id?: string
+          master_prompt_version_id?: string | null
+          metadata?: Json | null
+          rollback_at?: string | null
+          rollback_by?: string | null
+          status?: string
+          strategy_version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_deployments_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_deployments_master_prompt_version_id_fkey"
+            columns: ["master_prompt_version_id"]
+            isOneToOne: false
+            referencedRelation: "master_prompt_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_deployments_strategy_version_id_fkey"
+            columns: ["strategy_version_id"]
+            isOneToOne: false
+            referencedRelation: "strategy_definitions_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_strategy_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          feedback_reason: string | null
+          feedback_type: string | null
+          id: string
+          metadata: Json | null
+          new_tier: string | null
+          old_tier: string | null
+          score: number | null
+          strategy_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          feedback_reason?: string | null
+          feedback_type?: string | null
+          id?: string
+          metadata?: Json | null
+          new_tier?: string | null
+          old_tier?: string | null
+          score?: number | null
+          strategy_name: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          feedback_reason?: string | null
+          feedback_type?: string | null
+          id?: string
+          metadata?: Json | null
+          new_tier?: string | null
+          old_tier?: string | null
+          score?: number | null
+          strategy_name?: string
+        }
+        Relationships: []
+      }
       agent_logs: {
         Row: {
           agent_id: string
@@ -246,6 +480,45 @@ export type Database = {
           pattern_type?: string
           pattern_value?: string
           sample_size?: number
+        }
+        Relationships: []
+      }
+      master_prompt_versions: {
+        Row: {
+          activated_at: string | null
+          change_summary: string | null
+          content: Json
+          created_at: string | null
+          created_by: string
+          deactivated_at: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          version: number
+        }
+        Insert: {
+          activated_at?: string | null
+          change_summary?: string | null
+          content: Json
+          created_at?: string | null
+          created_by: string
+          deactivated_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          version: number
+        }
+        Update: {
+          activated_at?: string | null
+          change_summary?: string | null
+          content?: Json
+          created_at?: string | null
+          created_by?: string
+          deactivated_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          version?: number
         }
         Relationships: []
       }
@@ -883,6 +1156,51 @@ export type Database = {
         }
         Relationships: []
       }
+      strategy_definitions_versions: {
+        Row: {
+          activated_at: string | null
+          change_summary: string | null
+          created_at: string | null
+          created_by: string
+          deactivated_at: string | null
+          hierarchy: Json | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          strategies: Json
+          version: number
+          weights: Json | null
+        }
+        Insert: {
+          activated_at?: string | null
+          change_summary?: string | null
+          created_at?: string | null
+          created_by: string
+          deactivated_at?: string | null
+          hierarchy?: Json | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          strategies: Json
+          version: number
+          weights?: Json | null
+        }
+        Update: {
+          activated_at?: string | null
+          change_summary?: string | null
+          created_at?: string | null
+          created_by?: string
+          deactivated_at?: string | null
+          hierarchy?: Json | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          strategies?: Json
+          version?: number
+          weights?: Json | null
+        }
+        Relationships: []
+      }
       token_intelligence: {
         Row: {
           category: string | null
@@ -1045,6 +1363,84 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_change_requests: {
+        Row: {
+          analysis_summary: Json
+          confidence_score: number | null
+          created_at: string | null
+          expected_impact: Json | null
+          findings: Json | null
+          id: string
+          implemented_at: string | null
+          implemented_by: string | null
+          master_prompt_diff: string | null
+          proposed_changes: Json
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_assessment: Json | null
+          rollback_plan: Json | null
+          rollback_reason: string | null
+          rolled_back_at: string | null
+          rolled_back_by: string | null
+          status: string
+          strategy_changes: Json | null
+          submitted_at: string | null
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          analysis_summary: Json
+          confidence_score?: number | null
+          created_at?: string | null
+          expected_impact?: Json | null
+          findings?: Json | null
+          id?: string
+          implemented_at?: string | null
+          implemented_by?: string | null
+          master_prompt_diff?: string | null
+          proposed_changes: Json
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_assessment?: Json | null
+          rollback_plan?: Json | null
+          rollback_reason?: string | null
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          status?: string
+          strategy_changes?: Json | null
+          submitted_at?: string | null
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          analysis_summary?: Json
+          confidence_score?: number | null
+          created_at?: string | null
+          expected_impact?: Json | null
+          findings?: Json | null
+          id?: string
+          implemented_at?: string | null
+          implemented_by?: string | null
+          master_prompt_diff?: string | null
+          proposed_changes?: Json
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_assessment?: Json | null
+          rollback_plan?: Json | null
+          rollback_reason?: string | null
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          status?: string
+          strategy_changes?: Json | null
+          submitted_at?: string | null
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       wording_patterns: {
         Row: {
           applicable_domains: string[] | null
@@ -1123,6 +1519,7 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      is_owner: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
