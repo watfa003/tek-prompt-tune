@@ -417,6 +417,7 @@ export type Database = {
           avg_confidence: number | null
           created_at: string
           feedback_at: string | null
+          feedback_reason: string | null
           formality_score: number | null
           formality_shift: number | null
           hallucination_risk: number | null
@@ -453,6 +454,7 @@ export type Database = {
           avg_confidence?: number | null
           created_at?: string
           feedback_at?: string | null
+          feedback_reason?: string | null
           formality_score?: number | null
           formality_shift?: number | null
           hallucination_risk?: number | null
@@ -489,6 +491,7 @@ export type Database = {
           avg_confidence?: number | null
           created_at?: string
           feedback_at?: string | null
+          feedback_reason?: string | null
           formality_score?: number | null
           formality_shift?: number | null
           hallucination_risk?: number | null
