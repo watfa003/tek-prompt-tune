@@ -3,20 +3,53 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Sparkles, 
   Clock, 
   CheckCircle, 
   XCircle, 
   AlertTriangle,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   FileText,
   TrendingUp,
+  TrendingDown,
   Shield,
-  Loader2
+  Loader2,
+  Beaker,
+  Target,
+  Scale,
+  Lightbulb,
+  RotateCcw,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface IndividualChange {
+  change_id: string;
+  change_type: "strategy_weight" | "strategy_apply_step" | "strategy_fix_rule" | "master_prompt_rule" | "target_score";
+  target_strategy: string;
+  current_value: any;
+  proposed_value: any;
+  evidence: {
+    data_points: number;
+    avg_score: number;
+    negative_rate: number;
+    regression_categories?: string[];
+    feedback_themes?: string[];
+    pillar_scores?: Record<string, number>;
+    research_support?: { modification: string; score_delta: number }[];
+  };
+  reasoning: string;
+  expected_impact: string;
+  risk_level: "low" | "medium" | "high";
+  status: "pending" | "approved" | "rejected";
+  review_notes?: string;
+}
 
 interface ChangeRequest {
   id: string;
@@ -24,8 +57,9 @@ interface ChangeRequest {
   week_end: string;
   status: string;
   analysis_summary: any;
-  findings: any;
+  findings: any[];
   proposed_changes: any;
+  individual_changes: IndividualChange[];
   master_prompt_diff: string | null;
   strategy_changes: any;
   expected_impact: any;
@@ -34,6 +68,8 @@ interface ChangeRequest {
   created_at: string;
   reviewed_at: string | null;
   review_notes: string | null;
+  implemented_at: string | null;
+  post_implementation_metrics: any;
 }
 
 const statusConfig: Record<string, { color: string; icon: React.ElementType }> = {
@@ -45,11 +81,28 @@ const statusConfig: Record<string, { color: string; icon: React.ElementType }> =
   rolled_back: { color: 'bg-orange-500/10 text-orange-500', icon: AlertTriangle },
 };
 
+const changeTypeConfig: Record<string, { icon: React.ElementType; label: string; color: string }> = {
+  strategy_weight: { icon: Scale, label: 'Weight Adjustment', color: 'text-blue-500' },
+  strategy_apply_step: { icon: Target, label: 'Apply Step', color: 'text-purple-500' },
+  strategy_fix_rule: { icon: Lightbulb, label: 'Fix Rule', color: 'text-amber-500' },
+  master_prompt_rule: { icon: FileText, label: 'Master Prompt', color: 'text-emerald-500' },
+  target_score: { icon: TrendingUp, label: 'Target Score', color: 'text-pink-500' },
+};
+
+const riskColors: Record<string, string> = {
+  low: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  medium: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  high: 'bg-red-500/10 text-red-500 border-red-500/20',
+};
+
 const AdminChangeRequests: React.FC = () => {
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [implementing, setImplementing] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ChangeRequest | null>(null);
+  const [expandedChanges, setExpandedChanges] = useState<Set<string>>(new Set());
+  const [changeNotes, setChangeNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadChangeRequests();
@@ -63,7 +116,7 @@ const AdminChangeRequests: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setChangeRequests(data || []);
+      setChangeRequests((data || []) as unknown as ChangeRequest[]);
     } catch (error) {
       console.error('Error loading change requests:', error);
       toast.error('Failed to load change requests');
@@ -86,7 +139,7 @@ const AdminChangeRequests: React.FC = () => {
 
       if (response.error) throw response.error;
 
-      toast.success('Weekly change request generated successfully');
+      toast.success('Weekly change request generated with LLM-powered analysis');
       loadChangeRequests();
     } catch (error: any) {
       console.error('Error generating change request:', error);
@@ -96,103 +149,135 @@ const AdminChangeRequests: React.FC = () => {
     }
   };
 
-  const handleApprove = async (requestId: string) => {
+  const updateChangeStatus = async (changeId: string, newStatus: 'approved' | 'rejected') => {
+    if (!selectedRequest) return;
+
+    const updatedChanges = selectedRequest.individual_changes.map(c => {
+      if (c.change_id === changeId) {
+        return { 
+          ...c, 
+          status: newStatus,
+          review_notes: changeNotes[changeId] || undefined,
+        };
+      }
+      return c;
+    });
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { error } = await supabase
         .from('weekly_change_requests')
-        .update({ 
-          status: 'approved', 
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.email 
-        })
-        .eq('id', requestId);
+        .update({ individual_changes: updatedChanges as unknown as any })
+        .eq('id', selectedRequest.id);
 
       if (error) throw error;
 
-      // Log to audit
-      await supabase.from('admin_audit_log').insert({
-        action: 'approve_change_request',
-        entity_type: 'weekly_change_requests',
-        entity_id: requestId,
-        actor_email: user?.email || 'unknown',
-        metadata: { status: 'approved' }
-      });
-
-      toast.success('Change request approved');
-      loadChangeRequests();
-      setSelectedRequest(null);
+      setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      toast.success(`Change ${newStatus}`);
     } catch (error) {
-      console.error('Error approving request:', error);
-      toast.error('Failed to approve request');
+      console.error('Error updating change:', error);
+      toast.error('Failed to update change status');
     }
   };
 
-  const handleReject = async (requestId: string) => {
+  const approveAllPending = async () => {
+    if (!selectedRequest) return;
+
+    const updatedChanges = selectedRequest.individual_changes.map(c => {
+      if (c.status === 'pending') {
+        return { ...c, status: 'approved' as const };
+      }
+      return c;
+    });
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { error } = await supabase
         .from('weekly_change_requests')
-        .update({ 
-          status: 'rejected', 
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.email 
-        })
-        .eq('id', requestId);
+        .update({ individual_changes: updatedChanges as unknown as any })
+        .eq('id', selectedRequest.id);
 
       if (error) throw error;
 
-      // Log to audit
-      await supabase.from('admin_audit_log').insert({
-        action: 'reject_change_request',
-        entity_type: 'weekly_change_requests',
-        entity_id: requestId,
-        actor_email: user?.email || 'unknown',
-        metadata: { status: 'rejected' }
-      });
-
-      toast.success('Change request rejected');
-      loadChangeRequests();
-      setSelectedRequest(null);
+      setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      toast.success('All pending changes approved');
     } catch (error) {
-      console.error('Error rejecting request:', error);
-      toast.error('Failed to reject request');
+      toast.error('Failed to approve changes');
     }
   };
 
-  const handleImplement = async (requestId: string) => {
+  const rejectAllPending = async () => {
+    if (!selectedRequest) return;
+
+    const updatedChanges = selectedRequest.individual_changes.map(c => {
+      if (c.status === 'pending') {
+        return { ...c, status: 'rejected' as const };
+      }
+      return c;
+    });
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { error } = await supabase
         .from('weekly_change_requests')
-        .update({ 
-          status: 'implemented', 
-          implemented_at: new Date().toISOString(),
-          implemented_by: user?.email 
-        })
-        .eq('id', requestId);
+        .update({ individual_changes: updatedChanges as unknown as any })
+        .eq('id', selectedRequest.id);
 
       if (error) throw error;
 
-      // Log to audit
-      await supabase.from('admin_audit_log').insert({
-        action: 'implement_change_request',
-        entity_type: 'weekly_change_requests',
-        entity_id: requestId,
-        actor_email: user?.email || 'unknown',
-        metadata: { status: 'implemented' }
+      setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      toast.success('All pending changes rejected');
+    } catch (error) {
+      toast.error('Failed to reject changes');
+    }
+  };
+
+  const handleImplement = async () => {
+    if (!selectedRequest) return;
+    
+    const approvedCount = selectedRequest.individual_changes.filter(c => c.status === 'approved').length;
+    if (approvedCount === 0) {
+      toast.error('No approved changes to implement');
+      return;
+    }
+
+    setImplementing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await supabase.functions.invoke('admin-implement-changes', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: { change_request_id: selectedRequest.id }
       });
 
-      toast.success('Changes implemented successfully');
+      if (response.error) throw response.error;
+
+      toast.success(`${approvedCount} changes implemented successfully`);
       loadChangeRequests();
       setSelectedRequest(null);
-    } catch (error) {
-      console.error('Error implementing request:', error);
-      toast.error('Failed to implement changes');
+    } catch (error: any) {
+      console.error('Error implementing changes:', error);
+      toast.error(error.message || 'Failed to implement changes');
+    } finally {
+      setImplementing(false);
     }
+  };
+
+  const toggleExpanded = (changeId: string) => {
+    const newExpanded = new Set(expandedChanges);
+    if (newExpanded.has(changeId)) {
+      newExpanded.delete(changeId);
+    } else {
+      newExpanded.add(changeId);
+    }
+    setExpandedChanges(newExpanded);
+  };
+
+  const getApprovalStats = (changes: IndividualChange[]) => {
+    const approved = changes.filter(c => c.status === 'approved').length;
+    const rejected = changes.filter(c => c.status === 'rejected').length;
+    const pending = changes.filter(c => c.status === 'pending').length;
+    return { approved, rejected, pending, total: changes.length };
   };
 
   if (loading) {
@@ -217,7 +302,7 @@ const AdminChangeRequests: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Weekly Change Requests</h1>
-          <p className="text-muted-foreground mt-1">AI-generated proposals for system optimization</p>
+          <p className="text-muted-foreground mt-1">AI-powered analysis with individual change sign-off</p>
         </div>
         <Button 
           onClick={generateWeeklyRequest} 
@@ -227,12 +312,12 @@ const AdminChangeRequests: React.FC = () => {
           {generating ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Analyzing...
+              Analyzing with LLM...
             </>
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              Generate Weekly Request
+              Generate Weekly Analysis
             </>
           )}
         </Button>
@@ -244,10 +329,10 @@ const AdminChangeRequests: React.FC = () => {
           <div className="flex items-start gap-3">
             <Shield className="w-5 h-5 text-primary mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-foreground">Owner Approval Required</p>
+              <p className="text-sm font-medium text-foreground">Individual Change Sign-off</p>
               <p className="text-sm text-muted-foreground mt-1">
-                All AI-generated change proposals require explicit owner sign-off before implementation. 
-                Changes are conservative, patch-based, and data-driven.
+                Each proposed change can be reviewed, approved, or rejected individually with notes. 
+                Only approved changes are implemented. LLM-powered analysis provides evidence-based reasoning.
               </p>
             </div>
           </div>
@@ -261,11 +346,11 @@ const AdminChangeRequests: React.FC = () => {
             <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">No Change Requests Yet</h3>
             <p className="text-muted-foreground mb-6">
-              Generate your first weekly change request to analyze system performance and get AI-powered optimization suggestions.
+              Generate your first weekly analysis to get AI-powered optimization suggestions with individual change sign-off.
             </p>
             <Button onClick={generateWeeklyRequest} disabled={generating}>
               <Sparkles className="w-4 h-4 mr-2" />
-              Generate First Request
+              Generate First Analysis
             </Button>
           </CardContent>
         </Card>
@@ -273,165 +358,444 @@ const AdminChangeRequests: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* List */}
           <div className="lg:col-span-1 space-y-4">
-            {changeRequests.map((request) => {
-              const StatusIcon = statusConfig[request.status]?.icon || FileText;
-              return (
-                <Card 
-                  key={request.id} 
-                  className={`bg-card border-border cursor-pointer transition-all hover:border-primary/50 ${
-                    selectedRequest?.id === request.id ? 'border-primary ring-1 ring-primary/20' : ''
-                  }`}
-                  onClick={() => setSelectedRequest(request)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          Week of {format(new Date(request.week_start), 'MMM d')} - {format(new Date(request.week_end), 'MMM d, yyyy')}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Created {format(new Date(request.created_at), 'MMM d, h:mm a')}
-                        </p>
-                      </div>
-                      <Badge className={statusConfig[request.status]?.color}>
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {request.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <TrendingUp className="w-3 h-3" />
-                        <span>{Math.round(request.confidence_score * 100)}% confidence</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            <ScrollArea className="h-[calc(100vh-300px)]">
+              <div className="space-y-3 pr-4">
+                {changeRequests.map((request) => {
+                  const StatusIcon = statusConfig[request.status]?.icon || FileText;
+                  const stats = getApprovalStats(request.individual_changes || []);
+                  return (
+                    <Card 
+                      key={request.id} 
+                      className={`bg-card border-border cursor-pointer transition-all hover:border-primary/50 ${
+                        selectedRequest?.id === request.id ? 'border-primary ring-1 ring-primary/20' : ''
+                      }`}
+                      onClick={() => setSelectedRequest(request)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              Week of {format(new Date(request.week_start), 'MMM d')} - {format(new Date(request.week_end), 'MMM d')}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(request.created_at), 'MMM d, h:mm a')}
+                            </p>
+                          </div>
+                          <Badge className={statusConfig[request.status]?.color}>
+                            <StatusIcon className="w-3 h-3 mr-1" />
+                            {request.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            <span>{Math.round(request.confidence_score * 100)}%</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Lightbulb className="w-3 h-3" />
+                            <span>{stats.total} changes</span>
+                          </div>
+                          {stats.approved > 0 && (
+                            <div className="flex items-center gap-1 text-emerald-500">
+                              <CheckCircle className="w-3 h-3" />
+                              <span>{stats.approved}</span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </ScrollArea>
           </div>
 
           {/* Detail View */}
           <div className="lg:col-span-2">
             {selectedRequest ? (
               <Card className="bg-card border-border">
-                <CardHeader>
+                <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle>Change Request Details</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        Weekly Analysis
+                        <Badge className={statusConfig[selectedRequest.status]?.color}>
+                          {selectedRequest.status}
+                        </Badge>
+                      </CardTitle>
                       <CardDescription>
-                        Week of {format(new Date(selectedRequest.week_start), 'MMMM d')} - {format(new Date(selectedRequest.week_end), 'MMMM d, yyyy')}
+                        {format(new Date(selectedRequest.week_start), 'MMMM d')} - {format(new Date(selectedRequest.week_end), 'MMMM d, yyyy')}
                       </CardDescription>
                     </div>
-                    <Badge className={statusConfig[selectedRequest.status]?.color}>
-                      {selectedRequest.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Analysis Summary */}
-                  <div>
-                    <h4 className="text-sm font-medium text-foreground mb-2">Analysis Summary</h4>
-                    <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
-                      {typeof selectedRequest.analysis_summary === 'object' 
-                        ? JSON.stringify(selectedRequest.analysis_summary, null, 2)
-                        : selectedRequest.analysis_summary || 'No summary available'
-                      }
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-foreground">
+                        {Math.round(selectedRequest.confidence_score * 100)}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">confidence</div>
                     </div>
                   </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-6">
+                  {/* Analysis Summary */}
+                  {selectedRequest.analysis_summary && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <div className="text-2xl font-bold text-foreground">
+                          {selectedRequest.analysis_summary.total_optimizations || 0}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Optimizations</div>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <div className="text-2xl font-bold text-foreground">
+                          {selectedRequest.analysis_summary.avg_score?.toFixed(1) || 'N/A'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Avg Score</div>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <div className="text-2xl font-bold text-foreground">
+                          {selectedRequest.analysis_summary.negative_rate?.toFixed(1) || 0}%
+                        </div>
+                        <div className="text-xs text-muted-foreground">Negative Rate</div>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <div className="text-2xl font-bold text-foreground">
+                          {selectedRequest.analysis_summary.strategies_analyzed || 0}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Strategies</div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Findings */}
                   {selectedRequest.findings && selectedRequest.findings.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-foreground mb-2">Key Findings</h4>
-                      <ul className="space-y-2">
+                      <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                        Key Findings
+                      </h4>
+                      <div className="space-y-2">
                         {selectedRequest.findings.map((finding: any, i: number) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                            <span>{typeof finding === 'object' ? JSON.stringify(finding) : finding}</span>
-                          </li>
+                          <div 
+                            key={i} 
+                            className={`flex items-start gap-2 text-sm p-2 rounded-lg ${
+                              finding.severity === 'high' ? 'bg-red-500/10' : 'bg-amber-500/10'
+                            }`}
+                          >
+                            <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                              finding.severity === 'high' ? 'text-red-500' : 'text-amber-500'
+                            }`} />
+                            <span className="text-muted-foreground">{finding.message}</span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
 
-                  {/* Master Prompt Diff */}
-                  {selectedRequest.master_prompt_diff && (
+                  {/* Individual Changes */}
+                  {selectedRequest.individual_changes && selectedRequest.individual_changes.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-foreground mb-2">Master Prompt Changes</h4>
-                      <pre className="bg-muted/50 rounded-lg p-4 text-xs overflow-x-auto font-mono">
-                        {selectedRequest.master_prompt_diff}
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-primary" />
+                          Proposed Changes ({selectedRequest.individual_changes.length})
+                        </h4>
+                        {selectedRequest.status === 'submitted' && (
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" onClick={approveAllPending}>
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Approve All
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={rejectAllPending}>
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Reject All
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      <ScrollArea className="h-[400px]">
+                        <div className="space-y-3 pr-4">
+                          {selectedRequest.individual_changes.map((change, i) => {
+                            const typeConfig = changeTypeConfig[change.change_type] || { icon: FileText, label: change.change_type, color: 'text-muted-foreground' };
+                            const TypeIcon = typeConfig.icon;
+                            const isExpanded = expandedChanges.has(change.change_id);
+
+                            return (
+                              <Collapsible 
+                                key={change.change_id}
+                                open={isExpanded}
+                                onOpenChange={() => toggleExpanded(change.change_id)}
+                              >
+                                <Card className={`border ${
+                                  change.status === 'approved' ? 'border-emerald-500/30 bg-emerald-500/5' :
+                                  change.status === 'rejected' ? 'border-red-500/30 bg-red-500/5' :
+                                  'border-border'
+                                }`}>
+                                  <CollapsibleTrigger className="w-full">
+                                    <div className="p-4">
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex items-start gap-3">
+                                          <div className={`p-2 rounded-lg bg-muted ${typeConfig.color}`}>
+                                            <TypeIcon className="w-4 h-4" />
+                                          </div>
+                                          <div className="text-left">
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-medium text-foreground">
+                                                {typeConfig.label}: {change.target_strategy}
+                                              </span>
+                                              <Badge className={riskColors[change.risk_level]}>
+                                                {change.risk_level} risk
+                                              </Badge>
+                                              {change.status !== 'pending' && (
+                                                <Badge className={
+                                                  change.status === 'approved' 
+                                                    ? 'bg-emerald-500/10 text-emerald-500' 
+                                                    : 'bg-red-500/10 text-red-500'
+                                                }>
+                                                  {change.status}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                              {change.reasoning}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        {isExpanded ? (
+                                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                    </div>
+                                  </CollapsibleTrigger>
+
+                                  <CollapsibleContent>
+                                    <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
+                                      {/* Current vs Proposed */}
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <div className="text-xs font-medium text-muted-foreground mb-1">Current Value</div>
+                                          <div className="bg-muted/50 rounded p-2 text-sm font-mono">
+                                            {typeof change.current_value === 'object' 
+                                              ? JSON.stringify(change.current_value, null, 2)
+                                              : String(change.current_value)}
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <div className="text-xs font-medium text-muted-foreground mb-1">Proposed Value</div>
+                                          <div className="bg-primary/10 rounded p-2 text-sm font-mono border border-primary/20">
+                                            {typeof change.proposed_value === 'object'
+                                              ? JSON.stringify(change.proposed_value, null, 2)
+                                              : String(change.proposed_value)}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Evidence */}
+                                      <div>
+                                        <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                                          <Beaker className="w-3 h-3" />
+                                          Evidence
+                                        </div>
+                                        <div className="bg-muted/30 rounded-lg p-3 space-y-2 text-sm">
+                                          <div className="grid grid-cols-3 gap-2">
+                                            <div>
+                                              <span className="text-muted-foreground">Data points:</span>
+                                              <span className="ml-1 font-medium">{change.evidence.data_points}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Avg score:</span>
+                                              <span className="ml-1 font-medium">{change.evidence.avg_score?.toFixed(2) || 'N/A'}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Negative rate:</span>
+                                              <span className="ml-1 font-medium">{(change.evidence.negative_rate * 100).toFixed(1)}%</span>
+                                            </div>
+                                          </div>
+                                          
+                                          {change.evidence.pillar_scores && Object.keys(change.evidence.pillar_scores).length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                              {Object.entries(change.evidence.pillar_scores).map(([pillar, score]) => (
+                                                <Badge key={pillar} variant="outline" className="text-xs">
+                                                  {pillar}: {typeof score === 'number' ? score.toFixed(1) : score}
+                                                </Badge>
+                                              ))}
+                                            </div>
+                                          )}
+
+                                          {change.evidence.feedback_themes && change.evidence.feedback_themes.length > 0 && (
+                                            <div className="mt-2">
+                                              <span className="text-xs text-muted-foreground">Feedback themes:</span>
+                                              <div className="flex flex-wrap gap-1 mt-1">
+                                                {change.evidence.feedback_themes.slice(0, 3).map((theme, i) => (
+                                                  <Badge key={i} variant="secondary" className="text-xs">
+                                                    "{theme}"
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {change.evidence.regression_categories && change.evidence.regression_categories.length > 0 && (
+                                            <div className="mt-2">
+                                              <span className="text-xs text-muted-foreground">Regressions:</span>
+                                              <div className="flex flex-wrap gap-1 mt-1">
+                                                {change.evidence.regression_categories.map((cat, i) => (
+                                                  <Badge key={i} variant="outline" className="text-xs text-red-500 border-red-500/30">
+                                                    {cat}
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {change.evidence.research_support && change.evidence.research_support.length > 0 && (
+                                            <div className="mt-2 p-2 bg-emerald-500/10 rounded border border-emerald-500/20">
+                                              <span className="text-xs text-emerald-500 font-medium">Research Support:</span>
+                                              {change.evidence.research_support.map((r, i) => (
+                                                <div key={i} className="text-xs text-muted-foreground mt-1">
+                                                  "{r.modification}" → +{r.score_delta?.toFixed(2)} score
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Expected Impact */}
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                                        <span className="text-muted-foreground">Expected impact:</span>
+                                        <span className="font-medium text-emerald-500">{change.expected_impact}</span>
+                                      </div>
+
+                                      {/* Notes */}
+                                      {selectedRequest.status === 'submitted' && change.status === 'pending' && (
+                                        <div>
+                                          <Textarea
+                                            placeholder="Add review notes (optional)..."
+                                            value={changeNotes[change.change_id] || ''}
+                                            onChange={(e) => setChangeNotes({
+                                              ...changeNotes,
+                                              [change.change_id]: e.target.value
+                                            })}
+                                            className="text-sm h-16"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Actions */}
+                                      {selectedRequest.status === 'submitted' && change.status === 'pending' && (
+                                        <div className="flex items-center gap-2 pt-2">
+                                          <Button 
+                                            size="sm"
+                                            onClick={() => updateChangeStatus(change.change_id, 'approved')}
+                                            className="bg-emerald-600 hover:bg-emerald-700"
+                                          >
+                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                            Approve
+                                          </Button>
+                                          <Button 
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => updateChangeStatus(change.change_id, 'rejected')}
+                                            className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                          >
+                                            <XCircle className="w-3 h-3 mr-1" />
+                                            Reject
+                                          </Button>
+                                        </div>
+                                      )}
+
+                                      {change.review_notes && (
+                                        <div className="p-2 bg-muted/50 rounded text-sm">
+                                          <span className="text-muted-foreground">Review notes:</span>
+                                          <span className="ml-2">{change.review_notes}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </CollapsibleContent>
+                                </Card>
+                              </Collapsible>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
+
+                  {/* Post-Implementation Metrics */}
+                  {selectedRequest.status === 'implemented' && selectedRequest.post_implementation_metrics && (
+                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                      <h4 className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-blue-500" />
+                        Impact Metrics (Post-Implementation)
+                      </h4>
+                      <pre className="text-xs text-muted-foreground">
+                        {JSON.stringify(selectedRequest.post_implementation_metrics, null, 2)}
                       </pre>
                     </div>
                   )}
 
-                  {/* Risk Assessment */}
-                  {selectedRequest.risk_assessment && Object.keys(selectedRequest.risk_assessment).length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-foreground mb-2">Risk Assessment</h4>
-                      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-sm">
-                        <pre className="text-red-400 font-mono text-xs">
-                          {JSON.stringify(selectedRequest.risk_assessment, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Confidence Score */}
-                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                    <span className="text-sm font-medium text-foreground">Confidence Score</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary transition-all"
-                          style={{ width: `${selectedRequest.confidence_score * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-foreground">
-                        {Math.round(selectedRequest.confidence_score * 100)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
+                  {/* Implementation Actions */}
                   {selectedRequest.status === 'submitted' && (
-                    <div className="flex items-center gap-3 pt-4 border-t border-border">
-                      <Button 
-                        onClick={() => handleApprove(selectedRequest.id)}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Approve
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => handleReject(selectedRequest.id)}
-                        className="flex-1 border-red-500/30 text-red-500 hover:bg-red-500/10"
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Reject
-                      </Button>
+                    <div className="pt-4 border-t border-border">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            const stats = getApprovalStats(selectedRequest.individual_changes || []);
+                            return (
+                              <span>
+                                <span className="text-emerald-500 font-medium">{stats.approved} approved</span>
+                                {' / '}
+                                <span className="text-red-500">{stats.rejected} rejected</span>
+                                {' / '}
+                                <span>{stats.pending} pending</span>
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <Button 
+                          onClick={handleImplement}
+                          disabled={implementing || getApprovalStats(selectedRequest.individual_changes || []).approved === 0}
+                          className="gap-2"
+                        >
+                          {implementing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Implementing...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              Implement {getApprovalStats(selectedRequest.individual_changes || []).approved} Approved Changes
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   )}
 
-                  {selectedRequest.status === 'approved' && (
+                  {selectedRequest.status === 'implemented' && (
                     <div className="pt-4 border-t border-border">
-                      <Button 
-                        onClick={() => handleImplement(selectedRequest.id)}
-                        className="w-full"
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Implement Changes
-                      </Button>
+                      <div className="flex items-center gap-2 text-sm text-emerald-500">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>
+                          Implemented on {format(new Date(selectedRequest.implemented_at!), 'MMM d, yyyy h:mm a')}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
             ) : (
-              <Card className="bg-card border-border h-full flex items-center justify-center">
+              <Card className="bg-card border-border h-full flex items-center justify-center min-h-[500px]">
                 <CardContent className="text-center p-12">
                   <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Select a change request to view details</p>
+                  <p className="text-muted-foreground">Select a change request to review individual changes</p>
                 </CardContent>
               </Card>
             )}

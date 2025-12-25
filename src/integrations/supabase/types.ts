@@ -688,6 +688,7 @@ export type Database = {
           ai_provider: string
           archetype: string | null
           avg_confidence: number | null
+          change_request_id: string | null
           created_at: string
           feedback_at: string | null
           feedback_reason: string | null
@@ -725,6 +726,7 @@ export type Database = {
           ai_provider: string
           archetype?: string | null
           avg_confidence?: number | null
+          change_request_id?: string | null
           created_at?: string
           feedback_at?: string | null
           feedback_reason?: string | null
@@ -762,6 +764,7 @@ export type Database = {
           ai_provider?: string
           archetype?: string | null
           avg_confidence?: number | null
+          change_request_id?: string | null
           created_at?: string
           feedback_at?: string | null
           feedback_reason?: string | null
@@ -796,6 +799,13 @@ export type Database = {
           word_count_pct_change?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "prompt_analysis_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_change_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prompt_analysis_optimization_history_id_fkey"
             columns: ["optimization_history_id"]
@@ -1373,7 +1383,9 @@ export type Database = {
           id: string
           implemented_at: string | null
           implemented_by: string | null
+          individual_changes: Json | null
           master_prompt_diff: string | null
+          post_implementation_metrics: Json | null
           proposed_changes: Json
           review_notes: string | null
           reviewed_at: string | null
@@ -1398,7 +1410,9 @@ export type Database = {
           id?: string
           implemented_at?: string | null
           implemented_by?: string | null
+          individual_changes?: Json | null
           master_prompt_diff?: string | null
+          post_implementation_metrics?: Json | null
           proposed_changes: Json
           review_notes?: string | null
           reviewed_at?: string | null
@@ -1423,7 +1437,9 @@ export type Database = {
           id?: string
           implemented_at?: string | null
           implemented_by?: string | null
+          individual_changes?: Json | null
           master_prompt_diff?: string | null
+          post_implementation_metrics?: Json | null
           proposed_changes?: Json
           review_notes?: string | null
           reviewed_at?: string | null
