@@ -163,6 +163,30 @@ const AdminChangeRequests: React.FC = () => {
     }
   };
 
+  const checkAndUpdateRequestStatus = async (updatedChanges: IndividualChange[], requestId: string) => {
+    const stats = getApprovalStats(updatedChanges);
+    
+    // If no pending changes left, mark request as approved (review completed)
+    if (stats.pending === 0 && stats.total > 0) {
+      try {
+        const { error } = await supabase
+          .from('weekly_change_requests')
+          .update({ 
+            status: 'approved',
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq('id', requestId);
+
+        if (error) throw error;
+        
+        return 'approved';
+      } catch (error) {
+        console.error('Error updating request status:', error);
+      }
+    }
+    return null;
+  };
+
   const updateChangeStatus = async (changeId: string, newStatus: 'approved' | 'rejected') => {
     if (!selectedRequest) return;
 
@@ -185,11 +209,25 @@ const AdminChangeRequests: React.FC = () => {
 
       if (error) throw error;
 
-      setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      // Check if all changes are now signed off
+      const newRequestStatus = await checkAndUpdateRequestStatus(updatedChanges, selectedRequest.id);
+      const updatedRequest = { 
+        ...selectedRequest, 
+        individual_changes: updatedChanges,
+        ...(newRequestStatus ? { status: newRequestStatus, reviewed_at: new Date().toISOString() } : {})
+      };
+
+      setSelectedRequest(updatedRequest);
       setChangeRequests((prev) =>
-        prev.map((r) => (r.id === selectedRequest.id ? { ...r, individual_changes: updatedChanges } : r)),
+        prev.map((r) => (r.id === selectedRequest.id ? updatedRequest : r)),
       );
-      toast.success(`Change ${newStatus}`);
+      
+      const stats = getApprovalStats(updatedChanges);
+      if (stats.pending === 0) {
+        toast.success(`Review complete! ${stats.approved} approved, ${stats.rejected} rejected`);
+      } else {
+        toast.success(`Change ${newStatus}`);
+      }
     } catch (error) {
       console.error('Error updating change:', error);
       toast.error('Failed to update change status');
@@ -207,18 +245,31 @@ const AdminChangeRequests: React.FC = () => {
     });
 
     try {
+      // Mark all approved and update request status
       const { error } = await supabase
         .from('weekly_change_requests')
-        .update({ individual_changes: updatedChanges as unknown as any })
+        .update({ 
+          individual_changes: updatedChanges as unknown as any,
+          status: 'approved',
+          reviewed_at: new Date().toISOString(),
+        })
         .eq('id', selectedRequest.id);
 
       if (error) throw error;
 
-      setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      const stats = getApprovalStats(updatedChanges);
+      const updatedRequest = { 
+        ...selectedRequest, 
+        individual_changes: updatedChanges,
+        status: 'approved',
+        reviewed_at: new Date().toISOString(),
+      };
+
+      setSelectedRequest(updatedRequest);
       setChangeRequests((prev) =>
-        prev.map((r) => (r.id === selectedRequest.id ? { ...r, individual_changes: updatedChanges } : r)),
+        prev.map((r) => (r.id === selectedRequest.id ? updatedRequest : r)),
       );
-      toast.success('All pending changes approved');
+      toast.success(`Review complete! ${stats.approved} approved, ${stats.rejected} rejected`);
     } catch (error) {
       toast.error('Failed to approve changes');
     }
@@ -235,18 +286,31 @@ const AdminChangeRequests: React.FC = () => {
     });
 
     try {
+      // Mark all rejected and update request status
       const { error } = await supabase
         .from('weekly_change_requests')
-        .update({ individual_changes: updatedChanges as unknown as any })
+        .update({ 
+          individual_changes: updatedChanges as unknown as any,
+          status: 'approved',
+          reviewed_at: new Date().toISOString(),
+        })
         .eq('id', selectedRequest.id);
 
       if (error) throw error;
 
-      setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      const stats = getApprovalStats(updatedChanges);
+      const updatedRequest = { 
+        ...selectedRequest, 
+        individual_changes: updatedChanges,
+        status: 'approved',
+        reviewed_at: new Date().toISOString(),
+      };
+
+      setSelectedRequest(updatedRequest);
       setChangeRequests((prev) =>
-        prev.map((r) => (r.id === selectedRequest.id ? { ...r, individual_changes: updatedChanges } : r)),
+        prev.map((r) => (r.id === selectedRequest.id ? updatedRequest : r)),
       );
-      toast.success('All pending changes rejected');
+      toast.success(`Review complete! ${stats.approved} approved, ${stats.rejected} rejected`);
     } catch (error) {
       toast.error('Failed to reject changes');
     }
@@ -461,6 +525,38 @@ const AdminChangeRequests: React.FC = () => {
                 </CardHeader>
                 
                 <CardContent className="space-y-6">
+                  {/* Review Summary - shown when review is complete */}
+                  {selectedRequest.status === 'approved' && selectedRequest.individual_changes?.length > 0 && (() => {
+                    const stats = getApprovalStats(selectedRequest.individual_changes);
+                    return (
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <CheckCircle className="w-5 h-5 text-emerald-500" />
+                          <span className="font-medium text-emerald-500">Review Complete</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div className="bg-background/50 rounded-lg p-3">
+                            <div className="text-2xl font-bold text-emerald-500">{stats.approved}</div>
+                            <div className="text-xs text-muted-foreground">Approved</div>
+                          </div>
+                          <div className="bg-background/50 rounded-lg p-3">
+                            <div className="text-2xl font-bold text-red-500">{stats.rejected}</div>
+                            <div className="text-xs text-muted-foreground">Rejected</div>
+                          </div>
+                          <div className="bg-background/50 rounded-lg p-3">
+                            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+                            <div className="text-xs text-muted-foreground">Total</div>
+                          </div>
+                        </div>
+                        {selectedRequest.reviewed_at && (
+                          <div className="text-xs text-muted-foreground mt-3 text-center">
+                            Reviewed on {format(new Date(selectedRequest.reviewed_at), 'MMM d, yyyy h:mm a')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Analysis Summary */}
                   {selectedRequest.analysis_summary && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
