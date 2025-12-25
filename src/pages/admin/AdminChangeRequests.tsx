@@ -449,13 +449,13 @@ const AdminChangeRequests: React.FC = () => {
                       </div>
                       <div className="bg-muted/50 rounded-lg p-3">
                         <div className="text-2xl font-bold text-foreground">
-                          {selectedRequest.analysis_summary.avg_score?.toFixed(1) || 'N/A'}
+                          {selectedRequest.analysis_summary.avg_score != null ? Number(selectedRequest.analysis_summary.avg_score).toFixed(1) : 'N/A'}
                         </div>
                         <div className="text-xs text-muted-foreground">Avg Score</div>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-3">
                         <div className="text-2xl font-bold text-foreground">
-                          {selectedRequest.analysis_summary.negative_rate?.toFixed(1) || 0}%
+                          {selectedRequest.analysis_summary.negative_rate != null ? Number(selectedRequest.analysis_summary.negative_rate).toFixed(1) : 0}%
                         </div>
                         <div className="text-xs text-muted-foreground">Negative Rate</div>
                       </div>
@@ -608,11 +608,11 @@ const AdminChangeRequests: React.FC = () => {
                                             </div>
                                             <div>
                                               <span className="text-muted-foreground">Avg score:</span>
-                                              <span className="ml-1 font-medium">{change.evidence.avg_score?.toFixed(2) || 'N/A'}</span>
+                                              <span className="ml-1 font-medium">{change.evidence.avg_score != null ? Number(change.evidence.avg_score).toFixed(2) : 'N/A'}</span>
                                             </div>
                                             <div>
                                               <span className="text-muted-foreground">Negative rate:</span>
-                                              <span className="ml-1 font-medium">{(change.evidence.negative_rate * 100).toFixed(1)}%</span>
+                                              <span className="ml-1 font-medium">{change.evidence.negative_rate != null ? (Number(change.evidence.negative_rate) * 100).toFixed(1) : 0}%</span>
                                             </div>
                                           </div>
                                           
@@ -620,7 +620,7 @@ const AdminChangeRequests: React.FC = () => {
                                             <div className="flex flex-wrap gap-2 mt-2">
                                               {Object.entries(change.evidence.pillar_scores).map(([pillar, score]) => (
                                                 <Badge key={pillar} variant="outline" className="text-xs">
-                                                  {pillar}: {typeof score === 'number' ? score.toFixed(1) : score}
+                                                  {pillar}: {score != null ? Number(score).toFixed(1) : 'N/A'}
                                                 </Badge>
                                               ))}
                                             </div>
@@ -657,7 +657,7 @@ const AdminChangeRequests: React.FC = () => {
                                               <span className="text-xs text-emerald-500 font-medium">Research Support:</span>
                                               {change.evidence.research_support.map((r, i) => (
                                                 <div key={i} className="text-xs text-muted-foreground mt-1">
-                                                  "{r.modification}" → +{r.score_delta?.toFixed(2)} score
+                                                  "{r.modification}" → +{r.score_delta != null ? Number(r.score_delta).toFixed(2) : 'N/A'} score
                                                 </div>
                                               ))}
                                             </div>
