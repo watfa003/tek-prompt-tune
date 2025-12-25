@@ -116,7 +116,21 @@ const AdminChangeRequests: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setChangeRequests((data || []) as unknown as ChangeRequest[]);
+
+      const normalized = ((data || []) as any[]).map((r) => ({
+        ...r,
+        findings: Array.isArray(r.findings) ? r.findings : [],
+        individual_changes: Array.isArray(r.individual_changes) ? r.individual_changes : [],
+      })) as unknown as ChangeRequest[];
+
+      setChangeRequests(normalized);
+
+      // Auto-select the latest request so changes are immediately visible.
+      setSelectedRequest((prev) => {
+        if (normalized.length === 0) return null;
+        if (!prev) return normalized[0];
+        return normalized.find((r) => r.id === prev.id) || normalized[0];
+      });
     } catch (error) {
       console.error('Error loading change requests:', error);
       toast.error('Failed to load change requests');
@@ -172,6 +186,9 @@ const AdminChangeRequests: React.FC = () => {
       if (error) throw error;
 
       setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      setChangeRequests((prev) =>
+        prev.map((r) => (r.id === selectedRequest.id ? { ...r, individual_changes: updatedChanges } : r)),
+      );
       toast.success(`Change ${newStatus}`);
     } catch (error) {
       console.error('Error updating change:', error);
@@ -198,6 +215,9 @@ const AdminChangeRequests: React.FC = () => {
       if (error) throw error;
 
       setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      setChangeRequests((prev) =>
+        prev.map((r) => (r.id === selectedRequest.id ? { ...r, individual_changes: updatedChanges } : r)),
+      );
       toast.success('All pending changes approved');
     } catch (error) {
       toast.error('Failed to approve changes');
@@ -223,6 +243,9 @@ const AdminChangeRequests: React.FC = () => {
       if (error) throw error;
 
       setSelectedRequest({ ...selectedRequest, individual_changes: updatedChanges });
+      setChangeRequests((prev) =>
+        prev.map((r) => (r.id === selectedRequest.id ? { ...r, individual_changes: updatedChanges } : r)),
+      );
       toast.success('All pending changes rejected');
     } catch (error) {
       toast.error('Failed to reject changes');
@@ -533,44 +556,73 @@ const AdminChangeRequests: React.FC = () => {
                                   change.status === 'rejected' ? 'border-red-500/30 bg-red-500/5' :
                                   'border-border'
                                 }`}>
-                                  <CollapsibleTrigger className="w-full">
-                                    <div className="p-4">
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex items-start gap-3">
-                                          <div className={`p-2 rounded-lg bg-muted ${typeConfig.color}`}>
-                                            <TypeIcon className="w-4 h-4" />
-                                          </div>
-                                          <div className="text-left">
-                                            <div className="flex items-center gap-2">
-                                              <span className="font-medium text-foreground">
-                                                {typeConfig.label}: {change.target_strategy}
-                                              </span>
-                                              <Badge className={riskColors[change.risk_level]}>
-                                                {change.risk_level} risk
-                                              </Badge>
-                                              {change.status !== 'pending' && (
-                                                <Badge className={
-                                                  change.status === 'approved' 
-                                                    ? 'bg-emerald-500/10 text-emerald-500' 
-                                                    : 'bg-red-500/10 text-red-500'
-                                                }>
-                                                  {change.status}
-                                                </Badge>
+                                  <div className="flex items-stretch">
+                                    <CollapsibleTrigger asChild>
+                                      <button type="button" className="flex-1 text-left">
+                                        <div className="p-4">
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-start gap-3">
+                                              <div className={`p-2 rounded-lg bg-muted ${typeConfig.color}`}>
+                                                <TypeIcon className="w-4 h-4" />
+                                              </div>
+                                              <div className="text-left">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                  <span className="font-medium text-foreground">
+                                                    {typeConfig.label}: {change.target_strategy}
+                                                  </span>
+                                                  <Badge className={riskColors[change.risk_level]}>
+                                                    {change.risk_level} risk
+                                                  </Badge>
+                                                  {change.status !== 'pending' && (
+                                                    <Badge className={
+                                                      change.status === 'approved' 
+                                                        ? 'bg-emerald-500/10 text-emerald-500' 
+                                                        : 'bg-red-500/10 text-red-500'
+                                                    }>
+                                                      {change.status}
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                                  {change.reasoning}
+                                                </p>
+                                              </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                              {isExpanded ? (
+                                                <ChevronUp className="w-4 h-4" />
+                                              ) : (
+                                                <ChevronDown className="w-4 h-4" />
                                               )}
                                             </div>
-                                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                              {change.reasoning}
-                                            </p>
                                           </div>
                                         </div>
-                                        {isExpanded ? (
-                                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                                        ) : (
-                                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                        )}
+                                      </button>
+                                    </CollapsibleTrigger>
+
+                                    {selectedRequest.status === 'submitted' && change.status === 'pending' && (
+                                      <div className="p-4 flex items-center gap-2 border-l border-border">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => updateChangeStatus(change.change_id, 'approved')}
+                                          aria-label="Approve change"
+                                          className="bg-emerald-600 hover:bg-emerald-700"
+                                        >
+                                          <CheckCircle className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => updateChangeStatus(change.change_id, 'rejected')}
+                                          aria-label="Reject change"
+                                          className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                                        >
+                                          <XCircle className="w-3 h-3" />
+                                        </Button>
                                       </div>
-                                    </div>
-                                  </CollapsibleTrigger>
+                                    )}
+                                  </div>
 
                                   <CollapsibleContent>
                                     <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
