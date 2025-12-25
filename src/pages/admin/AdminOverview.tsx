@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -11,7 +14,9 @@ import {
   Clock,
   ThumbsUp,
   ThumbsDown,
-  Activity
+  Activity,
+  AlertCircle,
+  ChevronRight
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -34,10 +39,32 @@ const AdminOverview: React.FC = () => {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingChanges, setPendingChanges] = useState<{ count: number; requestId: string | null }>({ count: 0, requestId: null });
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboardData();
+    loadPendingChanges();
   }, []);
+
+  const loadPendingChanges = async () => {
+    try {
+      const { data } = await supabase
+        .from('weekly_change_requests')
+        .select('id, individual_changes, status')
+        .eq('status', 'submitted')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        const changes = data[0].individual_changes as any[] || [];
+        const pendingCount = changes.filter((c: any) => c.status === 'pending').length;
+        setPendingChanges({ count: pendingCount, requestId: data[0].id });
+      }
+    } catch (error) {
+      console.error('Error loading pending changes:', error);
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -146,6 +173,28 @@ const AdminOverview: React.FC = () => {
         <h1 className="text-3xl font-bold text-foreground">Admin Overview</h1>
         <p className="text-muted-foreground mt-1">System-wide metrics and performance insights</p>
       </div>
+
+      {/* Pending Changes Alert */}
+      {pendingChanges.count > 0 && (
+        <Alert className="border-amber-500/50 bg-amber-500/10">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          <AlertTitle className="text-amber-500">Pending Changes Require Review</AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-muted-foreground">
+              {pendingChanges.count} proposed change{pendingChanges.count !== 1 ? 's' : ''} awaiting your approval.
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-4 gap-1"
+              onClick={() => navigate('/admin/change-requests')}
+            >
+              Review Changes
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
