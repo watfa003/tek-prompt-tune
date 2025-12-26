@@ -103,6 +103,16 @@ function analyzeStrategyPerformance(analysisData: any[]): Record<string, Strateg
   return performance;
 }
 
+// Minimum thresholds for proposing changes - feedback alone is NOT enough
+const EVIDENCE_THRESHOLDS = {
+  MIN_SAMPLE_SIZE: 10, // Need at least 10 data points
+  MIN_NEGATIVE_COUNT: 3, // Need at least 3 negative feedback instances
+  MIN_NEGATIVE_RATE: 0.25, // 25% negative rate with corroborating metrics
+  MIN_SCORE_DROP: 0.5, // Score must be 0.5+ below target
+  MIN_REGRESSION_COUNT: 2, // Need 2+ regression instances
+  MIN_RESEARCH_DELTA: 0.3, // Research needs +0.3 score delta
+};
+
 // Use LLM to analyze patterns and generate change proposals
 async function analyzeWithLLM(
   strategyPerformance: Record<string, StrategyPerformance>,
@@ -116,6 +126,12 @@ async function analyzeWithLLM(
   }
 
   const prompt = `You are an expert prompt optimization analyst. Analyze the following performance data and propose specific, actionable changes to improve the prompt optimization system.
+
+CRITICAL: User feedback is ONE supporting signal, NOT a primary driver. You MUST have multiple corroborating evidence points before proposing changes:
+- Sample size ≥${EVIDENCE_THRESHOLDS.MIN_SAMPLE_SIZE} data points
+- Negative feedback count ≥${EVIDENCE_THRESHOLDS.MIN_NEGATIVE_COUNT} instances (not just 1-2)
+- Corroborating metrics (low scores, regressions, or research backing)
+- A single user saying "too unfocused" is NOT sufficient to change strategy weights
 
 ## Current Strategy Performance (last 7 days):
 ${JSON.stringify(strategyPerformance, null, 2)}
@@ -131,20 +147,31 @@ ${JSON.stringify(researchResults.slice(0, 20), null, 2)}
 ## Your Task:
 Analyze patterns and propose specific changes. For each proposed change, provide:
 1. change_type: One of "strategy_weight", "strategy_apply_step", "strategy_fix_rule", "master_prompt_rule", "target_score"
-2. target_strategy: Which strategy is affected
+2. target_strategy: Which strategy is affected (use "master_prompt" for master_prompt_rule changes)
 3. current_value: What the current setting is (be specific)
 4. proposed_value: What you propose to change it to
-5. reasoning: Clear explanation (2-3 sentences max)
+5. reasoning: Clear explanation with specific data backing (cite numbers!)
 6. expected_impact: Quantified prediction like "+0.3 avg score"
 7. risk_level: "low", "medium", or "high"
 
-Focus on:
-- Strategies with high negative feedback rates (>30%)
-- Strategies with low average scores (<7.5)
-- Patterns from research that show clear improvements
-- Regression patterns that indicate problematic transformations
+## Change Types Explained:
+- strategy_weight: Adjust how much a strategy is prioritized (need strong multi-signal evidence)
+- strategy_apply_step: Add/modify a step in how a strategy optimizes prompts
+- strategy_fix_rule: Add/modify rules for fixing specific issues
+- master_prompt_rule: Add/modify DO or DONT rules in the master prompt (e.g., "DO: preserve user's technical jargon", "DONT: add constraints that weren't in original")
+- target_score: Adjust target scores for pillars
 
-Respond with a JSON array of changes. Maximum 5 changes. Be conservative - propose patch-based improvements, not rewrites.
+## Evidence Requirements (MANDATORY):
+- Strategy changes: Need ≥${EVIDENCE_THRESHOLDS.MIN_SAMPLE_SIZE} samples AND (low avg score <7.5 OR ≥${EVIDENCE_THRESHOLDS.MIN_NEGATIVE_COUNT} negative feedback with pattern)
+- Master prompt rules: Need observed pattern across ≥3 strategies OR research backing
+- Apply step additions: Need research result with ≥+${EVIDENCE_THRESHOLDS.MIN_RESEARCH_DELTA} score improvement
+
+DO NOT propose:
+- Complete strategy rewrites based on 1-2 feedback comments
+- Weight changes without corroborating score/regression data
+- Changes where sample size < ${EVIDENCE_THRESHOLDS.MIN_SAMPLE_SIZE}
+
+Respond with a JSON array of changes. Maximum 6 changes total. Include at least 1 master_prompt_rule if patterns warrant it.
 
 Example format:
 [
@@ -153,8 +180,17 @@ Example format:
     "target_strategy": "efficiency",
     "current_value": 0.20,
     "proposed_value": 0.15,
-    "reasoning": "Efficiency strategy shows 45% negative rate with feedback about 'lost context'. Reducing weight allows other strategies to preserve more detail.",
+    "reasoning": "Efficiency shows 42% negative rate (21/50 samples) with avg score 6.8. Feedback themes: 'lost context' (8x), 'too brief' (5x). Corroborated by specificity_decreased regressions (12 instances). Reducing weight warranted.",
     "expected_impact": "+0.3 specificity improvement",
+    "risk_level": "low"
+  },
+  {
+    "change_type": "master_prompt_rule",
+    "target_strategy": "master_prompt",
+    "current_value": "none",
+    "proposed_value": "DO: preserve domain-specific terminology from original prompt",
+    "reasoning": "Observed across clarity, specificity, efficiency strategies: technical terms being simplified. 15 feedback mentions 'lost technical accuracy'. Avg formality_score drops 1.2 points after optimization.",
+    "expected_impact": "Reduced technical accuracy complaints",
     "risk_level": "low"
   }
 ]`;
@@ -225,7 +261,7 @@ Example format:
   }
 }
 
-// Fallback rule-based change generation
+// Fallback rule-based change generation with stricter evidence requirements
 function generateRuleBasedChanges(
   strategyPerformance: Record<string, StrategyPerformance>,
   researchResults: any[],
@@ -234,33 +270,67 @@ function generateRuleBasedChanges(
   const changes: IndividualChange[] = [];
   const timestamp = Date.now();
 
-  // Find underperforming strategies
-  for (const [name, perf] of Object.entries(strategyPerformance)) {
-    if (perf.count < 5) continue; // Need minimum sample size
+  // Track patterns across strategies for master prompt rules
+  const crossStrategyPatterns: Record<string, { count: number; strategies: string[]; feedback: string[] }> = {};
 
-    // High negative feedback rate
-    if (perf.negativeRate > 0.3) {
+  // Find underperforming strategies - with STRICT evidence requirements
+  for (const [name, perf] of Object.entries(strategyPerformance)) {
+    // STRICT: Need minimum sample size
+    if (perf.count < EVIDENCE_THRESHOLDS.MIN_SAMPLE_SIZE) {
+      console.log(`Skipping ${name}: only ${perf.count} samples (need ${EVIDENCE_THRESHOLDS.MIN_SAMPLE_SIZE})`);
+      continue;
+    }
+
+    // Track feedback themes for cross-strategy analysis
+    for (const reason of perf.feedbackReasons) {
+      const theme = reason.toLowerCase();
+      if (!crossStrategyPatterns[theme]) {
+        crossStrategyPatterns[theme] = { count: 0, strategies: [], feedback: [] };
+      }
+      crossStrategyPatterns[theme].count++;
+      if (!crossStrategyPatterns[theme].strategies.includes(name)) {
+        crossStrategyPatterns[theme].strategies.push(name);
+      }
+      crossStrategyPatterns[theme].feedback.push(reason);
+    }
+
+    // STRICT: High negative feedback rate BUT need multiple negative instances AND low scores
+    const hasEnoughNegatives = perf.negativeCount >= EVIDENCE_THRESHOLDS.MIN_NEGATIVE_COUNT;
+    const hasHighNegativeRate = perf.negativeRate > EVIDENCE_THRESHOLDS.MIN_NEGATIVE_RATE;
+    const hasLowScore = perf.avgScore < 7.5;
+    const hasRegressions = perf.regressionCategories.length >= EVIDENCE_THRESHOLDS.MIN_REGRESSION_COUNT;
+
+    if (hasHighNegativeRate && hasEnoughNegatives && (hasLowScore || hasRegressions)) {
+      // Count unique feedback themes to ensure it's not just one person
+      const uniqueThemes = [...new Set(perf.feedbackReasons.map(r => r.toLowerCase().substring(0, 20)))];
+      
       changes.push({
         change_id: `chg_${name}_weight_${timestamp}`,
         change_type: "strategy_weight",
         target_strategy: name,
         current_value: "current weight",
-        proposed_value: "reduce by 0.1",
+        proposed_value: "reduce by 0.05-0.1",
         evidence: {
           data_points: perf.count,
           avg_score: perf.avgScore,
           negative_rate: perf.negativeRate,
-          feedback_themes: perf.feedbackReasons.slice(0, 5),
+          feedback_themes: uniqueThemes.slice(0, 5),
+          regression_categories: [...new Set(perf.regressionCategories)].slice(0, 3),
         },
-        reasoning: `Strategy "${name}" has ${(perf.negativeRate * 100).toFixed(1)}% negative feedback rate (${perf.negativeCount} of ${perf.count}). Top complaints: ${perf.feedbackReasons.slice(0, 3).join(", ") || "N/A"}. Reducing weight may improve user satisfaction.`,
-        expected_impact: "+0.2 to +0.4 satisfaction improvement",
+        reasoning: `Strategy "${name}" has ${(perf.negativeRate * 100).toFixed(1)}% negative rate (${perf.negativeCount} of ${perf.count} samples). Avg score: ${perf.avgScore.toFixed(2)}. ${hasRegressions ? `Regressions: ${[...new Set(perf.regressionCategories)].slice(0, 2).join(', ')}.` : ''} Feedback themes (${uniqueThemes.length} unique): ${uniqueThemes.slice(0, 3).join(", ") || "N/A"}.`,
+        expected_impact: "+0.2 to +0.3 satisfaction improvement",
         risk_level: "low",
         status: "pending",
       });
     }
 
-    // Low pillar scores with regressions
-    if (perf.avgSpecificity < 7 && perf.regressionCategories.includes("specificity_decreased")) {
+    // STRICT: Low pillar scores with MULTIPLE regression instances
+    const regressionCounts = perf.regressionCategories.reduce((acc, cat) => {
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    if (perf.avgSpecificity < 7 && (regressionCounts["specificity_decreased"] || 0) >= EVIDENCE_THRESHOLDS.MIN_REGRESSION_COUNT) {
       changes.push({
         change_id: `chg_${name}_fix_specificity_${timestamp}`,
         change_type: "strategy_fix_rule",
@@ -274,7 +344,7 @@ function generateRuleBasedChanges(
           pillar_scores: { specificity: perf.avgSpecificity },
           regression_categories: ["specificity_decreased"],
         },
-        reasoning: `Strategy "${name}" shows average specificity of ${perf.avgSpecificity.toFixed(1)} with frequent specificity_decreased regressions. Adding a fix rule to preserve key details may help.`,
+        reasoning: `Strategy "${name}" has avg specificity ${perf.avgSpecificity.toFixed(2)} (<7.0) with ${regressionCounts["specificity_decreased"]} specificity_decreased regressions across ${perf.count} samples. Adding preservation rule warranted.`,
         expected_impact: "+0.3 specificity score improvement",
         risk_level: "medium",
         status: "pending",
@@ -282,8 +352,37 @@ function generateRuleBasedChanges(
     }
   }
 
-  // Check research results for successful modifications
-  const successfulMods = researchResults.filter(r => r.score_delta > 0.3);
+  // Generate master prompt rules from cross-strategy patterns
+  for (const [theme, data] of Object.entries(crossStrategyPatterns)) {
+    if (data.strategies.length >= 3 && data.count >= 5) {
+      // Pattern appears across 3+ strategies with 5+ instances
+      const ruleType = theme.includes("lost") || theme.includes("removed") || theme.includes("missing") ? "DO" : "DONT";
+      const ruleContent = ruleType === "DO" 
+        ? `preserve ${theme.replace(/lost|removed|missing/gi, '').trim()} from original prompt`
+        : `avoid ${theme.trim()}`;
+      
+      changes.push({
+        change_id: `chg_master_prompt_${theme.replace(/\s+/g, '_').substring(0, 20)}_${timestamp}`,
+        change_type: "master_prompt_rule",
+        target_strategy: "master_prompt",
+        current_value: "none",
+        proposed_value: `${ruleType}: ${ruleContent}`,
+        evidence: {
+          data_points: data.count,
+          avg_score: 0,
+          negative_rate: 0,
+          feedback_themes: data.feedback.slice(0, 5),
+        },
+        reasoning: `Pattern "${theme}" observed ${data.count} times across ${data.strategies.length} strategies (${data.strategies.join(', ')}). Adding master prompt rule to address systematically.`,
+        expected_impact: "Reduced complaints across all strategies",
+        risk_level: "low",
+        status: "pending",
+      });
+    }
+  }
+
+  // Check research results for successful modifications - with threshold
+  const successfulMods = researchResults.filter(r => r.score_delta >= EVIDENCE_THRESHOLDS.MIN_RESEARCH_DELTA);
   for (const mod of successfulMods.slice(0, 2)) {
     changes.push({
       change_id: `chg_research_${mod.modification_applied}_${timestamp}`,
@@ -297,14 +396,14 @@ function generateRuleBasedChanges(
         negative_rate: 0,
         research_support: [{ modification: mod.modification_applied, score_delta: mod.score_delta }],
       },
-      reasoning: `Research testing shows "${mod.modification_applied}" improved scores by +${mod.score_delta?.toFixed(2) || "?"} in controlled tests. Adding as apply step may provide consistent improvements.`,
+      reasoning: `Research testing shows "${mod.modification_applied}" improved scores by +${mod.score_delta?.toFixed(2)} (above ${EVIDENCE_THRESHOLDS.MIN_RESEARCH_DELTA} threshold). Adding as apply step.`,
       expected_impact: `+${mod.score_delta?.toFixed(2) || "0.3"} score improvement`,
       risk_level: "medium",
       status: "pending",
     });
   }
 
-  return changes.slice(0, 5); // Max 5 changes
+  return changes.slice(0, 6); // Max 6 changes
 }
 
 serve(async (req) => {
